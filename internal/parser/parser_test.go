@@ -1,7 +1,10 @@
 package parser
 
 import (
+	"path/filepath"
 	"testing"
+
+	"github.com/xuri/excelize/v2"
 )
 
 func TestParseCSV_Simple(t *testing.T) {
@@ -49,5 +52,42 @@ func TestParse_UnsupportedExtension(t *testing.T) {
 	_, err := Parse("file.json")
 	if err == nil {
 		t.Fatal("expected error for unsupported extension")
+	}
+}
+
+func TestParseXLSX_Simple(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.xlsx")
+
+	f := excelize.NewFile()
+	sheet := "Sheet1"
+	headers := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status"}
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+	row := []string{"Alice", "VP", "Engineering", "", "Eng", "", "Active"}
+	for i, v := range row {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 2)
+		f.SetCellValue(sheet, cell, v)
+	}
+	row2 := []string{"Bob", "Engineer", "Engineering", "Alice", "Platform", "", "Active"}
+	for i, v := range row2 {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 3)
+		f.SetCellValue(sheet, cell, v)
+	}
+	if err := f.SaveAs(path); err != nil {
+		t.Fatalf("failed to create test xlsx: %v", err)
+	}
+
+	org, err := Parse(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.People) != 2 {
+		t.Errorf("expected 2 people, got %d", len(org.People))
+	}
+	if org.ByName["Alice"] == nil {
+		t.Error("expected Alice in org")
 	}
 }
