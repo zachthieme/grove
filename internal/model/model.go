@@ -21,6 +21,29 @@ type Org struct {
 }
 
 func NewOrg(people []Person) (*Org, error) {
+	validStatuses := map[string]bool{"Active": true, "Hiring": true, "Open": true}
+	for i, p := range people {
+		row := i + 2
+		if p.Name == "" {
+			return nil, fmt.Errorf("row %d: missing 'Name'", row)
+		}
+		if p.Role == "" {
+			return nil, fmt.Errorf("row %d: missing 'Role'", row)
+		}
+		if p.Discipline == "" {
+			return nil, fmt.Errorf("row %d: missing 'Discipline'", row)
+		}
+		if p.Team == "" {
+			return nil, fmt.Errorf("row %d: missing 'Team'", row)
+		}
+		if p.Status == "" {
+			return nil, fmt.Errorf("row %d: missing 'Status'", row)
+		}
+		if !validStatuses[p.Status] {
+			return nil, fmt.Errorf("row %d: status must be Active, Hiring, or Open (got '%s')", row, p.Status)
+		}
+	}
+
 	org := &Org{
 		People:    people,
 		ByName:    make(map[string]*Person),
@@ -47,6 +70,23 @@ func NewOrg(people []Person) (*Org, error) {
 				return nil, fmt.Errorf("manager '%s' not found (referenced by '%s')", p.Manager, p.Name)
 			}
 			org.ByManager[p.Manager] = append(org.ByManager[p.Manager], p)
+		}
+	}
+
+	for i := range org.People {
+		p := &org.People[i]
+		if p.Manager == "" {
+			continue
+		}
+		visited := map[string]bool{p.Name: true}
+		current := p.Manager
+		for current != "" {
+			if visited[current] {
+				return nil, fmt.Errorf("circular reporting chain detected involving '%s'", current)
+			}
+			visited[current] = true
+			mgr := org.ByName[current]
+			current = mgr.Manager
 		}
 	}
 

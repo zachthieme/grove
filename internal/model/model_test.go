@@ -34,3 +34,55 @@ func TestNewOrg_ValidPeople(t *testing.T) {
 		t.Errorf("expected root to be Alice, got %s", org.Roots[0].Name)
 	}
 }
+
+func TestNewOrg_DuplicateName(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{Name: "Alice", Role: "PM", Discipline: "PM", Manager: "", Team: "PM", Status: "Active"},
+	}
+	_, err := NewOrg(people)
+	if err == nil {
+		t.Fatal("expected error for duplicate name")
+	}
+}
+
+func TestNewOrg_DanglingManager(t *testing.T) {
+	people := []Person{
+		{Name: "Bob", Role: "Eng", Discipline: "Eng", Manager: "Nobody", Team: "Eng", Status: "Active"},
+	}
+	_, err := NewOrg(people)
+	if err == nil {
+		t.Fatal("expected error for dangling manager ref")
+	}
+}
+
+func TestNewOrg_CircularReporting(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "Bob", Team: "Eng", Status: "Active"},
+		{Name: "Bob", Role: "Dir", Discipline: "Eng", Manager: "Alice", Team: "Eng", Status: "Active"},
+	}
+	_, err := NewOrg(people)
+	if err == nil {
+		t.Fatal("expected error for circular reporting")
+	}
+}
+
+func TestNewOrg_InvalidStatus(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "TBD"},
+	}
+	_, err := NewOrg(people)
+	if err == nil {
+		t.Fatal("expected error for invalid status")
+	}
+}
+
+func TestNewOrg_MissingRequiredField(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+	}
+	_, err := NewOrg(people)
+	if err == nil {
+		t.Fatal("expected error for missing Role")
+	}
+}
