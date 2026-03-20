@@ -86,3 +86,43 @@ func TestNewOrg_MissingRequiredField(t *testing.T) {
 		t.Fatal("expected error for missing Role")
 	}
 }
+
+func TestNodeID_Simple(t *testing.T) {
+	ids := NewIDGenerator()
+	id := ids.ID("Jane Smith")
+	if id != "jane_smith" {
+		t.Errorf("expected 'jane_smith', got '%s'", id)
+	}
+}
+
+func TestNodeID_SpecialChars(t *testing.T) {
+	ids := NewIDGenerator()
+	id := ids.ID("O'Brien-Jones")
+	if id != "obrienjones" {
+		t.Errorf("expected 'obrienjones', got '%s'", id)
+	}
+}
+
+func TestNodeID_Collision(t *testing.T) {
+	ids := NewIDGenerator()
+	id1 := ids.ID("Jane Smith")
+	id2 := ids.ID("Jane  Smith")
+	if id1 == id2 {
+		t.Error("expected different IDs for colliding names")
+	}
+	if id2 != "jane_smith_2" {
+		t.Errorf("expected 'jane_smith_2', got '%s'", id2)
+	}
+}
+
+func TestNodeID_OpenHiring(t *testing.T) {
+	ids := NewIDGenerator()
+	id1 := ids.OpenID()
+	id2 := ids.OpenID()
+	if id1 != "open_1" {
+		t.Errorf("expected 'open_1', got '%s'", id1)
+	}
+	if id2 != "open_2" {
+		t.Errorf("expected 'open_2', got '%s'", id2)
+	}
+}

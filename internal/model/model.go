@@ -1,6 +1,12 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
+
+var nonAlphaNum = regexp.MustCompile(`[^a-z0-9_]`)
 
 type Person struct {
 	Name            string
@@ -91,4 +97,34 @@ func NewOrg(people []Person) (*Org, error) {
 	}
 
 	return org, nil
+}
+
+type IDGenerator struct {
+	seen    map[string]int
+	openSeq int
+}
+
+func NewIDGenerator() *IDGenerator {
+	return &IDGenerator{seen: make(map[string]int)}
+}
+
+func (g *IDGenerator) ID(name string) string {
+	base := strings.ToLower(name)
+	base = strings.ReplaceAll(base, " ", "_")
+	base = nonAlphaNum.ReplaceAllString(base, "")
+	for strings.Contains(base, "__") {
+		base = strings.ReplaceAll(base, "__", "_")
+	}
+	base = strings.Trim(base, "_")
+
+	g.seen[base]++
+	if g.seen[base] == 1 {
+		return base
+	}
+	return fmt.Sprintf("%s_%d", base, g.seen[base])
+}
+
+func (g *IDGenerator) OpenID() string {
+	g.openSeq++
+	return fmt.Sprintf("open_%d", g.openSeq)
 }
