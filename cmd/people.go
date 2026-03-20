@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"github.com/zach/orgchart/internal/parser"
 	"github.com/zach/orgchart/internal/renderer"
@@ -30,12 +27,4 @@ var peopleCmd = &cobra.Command{
 func init() {
 	peopleCmd.Flags().StringVarP(&peopleOutput, "output", "o", "", "output file path")
 	rootCmd.AddCommand(peopleCmd)
-}
-
-func writeOutput(content, outputPath string) error {
-	if outputPath == "" {
-		fmt.Print(content)
-		return nil
-	}
-	return os.WriteFile(outputPath, []byte(content), 0644)
 }

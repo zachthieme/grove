@@ -73,7 +73,7 @@ func HeadcountView(org *model.Org) ViewModel {
 			idCounter++
 			sg.Nodes = append(sg.Nodes, Node{
 				ID:    fmt.Sprintf("n_%d", idCounter),
-				Label: fmt.Sprintf("Hiring: %d", hiringCount),
+				Label: fmt.Sprintf("🔵 Hiring: %d", hiringCount),
 				Class: "hiring",
 			})
 		}

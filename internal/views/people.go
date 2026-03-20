@@ -38,20 +38,33 @@ func PeopleView(org *model.Org) ViewModel {
 		}
 	}
 
+	// Build set of root names for FreeNode placement
+	rootSet := make(map[string]bool)
+	for _, r := range org.Roots {
+		rootSet[r.Name] = true
+	}
+
 	for _, team := range teamOrder {
 		sg := Subgraph{Label: team}
 		members := org.ByTeam[team]
 		for _, p := range members {
+			label := fmt.Sprintf("%s<br/><i>%s</i>", p.Name, p.Role)
 			nodeClass := ""
 			if p.Status == "Hiring" || p.Status == "Open" {
 				nodeClass = "hiring"
 				hasHiring = true
+				label = fmt.Sprintf("🔵 %s<br/><i>%s</i>", p.Name, p.Role)
 			}
-			sg.Nodes = append(sg.Nodes, Node{
+			node := Node{
 				ID:    nameToID[p.Name],
-				Label: fmt.Sprintf("%s<br/><i>%s</i>", p.Name, p.Role),
+				Label: label,
 				Class: nodeClass,
-			})
+			}
+			if rootSet[p.Name] {
+				vm.FreeNodes = append(vm.FreeNodes, node)
+			} else {
+				sg.Nodes = append(sg.Nodes, node)
+			}
 		}
 		if len(sg.Nodes) > 0 {
 			vm.Subgraphs = append(vm.Subgraphs, sg)

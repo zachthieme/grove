@@ -18,3 +18,11 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+func writeOutput(content, outputPath string) error {
+	if outputPath == "" {
+		fmt.Print(content)
+		return nil
+	}
+	return os.WriteFile(outputPath, []byte(content), 0644)
+}

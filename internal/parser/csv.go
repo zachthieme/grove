@@ -41,26 +41,29 @@ func parseCSV(path string) (*model.Org, error) {
 
 	var people []model.Person
 	for _, row := range records[1:] {
+		get := func(col string) string {
+			idx, ok := cols[col]
+			if !ok || idx >= len(row) {
+				return ""
+			}
+			return strings.TrimSpace(row[idx])
+		}
+
 		p := model.Person{
-			Name:       strings.TrimSpace(row[cols["name"]]),
-			Role:       strings.TrimSpace(row[cols["role"]]),
-			Discipline: strings.TrimSpace(row[cols["discipline"]]),
-			Team:       strings.TrimSpace(row[cols["team"]]),
-			Status:     strings.TrimSpace(row[cols["status"]]),
+			Name:       get("name"),
+			Role:       get("role"),
+			Discipline: get("discipline"),
+			Manager:    get("manager"),
+			Team:       get("team"),
+			Status:     get("status"),
 		}
 
-		if idx, ok := cols["manager"]; ok && idx < len(row) {
-			p.Manager = strings.TrimSpace(row[idx])
-		}
-
-		if idx, ok := cols["additional teams"]; ok && idx < len(row) {
-			raw := strings.TrimSpace(row[idx])
-			if raw != "" {
-				for _, t := range strings.Split(raw, ",") {
-					t = strings.TrimSpace(t)
-					if t != "" {
-						p.AdditionalTeams = append(p.AdditionalTeams, t)
-					}
+		raw := get("additional teams")
+		if raw != "" {
+			for _, t := range strings.Split(raw, ",") {
+				t = strings.TrimSpace(t)
+				if t != "" {
+					p.AdditionalTeams = append(p.AdditionalTeams, t)
 				}
 			}
 		}

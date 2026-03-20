@@ -23,8 +23,12 @@ func TestPeopleView_SimpleOrg(t *testing.T) {
 
 	vm := PeopleView(org)
 
-	if len(vm.Subgraphs) != 2 {
-		t.Errorf("expected 2 subgraphs, got %d", len(vm.Subgraphs))
+	// Alice is root → FreeNode, Bob in Platform subgraph
+	if len(vm.Subgraphs) != 1 {
+		t.Errorf("expected 1 subgraph (Platform), got %d", len(vm.Subgraphs))
+	}
+	if len(vm.FreeNodes) != 1 {
+		t.Errorf("expected 1 free node (Alice), got %d", len(vm.FreeNodes))
 	}
 
 	found := false
