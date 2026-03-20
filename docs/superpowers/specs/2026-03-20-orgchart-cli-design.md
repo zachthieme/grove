@@ -89,6 +89,10 @@ type Org struct {
 
 The `Org` struct pre-computes lookup maps via a constructor function `NewOrg(people []Person) (*Org, error)` which also performs validation. Views consume these lookups rather than re-scanning the people slice.
 
+### Node ID Generation
+
+Node IDs are derived from names: lowercased, spaces replaced with underscores, non-alphanumeric characters stripped. For Open/Hiring rows, IDs are generated as `open_1`, `open_2`, etc. (sequential counter). Collisions (two people whose names produce the same ID) are resolved by appending `_2`, `_3`, etc.
+
 ### View Model
 
 Views are functions that take an `*Org` and return a view model — a data structure describing nodes and edges to draw. The renderer takes the view model and emits mermaid syntax.
@@ -141,7 +145,7 @@ Every person is a node showing their name and role. Structure:
 
 - **Teams as subgraphs** — each team is a labeled subgraph containing its members
 - **Solid arrows** — reporting lines (manager → report)
-- **Dotted arrows** — cross-team ownership (person -.-> Team subgraph)
+- **Dotted arrows** — cross-team ownership (person dotted-edge to a designated node within the target team subgraph, since mermaid doesn't reliably support edges to subgraph labels)
 - **Dashed node borders** — open/hiring positions (via `classDef hiring stroke-dasharray: 5 5`)
 
 Example output:
@@ -178,7 +182,7 @@ No individual names. Nodes show discipline counts per team:
 
 - **Teams as subgraphs** — same as people view
 - **Nodes show discipline + count** — e.g., "Engineering: 3"
-- **Separate hiring count** — open positions shown as distinct nodes with dashed borders
+- **Separate hiring count** — Active people count as filled headcount; Hiring and Open count as open headcount, shown as distinct nodes with dashed borders
 - **Cross-team section** — people spanning multiple teams grouped in a "Cross-Team" subgraph showing which teams they touch
 
 Example output:
