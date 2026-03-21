@@ -1,6 +1,13 @@
 package main
 
-import "embed"
+import (
+	"embed"
+	"io/fs"
+)
 
 //go:embed web/dist
-var frontendFS embed.FS
+var frontendDist embed.FS
+
+func getFrontendFS() (fs.FS, error) {
+	return fs.Sub(frontendDist, "web/dist")
+}

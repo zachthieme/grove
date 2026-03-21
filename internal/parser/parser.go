@@ -20,8 +20,8 @@ func Parse(path string) (*model.Org, error) {
 	}
 }
 
-// buildPeople converts raw spreadsheet rows (header + data) into an Org.
-func buildPeople(header []string, dataRows [][]string) (*model.Org, error) {
+// BuildPeople converts raw spreadsheet rows (header + data) into an Org.
+func BuildPeople(header []string, dataRows [][]string) (*model.Org, error) {
 	cols := make(map[string]int)
 	for i, h := range header {
 		cols[strings.TrimSpace(strings.ToLower(h))] = i

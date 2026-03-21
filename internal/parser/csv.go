@@ -25,5 +25,5 @@ func parseCSV(path string) (*model.Org, error) {
 		return nil, fmt.Errorf("CSV file must have a header row and at least one data row")
 	}
 
-	return buildPeople(records[0], records[1:])
+	return BuildPeople(records[0], records[1:])
 }

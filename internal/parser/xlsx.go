@@ -24,5 +24,5 @@ func parseXLSX(path string) (*model.Org, error) {
 		return nil, fmt.Errorf("xlsx must have a header row and at least one data row")
 	}
 
-	return buildPeople(rows[0], rows[1:])
+	return BuildPeople(rows[0], rows[1:])
 }
