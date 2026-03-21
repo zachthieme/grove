@@ -23,6 +23,8 @@ type Person struct {
 	Team            string
 	AdditionalTeams []string
 	Status          string
+	NewRole         string
+	NewTeam         string
 }
 
 type Org struct {
@@ -116,6 +118,22 @@ func NewOrg(people []Person) (*Org, error) {
 	}
 
 	return org, nil
+}
+
+// ApplyPlanned swaps NewRole/NewTeam into Role/Team for people who have them,
+// then rebuilds the Org indexes. Returns a new Org.
+func ApplyPlanned(org *Org) (*Org, error) {
+	people := make([]Person, len(org.People))
+	copy(people, org.People)
+	for i := range people {
+		if people[i].NewRole != "" {
+			people[i].Role = people[i].NewRole
+		}
+		if people[i].NewTeam != "" {
+			people[i].Team = people[i].NewTeam
+		}
+	}
+	return NewOrg(people)
 }
 
 type IDGenerator struct {

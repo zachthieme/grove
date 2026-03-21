@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/zach/orgchart/internal/model"
+	"github.com/zach/orgchart/internal/parser"
 )
 
 var rootCmd = &cobra.Command{
@@ -17,6 +19,18 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// loadOrg parses the file and optionally applies planned changes.
+func loadOrg(path string, planned bool) (*model.Org, error) {
+	org, err := parser.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+	if planned {
+		return model.ApplyPlanned(org)
+	}
+	return org, nil
 }
 
 func writeOutput(content, outputPath string) error {

@@ -87,6 +87,35 @@ func TestNewOrg_MissingRequiredField(t *testing.T) {
 	}
 }
 
+func TestApplyPlanned_SwapsFields(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "Engineer", Discipline: "Eng", Manager: "", Team: "Platform", Status: "Active", NewRole: "Senior Engineer", NewTeam: "Search"},
+		{Name: "Bob", Role: "PM", Discipline: "PM", Manager: "Alice", Team: "Platform", Status: "Active"},
+	}
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	planned, err := ApplyPlanned(org)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	alice := planned.ByName["Alice"]
+	if alice.Role != "Senior Engineer" {
+		t.Errorf("expected Alice role 'Senior Engineer', got '%s'", alice.Role)
+	}
+	if alice.Team != "Search" {
+		t.Errorf("expected Alice team 'Search', got '%s'", alice.Team)
+	}
+
+	bob := planned.ByName["Bob"]
+	if bob.Role != "PM" {
+		t.Errorf("expected Bob role unchanged 'PM', got '%s'", bob.Role)
+	}
+}
+
 func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},

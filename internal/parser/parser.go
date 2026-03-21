@@ -51,6 +51,8 @@ func buildPeople(header []string, dataRows [][]string) (*model.Org, error) {
 			Manager:    get("manager"),
 			Team:       get("team"),
 			Status:     get("status"),
+			NewRole:    get("new role"),
+			NewTeam:    get("new team"),
 		}
 
 		raw := get("additional teams")
