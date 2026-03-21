@@ -87,6 +87,20 @@ func TestNewOrg_MissingRequiredField(t *testing.T) {
 	}
 }
 
+func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{Name: "Incoming", Role: "", Discipline: "", Manager: "Alice", Team: "Eng", Status: "Transfer"},
+	}
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.People) != 2 {
+		t.Errorf("expected 2 people, got %d", len(org.People))
+	}
+}
+
 func TestNodeID_Simple(t *testing.T) {
 	ids := NewIDGenerator()
 	id := ids.ID("Jane Smith")

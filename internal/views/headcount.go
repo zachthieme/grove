@@ -11,6 +11,7 @@ import (
 func HeadcountView(org *model.Org) ViewModel {
 	vm := ViewModel{}
 	hasHiring := false
+	hasTransfer := false
 
 	teamOrder := []string{}
 	teamSet := make(map[string]bool)
@@ -31,11 +32,15 @@ func HeadcountView(org *model.Org) ViewModel {
 
 		activeCounts := make(map[string]int)
 		hiringCount := 0
+		transferCount := 0
 
 		for _, p := range members {
-			if p.Status == model.StatusActive {
+			switch p.Status {
+			case model.StatusActive:
 				activeCounts[p.Discipline]++
-			} else {
+			case model.StatusTransfer:
+				transferCount++
+			default:
 				hiringCount++
 			}
 
@@ -68,6 +73,16 @@ func HeadcountView(org *model.Org) ViewModel {
 				ID:    fmt.Sprintf("n_%d", idCounter),
 				Label: fmt.Sprintf("🔵 Hiring: %d", hiringCount),
 				Class: classHiring,
+			})
+		}
+
+		if transferCount > 0 {
+			hasTransfer = true
+			idCounter++
+			sg.Nodes = append(sg.Nodes, Node{
+				ID:    fmt.Sprintf("n_%d", idCounter),
+				Label: fmt.Sprintf("🟡 Transfer: %d", transferCount),
+				Class: classTransfer,
 			})
 		}
 
@@ -116,6 +131,9 @@ func HeadcountView(org *model.Org) ViewModel {
 
 	if hasHiring {
 		vm.ClassDefs = append(vm.ClassDefs, classDefHiring)
+	}
+	if hasTransfer {
+		vm.ClassDefs = append(vm.ClassDefs, classDefTransfer)
 	}
 
 	return vm

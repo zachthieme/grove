@@ -1,8 +1,10 @@
 package views
 
 const (
-	classHiring    = "hiring"
-	classDefHiring = "classDef hiring stroke-dasharray: 5 5, stroke: #60a5fa"
+	classHiring      = "hiring"
+	classDefHiring   = "classDef hiring stroke-dasharray: 5 5, stroke: #60a5fa"
+	classTransfer    = "transfer"
+	classDefTransfer = "classDef transfer stroke-dasharray: 5 5, stroke: #f59e0b"
 )
 
 type Node struct {

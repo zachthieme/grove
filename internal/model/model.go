@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	StatusActive = "Active"
-	StatusHiring = "Hiring"
-	StatusOpen   = "Open"
+	StatusActive   = "Active"
+	StatusHiring   = "Hiring"
+	StatusOpen     = "Open"
+	StatusTransfer = "Transfer"
 )
 
 var nonAlphaNum = regexp.MustCompile(`[^a-z0-9_]`)
@@ -33,17 +34,11 @@ type Org struct {
 }
 
 func NewOrg(people []Person) (*Org, error) {
-	validStatuses := map[string]bool{StatusActive: true, StatusHiring: true, StatusOpen: true}
+	validStatuses := map[string]bool{StatusActive: true, StatusHiring: true, StatusOpen: true, StatusTransfer: true}
 	for i, p := range people {
 		row := i + 2
 		if p.Name == "" {
 			return nil, fmt.Errorf("row %d: missing 'Name'", row)
-		}
-		if p.Role == "" {
-			return nil, fmt.Errorf("row %d: missing 'Role'", row)
-		}
-		if p.Discipline == "" {
-			return nil, fmt.Errorf("row %d: missing 'Discipline'", row)
 		}
 		if p.Team == "" {
 			return nil, fmt.Errorf("row %d: missing 'Team'", row)
@@ -52,7 +47,16 @@ func NewOrg(people []Person) (*Org, error) {
 			return nil, fmt.Errorf("row %d: missing 'Status'", row)
 		}
 		if !validStatuses[p.Status] {
-			return nil, fmt.Errorf("row %d: status must be Active, Hiring, or Open (got '%s')", row, p.Status)
+			return nil, fmt.Errorf("row %d: status must be Active, Hiring, Open, or Transfer (got '%s')", row, p.Status)
+		}
+		// Role and Discipline are optional for Transfer status
+		if p.Status != StatusTransfer {
+			if p.Role == "" {
+				return nil, fmt.Errorf("row %d: missing 'Role'", row)
+			}
+			if p.Discipline == "" {
+				return nil, fmt.Errorf("row %d: missing 'Discipline'", row)
+			}
 		}
 	}
 

@@ -92,3 +92,34 @@ func TestPeopleView_HiringNode(t *testing.T) {
 		t.Error("expected a node with 'hiring' class")
 	}
 }
+
+func TestPeopleView_TransferNode(t *testing.T) {
+	org := testOrg(t, []model.Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{Name: "Incoming", Role: "", Discipline: "", Manager: "Alice", Team: "Eng", Status: "Transfer"},
+	})
+
+	vm := PeopleView(org)
+
+	transferFound := false
+	for _, sg := range vm.Subgraphs {
+		for _, n := range sg.Nodes {
+			if n.Class == "transfer" {
+				transferFound = true
+			}
+		}
+	}
+	if !transferFound {
+		t.Error("expected a node with 'transfer' class")
+	}
+
+	hasClassDef := false
+	for _, cd := range vm.ClassDefs {
+		if cd == "classDef transfer stroke-dasharray: 5 5, stroke: #f59e0b" {
+			hasClassDef = true
+		}
+	}
+	if !hasClassDef {
+		t.Error("expected transfer classDef")
+	}
+}

@@ -12,6 +12,7 @@ func PeopleView(org *model.Org) ViewModel {
 
 	nameToID := make(map[string]string)
 	hasHiring := false
+	hasTransfer := false
 
 	teamOrder := []string{}
 	teamSet := make(map[string]bool)
@@ -31,9 +32,10 @@ func PeopleView(org *model.Org) ViewModel {
 
 	for i := range org.People {
 		p := &org.People[i]
-		if p.Status == model.StatusHiring || p.Status == model.StatusOpen {
+		switch p.Status {
+		case model.StatusHiring, model.StatusOpen, model.StatusTransfer:
 			nameToID[p.Name] = ids.OpenID()
-		} else {
+		default:
 			nameToID[p.Name] = ids.ID(p.Name)
 		}
 	}
@@ -48,12 +50,21 @@ func PeopleView(org *model.Org) ViewModel {
 		sg := Subgraph{Label: team}
 		members := org.ByTeam[team]
 		for _, p := range members {
-			label := fmt.Sprintf("%s<br/><i>%s</i>", p.Name, p.Role)
+			roleText := p.Role
+			if roleText == "" {
+				roleText = "TBD"
+			}
+			label := fmt.Sprintf("%s<br/><i>%s</i>", p.Name, roleText)
 			nodeClass := ""
-			if p.Status == model.StatusHiring || p.Status == model.StatusOpen {
+			switch p.Status {
+			case model.StatusHiring, model.StatusOpen:
 				nodeClass = classHiring
 				hasHiring = true
-				label = fmt.Sprintf("🔵 %s<br/><i>%s</i>", p.Name, p.Role)
+				label = fmt.Sprintf("🔵 %s<br/><i>%s</i>", p.Name, roleText)
+			case model.StatusTransfer:
+				nodeClass = classTransfer
+				hasTransfer = true
+				label = fmt.Sprintf("🟡 %s<br/><i>%s</i>", p.Name, roleText)
 			}
 			node := Node{
 				ID:    nameToID[p.Name],
@@ -99,6 +110,9 @@ func PeopleView(org *model.Org) ViewModel {
 
 	if hasHiring {
 		vm.ClassDefs = append(vm.ClassDefs, classDefHiring)
+	}
+	if hasTransfer {
+		vm.ClassDefs = append(vm.ClassDefs, classDefTransfer)
 	}
 
 	return vm
