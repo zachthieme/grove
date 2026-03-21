@@ -1,0 +1,24 @@
+.container {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.column {
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.header {
+  font-weight: 600;
+  font-size: 14px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid #60a5fa;
+}
+
+.row {
+  margin-bottom: 6px;
+}

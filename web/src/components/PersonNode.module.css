@@ -1,0 +1,46 @@
+.node {
+  border: 2px solid #60a5fa;
+  border-radius: 6px;
+  background: #fff;
+  padding: 8px 12px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.node:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+.hiring {
+  border-style: dashed;
+}
+
+.transfer {
+  border-style: dashed;
+  border-color: #f59e0b;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.role {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
