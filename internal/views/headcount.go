@@ -23,6 +23,7 @@ func HeadcountView(org *model.Org) ViewModel {
 	}
 
 	var crossTeamPeople []*model.Person
+	crossTeamSeen := make(map[string]bool)
 	idCounter := 0
 
 	for _, team := range teamOrder {
@@ -32,23 +33,15 @@ func HeadcountView(org *model.Org) ViewModel {
 		hiringCount := 0
 
 		for _, p := range members {
-			if p.Status == "Active" {
+			if p.Status == model.StatusActive {
 				activeCounts[p.Discipline]++
 			} else {
 				hiringCount++
 			}
 
-			if len(p.AdditionalTeams) > 0 {
-				alreadyTracked := false
-				for _, ct := range crossTeamPeople {
-					if ct.Name == p.Name {
-						alreadyTracked = true
-						break
-					}
-				}
-				if !alreadyTracked {
-					crossTeamPeople = append(crossTeamPeople, p)
-				}
+			if len(p.AdditionalTeams) > 0 && !crossTeamSeen[p.Name] {
+				crossTeamSeen[p.Name] = true
+				crossTeamPeople = append(crossTeamPeople, p)
 			}
 		}
 
@@ -74,7 +67,7 @@ func HeadcountView(org *model.Org) ViewModel {
 			sg.Nodes = append(sg.Nodes, Node{
 				ID:    fmt.Sprintf("n_%d", idCounter),
 				Label: fmt.Sprintf("🔵 Hiring: %d", hiringCount),
-				Class: "hiring",
+				Class: classHiring,
 			})
 		}
 
@@ -122,7 +115,7 @@ func HeadcountView(org *model.Org) ViewModel {
 	}
 
 	if hasHiring {
-		vm.ClassDefs = append(vm.ClassDefs, "classDef hiring stroke-dasharray: 5 5, stroke: #60a5fa")
+		vm.ClassDefs = append(vm.ClassDefs, classDefHiring)
 	}
 
 	return vm

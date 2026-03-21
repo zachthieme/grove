@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+const (
+	StatusActive = "Active"
+	StatusHiring = "Hiring"
+	StatusOpen   = "Open"
+)
+
 var nonAlphaNum = regexp.MustCompile(`[^a-z0-9_]`)
 
 type Person struct {
@@ -27,7 +33,7 @@ type Org struct {
 }
 
 func NewOrg(people []Person) (*Org, error) {
-	validStatuses := map[string]bool{"Active": true, "Hiring": true, "Open": true}
+	validStatuses := map[string]bool{StatusActive: true, StatusHiring: true, StatusOpen: true}
 	for i, p := range people {
 		row := i + 2
 		if p.Name == "" {
@@ -79,20 +85,29 @@ func NewOrg(people []Person) (*Org, error) {
 		}
 	}
 
+	// Detect cycles with three-color DFS: 0=unvisited, 1=in-stack, 2=done
+	color := make(map[string]int, len(org.People))
 	for i := range org.People {
 		p := &org.People[i]
-		if p.Manager == "" {
+		if color[p.Name] != 0 || p.Manager == "" {
 			continue
 		}
-		visited := map[string]bool{p.Name: true}
-		current := p.Manager
-		for current != "" {
-			if visited[current] {
-				return nil, fmt.Errorf("circular reporting chain detected involving '%s'", current)
-			}
-			visited[current] = true
+		// Walk up the manager chain from this person
+		current := p.Name
+		for current != "" && color[current] == 0 {
+			color[current] = 1 // in-stack
 			mgr := org.ByName[current]
 			current = mgr.Manager
+		}
+		if current != "" && color[current] == 1 {
+			return nil, fmt.Errorf("circular reporting chain detected involving '%s'", current)
+		}
+		// Mark entire chain as done
+		walk := p.Name
+		for walk != "" && color[walk] == 1 {
+			color[walk] = 2
+			mgr := org.ByName[walk]
+			walk = mgr.Manager
 		}
 	}
 

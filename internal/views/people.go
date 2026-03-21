@@ -31,7 +31,7 @@ func PeopleView(org *model.Org) ViewModel {
 
 	for i := range org.People {
 		p := &org.People[i]
-		if p.Status == "Hiring" || p.Status == "Open" {
+		if p.Status == model.StatusHiring || p.Status == model.StatusOpen {
 			nameToID[p.Name] = ids.OpenID()
 		} else {
 			nameToID[p.Name] = ids.ID(p.Name)
@@ -50,8 +50,8 @@ func PeopleView(org *model.Org) ViewModel {
 		for _, p := range members {
 			label := fmt.Sprintf("%s<br/><i>%s</i>", p.Name, p.Role)
 			nodeClass := ""
-			if p.Status == "Hiring" || p.Status == "Open" {
-				nodeClass = "hiring"
+			if p.Status == model.StatusHiring || p.Status == model.StatusOpen {
+				nodeClass = classHiring
 				hasHiring = true
 				label = fmt.Sprintf("🔵 %s<br/><i>%s</i>", p.Name, p.Role)
 			}
@@ -98,7 +98,7 @@ func PeopleView(org *model.Org) ViewModel {
 	}
 
 	if hasHiring {
-		vm.ClassDefs = append(vm.ClassDefs, "classDef hiring stroke-dasharray: 5 5, stroke: #60a5fa")
+		vm.ClassDefs = append(vm.ClassDefs, classDefHiring)
 	}
 
 	return vm
