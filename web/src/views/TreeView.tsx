@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
 import { hierarchy, tree } from 'd3-hierarchy'
+import { DndContext, useDraggable, useDroppable, MouseSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { Person } from '../api/types'
+import type { PersonChange } from '../hooks/useOrgDiff'
+import { useDragDrop } from '../hooks/useDragDrop'
 import PersonNode from '../components/PersonNode'
 import useZoomPan from '../hooks/useZoomPan'
 import styles from './TreeView.module.css'
@@ -14,6 +17,8 @@ interface TreeViewProps {
   people: Person[]
   selectedId: string | null
   onSelect: (id: string) => void
+  changes?: Map<string, PersonChange>
+  ghostPeople?: Person[]
 }
 
 interface TreeNode {
@@ -22,8 +27,48 @@ interface TreeNode {
   children: TreeNode[]
 }
 
-export default function TreeView({ people, selectedId, onSelect }: TreeViewProps) {
+function DraggableNode({ person, selected, changes, onSelect }: {
+  person: Person
+  selected: boolean
+  changes?: PersonChange
+  onSelect: () => void
+}) {
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: person.id })
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: person.id })
+
+  return (
+    <div
+      ref={(node) => { setDragRef(node); setDropRef(node) }}
+      {...listeners}
+      {...attributes}
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+        outline: isOver ? '2px solid #22c55e' : 'none',
+        borderRadius: 6,
+      }}
+    >
+      <PersonNode
+        person={person}
+        selected={selected}
+        changes={changes}
+        onClick={onSelect}
+      />
+    </div>
+  )
+}
+
+export default function TreeView({ people, selectedId, onSelect, changes, ghostPeople = [] }: TreeViewProps) {
   const { style, handlers } = useZoomPan()
+  const { onDragEnd } = useDragDrop()
+
+  // MouseSensor with activation distance so small drags start DnD on nodes,
+  // while dragging on empty container background still pans via useZoomPan.
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 8,
+    },
+  })
+  const sensors = useSensors(mouseSensor)
 
   const { nodes, links, width, height } = useMemo(() => {
     if (people.length === 0) {
@@ -113,43 +158,70 @@ export default function TreeView({ people, selectedId, onSelect }: TreeViewProps
     return { nodes: computedNodes, links: computedLinks, width: w, height: h }
   }, [people])
 
-  if (people.length === 0) {
+  if (people.length === 0 && ghostPeople.length === 0) {
     return <div className={styles.container}>No people to display.</div>
   }
 
+  // Ghost nodes are positioned below the main tree
+  const ghostY = height + 20
+  const totalHeight = ghostPeople.length > 0 ? ghostY + NODE_HEIGHT + 20 : height
+
   return (
     <div className={styles.container} {...handlers}>
-      <div style={{ ...style, position: 'relative', width, height }}>
-        <svg className={styles.svg} width={width} height={height}>
-          {links.map((l, i) => (
-            <path
-              key={i}
-              d={`M ${l.sourceX} ${l.sourceY} C ${l.sourceX} ${l.sourceY + NODE_GAP_Y / 2}, ${l.targetX} ${l.targetY - NODE_GAP_Y / 2}, ${l.targetX} ${l.targetY}`}
-              fill="none"
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-            />
+      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+        <div style={{ ...style, position: 'relative', width, height: totalHeight }}>
+          <svg className={styles.svg} width={width} height={totalHeight}>
+            {links.map((l, i) => (
+              <path
+                key={i}
+                d={`M ${l.sourceX} ${l.sourceY} C ${l.sourceX} ${l.sourceY + NODE_GAP_Y / 2}, ${l.targetX} ${l.targetY - NODE_GAP_Y / 2}, ${l.targetX} ${l.targetY}`}
+                fill="none"
+                stroke="#94a3b8"
+                strokeWidth={1.5}
+              />
+            ))}
+          </svg>
+          {nodes.map((n) => (
+            <div
+              key={n.id}
+              className={styles.nodeWrapper}
+              style={{
+                left: n.x,
+                top: n.y,
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
+              }}
+            >
+              <DraggableNode
+                person={n.person}
+                selected={n.id === selectedId}
+                changes={changes?.get(n.id)}
+                onSelect={() => onSelect(n.id)}
+              />
+            </div>
           ))}
-        </svg>
-        {nodes.map((n) => (
-          <div
-            key={n.id}
-            className={styles.nodeWrapper}
-            style={{
-              left: n.x,
-              top: n.y,
-              width: NODE_WIDTH,
-              height: NODE_HEIGHT,
-            }}
-          >
-            <PersonNode
-              person={n.person}
-              selected={n.id === selectedId}
-              onClick={() => onSelect(n.id)}
-            />
-          </div>
-        ))}
-      </div>
+          {ghostPeople.map((p, i) => (
+            <div
+              key={p.id}
+              className={styles.nodeWrapper}
+              style={{
+                left: i * (NODE_WIDTH + NODE_GAP_X) + 20,
+                top: ghostY,
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
+              }}
+            >
+              <PersonNode
+                person={p}
+                selected={p.id === selectedId}
+                ghost={true}
+                changes={changes?.get(p.id)}
+                onClick={() => onSelect(p.id)}
+              />
+            </div>
+          ))}
+        </div>
+      </DndContext>
     </div>
   )
 }

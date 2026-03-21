@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { DndContext, useDraggable, useDroppable, MouseSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
+import { useDragDrop } from '../hooks/useDragDrop'
 import PersonNode from '../components/PersonNode'
 import styles from './ColumnView.module.css'
 
@@ -18,7 +20,59 @@ interface RowItem {
   ghost?: boolean
 }
 
+function DraggableNode({ person, selected, changes, onSelect }: {
+  person: Person
+  selected: boolean
+  changes?: PersonChange
+  onSelect: () => void
+}) {
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: person.id })
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: person.id })
+
+  return (
+    <div
+      ref={(node) => { setDragRef(node); setDropRef(node) }}
+      {...listeners}
+      {...attributes}
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+        outline: isOver ? '2px solid #22c55e' : 'none',
+        borderRadius: 6,
+      }}
+    >
+      <PersonNode
+        person={person}
+        selected={selected}
+        changes={changes}
+        onClick={onSelect}
+      />
+    </div>
+  )
+}
+
+function DroppableHeader({ team }: { team: string }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `team::${team}` })
+  return (
+    <div
+      ref={setNodeRef}
+      className={styles.header}
+      style={{ outline: isOver ? '2px solid #22c55e' : 'none' }}
+    >
+      {team}
+    </div>
+  )
+}
+
 export default function ColumnView({ people, selectedId, onSelect, changes, ghostPeople = [] }: ColumnViewProps) {
+  const { onDragEnd } = useDragDrop()
+
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 8,
+    },
+  })
+  const sensors = useSensors(mouseSensor)
+
   const columns = useMemo(() => {
     // Build lookup maps
     const byId = new Map<string, Person>()
@@ -104,27 +158,38 @@ export default function ColumnView({ people, selectedId, onSelect, changes, ghos
   }
 
   return (
-    <div className={styles.container}>
-      {columns.map((col) => (
-        <div key={col.team} className={styles.column}>
-          <div className={styles.header}>{col.team}</div>
-          {col.rows.map((row) => (
-            <div
-              key={row.person.id}
-              className={styles.row}
-              style={{ paddingLeft: row.depth * 20 + 8 }}
-            >
-              <PersonNode
-                person={row.person}
-                selected={row.person.id === selectedId}
-                ghost={row.ghost}
-                changes={changes?.get(row.person.id)}
-                onClick={() => onSelect(row.person.id)}
-              />
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
+    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <div className={styles.container}>
+        {columns.map((col) => (
+          <div key={col.team} className={styles.column}>
+            <DroppableHeader team={col.team} />
+            {col.rows.map((row) => (
+              <div
+                key={row.person.id}
+                className={styles.row}
+                style={{ paddingLeft: row.depth * 20 + 8 }}
+              >
+                {row.ghost ? (
+                  <PersonNode
+                    person={row.person}
+                    selected={row.person.id === selectedId}
+                    ghost={true}
+                    changes={changes?.get(row.person.id)}
+                    onClick={() => onSelect(row.person.id)}
+                  />
+                ) : (
+                  <DraggableNode
+                    person={row.person}
+                    selected={row.person.id === selectedId}
+                    changes={changes?.get(row.person.id)}
+                    onSelect={() => onSelect(row.person.id)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </DndContext>
   )
 }
