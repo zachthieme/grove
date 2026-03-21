@@ -6,7 +6,15 @@ import (
 	"github.com/zach/orgchart/internal/model"
 )
 
-func PeopleView(org *model.Org) ViewModel {
+type PeopleOptions struct {
+	ShowCrossTeam bool
+}
+
+func PeopleView(org *model.Org, opts ...PeopleOptions) ViewModel {
+	showCrossTeam := true
+	if len(opts) > 0 {
+		showCrossTeam = opts[0].ShowCrossTeam
+	}
 	ids := model.NewIDGenerator()
 	vm := ViewModel{}
 
@@ -94,16 +102,18 @@ func PeopleView(org *model.Org) ViewModel {
 		})
 	}
 
-	for i := range org.People {
-		p := &org.People[i]
-		for _, at := range p.AdditionalTeams {
-			targetMembers := org.ByTeam[at]
-			if len(targetMembers) > 0 {
-				vm.Edges = append(vm.Edges, Edge{
-					From:   nameToID[p.Name],
-					To:     nameToID[targetMembers[0].Name],
-					Dotted: true,
-				})
+	if showCrossTeam {
+		for i := range org.People {
+			p := &org.People[i]
+			for _, at := range p.AdditionalTeams {
+				targetMembers := org.ByTeam[at]
+				if len(targetMembers) > 0 {
+					vm.Edges = append(vm.Edges, Edge{
+						From:   nameToID[p.Name],
+						To:     nameToID[targetMembers[0].Name],
+						Dotted: true,
+					})
+				}
 			}
 		}
 	}
