@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { Person } from '../api/types'
+import type { PersonChange } from '../hooks/useOrgDiff'
 import PersonNode from '../components/PersonNode'
 import styles from './ColumnView.module.css'
 
@@ -7,14 +8,17 @@ interface ColumnViewProps {
   people: Person[]
   selectedId: string | null
   onSelect: (id: string) => void
+  changes?: Map<string, PersonChange>
+  ghostPeople?: Person[]
 }
 
 interface RowItem {
   person: Person
   depth: number
+  ghost?: boolean
 }
 
-export default function ColumnView({ people, selectedId, onSelect }: ColumnViewProps) {
+export default function ColumnView({ people, selectedId, onSelect, changes, ghostPeople = [] }: ColumnViewProps) {
   const columns = useMemo(() => {
     // Build lookup maps
     const byId = new Map<string, Person>()
@@ -76,10 +80,26 @@ export default function ColumnView({ people, selectedId, onSelect }: ColumnViewP
       result.push({ team, rows })
     }
 
-    return result
-  }, [people])
+    // Append ghost people to their original team columns
+    if (ghostPeople.length > 0) {
+      const teamMap = new Map(result.map((col) => [col.team, col]))
+      for (const gp of ghostPeople) {
+        const col = teamMap.get(gp.team)
+        if (col) {
+          col.rows.push({ person: gp, depth: 0, ghost: true })
+        } else {
+          // Team no longer exists in working; create a column for it
+          const newCol = { team: gp.team, rows: [{ person: gp, depth: 0, ghost: true }] }
+          result.push(newCol)
+          teamMap.set(gp.team, newCol)
+        }
+      }
+    }
 
-  if (people.length === 0) {
+    return result
+  }, [people, ghostPeople])
+
+  if (people.length === 0 && ghostPeople.length === 0) {
     return <div className={styles.container}>No people to display.</div>
   }
 
@@ -97,6 +117,8 @@ export default function ColumnView({ people, selectedId, onSelect }: ColumnViewP
               <PersonNode
                 person={row.person}
                 selected={row.person.id === selectedId}
+                ghost={row.ghost}
+                changes={changes?.get(row.person.id)}
                 onClick={() => onSelect(row.person.id)}
               />
             </div>

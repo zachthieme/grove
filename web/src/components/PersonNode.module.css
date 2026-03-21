@@ -44,3 +44,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.added {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.reporting {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+
+.titleChange {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.reorg {
+  border-color: #eab308;
+  background: #fefce8;
+}
+
+.ghost {
+  opacity: 0.4;
+  border-style: dashed;
+  text-decoration: line-through;
+}
