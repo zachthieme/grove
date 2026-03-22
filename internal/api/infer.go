@@ -1,0 +1,164 @@
+package api
+
+import (
+	"sort"
+	"strings"
+)
+
+// exactMatches maps trimmed, lowercased header text to the app field name.
+var exactMatches = map[string]string{
+	"name":             "name",
+	"role":             "role",
+	"discipline":       "discipline",
+	"manager":          "manager",
+	"team":             "team",
+	"status":           "status",
+	"additional teams": "additionalTeams",
+	"employment type":  "employmentType",
+	"new role":         "newRole",
+	"new team":         "newTeam",
+}
+
+// synonyms maps lowercased synonym phrases to the app field name.
+var synonyms = map[string]string{
+	// name
+	"full name":      "name",
+	"person":         "name",
+	"employee":       "name",
+	"employee name":  "name",
+	// role
+	"title":     "role",
+	"job title":  "role",
+	"position":   "role",
+	// discipline
+	"function":     "discipline",
+	"job family":   "discipline",
+	"job function": "discipline",
+	// manager
+	"reports to":    "manager",
+	"supervisor":    "manager",
+	"manager name":  "manager",
+	"reporting to":  "manager",
+	// team
+	"department":   "team",
+	"group":        "team",
+	"org":          "team",
+	"organization": "team",
+	// status
+	"employment status": "status",
+	"employee status":   "status",
+	// additionalTeams
+	"other teams":     "additionalTeams",
+	"secondary teams": "additionalTeams",
+	// newRole
+	"future role":  "newRole",
+	"planned role": "newRole",
+	// newTeam
+	"future team":  "newTeam",
+	"planned team": "newTeam",
+	// employmentType
+	"worker type":       "employmentType",
+	"employee type":     "employmentType",
+	"classification":    "employmentType",
+	"employment class":  "employmentType",
+	"vendor type":       "employmentType",
+}
+
+// fuzzyKeywords maps a substring keyword to the app field name.
+// Ordered by keyword length descending at lookup time to avoid ambiguity.
+var fuzzyKeywords = map[string]string{
+	"additional teams": "additionalTeams",
+	"discipline":       "discipline",
+	"manager":          "manager",
+	"status":           "status",
+	"team":             "team",
+	"role":             "role",
+	"name":             "name",
+}
+
+// fuzzyKeywordsOrdered holds fuzzy keywords sorted longest-first.
+var fuzzyKeywordsOrdered []string
+
+func init() {
+	fuzzyKeywordsOrdered = make([]string, 0, len(fuzzyKeywords))
+	for kw := range fuzzyKeywords {
+		fuzzyKeywordsOrdered = append(fuzzyKeywordsOrdered, kw)
+	}
+	sort.Slice(fuzzyKeywordsOrdered, func(i, j int) bool {
+		return len(fuzzyKeywordsOrdered[i]) > len(fuzzyKeywordsOrdered[j])
+	})
+}
+
+// InferMapping takes a list of spreadsheet headers and returns a mapping from
+// app field names to MappedColumn structs. Each app field is mapped at most once
+// and each header is consumed at most once (first match wins across tiers).
+func InferMapping(headers []string) map[string]MappedColumn {
+	result := make(map[string]MappedColumn)
+	assigned := make(map[string]bool) // tracks which app fields are already mapped
+	used := make(map[int]bool)        // tracks which header indices are consumed
+
+	// Tier 1: exact match (case-insensitive, trimmed)
+	for i, h := range headers {
+		if used[i] {
+			continue
+		}
+		normalized := strings.ToLower(strings.TrimSpace(h))
+		if field, ok := exactMatches[normalized]; ok {
+			if !assigned[field] {
+				result[field] = MappedColumn{Column: h, Confidence: "high"}
+				assigned[field] = true
+				used[i] = true
+			}
+		}
+	}
+
+	// Tier 2: synonym match (case-insensitive)
+	for i, h := range headers {
+		if used[i] {
+			continue
+		}
+		normalized := strings.ToLower(strings.TrimSpace(h))
+		if field, ok := synonyms[normalized]; ok {
+			if !assigned[field] {
+				result[field] = MappedColumn{Column: h, Confidence: "high"}
+				assigned[field] = true
+				used[i] = true
+			}
+		}
+	}
+
+	// Tier 3: fuzzy match (substring containment, longer keywords first)
+	for i, h := range headers {
+		if used[i] {
+			continue
+		}
+		normalized := strings.ToLower(strings.TrimSpace(h))
+		for _, kw := range fuzzyKeywordsOrdered {
+			field := fuzzyKeywords[kw]
+			if assigned[field] {
+				continue
+			}
+			if strings.Contains(normalized, kw) {
+				result[field] = MappedColumn{Column: h, Confidence: "medium"}
+				assigned[field] = true
+				used[i] = true
+				break
+			}
+		}
+	}
+
+	return result
+}
+
+// AllRequiredHigh returns true if all required fields (name, role, discipline,
+// team, status) are present in the mapping with high confidence.
+func AllRequiredHigh(m map[string]MappedColumn) bool {
+	required := []string{"name", "role", "discipline", "team", "status"}
+	for _, field := range required {
+		mc, ok := m[field]
+		if !ok || mc.Confidence != "high" {
+			return false
+		}
+	}
+	return true
+}

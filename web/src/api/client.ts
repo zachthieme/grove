@@ -1,4 +1,4 @@
-import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload } from './types'
+import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, UploadResponse, SnapshotInfo, AutosaveData } from './types'
 
 const BASE = '/api'
 
@@ -10,10 +10,19 @@ async function json<T>(resp: Response): Promise<T> {
   return resp.json() as Promise<T>
 }
 
-export async function uploadFile(file: File): Promise<OrgData> {
+export async function uploadFile(file: File): Promise<UploadResponse> {
   const form = new FormData()
   form.append('file', file)
   const resp = await fetch(`${BASE}/upload`, { method: 'POST', body: form })
+  return json<UploadResponse>(resp)
+}
+
+export async function confirmMapping(mapping: Record<string, string>): Promise<OrgData> {
+  const resp = await fetch(`${BASE}/upload/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mapping }),
+  })
   return json<OrgData>(resp)
 }
 
@@ -50,15 +59,85 @@ export async function addPerson(person: Omit<Person, 'id'>): Promise<Person[]> {
   return json<Person[]>(resp)
 }
 
-export async function deletePerson(payload: DeletePayload): Promise<Person[]> {
+export async function deletePerson(payload: DeletePayload): Promise<DeleteResponse> {
   const resp = await fetch(`${BASE}/delete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  return json<Person[]>(resp)
+  return json<DeleteResponse>(resp)
+}
+
+export async function restorePerson(personId: string): Promise<RestoreResponse> {
+  const resp = await fetch(`${BASE}/restore`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ personId }),
+  })
+  return json<RestoreResponse>(resp)
+}
+
+export async function emptyBin(): Promise<EmptyBinResponse> {
+  const resp = await fetch(`${BASE}/empty-bin`, { method: 'POST' })
+  return json<EmptyBinResponse>(resp)
 }
 
 export function exportDataUrl(format: 'csv' | 'xlsx'): string {
-  return `${BASE}/export?format=${format}`
+  return `${BASE}/export/${format}`
+}
+
+export async function reorderPeople(personIds: string[]): Promise<Person[]> {
+  const resp = await fetch(`${BASE}/reorder`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ personIds }),
+  })
+  return json<Person[]>(resp)
+}
+
+export async function resetToOriginal(): Promise<OrgData> {
+  const resp = await fetch(`${BASE}/reset`, { method: 'POST' })
+  return json<OrgData>(resp)
+}
+
+export async function listSnapshots(): Promise<SnapshotInfo[]> {
+  return json<SnapshotInfo[]>(await fetch(`${BASE}/snapshots`))
+}
+
+export async function saveSnapshot(name: string): Promise<SnapshotInfo[]> {
+  return json<SnapshotInfo[]>(await fetch(`${BASE}/snapshots/save`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  }))
+}
+
+export async function loadSnapshot(name: string): Promise<OrgData> {
+  return json<OrgData>(await fetch(`${BASE}/snapshots/load`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  }))
+}
+
+export async function deleteSnapshot(name: string): Promise<SnapshotInfo[]> {
+  return json<SnapshotInfo[]>(await fetch(`${BASE}/snapshots/delete`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  }))
+}
+
+export async function writeAutosave(data: AutosaveData): Promise<void> {
+  await fetch(`${BASE}/autosave`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function readAutosave(): Promise<AutosaveData | null> {
+  const resp = await fetch(`${BASE}/autosave`)
+  if (resp.status === 204) return null
+  return json<AutosaveData>(resp)
+}
+
+export async function deleteAutosave(): Promise<void> {
+  await fetch(`${BASE}/autosave`, { method: 'DELETE' })
 }

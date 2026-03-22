@@ -2,60 +2,80 @@ package parser
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/zach/orgchart/internal/model"
 )
 
-func Parse(path string) (*model.Org, error) {
-	ext := strings.ToLower(filepath.Ext(path))
-	switch ext {
-	case ".csv":
-		return parseCSV(path)
-	case ".xlsx":
-		return parseXLSX(path)
-	default:
-		return nil, fmt.Errorf("unsupported file format '%s' (expected .csv or .xlsx)", ext)
-	}
-}
-
-// BuildPeople converts raw spreadsheet rows (header + data) into an Org.
-func BuildPeople(header []string, dataRows [][]string) (*model.Org, error) {
-	cols := make(map[string]int)
+// BuildPeopleWithMapping converts raw spreadsheet rows into an Org using an
+// explicit column mapping. The mapping keys are lowercase app field names
+// (e.g. "name", "role") and values are the actual header strings from the
+// spreadsheet (e.g. "Full Name", "Job Title").
+func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[string]string) (*model.Org, error) {
+	// Build header-string → column-index lookup.
+	headerIndex := make(map[string]int, len(header))
 	for i, h := range header {
-		cols[strings.TrimSpace(strings.ToLower(h))] = i
+		headerIndex[strings.TrimSpace(h)] = i
 	}
 
+	// Build field-name → column-index lookup from the mapping.
+	cols := make(map[string]int, len(mapping))
+	for field, headerName := range mapping {
+		idx, ok := headerIndex[headerName]
+		if !ok {
+			return nil, fmt.Errorf("mapped header '%s' (for field '%s') not found in header row", headerName, field)
+		}
+		cols[field] = idx
+	}
+
+	// Validate required fields are present in the mapping.
 	required := []string{"name", "role", "discipline", "team", "status"}
+	var missing []string
 	for _, r := range required {
 		if _, ok := cols[r]; !ok {
-			return nil, fmt.Errorf("missing required column '%s' in header", r)
+			missing = append(missing, r)
 		}
+	}
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("missing required field mappings: %s", strings.Join(missing, ", "))
 	}
 
 	var people []model.Person
 	for _, row := range dataRows {
-		get := func(col string) string {
-			idx, ok := cols[col]
+		get := func(field string) string {
+			idx, ok := cols[field]
 			if !ok || idx >= len(row) {
 				return ""
 			}
 			return strings.TrimSpace(row[idx])
 		}
 
-		p := model.Person{
-			Name:       get("name"),
-			Role:       get("role"),
-			Discipline: get("discipline"),
-			Manager:    get("manager"),
-			Team:       get("team"),
-			Status:     get("status"),
-			NewRole:    get("new role"),
-			NewTeam:    get("new team"),
+		status := get("status")
+		switch status {
+		case "Hiring":
+			status = "Open"
+		case "Transfer":
+			status = "Transfer In"
 		}
 
-		raw := get("additional teams")
+		empType := get("employmentType")
+		if empType == "" {
+			empType = get("employment type")
+		}
+
+		p := model.Person{
+			Name:           get("name"),
+			Role:           get("role"),
+			Discipline:     get("discipline"),
+			Manager:        get("manager"),
+			Team:           get("team"),
+			Status:         status,
+			EmploymentType: empType,
+			NewRole:        get("newRole"),
+			NewTeam:        get("newTeam"),
+		}
+
+		raw := get("additionalTeams")
 		if raw != "" {
 			for _, t := range strings.Split(raw, ",") {
 				t = strings.TrimSpace(t)
@@ -70,3 +90,4 @@ func BuildPeople(header []string, dataRows [][]string) (*model.Org, error) {
 
 	return model.NewOrg(people)
 }
+

@@ -1,171 +1,219 @@
 package model
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestNewOrg_ValidPeople(t *testing.T) {
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Engineering", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "Bob", Role: "Engineer", Discipline: "Engineering", Manager: "Alice", Team: "Platform", Status: "Active"},
 	}
-
 	org, err := NewOrg(people)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	if len(org.People) != 2 {
 		t.Errorf("expected 2 people, got %d", len(org.People))
 	}
-	if org.ByName["Alice"] == nil {
-		t.Error("expected Alice in ByName")
-	}
-	if len(org.ByTeam["Platform"]) != 1 {
-		t.Errorf("expected 1 person on Platform, got %d", len(org.ByTeam["Platform"]))
-	}
-	if len(org.ByManager["Alice"]) != 1 {
-		t.Errorf("expected 1 report for Alice, got %d", len(org.ByManager["Alice"]))
-	}
-	if len(org.Roots) != 1 {
-		t.Errorf("expected 1 root, got %d", len(org.Roots))
-	}
-	if org.Roots[0].Name != "Alice" {
-		t.Errorf("expected root to be Alice, got %s", org.Roots[0].Name)
+	if len(org.Warnings) != 0 {
+		t.Errorf("expected 0 warnings, got %d", len(org.Warnings))
 	}
 }
 
-func TestNewOrg_DuplicateName(t *testing.T) {
+func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "Alice", Role: "PM", Discipline: "PM", Manager: "", Team: "PM", Status: "Active"},
 	}
-	_, err := NewOrg(people)
-	if err == nil {
-		t.Fatal("expected error for duplicate name")
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.People) != 2 {
+		t.Errorf("expected 2 people, got %d", len(org.People))
 	}
 }
 
-func TestNewOrg_DanglingManager(t *testing.T) {
+func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
 	people := []Person{
 		{Name: "Bob", Role: "Eng", Discipline: "Eng", Manager: "Nobody", Team: "Eng", Status: "Active"},
-	}
-	_, err := NewOrg(people)
-	if err == nil {
-		t.Fatal("expected error for dangling manager ref")
-	}
-}
-
-func TestNewOrg_CircularReporting(t *testing.T) {
-	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "Bob", Team: "Eng", Status: "Active"},
-		{Name: "Bob", Role: "Dir", Discipline: "Eng", Manager: "Alice", Team: "Eng", Status: "Active"},
-	}
-	_, err := NewOrg(people)
-	if err == nil {
-		t.Fatal("expected error for circular reporting")
-	}
-}
-
-func TestNewOrg_InvalidStatus(t *testing.T) {
-	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "TBD"},
-	}
-	_, err := NewOrg(people)
-	if err == nil {
-		t.Fatal("expected error for invalid status")
-	}
-}
-
-func TestNewOrg_MissingRequiredField(t *testing.T) {
-	people := []Person{
-		{Name: "Alice", Role: "", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
-	}
-	_, err := NewOrg(people)
-	if err == nil {
-		t.Fatal("expected error for missing Role")
-	}
-}
-
-func TestApplyPlanned_SwapsFields(t *testing.T) {
-	people := []Person{
-		{Name: "Alice", Role: "Engineer", Discipline: "Eng", Manager: "", Team: "Platform", Status: "Active", NewRole: "Senior Engineer", NewTeam: "Search"},
-		{Name: "Bob", Role: "PM", Discipline: "PM", Manager: "Alice", Team: "Platform", Status: "Active"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if len(org.People) != 1 {
+		t.Errorf("expected 1 person, got %d", len(org.People))
+	}
+}
 
-	planned, err := ApplyPlanned(org)
+func TestNewOrg_AnyOrderAllowed(t *testing.T) {
+	people := []Person{
+		{Name: "Bob", Role: "Engineer", Discipline: "Eng", Manager: "Alice", Team: "Platform", Status: "Active"},
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+	}
+	org, err := NewOrg(people)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	alice := planned.ByName["Alice"]
-	if alice.Role != "Senior Engineer" {
-		t.Errorf("expected Alice role 'Senior Engineer', got '%s'", alice.Role)
+	if len(org.People) != 2 {
+		t.Errorf("expected 2 people, got %d", len(org.People))
 	}
-	if alice.Team != "Search" {
-		t.Errorf("expected Alice team 'Search', got '%s'", alice.Team)
-	}
+}
 
-	bob := planned.ByName["Bob"]
-	if bob.Role != "PM" {
-		t.Errorf("expected Bob role unchanged 'PM', got '%s'", bob.Role)
+func TestNewOrg_InvalidStatusWarns(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "TBD"},
+	}
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.Warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(org.Warnings))
+	}
+	if org.People[0].Warning == "" {
+		t.Error("expected warning on person")
+	}
+}
+
+func TestNewOrg_MissingFieldWarns(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+	}
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.Warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(org.Warnings))
 	}
 }
 
 func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
-		{Name: "Incoming", Role: "", Discipline: "", Manager: "Alice", Team: "Eng", Status: "Transfer"},
+		{Name: "Incoming", Role: "", Discipline: "", Manager: "Alice", Team: "Eng", Status: "Transfer In"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(org.People) != 2 {
-		t.Errorf("expected 2 people, got %d", len(org.People))
+	if len(org.Warnings) != 0 {
+		t.Errorf("expected 0 warnings, got %d: %v", len(org.Warnings), org.Warnings)
 	}
 }
 
-func TestNodeID_Simple(t *testing.T) {
-	ids := NewIDGenerator()
-	id := ids.ID("Jane Smith")
-	if id != "jane_smith" {
-		t.Errorf("expected 'jane_smith', got '%s'", id)
+func TestNewOrg_NewStatuses(t *testing.T) {
+	allStatuses := []string{
+		StatusActive, StatusOpen, StatusPendingOpen,
+		StatusTransferIn, StatusTransferOut,
+		StatusBackfill, StatusPlanned,
+	}
+	for _, s := range allStatuses {
+		role, disc := "Engineer", "Eng"
+		if s == StatusTransferIn || s == StatusTransferOut || s == StatusPendingOpen || s == StatusPlanned {
+			role, disc = "", ""
+		}
+		people := []Person{
+			{Name: "Test", Role: role, Discipline: disc, Manager: "", Team: "Eng", Status: s},
+		}
+		org, err := NewOrg(people)
+		if err != nil {
+			t.Errorf("status %q: unexpected error: %v", s, err)
+		}
+		if len(org.Warnings) != 0 {
+			t.Errorf("status %q should be valid but got warnings: %v", s, org.Warnings)
+		}
 	}
 }
 
-func TestNodeID_SpecialChars(t *testing.T) {
-	ids := NewIDGenerator()
-	id := ids.ID("O'Brien-Jones")
-	if id != "obrienjones" {
-		t.Errorf("expected 'obrienjones', got '%s'", id)
+func TestNewOrg_OldStatusesWarn(t *testing.T) {
+	oldStatuses := []string{"Hiring", "Transfer"}
+	for _, s := range oldStatuses {
+		people := []Person{
+			{Name: "Test", Role: "Eng", Discipline: "Eng", Manager: "", Team: "Eng", Status: s},
+		}
+		org, err := NewOrg(people)
+		if err != nil {
+			t.Errorf("status %q: unexpected error: %v", s, err)
+			continue
+		}
+		if len(org.Warnings) == 0 {
+			t.Errorf("old status %q should produce a warning", s)
+		}
 	}
 }
 
-func TestNodeID_Collision(t *testing.T) {
-	ids := NewIDGenerator()
-	id1 := ids.ID("Jane Smith")
-	id2 := ids.ID("Jane  Smith")
-	if id1 == id2 {
-		t.Error("expected different IDs for colliding names")
+func TestNewOrg_MultipleWarnings(t *testing.T) {
+	// A single row missing name, team, and with invalid status should get all issues in one warning.
+	people := []Person{
+		{Name: "", Role: "Eng", Discipline: "Eng", Manager: "", Team: "", Status: "Bogus"},
 	}
-	if id2 != "jane_smith_2" {
-		t.Errorf("expected 'jane_smith_2', got '%s'", id2)
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.Warnings) != 1 {
+		t.Fatalf("expected 1 warning (covering multiple issues), got %d", len(org.Warnings))
+	}
+	w := org.People[0].Warning
+	if w == "" {
+		t.Fatal("expected non-empty warning on person")
+	}
+	// Should mention all three problems
+	for _, substr := range []string{"missing Name", "missing Team", "invalid status"} {
+		if !contains(w, substr) {
+			t.Errorf("expected warning to contain %q, got: %s", substr, w)
+		}
 	}
 }
 
-func TestNodeID_OpenHiring(t *testing.T) {
-	ids := NewIDGenerator()
-	id1 := ids.OpenID()
-	id2 := ids.OpenID()
-	if id1 != "open_1" {
-		t.Errorf("expected 'open_1', got '%s'", id1)
+func TestNewOrg_WarningDoesNotBlockOtherRows(t *testing.T) {
+	people := []Person{
+		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{Name: "", Role: "", Discipline: "", Manager: "", Team: "", Status: "Bogus"}, // bad row
+		{Name: "Carol", Role: "Eng", Discipline: "Eng", Manager: "Alice", Team: "Eng", Status: "Active"},
 	}
-	if id2 != "open_2" {
-		t.Errorf("expected 'open_2', got '%s'", id2)
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// All 3 rows should be present
+	if len(org.People) != 3 {
+		t.Errorf("expected 3 people, got %d", len(org.People))
+	}
+	// Only the bad row should have a warning
+	if org.People[0].Warning != "" {
+		t.Errorf("expected no warning on Alice, got: %s", org.People[0].Warning)
+	}
+	if org.People[1].Warning == "" {
+		t.Error("expected warning on the bad row")
+	}
+	if org.People[2].Warning != "" {
+		t.Errorf("expected no warning on Carol, got: %s", org.People[2].Warning)
+	}
+	// Should have exactly 1 warning
+	if len(org.Warnings) != 1 {
+		t.Errorf("expected 1 warning, got %d", len(org.Warnings))
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstr(s, substr))
+}
+
+func containsSubstr(s, sub string) bool {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+
+func TestNewOrg_Empty(t *testing.T) {
+	_, err := NewOrg([]Person{})
+	if err == nil {
+		t.Error("expected error for empty data")
 	}
 }

@@ -1,93 +1,84 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"mime/multipart"
+	"net/http/httptest"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/zach/orgchart/internal/api"
 )
 
-func TestIntegration_PeopleCSV(t *testing.T) {
-	binary := buildBinary(t)
-	out, err := exec.Command(binary, "people", "testdata/crossteam.csv").CombinedOutput()
+func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
+	svc := api.NewOrgService()
+	handler := api.NewRouter(svc)
+
+	csvData, err := os.ReadFile("testdata/simple.csv")
 	if err != nil {
-		t.Fatalf("command failed: %v\nOutput: %s", err, out)
+		t.Fatalf("reading test file: %v", err)
+	}
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "simple.csv")
+	part.Write(csvData)
+	writer.Close()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/api/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("upload: %d %s", rec.Code, rec.Body.String())
 	}
 
-	output := string(out)
-	checks := []string{
-		"flowchart TD",
-		"subgraph",
-		"Alice",
-		"Eve",
-		"-.->",
-		"classDef hiring",
+	var resp api.UploadResponse
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Status != "ready" {
+		t.Fatalf("expected upload status 'ready', got '%s'", resp.Status)
 	}
-	for _, check := range checks {
-		if !strings.Contains(output, check) {
-			t.Errorf("expected output to contain %q\nGot:\n%s", check, output)
+	data := resp.OrgData
+	if len(data.Working) != 3 {
+		t.Fatalf("expected 3 people, got %d", len(data.Working))
+	}
+
+	bob := findAPIPersonByName(data.Working, "Bob")
+	if bob == nil {
+		t.Fatal("expected to find Bob")
+	}
+	payload := fmt.Sprintf(`{"personId":"%s","fields":{"role":"Staff Engineer"}}`, bob.Id)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("POST", "/api/update", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("update: %d %s", rec.Code, rec.Body.String())
+	}
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/api/export/csv", nil)
+	handler.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("export: %d", rec.Code)
+	}
+
+	exported := rec.Body.String()
+	if !strings.Contains(exported, "Staff Engineer") {
+		t.Error("expected exported CSV to contain updated role 'Staff Engineer'")
+	}
+	if !strings.Contains(exported, "Alice") {
+		t.Error("expected exported CSV to contain Alice")
+	}
+}
+
+func findAPIPersonByName(people []api.Person, name string) *api.Person {
+	for i := range people {
+		if people[i].Name == name {
+			return &people[i]
 		}
 	}
-}
-
-func TestIntegration_HeadcountCSV(t *testing.T) {
-	binary := buildBinary(t)
-	out, err := exec.Command(binary, "headcount", "testdata/crossteam.csv").CombinedOutput()
-	if err != nil {
-		t.Fatalf("command failed: %v\nOutput: %s", err, out)
-	}
-
-	output := string(out)
-	checks := []string{
-		"flowchart TD",
-		"Engineering:",
-		"Cross-Team",
-		"TPM:",
-	}
-	for _, check := range checks {
-		if !strings.Contains(output, check) {
-			t.Errorf("expected output to contain %q\nGot:\n%s", check, output)
-		}
-	}
-}
-
-func TestIntegration_OutputFile(t *testing.T) {
-	binary := buildBinary(t)
-	dir := t.TempDir()
-	outPath := filepath.Join(dir, "output.md")
-
-	err := exec.Command(binary, "people", "testdata/simple.csv", "-o", outPath).Run()
-	if err != nil {
-		t.Fatalf("command failed: %v", err)
-	}
-
-	data, err := os.ReadFile(outPath)
-	if err != nil {
-		t.Fatalf("failed to read output: %v", err)
-	}
-	if !strings.Contains(string(data), "flowchart TD") {
-		t.Error("expected output file to contain mermaid content")
-	}
-}
-
-func TestIntegration_InvalidFile(t *testing.T) {
-	binary := buildBinary(t)
-	err := exec.Command(binary, "people", "nonexistent.csv").Run()
-	if err == nil {
-		t.Fatal("expected error for nonexistent file")
-	}
-}
-
-func buildBinary(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	binary := filepath.Join(dir, "orgchart")
-	cmd := exec.Command("go", "build", "-o", binary, ".")
-	cmd.Dir = "."
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("failed to build: %v\n%s", err, out)
-	}
-	return binary
+	return nil
 }

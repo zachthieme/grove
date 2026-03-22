@@ -19,7 +19,7 @@ export function useDragDrop() {
       return
     }
 
-    // Person-to-person drop
+    // Person-to-person drop — always reparent
     const target = working.find((p) => p.id === targetId)
     if (!target) return
 

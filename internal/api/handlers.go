@@ -10,37 +10,73 @@ func NewRouter(svc *OrgService) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/upload", handleUpload(svc))
+	mux.HandleFunc("POST /api/upload/confirm", handleConfirmMapping(svc))
 	mux.HandleFunc("GET /api/org", handleGetOrg(svc))
 	mux.HandleFunc("POST /api/move", handleMove(svc))
 	mux.HandleFunc("POST /api/update", handleUpdate(svc))
 	mux.HandleFunc("POST /api/add", handleAdd(svc))
 	mux.HandleFunc("POST /api/delete", handleDelete(svc))
+	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svc))
+	mux.HandleFunc("POST /api/restore", handleRestore(svc))
+	mux.HandleFunc("POST /api/empty-bin", handleEmptyBin(svc))
 	mux.HandleFunc("GET /api/export/{format}", handleExport(svc))
+
+	mux.HandleFunc("GET /api/snapshots", handleListSnapshots(svc))
+	mux.HandleFunc("POST /api/snapshots/save", handleSaveSnapshot(svc))
+	mux.HandleFunc("POST /api/snapshots/load", handleLoadSnapshot(svc))
+	mux.HandleFunc("POST /api/snapshots/delete", handleDeleteSnapshot(svc))
+
+	mux.HandleFunc("POST /api/reset", handleReset(svc))
+	mux.HandleFunc("POST /api/reorder", handleReorder(svc))
+
+	mux.HandleFunc("POST /api/autosave", handleWriteAutosave())
+	mux.HandleFunc("GET /api/autosave", handleReadAutosave())
+	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave())
 
 	return mux
 }
 
 func handleUpload(svc *OrgService) http.HandlerFunc {
+	const maxUploadSize = 50 << 20 // 50 MB
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 		file, header, err := r.FormFile("file")
 		if err != nil {
-			http.Error(w, "missing file field", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
 			return
 		}
 		defer file.Close()
 
 		data, err := io.ReadAll(file)
 		if err != nil {
-			http.Error(w, "reading file", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "reading file")
 			return
 		}
 
-		if err := svc.Upload(header.Filename, data); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		resp, err := svc.Upload(header.Filename, data)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
 
-		writeJSON(w, http.StatusOK, svc.GetOrg())
+func handleConfirmMapping(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Mapping map[string]string `json:"mapping"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		orgData, err := svc.ConfirmMapping(req.Mapping)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, orgData)
 	}
 }
 
@@ -63,14 +99,15 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 			NewTeam      string `json:"newTeam"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		if err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		working, err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, svc.GetWorking())
+		writeJSON(w, http.StatusOK, working)
 	}
 }
 
@@ -81,14 +118,15 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 			Fields   map[string]string `json:"fields"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		if err := svc.Update(req.PersonId, req.Fields); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		working, err := svc.Update(req.PersonId, req.Fields)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, svc.GetWorking())
+		writeJSON(w, http.StatusOK, working)
 	}
 }
 
@@ -96,11 +134,11 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var p Person
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		svc.Add(p)
-		writeJSON(w, http.StatusOK, svc.GetWorking())
+		_, working := svc.Add(p)
+		writeJSON(w, http.StatusOK, working)
 	}
 }
 
@@ -110,14 +148,52 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 			PersonId string `json:"personId"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
 		if err := svc.Delete(req.PersonId); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, svc.GetWorking())
+		writeJSON(w, http.StatusOK, map[string]any{
+			"working":  svc.GetWorking(),
+			"recycled": svc.GetRecycled(),
+		})
+	}
+}
+
+func handleGetRecycled(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, svc.GetRecycled())
+	}
+}
+
+func handleRestore(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			PersonId string `json:"personId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		if err := svc.Restore(req.PersonId); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"working":  svc.GetWorking(),
+			"recycled": svc.GetRecycled(),
+		})
+	}
+}
+
+func handleEmptyBin(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		svc.EmptyBin()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"recycled": svc.GetRecycled(),
+		})
 	}
 }
 
@@ -126,7 +202,7 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 		format := r.PathValue("format")
 		working := svc.GetWorking()
 		if working == nil {
-			http.Error(w, "no data loaded", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "no data loaded")
 			return
 		}
 
@@ -147,18 +223,96 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 			filename = "org.xlsx"
 		default:
-			http.Error(w, "unsupported format: "+format, http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "unsupported format: "+format)
 			return
 		}
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+		// Write error indicates client disconnect; nothing to do
 		w.Write(data)
+	}
+}
+
+func handleListSnapshots(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, svc.ListSnapshots())
+	}
+}
+
+func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		svc.SaveSnapshot(req.Name)
+		writeJSON(w, http.StatusOK, svc.ListSnapshots())
+	}
+}
+
+func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		orgData, err := svc.LoadSnapshot(req.Name)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, orgData)
+	}
+}
+
+func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		svc.DeleteSnapshot(req.Name)
+		writeJSON(w, http.StatusOK, svc.ListSnapshots())
+	}
+}
+
+func handleReset(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orgData := svc.ResetToOriginal()
+		writeJSON(w, http.StatusOK, orgData)
+	}
+}
+
+func handleReorder(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			PersonIds []string `json:"personIds"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		working, err := svc.Reorder(req.PersonIds)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, working)
 	}
 }
 
@@ -166,4 +320,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }

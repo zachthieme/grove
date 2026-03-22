@@ -1,36 +1,78 @@
+.wrapper {
+  position: relative;
+}
+
 .node {
-  border: 2px solid #60a5fa;
-  border-radius: 6px;
-  background: #fff;
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
   padding: 8px 12px;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
   user-select: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
+}
+
+.manager {
+  border-left: 3.5px solid var(--grove-green);
 }
 
 .node:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .selected {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+  border-color: var(--grove-green);
+  border-left-color: var(--grove-green);
+  box-shadow: var(--shadow-focus);
 }
 
-.hiring {
-  border-style: dashed;
+/* Status styles */
+.recruiting {
+  border-color: var(--grove-green-muted);
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+  background: var(--grove-green-soft);
+}
+
+.future {
+  border-color: var(--border-soft);
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+  background: var(--surface-sunken);
 }
 
 .transfer {
-  border-style: dashed;
-  border-color: #f59e0b;
+  border-color: var(--grove-gold);
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+  background: var(--grove-gold-light);
 }
 
+/* Text */
 .name {
   font-weight: 600;
   font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.team {
+  font-size: 10px;
+  color: var(--grove-green);
+  font-weight: 600;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -38,35 +80,61 @@
 
 .role {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.empAbbrev {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* Diff annotations */
 .added {
-  border-color: #22c55e;
-  background: #f0fdf4;
+  border-color: #4a9c3f;
+  border-left-color: #3d8534;
+  background: #edf7eb;
 }
 
 .reporting {
-  border-color: #f97316;
-  background: #fff7ed;
+  border-color: var(--grove-amber);
+  border-left-color: #b87a30;
+  background: #fdf6ec;
 }
 
 .titleChange {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--grove-green-muted);
+  border-left-color: var(--grove-green);
+  background: var(--grove-green-soft);
 }
 
 .reorg {
-  border-color: #eab308;
-  background: #fefce8;
+  border-color: var(--grove-gold);
+  border-left-color: var(--grove-gold);
+  background: var(--grove-gold-light);
+}
+
+/* Employment type right accent bar */
+.empRight {
+  border-right: 3.5px solid var(--emp-color);
+}
+
+/* Warning indicator */
+.warningDot {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 12px;
+  line-height: 1;
+  z-index: 2;
+  cursor: help;
 }
 
 .ghost {
-  opacity: 0.4;
+  opacity: 0.35;
   border-style: dashed;
   text-decoration: line-through;
 }

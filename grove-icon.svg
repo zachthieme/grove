@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a2a"/>
+      <stop offset="100%" style="stop-color:#0f2318"/>
+    </linearGradient>
+    <linearGradient id="trunkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c5c3a"/>
+      <stop offset="100%" style="stop-color:#a0734d"/>
+    </linearGradient>
+    <linearGradient id="canopyTop" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" style="stop-color:#5dbd6e"/>
+      <stop offset="100%" style="stop-color:#2e8b45"/>
+    </linearGradient>
+    <linearGradient id="canopyMidL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4aab5c"/>
+      <stop offset="100%" style="stop-color:#276e38"/>
+    </linearGradient>
+    <linearGradient id="canopyMidR" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4aab5c"/>
+      <stop offset="100%" style="stop-color:#276e38"/>
+    </linearGradient>
+    <linearGradient id="leafLL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3d9950"/>
+      <stop offset="100%" style="stop-color:#1e5e30"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="256" height="256" rx="44" fill="url(#bgGrad)"/>
+
+  <!-- Ground shadow -->
+  <ellipse cx="128" cy="222" rx="34" ry="5" fill="#000" opacity="0.3"/>
+
+  <!-- Trunk -->
+  <rect x="119" y="158" width="18" height="58" rx="5" fill="url(#trunkGrad)"/>
+  <!-- Trunk dark side -->
+  <rect x="119" y="158" width="7" height="58" rx="4" fill="#5a3d22" opacity="0.5"/>
+
+  <!-- Branches (peeking out between canopy layers) -->
+  <path d="M128 150 Q103 135 78 122" stroke="#8b6540" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <path d="M128 150 Q153 135 178 122" stroke="#8b6540" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <path d="M88 128 Q66 118 52 124" stroke="#7a5535" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M88 128 Q84 110 92 100" stroke="#7a5535" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M168 128 Q188 116 202 122" stroke="#7a5535" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M168 128 Q174 110 164 100" stroke="#7a5535" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Far leaf clusters (back) -->
+  <ellipse cx="52" cy="128" rx="27" ry="22" fill="#1e5e30" opacity="0.9"/>
+  <ellipse cx="204" cy="128" rx="27" ry="22" fill="#1e5e30" opacity="0.9"/>
+
+  <!-- Mid leaf clusters -->
+  <ellipse cx="90" cy="108" rx="33" ry="27" fill="url(#canopyMidL)" filter="url(#soft)"/>
+  <ellipse cx="166" cy="108" rx="33" ry="27" fill="url(#canopyMidR)" filter="url(#soft)"/>
+
+  <!-- Far cluster fronts (lighter) -->
+  <ellipse cx="50" cy="122" rx="20" ry="16" fill="#3d9950" opacity="0.7"/>
+  <ellipse cx="206" cy="122" rx="20" ry="16" fill="#3d9950" opacity="0.7"/>
+
+  <!-- Top/center canopy (front, largest) -->
+  <ellipse cx="128" cy="82" rx="50" ry="45" fill="url(#canopyTop)" filter="url(#soft)"/>
+
+  <!-- Top canopy highlights -->
+  <ellipse cx="116" cy="62" rx="18" ry="13" fill="#7dda8e" opacity="0.25"/>
+  <ellipse cx="108" cy="57" rx="8" ry="6" fill="#a8f0b8" opacity="0.18"/>
+
+  <!-- Mid cluster highlights -->
+  <ellipse cx="80" cy="96" rx="12" ry="9" fill="#6cc97a" opacity="0.3"/>
+  <ellipse cx="176" cy="96" rx="12" ry="9" fill="#6cc97a" opacity="0.3"/>
+</svg>

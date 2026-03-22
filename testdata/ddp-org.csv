@@ -1,0 +1,42 @@
+Name,Role,Discipline,Manager,Team,Additional Teams,Status,Employment Type
+Sarah Chen,VP Engineering,Engineering,,Engineering,,Active,
+Mike Torres,Director of Platform,Engineering,Sarah Chen,Platform,,Active,
+Lisa Park,Director of Product,Product,Sarah Chen,Product,,Active,
+James Wright,Engineering Manager,Engineering,Mike Torres,Core,,Active,FTE
+Priya Sharma,Engineering Manager,Engineering,Mike Torres,Infra,,Active,
+Ana Rodriguez,Product Manager,Product,Lisa Park,Product,,Active,
+Kevin Liu,Staff Engineer,Engineering,James Wright,Core,,Active,
+Rachel Kim,Senior Engineer,Engineering,James Wright,Core,,Active,
+David Okafor,Engineer,Engineering,James Wright,Core,,Active,
+Mei Zhang,Senior Designer,Design,James Wright,Core,,Active,
+Open - Frontend Eng,Frontend Engineer,Engineering,James Wright,Core,,Open,
+Tom Nakamura,Principal Engineer,Engineering,Mike Torres,Platform,"Core,Infra",Active,FTE
+Wei Chen,Senior Engineer,Engineering,Priya Sharma,Infra,,Active,
+Jordan Lee,SRE,Engineering,Priya Sharma,Infra,,Active,
+Open - SRE,SRE,Engineering,Priya Sharma,Infra,,Open,
+Incoming Infra Eng,,,Priya Sharma,Infra,,Transfer In,
+Sam Patel,TPM,TPM,Mike Torres,Platform,"Core,Infra",Active,FTE
+Nina Costa,Senior PM,Product,Ana Rodriguez,Product,,Active,
+Carlos Ruiz,PM,Product,Ana Rodriguez,Product,,Active,
+Aisha Johnson,UX Researcher,Design,Ana Rodriguez,Product,,Active,
+Open - PM,Product Manager,Product,Ana Rodriguez,Product,,Open,
+Ryan O'Brien,Data Lead,Engineering,Sarah Chen,Data,,Active,
+Emma Walsh,Data Engineer,Engineering,Ryan O'Brien,Data,,Active,
+Chris Tanaka,ML Engineer,Engineering,Ryan O'Brien,Data,,Active,
+Open - Data Eng,Data Engineer,Engineering,Ryan O'Brien,Data,,Open,
+Fatima Al-Hassan,TPM,TPM,Sarah Chen,Engineering,Data,Active,FTE
+Sarah Chalke,Engineering Manager,Engineering,Mike Torres,Sec,,Active,FTE
+Alex Park,Engineer,Engineering,Benny Sanders,DDP,,Active,
+Jamie Lee,Engineer,Engineering,Benny Sanders,DDP,,Active,
+Morgan Chen,Designer,Design,Benny Sanders,DDP,,Active,
+Taylor Swift,PM,Product,Benny Sanders,DDP,,Active,
+Pat Williams,Engineer,Engineering,John Dorian,Platform - cd,,Active,
+Sam Rivera,Engineer,Engineering,John Dorian,Platform - cd,,Active,
+Dana Kim,SRE,Engineering,John Dorian,Platform - cd,,Active,
+Riley Johnson,QA,Engineering,John Dorian,Platform - cd,,Active,
+Benny Sanders,Engineering Manager,Engineering,Sarah Chalke,IOT,,Active,
+John Dorian,Engineering Manager,Engineering,Sarah Chalke,CD,,Active,FTE
+Open - IOT Eng,Engineer,Engineering,Benny Sanders,IOT,,Open,
+Open - IOT Eng 2,Engineer,Engineering,Benny Sanders,IOT,,Open,
+Planned - IOT PM,PM,Product,Benny Sanders,IOT,,Planned,
+Winny,Principal Engineer,Engineering,Sarah Chalke,SEC,"CD,IOT",Active,FTE

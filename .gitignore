@@ -1,5 +1,6 @@
 .superpowers/
 orgchart
+grove
 org-*.md
 web/dist/
 web/node_modules/

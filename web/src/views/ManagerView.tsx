@@ -1,0 +1,261 @@
+import { useMemo, useRef, useLayoutEffect, useState, useCallback } from 'react'
+import { DndContext, DragOverlay, MouseSensor, useSensor, useSensors, type DragStartEvent } from '@dnd-kit/core'
+import type { Person } from '../api/types'
+import type { PersonChange } from '../hooks/useOrgDiff'
+import { useDragDrop } from '../hooks/useDragDrop'
+import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
+import PersonNode from '../components/PersonNode'
+import styles from './ManagerView.module.css'
+
+interface ManagerViewProps {
+  people: Person[]
+  selectedIds: Set<string>
+  onSelect: (id: string, event?: React.MouseEvent) => void
+  changes?: Map<string, PersonChange>
+  managerSet?: Set<string>
+  onAddReport?: (id: string) => void
+  onDeletePerson?: (id: string) => void
+  onInfo?: (id: string) => void
+}
+
+function SummaryCard({ people }: { people: Person[] }) {
+  const groups: { label: string; count: number }[] = []
+
+  // Active people: count by discipline
+  const active = people.filter((p) => p.status === 'Active')
+  if (active.length > 0) {
+    const byDiscipline = new Map<string, number>()
+    for (const p of active) {
+      const d = p.discipline || 'Other'
+      byDiscipline.set(d, (byDiscipline.get(d) || 0) + 1)
+    }
+    for (const [discipline, count] of byDiscipline) {
+      groups.push({ label: discipline, count })
+    }
+  }
+
+  // Open + Backfill => Recruiting
+  const recruiting = people.filter((p) => p.status === 'Open' || p.status === 'Backfill')
+  if (recruiting.length > 0) {
+    groups.push({ label: 'Recruiting', count: recruiting.length })
+  }
+
+  // Pending Open + Planned => Planned
+  const planned = people.filter((p) => p.status === 'Pending Open' || p.status === 'Planned')
+  if (planned.length > 0) {
+    groups.push({ label: 'Planned', count: planned.length })
+  }
+
+  // Transfer In + Transfer Out => Transfers
+  const transfers = people.filter((p) => p.status === 'Transfer In' || p.status === 'Transfer Out')
+  if (transfers.length > 0) {
+    groups.push({ label: 'Transfers', count: transfers.length })
+  }
+
+  if (groups.length === 0) return null
+
+  return (
+    <div className={styles.summaryCard}>
+      {groups.map((g) => (
+        <div key={g.label} className={styles.summaryRow}>
+          <span className={styles.summaryLabel}>{g.label}</span>
+          <span className={styles.summaryValue}>{g.count}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onDeletePerson, onInfo }: {
+  node: OrgNode
+  selectedIds: Set<string>
+  onSelect: (id: string, event?: React.MouseEvent) => void
+  changes?: Map<string, PersonChange>
+  setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
+  managerSet?: Set<string>
+  onAddReport?: (id: string) => void
+  onDeletePerson?: (id: string) => void
+  onInfo?: (id: string) => void
+}) {
+  const subManagers = node.children.filter((c) => c.children.length > 0)
+  const ics = node.children.filter((c) => c.children.length === 0)
+
+  return (
+    <div className={styles.subtree}>
+      <div className={styles.nodeSlot}>
+        <DraggableNode
+          person={node.person}
+          selected={selectedIds.has(node.person.id)}
+          changes={changes?.get(node.person.id)}
+          showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
+          isManager={managerSet?.has(node.person.id)}
+          onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
+          onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
+          onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
+          onSelect={(e) => onSelect(node.person.id, e)}
+          nodeRef={setNodeRef(node.person.id)}
+        />
+      </div>
+
+      {node.children.length > 0 && (
+        <div className={styles.children}>
+          {/* Sub-managers rendered as full subtrees */}
+          {subManagers.map((child) => (
+            <ManagerSubtree
+              key={child.person.id}
+              node={child}
+              selectedIds={selectedIds}
+              onSelect={onSelect}
+              changes={changes}
+              setNodeRef={setNodeRef}
+              managerSet={managerSet}
+              onAddReport={onAddReport}
+              onDeletePerson={onDeletePerson}
+              onInfo={onInfo}
+            />
+          ))}
+          {/* ICs summarized */}
+          {ics.length > 0 && <SummaryCard people={ics.map((c) => c.person)} />}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo }: ManagerViewProps) {
+  const { onDragEnd } = useDragDrop()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([])
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+
+  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } })
+  const sensors = useSensors(mouseSensor)
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string)
+  }, [])
+
+  const handleDragEnd = useCallback((event: Parameters<typeof onDragEnd>[0]) => {
+    setActiveDragId(null)
+    onDragEnd(event)
+  }, [onDragEnd])
+
+  const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
+
+  const setNodeRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) nodeRefs.current.set(id, el)
+    else nodeRefs.current.delete(id)
+  }, [])
+
+  const roots = useMemo(() => buildOrgTree(people), [people])
+
+  // Edges only between rendered manager nodes (not ICs, since they are summarized)
+  const edges = useMemo(() => {
+    // Build set of people who have children (managers in the tree)
+    const managerIds = new Set<string>()
+    function collectManagers(nodes: OrgNode[]) {
+      for (const n of nodes) {
+        if (n.children.length > 0) {
+          managerIds.add(n.person.id)
+          collectManagers(n.children)
+        }
+      }
+    }
+    collectManagers(roots)
+
+    // Also include roots (even if they have no children, they are rendered as nodes)
+    for (const r of roots) {
+      managerIds.add(r.person.id)
+    }
+
+    // Edges: from manager parent to manager child (both must be rendered nodes)
+    const result: { fromId: string; toId: string }[] = []
+    function collectEdges(nodes: OrgNode[]) {
+      for (const n of nodes) {
+        for (const child of n.children) {
+          if (child.children.length > 0) {
+            // Sub-manager: draw edge from parent to child
+            result.push({ fromId: n.person.id, toId: child.person.id })
+          }
+        }
+        collectEdges(n.children)
+      }
+    }
+    collectEdges(roots)
+
+    return result
+  }, [roots])
+
+  // Compute lines after layout
+  useLayoutEffect(() => {
+    if (!containerRef.current || edges.length === 0) {
+      setLines([])
+      return
+    }
+    const rect = containerRef.current.getBoundingClientRect()
+    const sl = containerRef.current.scrollLeft
+    const st = containerRef.current.scrollTop
+    const computed: typeof lines = []
+
+    for (const { fromId, toId } of edges) {
+      const fromEl = nodeRefs.current.get(fromId)
+      const toEl = nodeRefs.current.get(toId)
+      if (!fromEl || !toEl) continue
+      const fr = fromEl.getBoundingClientRect()
+      const tr = toEl.getBoundingClientRect()
+      computed.push({
+        x1: fr.left + fr.width / 2 - rect.left + sl,
+        y1: fr.bottom - rect.top + st,
+        x2: tr.left + tr.width / 2 - rect.left + sl,
+        y2: tr.top - rect.top + st,
+      })
+    }
+    setLines(computed)
+  }, [edges, roots, selectedIds])
+
+  if (people.length === 0) {
+    return <div className={styles.container}>No people to display.</div>
+  }
+
+  return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className={styles.container} ref={containerRef}>
+        <svg className={styles.svgOverlay}>
+          {lines.map((l, i) => (
+            <path
+              key={i}
+              d={`M ${l.x1} ${l.y1} C ${l.x1} ${(l.y1 + l.y2) / 2}, ${l.x2} ${(l.y1 + l.y2) / 2}, ${l.x2} ${l.y2}`}
+              fill="none"
+              stroke="#b5a898"
+              strokeWidth={1.5}
+            />
+          ))}
+        </svg>
+        <div className={styles.forest}>
+          {roots.map((root) => (
+            <ManagerSubtree
+              key={root.person.id}
+              node={root}
+              selectedIds={selectedIds}
+              onSelect={onSelect}
+              changes={changes}
+              setNodeRef={setNodeRef}
+              managerSet={managerSet}
+              onAddReport={onAddReport}
+              onDeletePerson={onDeletePerson}
+              onInfo={onInfo}
+            />
+          ))}
+        </div>
+      </div>
+      <DragOverlay dropAnimation={null}>
+        {draggedPerson && (
+          <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none' }}>
+            <PersonNode person={draggedPerson} selected={false} />
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
+  )
+}

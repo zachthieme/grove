@@ -6,9 +6,12 @@ export interface Person {
   managerId: string
   team: string
   additionalTeams: string[]
-  status: 'Active' | 'Hiring' | 'Open' | 'Transfer'
+  status: 'Active' | 'Open' | 'Pending Open' | 'Transfer In' | 'Transfer Out' | 'Backfill' | 'Planned'
+  employmentType?: string
   newRole?: string
   newTeam?: string
+  warning?: string
+  sortIndex?: number
 }
 
 export interface OrgData {
@@ -29,4 +32,44 @@ export interface UpdatePayload {
 
 export interface DeletePayload {
   personId: string
+}
+
+export interface DeleteResponse {
+  working: Person[]
+  recycled: Person[]
+}
+
+export interface RestoreResponse {
+  working: Person[]
+  recycled: Person[]
+}
+
+export interface EmptyBinResponse {
+  recycled: Person[]
+}
+
+export interface MappedColumn {
+  column: string
+  confidence: 'high' | 'medium' | 'none'
+}
+
+export interface UploadResponse {
+  status: 'ready' | 'needs_mapping'
+  orgData?: OrgData
+  headers?: string[]
+  mapping?: Record<string, MappedColumn>
+  preview?: string[][]
+}
+
+export interface SnapshotInfo {
+  name: string
+  timestamp: string
+}
+
+export interface AutosaveData {
+  original: Person[]
+  working: Person[]
+  recycled: Person[]
+  snapshotName: string
+  timestamp: string
 }

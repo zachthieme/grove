@@ -10,7 +10,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
 	svc := NewOrgService()
-	if err := svc.Upload("test.csv", []byte(input)); err != nil {
+	if _, err := svc.Upload("test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 

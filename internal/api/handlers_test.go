@@ -31,11 +31,14 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 		t.Fatalf("upload expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var data OrgData
-	if err := json.NewDecoder(rec.Body).Decode(&data); err != nil {
+	var resp UploadResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding upload response: %v", err)
 	}
-	return &data
+	if resp.Status != "ready" {
+		t.Fatalf("expected upload status 'ready', got '%s'", resp.Status)
+	}
+	return resp.OrgData
 }
 
 func TestUploadHandler(t *testing.T) {
@@ -44,6 +47,9 @@ func TestUploadHandler(t *testing.T) {
 
 	data := uploadCSV(t, handler)
 
+	if data == nil {
+		t.Fatal("expected OrgData from upload")
+	}
 	if len(data.Original) != 3 {
 		t.Errorf("expected 3 original people, got %d", len(data.Original))
 	}
@@ -210,12 +216,133 @@ func TestDeleteHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var people []Person
-	if err := json.NewDecoder(rec.Body).Decode(&people); err != nil {
+	var resp struct {
+		Working  []Person `json:"working"`
+		Recycled []Person `json:"recycled"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
-	if len(people) != 2 {
-		t.Errorf("expected 2 people, got %d", len(people))
+	if len(resp.Working) != 2 {
+		t.Errorf("expected 2 working people, got %d", len(resp.Working))
+	}
+	if len(resp.Recycled) != 1 {
+		t.Errorf("expected 1 recycled person, got %d", len(resp.Recycled))
+	}
+}
+
+func TestRecycledHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	data := uploadCSV(t, handler)
+	bob := findByName(data.Working, "Bob")
+
+	// Delete Bob first
+	body, _ := json.Marshal(map[string]string{"personId": bob.Id})
+	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// GET /api/recycled
+	req = httptest.NewRequest("GET", "/api/recycled", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var recycled []Person
+	if err := json.NewDecoder(rec.Body).Decode(&recycled); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(recycled) != 1 {
+		t.Errorf("expected 1 recycled person, got %d", len(recycled))
+	}
+}
+
+func TestRestoreHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	data := uploadCSV(t, handler)
+	bob := findByName(data.Working, "Bob")
+
+	// Delete Bob first
+	body, _ := json.Marshal(map[string]string{"personId": bob.Id})
+	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// POST /api/restore with Bob's ID
+	body, _ = json.Marshal(map[string]string{"personId": bob.Id})
+	req = httptest.NewRequest("POST", "/api/restore", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Working  []Person `json:"working"`
+		Recycled []Person `json:"recycled"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(resp.Working) != 3 {
+		t.Errorf("expected 3 working people, got %d", len(resp.Working))
+	}
+	if len(resp.Recycled) != 0 {
+		t.Errorf("expected 0 recycled people, got %d", len(resp.Recycled))
+	}
+}
+
+func TestEmptyBinHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	data := uploadCSV(t, handler)
+	bob := findByName(data.Working, "Bob")
+
+	// Delete Bob first
+	body, _ := json.Marshal(map[string]string{"personId": bob.Id})
+	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// POST /api/empty-bin
+	req = httptest.NewRequest("POST", "/api/empty-bin", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Recycled []Person `json:"recycled"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(resp.Recycled) != 0 {
+		t.Errorf("expected 0 recycled people, got %d", len(resp.Recycled))
 	}
 }
 
@@ -256,5 +383,773 @@ func TestExportHandler_XLSX(t *testing.T) {
 	}
 	if rec.Body.Len() == 0 {
 		t.Error("expected non-empty XLSX body")
+	}
+}
+
+func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
+	t.Helper()
+	// Use unrecognizable headers ("Nombre", "Nivel") so InferMapping won't auto-proceed.
+	csvData := "Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreateFormFile("file", "test.csv")
+	if err != nil {
+		t.Fatalf("creating form file: %v", err)
+	}
+	part.Write([]byte(csvData))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/upload", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("upload expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp UploadResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decoding upload response: %v", err)
+	}
+	return &resp
+}
+
+func TestConfirmMappingHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	resp := uploadNonStandardCSV(t, handler)
+	if resp.Status != "needs_mapping" {
+		t.Fatalf("expected 'needs_mapping', got '%s'", resp.Status)
+	}
+
+	// POST /api/upload/confirm with explicit mapping
+	mapping := map[string]string{
+		"name":            "Nombre",
+		"role":            "Nivel",
+		"discipline":      "Discipline",
+		"manager":         "Manager",
+		"team":            "Team",
+		"additionalTeams": "Additional Teams",
+		"status":          "Status",
+	}
+	body, _ := json.Marshal(map[string]any{"mapping": mapping})
+
+	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var orgData OrgData
+	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
+		t.Fatalf("decoding confirm response: %v", err)
+	}
+	if len(orgData.Original) != 2 {
+		t.Errorf("expected 2 original people, got %d", len(orgData.Original))
+	}
+	if len(orgData.Working) != 2 {
+		t.Errorf("expected 2 working people, got %d", len(orgData.Working))
+	}
+	if orgData.Original[0].Name != "Alice" {
+		t.Errorf("expected first person to be Alice, got %s", orgData.Original[0].Name)
+	}
+}
+
+func TestReorderHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	data := uploadCSV(t, handler)
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+
+	body, _ := json.Marshal(map[string]any{
+		"personIds": []string{carol.Id, alice.Id, bob.Id},
+	})
+
+	req := httptest.NewRequest("POST", "/api/reorder", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var people []Person
+	if err := json.NewDecoder(rec.Body).Decode(&people); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	carolUpdated := findById(people, carol.Id)
+	aliceUpdated := findById(people, alice.Id)
+	bobUpdated := findById(people, bob.Id)
+
+	if carolUpdated.SortIndex != 0 {
+		t.Errorf("expected Carol sortIndex 0, got %d", carolUpdated.SortIndex)
+	}
+	if aliceUpdated.SortIndex != 1 {
+		t.Errorf("expected Alice sortIndex 1, got %d", aliceUpdated.SortIndex)
+	}
+	if bobUpdated.SortIndex != 2 {
+		t.Errorf("expected Bob sortIndex 2, got %d", bobUpdated.SortIndex)
+	}
+}
+
+func TestReorderHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/reorder", bytes.NewReader([]byte("not json")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+
+	var errResp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
+		t.Fatalf("decoding error response: %v", err)
+	}
+	if errResp["error"] == "" {
+		t.Error("expected error message in JSON response")
+	}
+}
+
+func TestResetHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	data := uploadCSV(t, handler)
+	bob := findByName(data.Working, "Bob")
+
+	// Mutate: update Bob's role
+	body, _ := json.Marshal(map[string]interface{}{
+		"personId": bob.Id,
+		"fields":   map[string]string{"role": "Senior Engineer"},
+	})
+	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update expected 200, got %d", rec.Code)
+	}
+
+	// Delete Carol so recycled has data
+	carol := findByName(data.Working, "Carol")
+	body, _ = json.Marshal(map[string]string{"personId": carol.Id})
+	req = httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete expected 200, got %d", rec.Code)
+	}
+
+	// POST /api/reset
+	req = httptest.NewRequest("POST", "/api/reset", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var orgData OrgData
+	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+
+	if len(orgData.Working) != 3 {
+		t.Errorf("expected 3 working people after reset, got %d", len(orgData.Working))
+	}
+	if len(orgData.Original) != 3 {
+		t.Errorf("expected 3 original people after reset, got %d", len(orgData.Original))
+	}
+
+	// Bob's role should be back to original
+	resetBob := findByName(orgData.Working, "Bob")
+	if resetBob.Role != "Engineer" {
+		t.Errorf("expected Bob's role to be 'Engineer' after reset, got '%s'", resetBob.Role)
+	}
+
+	// Carol should be back
+	resetCarol := findByName(orgData.Working, "Carol")
+	if resetCarol == nil {
+		t.Error("expected Carol to be present after reset")
+	}
+
+	// Recycled should be empty (check via GET /api/recycled)
+	req = httptest.NewRequest("GET", "/api/recycled", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	var recycled []Person
+	json.NewDecoder(rec.Body).Decode(&recycled)
+	if len(recycled) != 0 {
+		t.Errorf("expected 0 recycled after reset, got %d", len(recycled))
+	}
+}
+
+func TestSnapshotHandlers_SaveAndList(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	// Save a snapshot.
+	body, _ := json.Marshal(map[string]string{"name": "v1"})
+	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var list []SnapshotInfo
+	if err := json.NewDecoder(rec.Body).Decode(&list); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 snapshot, got %d", len(list))
+	}
+	if list[0].Name != "v1" {
+		t.Errorf("expected name 'v1', got '%s'", list[0].Name)
+	}
+
+	// List snapshots.
+	req = httptest.NewRequest("GET", "/api/snapshots", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&list); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("expected 1 snapshot, got %d", len(list))
+	}
+}
+
+func TestSnapshotHandlers_Load(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	data := uploadCSV(t, handler)
+
+	// Save a snapshot.
+	body, _ := json.Marshal(map[string]string{"name": "v1"})
+	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("save expected 200, got %d", rec.Code)
+	}
+
+	// Mutate working data.
+	bob := findByName(data.Working, "Bob")
+	body, _ = json.Marshal(map[string]interface{}{
+		"personId": bob.Id,
+		"fields":   map[string]string{"role": "Senior Engineer"},
+	})
+	req = httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update expected 200, got %d", rec.Code)
+	}
+
+	// Load snapshot.
+	body, _ = json.Marshal(map[string]string{"name": "v1"})
+	req = httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var orgData OrgData
+	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	restoredBob := findByName(orgData.Working, "Bob")
+	if restoredBob.Role != "Engineer" {
+		t.Errorf("expected Bob's role to be 'Engineer' after load, got '%s'", restoredBob.Role)
+	}
+}
+
+func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	body, _ := json.Marshal(map[string]string{"name": "nonexistent"})
+	req := httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestSnapshotHandlers_Delete(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	// Save a snapshot.
+	body, _ := json.Marshal(map[string]string{"name": "v1"})
+	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("save expected 200, got %d", rec.Code)
+	}
+
+	// Delete the snapshot.
+	body, _ = json.Marshal(map[string]string{"name": "v1"})
+	req = httptest.NewRequest("POST", "/api/snapshots/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var list []SnapshotInfo
+	if err := json.NewDecoder(rec.Body).Decode(&list); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(list) != 0 {
+		t.Errorf("expected 0 snapshots after delete, got %d", len(list))
+	}
+}
+
+// --- Error path tests for handlers ---
+
+func TestMoveHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/move", bytes.NewReader([]byte("not json")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	var errResp map[string]string
+	json.NewDecoder(rec.Body).Decode(&errResp)
+	if errResp["error"] == "" {
+		t.Error("expected error message")
+	}
+}
+
+func TestMoveHandler_PersonNotFound(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	body, _ := json.Marshal(map[string]string{
+		"personId":     "nonexistent",
+		"newManagerId": "",
+	})
+	req := httptest.NewRequest("POST", "/api/move", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdateHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdateHandler_PersonNotFound(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"personId": "nonexistent",
+		"fields":   map[string]string{"role": "VP"},
+	})
+	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestAddHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/add", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestDeleteHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestDeleteHandler_PersonNotFound(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	body, _ := json.Marshal(map[string]string{"personId": "nonexistent"})
+	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestRestoreHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/restore", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestRestoreHandler_PersonNotFound(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	body, _ := json.Marshal(map[string]string{"personId": "nonexistent"})
+	req := httptest.NewRequest("POST", "/api/restore", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestConfirmMappingHandler_NoPending(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	body, _ := json.Marshal(map[string]any{"mapping": map[string]string{"name": "Name"}})
+	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestExportHandler_EmptyOrg(t *testing.T) {
+	// When no data has been uploaded, GetWorking returns an empty (non-nil) slice,
+	// so the export succeeds with only headers.
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("GET", "/api/export/csv", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "text/csv" {
+		t.Errorf("expected text/csv, got %s", ct)
+	}
+}
+
+func TestExportHandler_UnsupportedFormat(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("GET", "/api/export/pdf", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	var errResp map[string]string
+	json.NewDecoder(rec.Body).Decode(&errResp)
+	if errResp["error"] != "unsupported format: pdf" {
+		t.Errorf("expected 'unsupported format: pdf', got '%s'", errResp["error"])
+	}
+}
+
+func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/snapshots/delete", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestUploadHandler_NoFile(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("POST", "/api/upload", nil)
+	req.Header.Set("Content-Type", "multipart/form-data")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestUploadHandler_UnsupportedFormat(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, _ := writer.CreateFormFile("file", "test.txt")
+	part.Write([]byte("hello world"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/upload", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// --- Autosave handler tests ---
+
+func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
+	dir := t.TempDir()
+	autosaveDir = dir
+	defer func() { autosaveDir = "" }()
+
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	// Write autosave
+	data := AutosaveData{
+		Original:  []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
+		Working:   []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
+		Timestamp: "2026-03-21T12:00:00Z",
+	}
+	body, _ := json.Marshal(data)
+	req := httptest.NewRequest("POST", "/api/autosave", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("write expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Read autosave
+	req = httptest.NewRequest("GET", "/api/autosave", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("read expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var readData AutosaveData
+	if err := json.NewDecoder(rec.Body).Decode(&readData); err != nil {
+		t.Fatalf("decoding autosave: %v", err)
+	}
+	if len(readData.Original) != 1 {
+		t.Errorf("expected 1 original, got %d", len(readData.Original))
+	}
+
+	// Delete autosave
+	req = httptest.NewRequest("DELETE", "/api/autosave", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Read again — should be 204
+	req = httptest.NewRequest("GET", "/api/autosave", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("expected 204, got %d", rec.Code)
+	}
+}
+
+func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	autosaveDir = dir
+	defer func() { autosaveDir = "" }()
+
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("POST", "/api/autosave", bytes.NewReader([]byte("bad")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestAutosaveHandler_ReadMissing(t *testing.T) {
+	dir := t.TempDir()
+	autosaveDir = dir
+	defer func() { autosaveDir = "" }()
+
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("GET", "/api/autosave", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("expected 204, got %d", rec.Code)
+	}
+}
+
+func TestAutosaveHandler_DeleteMissing(t *testing.T) {
+	dir := t.TempDir()
+	autosaveDir = dir
+	defer func() { autosaveDir = "" }()
+
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }

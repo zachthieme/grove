@@ -1,0 +1,100 @@
+.wrapper {
+  position: relative;
+}
+
+.trigger {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-raised);
+  cursor: pointer;
+  color: var(--text-secondary);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.trigger:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 220px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+.menuItem:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.menuItemLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuItemTime {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.deleteBtn:hover {
+  color: var(--grove-red);
+}
+
+.separator {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 4px 0;
+}
+
+.active {
+  color: var(--grove-green);
+  font-weight: 600;
+}

@@ -1,0 +1,37 @@
+.actions {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: flex;
+  gap: 3px;
+  z-index: 10;
+}
+
+.btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-medium);
+  background: var(--surface-raised);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.btn:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.danger:hover {
+  background: var(--grove-red-light);
+  color: var(--grove-red);
+  border-color: var(--grove-red);
+}

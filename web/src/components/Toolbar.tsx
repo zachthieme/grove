@@ -1,11 +1,12 @@
-import { useCallback, useRef, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState, useEffect, type ChangeEvent } from 'react'
 import { useOrg } from '../store/OrgContext'
+import RecycleBinButton from './RecycleBinButton'
+import SnapshotsDropdown from './SnapshotsDropdown'
 import styles from './Toolbar.module.css'
 
 const viewModes = [
-  { value: 'tree', label: 'Tree' },
-  { value: 'columns', label: 'Columns' },
-  { value: 'headcount', label: 'Headcount' },
+  { value: 'detail', label: 'Detail' },
+  { value: 'manager', label: 'Manager' },
 ] as const
 
 const dataViews = [
@@ -14,9 +15,16 @@ const dataViews = [
   { value: 'diff', label: 'Diff' },
 ] as const
 
-export default function Toolbar() {
-  const { loaded, viewMode, dataView, setViewMode, setDataView, upload } = useOrg()
+interface ToolbarProps {
+  onExportPng?: () => void
+  onExportSvg?: () => void
+}
+
+export default function Toolbar({ onExportPng, onExportSvg }: ToolbarProps) {
+  const { loaded, viewMode, dataView, setViewMode, setDataView, upload, reflow } = useOrg()
   const inputRef = useRef<HTMLInputElement>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleFileChange = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -28,9 +36,22 @@ export default function Toolbar() {
     [upload],
   )
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!exportOpen) return
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [exportOpen])
+
   return (
     <header className={styles.toolbar}>
-      <span className={styles.title}>Org Chart</span>
+      <img src="/grove-icon.svg" alt="" style={{ width: 20, height: 20 }} />
+      <span className={styles.title}>Grove</span>
 
       <input
         ref={inputRef}
@@ -57,6 +78,10 @@ export default function Toolbar() {
             ))}
           </div>
 
+          <button className={styles.pill} onClick={() => reflow()} title="Re-layout">
+            ↻
+          </button>
+
           <div className={styles.pillGroup}>
             {dataViews.map((d) => (
               <button
@@ -69,10 +94,42 @@ export default function Toolbar() {
             ))}
           </div>
 
+          <RecycleBinButton />
+
+          <SnapshotsDropdown />
+
           <div className={styles.spacer} />
 
-          <a className={styles.exportLink} href="/api/export/csv">CSV</a>
-          <a className={styles.exportLink} href="/api/export/xlsx">XLSX</a>
+          <div className={styles.exportDropdown} ref={dropdownRef}>
+            <button
+              className={styles.exportBtn}
+              onClick={() => setExportOpen((o) => !o)}
+            >
+              Export ▾
+            </button>
+            {exportOpen && (
+              <div className={styles.exportMenu}>
+                <button
+                  className={styles.exportMenuItem}
+                  onClick={() => { onExportPng?.(); setExportOpen(false) }}
+                >
+                  PNG
+                </button>
+                <button
+                  className={styles.exportMenuItem}
+                  onClick={() => { onExportSvg?.(); setExportOpen(false) }}
+                >
+                  SVG
+                </button>
+                <a className={styles.exportMenuItem} href="/api/export/csv" onClick={() => setExportOpen(false)}>
+                  CSV
+                </a>
+                <a className={styles.exportMenuItem} href="/api/export/xlsx" onClick={() => setExportOpen(false)}>
+                  XLSX
+                </a>
+              </div>
+            )}
+          </div>
         </>
       )}
     </header>

@@ -4,7 +4,7 @@ frontend:
 	cd web && npm run build
 
 build: frontend
-	go build -o orgchart .
+	go build -o grove .
 
 dev:
 	@echo "Starting dev servers..."
@@ -13,4 +13,4 @@ dev:
 	@wait
 
 clean:
-	rm -rf web/dist orgchart
+	rm -rf web/dist grove

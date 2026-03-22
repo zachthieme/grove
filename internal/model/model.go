@@ -1,19 +1,16 @@
 package model
 
-import (
-	"fmt"
-	"regexp"
-	"strings"
-)
+import "fmt"
 
 const (
-	StatusActive   = "Active"
-	StatusHiring   = "Hiring"
-	StatusOpen     = "Open"
-	StatusTransfer = "Transfer"
+	StatusActive      = "Active"
+	StatusOpen        = "Open"
+	StatusPendingOpen = "Pending Open"
+	StatusTransferIn  = "Transfer In"
+	StatusTransferOut = "Transfer Out"
+	StatusBackfill    = "Backfill"
+	StatusPlanned     = "Planned"
 )
-
-var nonAlphaNum = regexp.MustCompile(`[^a-z0-9_]`)
 
 type Person struct {
 	Name            string
@@ -23,145 +20,76 @@ type Person struct {
 	Team            string
 	AdditionalTeams []string
 	Status          string
+	EmploymentType  string
 	NewRole         string
 	NewTeam         string
+	Warning         string // non-empty if this row had validation issues
 }
 
 type Org struct {
-	People    []Person
-	ByName    map[string]*Person
-	ByTeam    map[string][]*Person
-	ByManager map[string][]*Person
-	Roots     []*Person
+	People   []Person
+	Warnings []string
 }
 
+// NewOrg validates people. Rows with issues are kept but flagged with a Warning.
+// Only truly empty/unparseable data returns an error.
 func NewOrg(people []Person) (*Org, error) {
-	validStatuses := map[string]bool{StatusActive: true, StatusHiring: true, StatusOpen: true, StatusTransfer: true}
-	for i, p := range people {
+	if len(people) == 0 {
+		return nil, fmt.Errorf("no data rows found")
+	}
+
+	validStatuses := map[string]bool{
+		StatusActive: true, StatusOpen: true, StatusPendingOpen: true,
+		StatusTransferIn: true, StatusTransferOut: true,
+		StatusBackfill: true, StatusPlanned: true,
+	}
+
+	var warnings []string
+	for i := range people {
+		p := &people[i]
 		row := i + 2
+		var issues []string
+
 		if p.Name == "" {
-			return nil, fmt.Errorf("row %d: missing 'Name'", row)
+			issues = append(issues, "missing Name")
 		}
 		if p.Team == "" {
-			return nil, fmt.Errorf("row %d: missing 'Team'", row)
+			issues = append(issues, "missing Team")
 		}
 		if p.Status == "" {
-			return nil, fmt.Errorf("row %d: missing 'Status'", row)
+			issues = append(issues, "missing Status")
+		} else if !validStatuses[p.Status] {
+			issues = append(issues, fmt.Sprintf("invalid status '%s'", p.Status))
 		}
-		if !validStatuses[p.Status] {
-			return nil, fmt.Errorf("row %d: status must be Active, Hiring, Open, or Transfer (got '%s')", row, p.Status)
-		}
-		// Role and Discipline are optional for Transfer status
-		if p.Status != StatusTransfer {
+
+		blankAllowed := p.Status == StatusTransferIn || p.Status == StatusTransferOut ||
+			p.Status == StatusPendingOpen || p.Status == StatusPlanned
+		if !blankAllowed {
 			if p.Role == "" {
-				return nil, fmt.Errorf("row %d: missing 'Role'", row)
+				issues = append(issues, "missing Role")
 			}
 			if p.Discipline == "" {
-				return nil, fmt.Errorf("row %d: missing 'Discipline'", row)
+				issues = append(issues, "missing Discipline")
 			}
 		}
-	}
 
-	org := &Org{
-		People:    people,
-		ByName:    make(map[string]*Person),
-		ByTeam:    make(map[string][]*Person),
-		ByManager: make(map[string][]*Person),
-	}
-
-	for i := range org.People {
-		p := &org.People[i]
-		if _, exists := org.ByName[p.Name]; exists {
-			return nil, fmt.Errorf("duplicate name '%s'", p.Name)
-		}
-		org.ByName[p.Name] = p
-	}
-
-	for i := range org.People {
-		p := &org.People[i]
-		org.ByTeam[p.Team] = append(org.ByTeam[p.Team], p)
-
-		if p.Manager == "" {
-			org.Roots = append(org.Roots, p)
-		} else {
-			if _, exists := org.ByName[p.Manager]; !exists {
-				return nil, fmt.Errorf("manager '%s' not found (referenced by '%s')", p.Manager, p.Name)
-			}
-			org.ByManager[p.Manager] = append(org.ByManager[p.Manager], p)
+		if len(issues) > 0 {
+			msg := fmt.Sprintf("row %d: %s", row, joinIssues(issues))
+			p.Warning = msg
+			warnings = append(warnings, msg)
 		}
 	}
 
-	// Detect cycles with three-color DFS: 0=unvisited, 1=in-stack, 2=done
-	color := make(map[string]int, len(org.People))
-	for i := range org.People {
-		p := &org.People[i]
-		if color[p.Name] != 0 || p.Manager == "" {
-			continue
-		}
-		// Walk up the manager chain from this person
-		current := p.Name
-		for current != "" && color[current] == 0 {
-			color[current] = 1 // in-stack
-			mgr := org.ByName[current]
-			current = mgr.Manager
-		}
-		if current != "" && color[current] == 1 {
-			return nil, fmt.Errorf("circular reporting chain detected involving '%s'", current)
-		}
-		// Mark entire chain as done
-		walk := p.Name
-		for walk != "" && color[walk] == 1 {
-			color[walk] = 2
-			mgr := org.ByName[walk]
-			walk = mgr.Manager
-		}
-	}
-
-	return org, nil
+	return &Org{People: people, Warnings: warnings}, nil
 }
 
-// ApplyPlanned swaps NewRole/NewTeam into Role/Team for people who have them,
-// then rebuilds the Org indexes. Returns a new Org.
-func ApplyPlanned(org *Org) (*Org, error) {
-	people := make([]Person, len(org.People))
-	copy(people, org.People)
-	for i := range people {
-		if people[i].NewRole != "" {
-			people[i].Role = people[i].NewRole
-		}
-		if people[i].NewTeam != "" {
-			people[i].Team = people[i].NewTeam
-		}
+func joinIssues(issues []string) string {
+	if len(issues) == 1 {
+		return issues[0]
 	}
-	return NewOrg(people)
-}
-
-type IDGenerator struct {
-	seen    map[string]int
-	openSeq int
-}
-
-func NewIDGenerator() *IDGenerator {
-	return &IDGenerator{seen: make(map[string]int)}
-}
-
-func (g *IDGenerator) ID(name string) string {
-	base := strings.ToLower(name)
-	base = strings.ReplaceAll(base, " ", "_")
-	base = nonAlphaNum.ReplaceAllString(base, "")
-	for strings.Contains(base, "__") {
-		base = strings.ReplaceAll(base, "__", "_")
+	result := issues[0]
+	for _, s := range issues[1:] {
+		result += "; " + s
 	}
-	base = strings.Trim(base, "_")
-
-	g.seen[base]++
-	if g.seen[base] == 1 {
-		return base
-	}
-	return fmt.Sprintf("%s_%d", base, g.seen[base])
-}
-
-func (g *IDGenerator) OpenID() string {
-	g.openSeq++
-	return fmt.Sprintf("open_%d", g.openSeq)
+	return result
 }

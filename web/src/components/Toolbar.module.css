@@ -1,72 +1,130 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #fafafa;
-  font-weight: 600;
+  gap: 10px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-toolbar);
   flex-shrink: 0;
 }
 
 .title {
-  margin-right: 4px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--grove-green);
+  letter-spacing: -0.02em;
+  margin-right: 6px;
 }
 
 .uploadBtn {
-  padding: 4px 12px;
-  font-size: 13px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background: #fff;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-raised);
   cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  letter-spacing: 0.01em;
 }
 
 .uploadBtn:hover {
-  background: #f0f0f0;
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .pillGroup {
   display: flex;
-  background: #e8e8e8;
+  background: var(--surface-sunken);
   border-radius: 6px;
   padding: 2px;
   gap: 2px;
+  border: 1px solid var(--border-soft);
 }
 
 .pill {
-  padding: 4px 10px;
-  font-size: 13px;
+  padding: 4px 12px;
+  font-size: 12px;
   font-weight: 500;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
-  color: #555;
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  letter-spacing: 0.01em;
 }
 
 .pill:hover {
-  color: #222;
+  color: var(--text-secondary);
 }
 
 .pillActive {
-  background: #fff;
-  color: #111;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .spacer {
   flex: 1;
 }
 
-.exportLink {
-  font-size: 13px;
-  font-weight: 500;
-  color: #555;
-  text-decoration: none;
+.exportDropdown {
+  position: relative;
 }
 
-.exportLink:hover {
-  color: #111;
-  text-decoration: underline;
+.exportBtn {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-raised);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.exportBtn:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.exportMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 110px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.exportMenuItem {
+  display: block;
+  width: 100%;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.exportMenuItem:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
 }

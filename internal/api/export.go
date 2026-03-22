@@ -9,12 +9,13 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status"}
+var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type"}
 
 func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
+	// csv.Writer buffers writes; errors surface via w.Error() after Flush
 	w.Write(exportHeaders)
 	for _, p := range people {
 		w.Write(personToRow(p, idToName))
@@ -60,6 +61,6 @@ func personToRow(p Person, idToName map[string]string) []string {
 	managerName := idToName[p.ManagerId]
 	return []string{
 		p.Name, p.Role, p.Discipline, managerName, p.Team,
-		strings.Join(p.AdditionalTeams, ","), p.Status,
+		strings.Join(p.AdditionalTeams, ","), p.Status, p.EmploymentType,
 	}
 }

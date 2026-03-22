@@ -1,0 +1,58 @@
+package api
+
+import (
+	"fmt"
+	"sort"
+	"time"
+)
+
+type snapshotData struct {
+	People    []Person
+	Timestamp time.Time
+}
+
+func (s *OrgService) SaveSnapshot(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.snapshots == nil {
+		s.snapshots = make(map[string]snapshotData)
+	}
+	s.snapshots[name] = snapshotData{
+		People:    deepCopyPeople(s.working),
+		Timestamp: time.Now(),
+	}
+}
+
+func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	snap, ok := s.snapshots[name]
+	if !ok {
+		return nil, fmt.Errorf("snapshot '%s' not found", name)
+	}
+	s.working = deepCopyPeople(snap.People)
+	s.recycled = nil
+	return &OrgData{Original: s.original, Working: s.working}, nil
+}
+
+func (s *OrgService) DeleteSnapshot(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.snapshots, name)
+}
+
+func (s *OrgService) ListSnapshots() []SnapshotInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var list []SnapshotInfo
+	for name, snap := range s.snapshots {
+		list = append(list, SnapshotInfo{
+			Name:      name,
+			Timestamp: snap.Timestamp.Format(time.RFC3339Nano),
+		})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Timestamp > list[j].Timestamp
+	})
+	return list
+}
