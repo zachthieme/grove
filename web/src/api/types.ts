@@ -61,6 +61,7 @@ export interface UploadResponse {
   headers?: string[]
   mapping?: Record<string, MappedColumn>
   preview?: string[][]
+  snapshots?: SnapshotInfo[]
 }
 
 export interface SnapshotInfo {

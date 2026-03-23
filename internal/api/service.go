@@ -34,6 +34,7 @@ type OrgService struct {
 	snapshots       map[string]snapshotData
 	pendingFile     []byte
 	pendingFilename string
+	pendingIsZip    bool
 }
 
 func NewOrgService() *OrgService {
@@ -45,6 +46,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 	defer s.mu.Unlock()
 	s.pendingFile = nil
 	s.pendingFilename = ""
+	s.pendingIsZip = false
 	s.snapshots = nil
 
 	header, dataRows, err := extractRows(filename, data)
@@ -113,6 +115,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	s.recycled = nil
 	s.pendingFile = nil
 	s.pendingFilename = ""
+	s.pendingIsZip = false
 	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
 }
 

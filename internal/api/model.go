@@ -40,9 +40,10 @@ type MappedColumn struct {
 }
 
 type UploadResponse struct {
-	Status  string                  `json:"status"` // "ready" or "needs_mapping"
-	OrgData *OrgData                `json:"orgData,omitempty"`
-	Headers []string                `json:"headers,omitempty"`
-	Mapping map[string]MappedColumn `json:"mapping,omitempty"`
-	Preview [][]string              `json:"preview,omitempty"`
+	Status    string                  `json:"status"` // "ready" or "needs_mapping"
+	OrgData   *OrgData                `json:"orgData,omitempty"`
+	Headers   []string                `json:"headers,omitempty"`
+	Mapping   map[string]MappedColumn `json:"mapping,omitempty"`
+	Preview   [][]string              `json:"preview,omitempty"`
+	Snapshots []SnapshotInfo          `json:"snapshots,omitempty"`
 }
