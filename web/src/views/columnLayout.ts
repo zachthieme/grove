@@ -6,13 +6,78 @@ export type RenderItem =
   | { type: 'icGroup'; team: string; members: OrgNode[] }
 
 /**
+ * Reorder managers so that teams connected by cross-team ICs are adjacent.
+ * Builds an affinity graph (edges between manager teams that share a cross-team IC),
+ * then walks managers in original order, pulling each connected component together.
+ */
+function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode[] {
+  if (managers.length <= 2) return managers
+
+  const teamToIdx = new Map<string, number>()
+  for (let i = 0; i < managers.length; i++) {
+    teamToIdx.set(managers[i].person.team, i)
+  }
+
+  // Build adjacency: two managers are linked if any IC's additionalTeams reference both
+  const adj = new Map<number, Set<number>>()
+  for (const ic of ics) {
+    const teams = ic.person.additionalTeams || []
+    const indices = teams
+      .map((t) => teamToIdx.get(t))
+      .filter((i): i is number => i !== undefined)
+    for (const a of indices) {
+      for (const b of indices) {
+        if (a !== b) {
+          if (!adj.has(a)) adj.set(a, new Set())
+          adj.get(a)!.add(b)
+        }
+      }
+    }
+  }
+
+  // No cross-team links — keep original order
+  if (adj.size === 0) return managers
+
+  // Walk in original order; when we hit an unvisited manager, BFS its component
+  const visited = new Set<number>()
+  const result: OrgNode[] = []
+
+  for (let i = 0; i < managers.length; i++) {
+    if (visited.has(i)) continue
+    visited.add(i)
+
+    const component: number[] = [i]
+    const queue = [i]
+    while (queue.length > 0) {
+      const cur = queue.shift()!
+      for (const neighbor of adj.get(cur) || []) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor)
+          component.push(neighbor)
+          queue.push(neighbor)
+        }
+      }
+    }
+
+    component.sort((a, b) => a - b)
+    for (const idx of component) {
+      result.push(managers[idx])
+    }
+  }
+
+  return result
+}
+
+/**
  * Build an ordered list of render items.
- * Managers form the spine. Affiliated ICs are inserted after the last manager
- * they connect to, keeping them close to the teams they support without
- * pushing unrelated managers apart.
+ * Managers form the spine, reordered so cross-team-connected teams are adjacent.
+ * Affiliated ICs are inserted after the last manager they connect to, keeping
+ * them close to the teams they support without pushing unrelated managers apart.
  * Unaffiliated ICs go last, grouped by team if multiple teams.
  */
 export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderItem[] {
+  managers = reorderManagersByAffinity(managers, ics)
+
   const managerByTeam = new Map<string, OrgNode>()
   const managerIndex = new Map<string, number>()
   for (let i = 0; i < managers.length; i++) {

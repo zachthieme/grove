@@ -85,6 +85,27 @@ describe('computeRenderItems', () => {
     expect(items[2].type).toBe('ic')
   })
 
+  it('reorders managers so cross-team-connected teams are adjacent', () => {
+    // SEC and SEC-2 are connected by an IC with additionalTeams referencing both
+    // IOT should not separate them
+    const managers = [
+      makeNode({ id: '1', name: 'Saransh', team: 'SEC' }),
+      makeNode({ id: '2', name: 'Chris V', team: 'IOT' }),
+      makeNode({ id: '3', name: 'TBH', team: 'SEC-2' }),
+    ]
+    const ics = [
+      makeNode({ id: '4', name: 'Chris Launey', team: 'SEC and IOT', additionalTeams: ['SEC', 'SEC-2'] }),
+    ]
+    const items = computeRenderItems(managers, ics)
+    // SEC and SEC-2 managers should be adjacent, with Chris Launey after SEC-2
+    const managerTeams = items
+      .filter((i): i is { type: 'manager'; node: OrgNode } => i.type === 'manager')
+      .map((i) => i.node.person.team)
+    const secIdx = managerTeams.indexOf('SEC')
+    const sec2Idx = managerTeams.indexOf('SEC-2')
+    expect(Math.abs(secIdx - sec2Idx)).toBe(1)
+  })
+
   it('handles ICs only (no managers)', () => {
     const ics = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
