@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { toPng, toSvg } from 'html-to-image'
 import JSZip from 'jszip'
 import type { SnapshotInfo } from '../api/types'
@@ -28,12 +28,12 @@ export function useSnapshotExport({
 }: UseSnapshotExportOptions) {
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
-  const [suppressAutosave, setSuppressAutosave] = useState(false)
+  const suppressAutosaveRef = useRef(false)
 
   const exportAllSnapshots = useCallback(async (format: ExportFormat) => {
     if (exporting) return
     setExporting(true)
-    setSuppressAutosave(true)
+    suppressAutosaveRef.current = true
 
     const sortedSnapshots = [...snapshots].sort((a, b) =>
       a.timestamp.localeCompare(b.timestamp)
@@ -118,11 +118,11 @@ export function useSnapshotExport({
           await deleteSnapshot('__export_temp__')
         } catch { /* best effort */ }
       }
-      setSuppressAutosave(false)
+      suppressAutosaveRef.current = false
       setExporting(false)
       setProgress({ current: 0, total: 0 })
     }
   }, [exporting, snapshots, mainRef, loadSnapshot, saveSnapshot, deleteSnapshot, showAllEmploymentTypes, setHead])
 
-  return { exportAllSnapshots, exporting, progress, suppressAutosave }
+  return { exportAllSnapshots, exporting, progress, suppressAutosaveRef }
 }

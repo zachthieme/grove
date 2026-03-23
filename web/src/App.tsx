@@ -26,7 +26,7 @@ function AppContent() {
   const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError } = useExport(mainRef)
-  const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosave } = useSnapshotExport({
+  const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
     snapshots,
     mainRef,
     loadSnapshot,
@@ -35,7 +35,7 @@ function AppContent() {
     showAllEmploymentTypes,
     setHead,
   })
-  const { serverSaveError } = useAutosave({ original, working, recycled, currentSnapshotName, loaded, suppressAutosave })
+  const { serverSaveError } = useAutosave({ original, working, recycled, currentSnapshotName, loaded, suppressAutosaveRef })
 
   const rawPeople = dataView === 'original' ? original : working
   const changes = useOrgDiff(original, working)

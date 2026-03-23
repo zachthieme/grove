@@ -10,13 +10,13 @@ export function useAutosave(state: {
   recycled: Person[]
   currentSnapshotName: string | null
   loaded: boolean
-  suppressAutosave?: boolean
+  suppressAutosaveRef?: React.RefObject<boolean>
 }) {
   const timerRef = useRef<number>(undefined)
   const [serverSaveError, setServerSaveError] = useState(false)
 
   useEffect(() => {
-    if (!state.loaded || state.working.length === 0 || state.suppressAutosave) return
+    if (!state.loaded || state.working.length === 0 || state.suppressAutosaveRef?.current) return
 
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = window.setTimeout(() => {
@@ -43,7 +43,7 @@ export function useAutosave(state: {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [state.original, state.working, state.recycled, state.currentSnapshotName, state.loaded, state.suppressAutosave])
+  }, [state.original, state.working, state.recycled, state.currentSnapshotName, state.loaded])
 
   return { serverSaveError }
 }
