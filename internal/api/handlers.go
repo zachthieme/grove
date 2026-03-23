@@ -11,6 +11,10 @@ import (
 func NewRouter(svc *OrgService) http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+
 	mux.HandleFunc("POST /api/upload", handleUpload(svc))
 	mux.HandleFunc("POST /api/upload/confirm", handleConfirmMapping(svc))
 	mux.HandleFunc("GET /api/org", handleGetOrg(svc))
@@ -139,7 +143,11 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		_, working := svc.Add(p)
+		_, working, err := svc.Add(p)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		writeJSON(w, http.StatusOK, working)
 	}
 }
@@ -225,7 +233,7 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 			filename = "org.xlsx"
 		default:
-			writeError(w, http.StatusBadRequest, "unsupported format: "+format)
+			writeError(w, http.StatusBadRequest, "unsupported export format")
 			return
 		}
 
@@ -334,4 +342,10 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	if err := json.NewEncoder(w).Encode(map[string]string{"error": msg}); err != nil {
 		log.Printf("writeError encode error: %v", err)
 	}
+}
+
+// limitBody wraps r.Body with a 1 MB size limit.
+func limitBody(w http.ResponseWriter, r *http.Request) {
+	const maxBodySize = 1 << 20 // 1 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 }

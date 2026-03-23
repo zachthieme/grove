@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/zachthieme/grove/internal/api"
@@ -36,8 +40,31 @@ var serveCmd = &cobra.Command{
 		}
 
 		addr := fmt.Sprintf(":%d", servePort)
+
+		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt)
+		defer stop()
+
+		server := &http.Server{
+			Addr:         addr,
+			Handler:      mux,
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 60 * time.Second,
+			IdleTimeout:  120 * time.Second,
+		}
+
+		go func() {
+			<-ctx.Done()
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = server.Shutdown(shutdownCtx)
+		}()
+
 		fmt.Fprintf(os.Stderr, "Listening on http://localhost%s\n", addr)
-		return http.ListenAndServe(addr, mux)
+		err := server.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
 	},
 }
 

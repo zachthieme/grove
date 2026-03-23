@@ -7,6 +7,7 @@ import (
 
 func handleWriteAutosave() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var data AutosaveData
 		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON")

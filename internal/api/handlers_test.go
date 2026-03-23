@@ -149,7 +149,7 @@ func TestUpdateHandler(t *testing.T) {
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"personId": bob.Id,
 		"fields":   map[string]string{"role": "Senior Engineer"},
 	})
@@ -541,7 +541,7 @@ func TestResetHandler(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Mutate: update Bob's role
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"personId": bob.Id,
 		"fields":   map[string]string{"role": "Senior Engineer"},
 	})
@@ -670,7 +670,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 
 	// Mutate working data.
 	bob := findByName(data.Working, "Bob")
-	body, _ = json.Marshal(map[string]interface{}{
+	body, _ = json.Marshal(map[string]any{
 		"personId": bob.Id,
 		"fields":   map[string]string{"role": "Senior Engineer"},
 	})
@@ -817,7 +817,7 @@ func TestUpdateHandler_PersonNotFound(t *testing.T) {
 	handler := NewRouter(svc)
 	uploadCSV(t, handler)
 
-	body, _ := json.Marshal(map[string]interface{}{
+	body, _ := json.Marshal(map[string]any{
 		"personId": "nonexistent",
 		"fields":   map[string]string{"role": "VP"},
 	})
@@ -971,8 +971,8 @@ func TestExportHandler_UnsupportedFormat(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
 		t.Fatalf("decoding error response: %v", err)
 	}
-	if errResp["error"] != "unsupported format: pdf" {
-		t.Errorf("expected 'unsupported format: pdf', got '%s'", errResp["error"])
+	if errResp["error"] != "unsupported export format" {
+		t.Errorf("expected 'unsupported export format', got '%s'", errResp["error"])
 	}
 }
 
@@ -1174,3 +1174,24 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }
+
+func TestHealthEndpoint(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	req := httptest.NewRequest("GET", "/api/health", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var resp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
+	if resp["status"] != "ok" {
+		t.Errorf("expected status 'ok', got '%s'", resp["status"])
+	}
+}
+

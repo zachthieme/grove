@@ -82,10 +82,13 @@ func TestOrgService_Add(t *testing.T) {
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
 
-	added, _ := svc.Add(Person{
+	added, _, err := svc.Add(Person{
 		Name: "Dave", Role: "Engineer", Discipline: "Eng",
 		ManagerId: alice.Id, Team: "Eng", Status: "Active",
 	})
+	if err != nil {
+		t.Fatalf("add failed: %v", err)
+	}
 
 	if added.Id == "" {
 		t.Error("expected added person to have an ID")
@@ -656,6 +659,75 @@ func TestOrgService_GetOrg_NoData(t *testing.T) {
 	if data != nil {
 		t.Error("expected nil when no data loaded")
 	}
+}
+
+func TestOrgService_FieldLengthValidation(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	longStr := string(make([]byte, maxFieldLen+1))
+
+	t.Run("Update rejects long field", func(t *testing.T) {
+		_, err := svc.Update(alice.Id, map[string]string{"name": longStr})
+		if err == nil {
+			t.Error("expected error for field too long")
+		}
+	})
+
+	t.Run("Update accepts max-length field", func(t *testing.T) {
+		okStr := string(make([]byte, maxFieldLen))
+		_, err := svc.Update(alice.Id, map[string]string{"name": okStr})
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("Add rejects long name", func(t *testing.T) {
+		_, _, err := svc.Add(Person{
+			Name: longStr, Role: "Eng", Discipline: "Eng",
+			Team: "Eng", Status: "Active",
+		})
+		if err == nil {
+			t.Error("expected error for long name on Add")
+		}
+	})
+}
+
+func TestOrgService_ValidateManagerChange(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+
+	t.Run("self-reference via Move", func(t *testing.T) {
+		_, err := svc.Move(alice.Id, alice.Id, "")
+		if err == nil {
+			t.Error("expected error for self-reference")
+		}
+	})
+
+	t.Run("self-reference via Update", func(t *testing.T) {
+		_, err := svc.Update(bob.Id, map[string]string{"managerId": bob.Id})
+		if err == nil {
+			t.Error("expected error for self-reference")
+		}
+	})
+
+	t.Run("cycle via Move", func(t *testing.T) {
+		// Alice -> Bob -> Carol. Moving Alice under Carol creates cycle.
+		_, err := svc.Move(alice.Id, carol.Id, "")
+		if err == nil {
+			t.Error("expected error for cycle")
+		}
+	})
+
+	t.Run("nonexistent manager", func(t *testing.T) {
+		_, err := svc.Move(bob.Id, "nonexistent-id", "")
+		if err == nil {
+			t.Error("expected error for nonexistent manager")
+		}
+	})
 }
 
 func findById(people []Person, id string) *Person {

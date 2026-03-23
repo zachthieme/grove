@@ -14,6 +14,8 @@ import (
 	"github.com/zachthieme/grove/internal/parser"
 )
 
+const maxFieldLen = 500
+
 var validStatuses = map[string]bool{
 	model.StatusActive:      true,
 	model.StatusOpen:        true,
@@ -193,6 +195,31 @@ func (s *OrgService) findWorking(id string) (int, *Person) {
 	return -1, nil
 }
 
+// validateFieldLengths checks that all string values in fields don't exceed maxFieldLen.
+func validateFieldLengths(fields map[string]string) error {
+	for _, v := range fields {
+		if len(v) > maxFieldLen {
+			return fmt.Errorf("field value too long (max %d characters)", maxFieldLen)
+		}
+	}
+	return nil
+}
+
+// validateManagerChange checks that setting person's manager to newManagerId is valid.
+// Must be called with s.mu held.
+func (s *OrgService) validateManagerChange(personId, newManagerId string) error {
+	if newManagerId == personId {
+		return fmt.Errorf("a person cannot be their own manager")
+	}
+	if _, mgr := s.findWorking(newManagerId); mgr == nil {
+		return fmt.Errorf("manager %s not found", newManagerId)
+	}
+	if s.wouldCreateCycle(personId, newManagerId) {
+		return fmt.Errorf("this move would create a circular reporting chain")
+	}
+	return nil
+}
+
 func (s *OrgService) Move(personId, newManagerId, newTeam string) ([]Person, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -201,14 +228,8 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string) ([]Person, err
 		return nil, fmt.Errorf("person %s not found", personId)
 	}
 	if newManagerId != "" {
-		if newManagerId == personId {
-			return nil, fmt.Errorf("a person cannot be their own manager")
-		}
-		if _, mgr := s.findWorking(newManagerId); mgr == nil {
-			return nil, fmt.Errorf("manager %s not found", newManagerId)
-		}
-		if s.wouldCreateCycle(personId, newManagerId) {
-			return nil, fmt.Errorf("this move would create a circular reporting chain")
+		if err := s.validateManagerChange(personId, newManagerId); err != nil {
+			return nil, err
 		}
 	}
 	p.ManagerId = newManagerId
@@ -241,6 +262,9 @@ func (s *OrgService) wouldCreateCycle(personId, newManagerId string) bool {
 func (s *OrgService) Update(personId string, fields map[string]string) ([]Person, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := validateFieldLengths(fields); err != nil {
+		return nil, err
+	}
 	_, p := s.findWorking(personId)
 	if p == nil {
 		return nil, fmt.Errorf("person %s not found", personId)
@@ -263,11 +287,10 @@ func (s *OrgService) Update(personId string, fields map[string]string) ([]Person
 			}
 			p.Status = v
 		case "managerId":
-			if v != "" && v == personId {
-				return nil, fmt.Errorf("a person cannot be their own manager")
-			}
-			if v != "" && s.wouldCreateCycle(personId, v) {
-				return nil, fmt.Errorf("this assignment would create a circular reporting chain")
+			if v != "" {
+				if err := s.validateManagerChange(personId, v); err != nil {
+					return nil, err
+				}
 			}
 			p.ManagerId = v
 		case "employmentType":
@@ -311,12 +334,19 @@ func (s *OrgService) Reorder(personIds []string) ([]Person, error) {
 	return deepCopyPeople(s.working), nil
 }
 
-func (s *OrgService) Add(p Person) (Person, []Person) {
+func (s *OrgService) Add(p Person) (Person, []Person, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	fields := map[string]string{
+		"name": p.Name, "role": p.Role,
+		"discipline": p.Discipline, "team": p.Team,
+	}
+	if err := validateFieldLengths(fields); err != nil {
+		return Person{}, nil, err
+	}
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
-	return p, deepCopyPeople(s.working)
+	return p, deepCopyPeople(s.working), nil
 }
 
 func (s *OrgService) Delete(personId string) error {
