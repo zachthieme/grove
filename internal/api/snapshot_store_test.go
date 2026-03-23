@@ -7,6 +7,7 @@ import (
 
 func TestSnapshotStore_WriteAndRead(t *testing.T) {
 	snapshotStoreDir = t.TempDir()
+	defer func() { snapshotStoreDir = "" }()
 
 	snaps := map[string]snapshotData{
 		"v1": {
@@ -32,6 +33,7 @@ func TestSnapshotStore_WriteAndRead(t *testing.T) {
 
 func TestSnapshotStore_ReadMissing(t *testing.T) {
 	snapshotStoreDir = t.TempDir()
+	defer func() { snapshotStoreDir = "" }()
 
 	snaps, err := ReadSnapshots()
 	if err != nil {
@@ -44,6 +46,7 @@ func TestSnapshotStore_ReadMissing(t *testing.T) {
 
 func TestSnapshotStore_Delete(t *testing.T) {
 	snapshotStoreDir = t.TempDir()
+	defer func() { snapshotStoreDir = "" }()
 
 	snaps := map[string]snapshotData{
 		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},

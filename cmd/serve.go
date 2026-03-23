@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -61,12 +62,18 @@ var serveCmd = &cobra.Command{
 			_ = server.Shutdown(shutdownCtx)
 		}()
 
+		// Bind the port first so it's ready before we open the browser
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			return fmt.Errorf("listen: %w", err)
+		}
+
 		url := fmt.Sprintf("http://localhost%s", addr)
 		fmt.Fprintf(os.Stderr, "Listening on %s\n", url)
 		if !serveDev {
 			go openBrowser(url)
 		}
-		err := server.ListenAndServe()
+		err = server.Serve(ln)
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}

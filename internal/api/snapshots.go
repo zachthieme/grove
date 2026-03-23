@@ -23,7 +23,6 @@ func (s *OrgService) SaveSnapshot(name string) error {
 		return fmt.Errorf("snapshot name %q is reserved", name)
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.snapshots == nil {
 		s.snapshots = make(map[string]snapshotData)
 	}
@@ -31,7 +30,13 @@ func (s *OrgService) SaveSnapshot(name string) error {
 		People:    deepCopyPeople(s.working),
 		Timestamp: time.Now(),
 	}
-	if err := WriteSnapshots(s.snapshots); err != nil {
+	// Copy snapshot data for persistence outside the lock
+	snapCopy := make(map[string]snapshotData, len(s.snapshots))
+	for k, v := range s.snapshots {
+		snapCopy[k] = v
+	}
+	s.mu.Unlock()
+	if err := WriteSnapshots(snapCopy); err != nil {
 		log.Printf("snapshot persist error: %v", err)
 	}
 	return nil
@@ -68,9 +73,13 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 
 func (s *OrgService) DeleteSnapshot(name string) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	delete(s.snapshots, name)
-	if err := WriteSnapshots(s.snapshots); err != nil {
+	snapCopy := make(map[string]snapshotData, len(s.snapshots))
+	for k, v := range s.snapshots {
+		snapCopy[k] = v
+	}
+	s.mu.Unlock()
+	if err := WriteSnapshots(snapCopy); err != nil {
 		log.Printf("snapshot persist error: %v", err)
 	}
 }
