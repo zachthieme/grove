@@ -1,70 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { ORIGINAL_SNAPSHOT, type Person, type MappedColumn, type SnapshotInfo, type AutosaveData } from '../api/types'
+import { ORIGINAL_SNAPSHOT, type Person, type AutosaveData } from '../api/types'
 import * as api from '../api/client'
-
-type ViewMode = 'detail' | 'manager'
-type DataView = 'original' | 'working' | 'diff'
-
-interface OrgState {
-  original: Person[]
-  working: Person[]
-  recycled: Person[]
-  loaded: boolean
-  viewMode: ViewMode
-  dataView: DataView
-  selectedIds: Set<string>
-  hiddenEmploymentTypes: Set<string>
-  headPersonId: string | null
-  binOpen: boolean
-  layoutKey: number
-  pendingMapping: {
-    headers: string[]
-    mapping: Record<string, MappedColumn>
-    preview: string[][]
-  } | null
-  snapshots: SnapshotInfo[]
-  currentSnapshotName: string | null
-  autosaveAvailable: AutosaveData | null
-  error: string | null
-}
-
-interface OrgActions {
-  setViewMode: (mode: ViewMode) => void
-  setDataView: (view: DataView) => void
-  /** @deprecated Use toggleSelect / clearSelection instead */
-  setSelectedId: (id: string | null) => void
-  toggleSelect: (id: string, multi: boolean) => void
-  clearSelection: () => void
-  upload: (file: File) => Promise<void>
-  move: (personId: string, newManagerId: string, newTeam: string) => Promise<void>
-  reparent: (personId: string, newManagerId: string) => Promise<void>
-  reorder: (personIds: string[]) => Promise<void>
-  update: (personId: string, fields: Record<string, string>) => Promise<void>
-  add: (person: Omit<Person, 'id'>) => Promise<void>
-  remove: (personId: string) => Promise<void>
-  restore: (personId: string) => Promise<void>
-  emptyBin: () => Promise<void>
-  setBinOpen: (open: boolean) => void
-  confirmMapping: (mapping: Record<string, string>) => Promise<void>
-  cancelMapping: () => void
-  reflow: () => void
-  pendingMapping: OrgState['pendingMapping']
-  saveSnapshot: (name: string) => Promise<void>
-  loadSnapshot: (name: string) => Promise<void>
-  deleteSnapshot: (name: string) => Promise<void>
-  restoreAutosave: () => void
-  dismissAutosave: () => Promise<void>
-  toggleEmploymentTypeFilter: (type: string) => void
-  showAllEmploymentTypes: () => void
-  hideAllEmploymentTypes: (types: string[]) => void
-  setHead: (id: string | null) => void
-  clearError: () => void
-}
-
-type OrgContextValue = OrgState & OrgActions & {
-  /** Backward compat: returns the single selected ID when exactly one is selected, null otherwise */
-  selectedId: string | null
-}
+import type { OrgState, OrgContextValue, ViewMode, DataView } from './orgTypes'
+import { useDirtyTracking } from './useDirtyTracking'
 
 const OrgContext = createContext<OrgContextValue | null>(null)
 
@@ -412,33 +350,8 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, headPersonId: id }))
   }, [])
 
-  // Track dirty state — set on any mutation, cleared on upload/reset/snapshot load
-  const isDirtyRef = useRef(false)
-
-  // Mark dirty after any mutation
-  useEffect(() => {
-    if (state.loaded && state.working.length > 0) {
-      isDirtyRef.current = true
-    }
-  }, [state.working]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Clear dirty on fresh load
-  useEffect(() => {
-    if (!state.loaded) {
-      isDirtyRef.current = false
-    }
-  }, [state.loaded])
-
-  // Warn before leaving when dirty
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirtyRef.current) {
-        e.preventDefault()
-      }
-    }
-    window.addEventListener('beforeunload', handler)
-    return () => window.removeEventListener('beforeunload', handler)
-  }, [])
+  // Warn before navigating away with unsaved changes
+  useDirtyTracking(state.loaded, state.working)
 
   const value: OrgContextValue = {
     ...state,
