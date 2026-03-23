@@ -35,10 +35,13 @@ export function useSnapshotExport({
     setExporting(true)
     setSuppressAutosave(true)
 
+    const sortedSnapshots = [...snapshots].sort((a, b) =>
+      a.timestamp.localeCompare(b.timestamp)
+    )
     const entries = [
-      { name: '__working__', label: 'working' },
       { name: '__original__', label: 'original' },
-      ...snapshots.map((s) => ({ name: s.name, label: s.name })),
+      { name: '__working__', label: 'working' },
+      ...sortedSnapshots.map((s) => ({ name: s.name, label: s.name })),
     ]
 
     setProgress({ current: 0, total: entries.length })
@@ -61,7 +64,7 @@ export function useSnapshotExport({
       for (let i = 0; i < entries.length; i++) {
         setProgress({ current: i + 1, total: entries.length })
         const entry = entries[i]
-        const filename = `${filenames[i]}.${ext}`
+        const filename = `${i}-${filenames[i]}.${ext}`
 
         try {
           let blob: Blob
