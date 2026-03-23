@@ -1258,20 +1258,36 @@ func TestUploadZipHandler(t *testing.T) {
 	// Build ZIP
 	var zipBuf bytes.Buffer
 	zw := zip.NewWriter(&zipBuf)
-	f1, _ := zw.Create("0-original.csv")
-	f1.Write([]byte(csvContent))
-	f2, _ := zw.Create("1-working.csv")
-	f2.Write([]byte(csvContent2))
-	f3, _ := zw.Create("2-reorg.csv")
-	f3.Write([]byte(csvContent))
-	zw.Close()
+	f1, err := zw.Create("0-original.csv")
+	if err != nil {
+		t.Fatalf("create zip entry: %v", err)
+	}
+	_, _ = f1.Write([]byte(csvContent))
+	f2, err := zw.Create("1-working.csv")
+	if err != nil {
+		t.Fatalf("create zip entry: %v", err)
+	}
+	_, _ = f2.Write([]byte(csvContent2))
+	f3, err := zw.Create("2-reorg.csv")
+	if err != nil {
+		t.Fatalf("create zip entry: %v", err)
+	}
+	_, _ = f3.Write([]byte(csvContent))
+	if err := zw.Close(); err != nil {
+		t.Fatalf("close zip: %v", err)
+	}
 
 	// Upload ZIP via multipart
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	part, _ := writer.CreateFormFile("file", "test.zip")
-	part.Write(zipBuf.Bytes())
-	writer.Close()
+	part, err := writer.CreateFormFile("file", "test.zip")
+	if err != nil {
+		t.Fatalf("create form file: %v", err)
+	}
+	_, _ = part.Write(zipBuf.Bytes())
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close writer: %v", err)
+	}
 
 	req := httptest.NewRequest("POST", "/api/upload/zip", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())

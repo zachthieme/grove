@@ -51,7 +51,7 @@ func TestSnapshotStore_Delete(t *testing.T) {
 	snaps := map[string]snapshotData{
 		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},
 	}
-	WriteSnapshots(snaps)
+	_ = WriteSnapshots(snaps)
 
 	if err := DeleteSnapshotStore(); err != nil {
 		t.Fatalf("delete: %v", err)

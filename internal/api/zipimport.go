@@ -49,7 +49,7 @@ func parseZipFileList(data []byte) ([]zipEntry, error) {
 			continue
 		}
 		content, err := io.ReadAll(io.LimitReader(rc, maxDecompressedSize-totalSize+1))
-		rc.Close()
+		_ = rc.Close()
 		if err != nil {
 			log.Printf("skipping zip entry %s: %v", f.Name, err)
 			continue
@@ -64,7 +64,7 @@ func parseZipFileList(data []byte) ([]zipEntry, error) {
 		displayName := nameNoExt
 
 		if m := prefixRegex.FindStringSubmatch(nameNoExt); m != nil {
-			fmt.Sscanf(m[1], "%d", &prefix)
+			_, _ = fmt.Sscanf(m[1], "%d", &prefix)
 			displayName = m[2]
 		}
 

@@ -39,10 +39,7 @@ func WriteSnapshots(snapshots map[string]snapshotData) error {
 	}
 	persisted := make(map[string]persistedSnapshot, len(snapshots))
 	for name, snap := range snapshots {
-		persisted[name] = persistedSnapshot{
-			People:    snap.People,
-			Timestamp: snap.Timestamp,
-		}
+		persisted[name] = persistedSnapshot(snap)
 	}
 	data, err := json.Marshal(persisted)
 	if err != nil {
@@ -70,10 +67,7 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 	}
 	result := make(map[string]snapshotData, len(persisted))
 	for name, ps := range persisted {
-		result[name] = snapshotData{
-			People:    ps.People,
-			Timestamp: ps.Timestamp,
-		}
+		result[name] = snapshotData(ps)
 	}
 	return result, nil
 }
