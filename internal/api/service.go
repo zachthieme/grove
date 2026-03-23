@@ -99,6 +99,25 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 		return nil, fmt.Errorf("no pending file to confirm")
 	}
 
+	if s.pendingIsZip {
+		entries, err := parseZipFileList(s.pendingFile)
+		if err != nil {
+			return nil, fmt.Errorf("parsing pending zip: %w", err)
+		}
+		orig, work, snaps, err := parseZipEntries(entries, mapping)
+		if err != nil {
+			return nil, fmt.Errorf("parsing pending zip: %w", err)
+		}
+		s.original = orig
+		s.working = deepCopyPeople(work)
+		s.recycled = nil
+		s.snapshots = snaps
+		s.pendingFile = nil
+		s.pendingFilename = ""
+		s.pendingIsZip = false
+		return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
+	}
+
 	header, dataRows, err := extractRows(s.pendingFilename, s.pendingFile)
 	if err != nil {
 		return nil, fmt.Errorf("parsing pending file: %w", err)

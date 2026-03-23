@@ -115,6 +115,35 @@ func TestUploadZip_UnprefixedFiles(t *testing.T) {
 	}
 }
 
+func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
+	svc := NewOrgService()
+	csvContent := "Full Name,Title,Dept,Reports To,Group,Extra Teams,State\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", csvContent},
+		{"1-working.csv", csvContent},
+	})
+
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+	if resp.Status != "needs_mapping" {
+		t.Fatalf("expected needs_mapping, got %s", resp.Status)
+	}
+
+	orgData, err := svc.ConfirmMapping(map[string]string{
+		"name": "Full Name", "role": "Title", "discipline": "Dept",
+		"manager": "Reports To", "team": "Group", "additionalTeams": "Extra Teams",
+		"status": "State",
+	})
+	if err != nil {
+		t.Fatalf("ConfirmMapping failed: %v", err)
+	}
+	if len(orgData.Original) != 2 {
+		t.Errorf("expected 2 original people, got %d", len(orgData.Original))
+	}
+}
+
 func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	svc := NewOrgService()
 	data := buildTestZip(t, []zipFile{
