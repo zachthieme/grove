@@ -19,8 +19,12 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 	if err != nil {
 		t.Fatalf("creating form file: %v", err)
 	}
-	part.Write([]byte(csvData))
-	writer.Close()
+	if _, err = part.Write([]byte(csvData)); err != nil {
+		t.Fatalf("writing form data: %v", err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatalf("closing multipart writer: %v", err)
+	}
 
 	req := httptest.NewRequest("POST", "/api/upload", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -397,8 +401,12 @@ func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
 	if err != nil {
 		t.Fatalf("creating form file: %v", err)
 	}
-	part.Write([]byte(csvData))
-	writer.Close()
+	if _, err = part.Write([]byte(csvData)); err != nil {
+		t.Fatalf("writing form data: %v", err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatalf("closing multipart writer: %v", err)
+	}
 
 	req := httptest.NewRequest("POST", "/api/upload", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -594,7 +602,9 @@ func TestResetHandler(t *testing.T) {
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	var recycled []Person
-	json.NewDecoder(rec.Body).Decode(&recycled)
+	if err := json.NewDecoder(rec.Body).Decode(&recycled); err != nil {
+		t.Fatalf("decoding recycled: %v", err)
+	}
 	if len(recycled) != 0 {
 		t.Errorf("expected 0 recycled after reset, got %d", len(recycled))
 	}
@@ -760,7 +770,9 @@ func TestMoveHandler_InvalidJSON(t *testing.T) {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
 	var errResp map[string]string
-	json.NewDecoder(rec.Body).Decode(&errResp)
+	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
+		t.Fatalf("decoding error response: %v", err)
+	}
 	if errResp["error"] == "" {
 		t.Error("expected error message")
 	}
@@ -956,7 +968,9 @@ func TestExportHandler_UnsupportedFormat(t *testing.T) {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
 	var errResp map[string]string
-	json.NewDecoder(rec.Body).Decode(&errResp)
+	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
+		t.Fatalf("decoding error response: %v", err)
+	}
 	if errResp["error"] != "unsupported format: pdf" {
 		t.Errorf("expected 'unsupported format: pdf', got '%s'", errResp["error"])
 	}
@@ -1027,9 +1041,16 @@ func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	part, _ := writer.CreateFormFile("file", "test.txt")
-	part.Write([]byte("hello world"))
-	writer.Close()
+	part, err := writer.CreateFormFile("file", "test.txt")
+	if err != nil {
+		t.Fatalf("creating form file: %v", err)
+	}
+	if _, err = part.Write([]byte("hello world")); err != nil {
+		t.Fatalf("writing form data: %v", err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatalf("closing multipart writer: %v", err)
+	}
 
 	req := httptest.NewRequest("POST", "/api/upload", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())

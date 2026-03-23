@@ -160,7 +160,9 @@ func TestOrgService_Restore(t *testing.T) {
 	data := svc.GetOrg()
 	bobId := findByName(data.Working, "Bob").Id
 
-	svc.Delete(bobId)
+	if err := svc.Delete(bobId); err != nil {
+		t.Fatalf("delete failed: %v", err)
+	}
 	err := svc.Restore(bobId)
 	if err != nil {
 		t.Fatalf("restore failed: %v", err)
@@ -182,9 +184,15 @@ func TestOrgService_Restore_ManagerGone(t *testing.T) {
 	carolId := findByName(data.Working, "Carol").Id
 	bobId := findByName(data.Working, "Bob").Id
 
-	svc.Delete(bobId)
-	svc.Delete(carolId)
-	svc.Restore(carolId)
+	if err := svc.Delete(bobId); err != nil {
+		t.Fatalf("delete bob: %v", err)
+	}
+	if err := svc.Delete(carolId); err != nil {
+		t.Fatalf("delete carol: %v", err)
+	}
+	if err := svc.Restore(carolId); err != nil {
+		t.Fatalf("restore carol: %v", err)
+	}
 
 	working := svc.GetWorking()
 	restoredCarol := findById(working, carolId)
@@ -350,8 +358,12 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 
 	// Make some changes: move Bob under Alice, delete Carol
 	carol := findByName(data.Working, "Carol")
-	svc.Move(bob.Id, alice.Id, "Eng")
-	svc.Delete(carol.Id)
+	if _, err := svc.Move(bob.Id, alice.Id, "Eng"); err != nil {
+		t.Fatalf("move failed: %v", err)
+	}
+	if err := svc.Delete(carol.Id); err != nil {
+		t.Fatalf("delete failed: %v", err)
+	}
 
 	// Verify changes took effect
 	if len(svc.GetWorking()) != 2 {
@@ -466,7 +478,9 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// First set additional teams
-	svc.Update(bob.Id, map[string]string{"additionalTeams": "Platform, Eng"})
+	if _, err := svc.Update(bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
 
 	// Then clear them
 	working, err := svc.Update(bob.Id, map[string]string{"additionalTeams": ""})
@@ -614,7 +628,9 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Set additional teams on Bob
-	svc.Update(bob.Id, map[string]string{"additionalTeams": "Platform, Eng"})
+	if _, err := svc.Update(bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
 
 	// Get working — should be a deep copy
 	working1 := svc.GetWorking()

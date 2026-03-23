@@ -15,10 +15,13 @@ func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
-	// csv.Writer buffers writes; errors surface via w.Error() after Flush
-	w.Write(exportHeaders)
+	if err := w.Write(exportHeaders); err != nil {
+		return nil, fmt.Errorf("writing CSV headers: %w", err)
+	}
 	for _, p := range people {
-		w.Write(personToRow(p, idToName))
+		if err := w.Write(personToRow(p, idToName)); err != nil {
+			return nil, fmt.Errorf("writing CSV row: %w", err)
+		}
 	}
 	w.Flush()
 	if err := w.Error(); err != nil {
@@ -33,13 +36,17 @@ func ExportXLSX(people []Person) ([]byte, error) {
 	sheet := "Sheet1"
 	for i, h := range exportHeaders {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(sheet, cell, h)
+		if err := f.SetCellValue(sheet, cell, h); err != nil {
+			return nil, fmt.Errorf("setting header cell: %w", err)
+		}
 	}
 	for rowIdx, p := range people {
 		row := personToRow(p, idToName)
 		for colIdx, val := range row {
 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx+2)
-			f.SetCellValue(sheet, cell, val)
+			if err := f.SetCellValue(sheet, cell, val); err != nil {
+				return nil, fmt.Errorf("setting cell value: %w", err)
+			}
 		}
 	}
 	var buf bytes.Buffer

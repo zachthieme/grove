@@ -143,7 +143,7 @@ func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening xlsx: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	sheet := f.GetSheetName(0)
 	rows, err := f.GetRows(sheet)
 	if err != nil {

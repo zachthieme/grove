@@ -47,7 +47,7 @@ func handleUpload(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		data, err := io.ReadAll(file)
 		if err != nil {

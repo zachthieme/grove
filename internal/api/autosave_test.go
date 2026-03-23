@@ -52,7 +52,9 @@ func TestAutosave_Delete(t *testing.T) {
 	autosaveDir = dir
 	defer func() { autosaveDir = "" }()
 
-	WriteAutosave(AutosaveData{Timestamp: "now"})
+	if err := WriteAutosave(AutosaveData{Timestamp: "now"}); err != nil {
+		t.Fatalf("write autosave: %v", err)
+	}
 	if err := DeleteAutosave(); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
