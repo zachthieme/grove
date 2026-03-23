@@ -17,6 +17,7 @@ func NewRouter(svc *OrgService) http.Handler {
 
 	mux.HandleFunc("POST /api/upload", handleUpload(svc))
 	mux.HandleFunc("POST /api/upload/confirm", handleConfirmMapping(svc))
+	mux.HandleFunc("POST /api/upload/zip", handleUploadZip(svc))
 	mux.HandleFunc("GET /api/org", handleGetOrg(svc))
 	mux.HandleFunc("POST /api/move", handleMove(svc))
 	mux.HandleFunc("POST /api/update", handleUpdate(svc))
@@ -61,6 +62,32 @@ func handleUpload(svc *OrgService) http.HandlerFunc {
 		}
 
 		resp, err := svc.Upload(header.Filename, data)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
+func handleUploadZip(svc *OrgService) http.HandlerFunc {
+	const maxUploadSize = 50 << 20
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
+			return
+		}
+		defer func() { _ = file.Close() }()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "reading file")
+			return
+		}
+
+		resp, err := svc.UploadZip(data)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

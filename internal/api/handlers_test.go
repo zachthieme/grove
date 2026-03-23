@@ -1,6 +1,7 @@
 package api
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"mime/multipart"
@@ -1244,6 +1245,52 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 	if resp["status"] != "ok" {
 		t.Errorf("expected status 'ok', got '%s'", resp["status"])
+	}
+}
+
+func TestUploadZipHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+
+	csvContent := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
+	csvContent2 := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Senior Engineer,Eng,Alice,Platform,,Active\n"
+
+	// Build ZIP
+	var zipBuf bytes.Buffer
+	zw := zip.NewWriter(&zipBuf)
+	f1, _ := zw.Create("0-original.csv")
+	f1.Write([]byte(csvContent))
+	f2, _ := zw.Create("1-working.csv")
+	f2.Write([]byte(csvContent2))
+	f3, _ := zw.Create("2-reorg.csv")
+	f3.Write([]byte(csvContent))
+	zw.Close()
+
+	// Upload ZIP via multipart
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, _ := writer.CreateFormFile("file", "test.zip")
+	part.Write(zipBuf.Bytes())
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/upload/zip", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp UploadResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("expected ready, got %s", resp.Status)
+	}
+	if len(resp.Snapshots) != 1 {
+		t.Errorf("expected 1 snapshot, got %d", len(resp.Snapshots))
 	}
 }
 
