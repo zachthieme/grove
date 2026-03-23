@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.7.0
+
+### Features
+- **ZIP snapshot export**: Export all snapshots as a single ZIP in any format (CSV, XLSX, PNG, SVG) with numeric-prefixed filenames for round-trip ordering
+- **ZIP snapshot import**: Upload a ZIP of CSV/XLSX files to restore a full snapshot set. Prefix convention: 0=original, 1=working, 2+=snapshots
+- **Snapshot persistence**: Snapshots now saved to `~/.grove/snapshots.json` and survive server restarts
+- **Auto-open browser**: `grove serve` opens your default browser automatically (skipped in `--dev` mode)
+- **Tight image cropping**: PNG/SVG exports crop to chart content with 32px padding, removing dead space
+- **Per-snapshot data export**: New `GET /api/export/snapshot` endpoint for exporting individual snapshots as CSV/XLSX
+- **Lenient import**: Only the Name column is required — all other fields are optional and default to empty
+
+### Bug Fixes
+- SVG connector lines recompute on container resize (fixes shifted lines when sidebar opens/closes)
+- Browser opens only after TCP port is bound (net.Listen before Serve)
+- Snapshot persistence writes happen outside the mutex (no longer blocks concurrent API requests)
+- Reserved `__export_temp__` snapshot name prevents data loss during image export
+- `limitBody` (1MB) wired to all JSON mutation handlers (was only on autosave)
+- Corrupt localStorage autosave no longer traps the app in a broken state
+- Autosave suppression during snapshot export uses ref (synchronous) instead of state (async)
+- Error messages don't leak user input (export format sanitized)
+
+### Code Quality
+- OrgContext.tsx split into orgTypes.ts + useDirtyTracking.ts (480 → 392 lines)
+- 15 OrgContext integration tests covering upload, mutations, snapshots, and selection flows
+- Snapshot store test globals properly cleaned up with defer
+- CLAUDE.md updated to reflect current architecture
+
+### Testing
+- 240 total tests (152 Go + 88 frontend)
+- Go test-to-production ratio: 1.66x
+- Zero static analysis warnings (go vet + tsc)
+
+---
+
 ## v0.6.0
 
 ### Bug Fixes
