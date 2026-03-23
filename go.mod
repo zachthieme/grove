@@ -1,4 +1,4 @@
-module github.com/zach/orgchart
+module github.com/zachthieme/grove
 
 go 1.25.5
 

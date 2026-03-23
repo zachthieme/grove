@@ -1,35 +1,34 @@
-<p align="center">
-  <img src="grove-banner.svg" alt="Grove" width="640">
-</p>
+![grove](grove-banner.svg)
 
-<p align="center">
-  <strong>grove</strong> /ɡroʊv/ <em>n.</em> — a small group of trees, deliberately planted and carefully tended.
-  <br>
-  Org planning for people who think in structures, not spreadsheets.
-</p>
+> **grove** /ɡroʊv/ *n.* — a small group of trees, deliberately planted and carefully tended. Org planning for people who think in structures, not spreadsheets.
+
+---
 
 Your org chart already exists in a spreadsheet somewhere — names, roles, teams, reporting lines. Grove takes that file, turns it into something you can see and touch, and lets you plan changes before they happen. Upload a CSV, drag people between teams, snapshot different reorg options, and export the result. One binary, no database, no account.
 
 ## Install
 
-### Go
+### Nix
 
 ```
-go install github.com/zach/orgchart@latest
+nix run github:zachthieme/grove
+nix profile install github:zachthieme/grove
 ```
 
-Or build locally:
+### Build from source
 
 ```
+git clone https://github.com/zachthieme/grove.git
+cd grove
 make build
 ```
 
 This builds the React frontend and embeds it into a single Go binary (`grove`).
 
-### Requirements
+### Requirements (build only)
 
 - Go 1.25+
-- Node.js 18+ (build-time only, not needed to run)
+- Node.js 18+
 
 ## Quick Start
 
@@ -44,16 +43,16 @@ Open `http://localhost:8080`, upload a CSV or XLSX, and start planning.
 
 Any spreadsheet with these columns works (headers are matched flexibly — "Job Title" maps to Role, "Department" maps to Team, etc.):
 
-| Column | Required | Description |
-|--------|----------|-------------|
-| Name | yes | Person's name |
-| Role | yes* | Job title |
-| Discipline | yes* | Engineering, Design, PM, etc. |
-| Team | yes | Team name |
-| Status | yes | See statuses below |
-| Manager | no | Name of their manager |
-| Employment Type | no | FTE, Contractor, Agency, etc. |
-| Additional Teams | no | Comma-separated |
+| Column           | Required | Description                   |
+| ---------------- | -------- | ----------------------------- |
+| Name             | yes      | Person's name                 |
+| Role             | yes\*    | Job title                     |
+| Discipline       | yes\*    | Engineering, Design, PM, etc. |
+| Team             | yes      | Team name                     |
+| Status           | yes      | See statuses below            |
+| Manager          | no       | Name of their manager         |
+| Employment Type  | no       | FTE, Contractor, Agency, etc. |
+| Additional Teams | no       | Comma-separated               |
 
 \* Blank allowed for Transfer In, Transfer Out, Pending Open, and Planned statuses.
 
@@ -61,15 +60,15 @@ If Grove can't confidently match your columns, it shows a mapping screen with it
 
 ### Statuses
 
-| Status | Meaning |
-|--------|---------|
-| Active | Currently filled and working |
-| Open | Approved headcount, actively recruiting |
-| Pending Open | Headcount requested, not yet approved |
-| Transfer In | Person coming from another team/org |
-| Transfer Out | Person leaving to another team/org |
-| Backfill | Replacing someone who left |
-| Planned | Future role in a reorg, not yet active |
+| Status       | Meaning                                 |
+| ------------ | --------------------------------------- |
+| Active       | Currently filled and working            |
+| Open         | Approved headcount, actively recruiting |
+| Pending Open | Headcount requested, not yet approved   |
+| Transfer In  | Person coming from another team/org     |
+| Transfer Out | Person leaving to another team/org      |
+| Backfill     | Replacing someone who left              |
+| Planned      | Future role in a reorg, not yet active  |
 
 Legacy values `Hiring` and `Transfer` are automatically mapped to `Open` and `Transfer In`.
 
@@ -111,10 +110,10 @@ Grove requires no configuration. It runs as a self-contained server with in-memo
 grove serve [flags]
 ```
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--port` | `-p` | 8080 | Port to listen on |
-| `--dev` | | false | Dev mode (frontend served by Vite) |
+| Flag     | Short | Default | Description                        |
+| -------- | ----- | ------- | ---------------------------------- |
+| `--port` | `-p`  | 8080    | Port to listen on                  |
+| `--dev`  |       | false   | Dev mode (frontend served by Vite) |
 
 ## Development
 

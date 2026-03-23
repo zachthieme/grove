@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
-	"github.com/zach/orgchart/internal/parser"
+	"github.com/zachthieme/grove/internal/parser"
 )
 
 type OrgService struct {

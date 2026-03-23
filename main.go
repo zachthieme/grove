@@ -1,6 +1,6 @@
 package main
 
-import "github.com/zach/orgchart/cmd"
+import "github.com/zachthieme/grove/cmd"
 
 func main() {
 	cmd.GetFrontendFS = getFrontendFS

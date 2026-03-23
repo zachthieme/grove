@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/zach/orgchart/internal/api"
+	"github.com/zachthieme/grove/internal/api"
 )
 
 var GetFrontendFS func() (fs.FS, error)

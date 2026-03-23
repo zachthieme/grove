@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/zach/orgchart/internal/model"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 func TestConvertOrg_AssignsIDs(t *testing.T) {

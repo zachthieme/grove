@@ -6,7 +6,7 @@ export function useExport(mainRef: React.RefObject<HTMLElement | null>) {
     if (!mainRef.current) return
     const dataUrl = await toPng(mainRef.current, { backgroundColor: '#ffffff' })
     const link = document.createElement('a')
-    link.download = 'orgchart.png'
+    link.download = 'grove.png'
     link.href = dataUrl
     link.click()
   }, [mainRef])
@@ -15,7 +15,7 @@ export function useExport(mainRef: React.RefObject<HTMLElement | null>) {
     if (!mainRef.current) return
     const dataUrl = await toSvg(mainRef.current, { backgroundColor: '#ffffff' })
     const link = document.createElement('a')
-    link.download = 'orgchart.svg'
+    link.download = 'grove.svg'
     link.href = dataUrl
     link.click()
   }, [mainRef])

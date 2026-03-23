@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zach/orgchart/internal/model"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 // BuildPeopleWithMapping converts raw spreadsheet rows into an Org using an

@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/google/uuid"
-	"github.com/zach/orgchart/internal/model"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 func ConvertOrg(org *model.Org) []Person {

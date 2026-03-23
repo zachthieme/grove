@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zach/orgchart/internal/api"
+	"github.com/zachthieme/grove/internal/api"
 )
 
 func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
