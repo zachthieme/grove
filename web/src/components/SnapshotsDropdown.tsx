@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOrg } from '../store/OrgContext'
+import { ORIGINAL_SNAPSHOT } from '../api/types'
 import styles from './SnapshotsDropdown.module.css'
 
 function formatTimestamp(iso: string): string {
@@ -29,7 +30,7 @@ export default function SnapshotsDropdown() {
   }, [open])
 
   const label = currentSnapshotName
-    ? (currentSnapshotName === '__original__' ? 'Original' : currentSnapshotName)
+    ? (currentSnapshotName === ORIGINAL_SNAPSHOT ? 'Original' : currentSnapshotName)
     : 'Working'
 
   const handleSaveAs = async () => {
@@ -65,8 +66,8 @@ export default function SnapshotsDropdown() {
           </button>
           <div className={styles.separator} />
           <button
-            className={`${styles.menuItem} ${currentSnapshotName === '__original__' ? styles.active : ''}`}
-            onClick={() => handleLoad('__original__')}
+            className={`${styles.menuItem} ${currentSnapshotName === ORIGINAL_SNAPSHOT ? styles.active : ''}`}
+            onClick={() => handleLoad(ORIGINAL_SNAPSHOT)}
           >
             <span className={styles.menuItemLabel}>Original</span>
           </button>

@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Person, AutosaveData } from '../api/types'
 import * as api from '../api/client'
+
+const AUTOSAVE_DEBOUNCE_MS = 2000
 
 export function useAutosave(state: {
   original: Person[]
@@ -10,6 +12,7 @@ export function useAutosave(state: {
   loaded: boolean
 }) {
   const timerRef = useRef<number>(undefined)
+  const [serverSaveError, setServerSaveError] = useState(false)
 
   useEffect(() => {
     if (!state.loaded || state.working.length === 0) return
@@ -23,12 +26,23 @@ export function useAutosave(state: {
         snapshotName: state.currentSnapshotName ?? '',
         timestamp: new Date().toISOString(),
       }
-      localStorage.setItem('grove-autosave', JSON.stringify(data))
-      api.writeAutosave(data).catch(() => {}) // fire-and-forget
-    }, 2000)
+      try {
+        localStorage.setItem('grove-autosave', JSON.stringify(data))
+      } catch (e) {
+        console.warn('localStorage autosave failed:', e)
+      }
+      api.writeAutosave(data)
+        .then(() => setServerSaveError(false))
+        .catch((err) => {
+          console.warn('Server autosave failed:', err)
+          setServerSaveError(true)
+        })
+    }, AUTOSAVE_DEBOUNCE_MS)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [state.original, state.working, state.recycled, state.currentSnapshotName, state.loaded])
+
+  return { serverSaveError }
 }

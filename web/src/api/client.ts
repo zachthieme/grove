@@ -126,10 +126,13 @@ export async function deleteSnapshot(name: string): Promise<SnapshotInfo[]> {
 }
 
 export async function writeAutosave(data: AutosaveData): Promise<void> {
-  await fetch(`${BASE}/autosave`, {
+  const resp = await fetch(`${BASE}/autosave`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+  if (!resp.ok) {
+    throw new Error(`Autosave failed: ${resp.status}`)
+  }
 }
 
 export async function readAutosave(): Promise<AutosaveData | null> {
@@ -139,5 +142,8 @@ export async function readAutosave(): Promise<AutosaveData | null> {
 }
 
 export async function deleteAutosave(): Promise<void> {
-  await fetch(`${BASE}/autosave`, { method: 'DELETE' })
+  const resp = await fetch(`${BASE}/autosave`, { method: 'DELETE' })
+  if (!resp.ok) {
+    throw new Error(`Delete autosave failed: ${resp.status}`)
+  }
 }

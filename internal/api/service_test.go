@@ -408,7 +408,7 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 		"role":            "Staff Engineer",
 		"discipline":      "SRE",
 		"team":            "Infra",
-		"status":          "Transfer",
+		"status":          "Transfer In",
 		"managerId":       alice.Id,
 		"employmentType":  "Contractor",
 		"additionalTeams": "Platform, Eng",
@@ -422,8 +422,8 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	if updated.Name != "Robert" {
 		t.Errorf("expected name 'Robert', got '%s'", updated.Name)
 	}
-	if updated.Status != "Transfer" {
-		t.Errorf("expected status 'Transfer', got '%s'", updated.Status)
+	if updated.Status != "Transfer In" {
+		t.Errorf("expected status 'Transfer In', got '%s'", updated.Status)
 	}
 	if updated.ManagerId != alice.Id {
 		t.Errorf("expected managerId '%s', got '%s'", alice.Id, updated.ManagerId)
@@ -446,6 +446,17 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	// Warning should be cleared on edit
 	if updated.Warning != "" {
 		t.Errorf("expected warning to be cleared, got '%s'", updated.Warning)
+	}
+}
+
+func TestOrgService_Update_InvalidStatus(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	bob := findByName(data.Working, "Bob")
+
+	_, err := svc.Update(bob.Id, map[string]string{"status": "INVALID"})
+	if err == nil {
+		t.Fatal("expected error for invalid status, got nil")
 	}
 }
 
@@ -523,6 +534,44 @@ func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	}
 	if updated.ManagerId != alice.Id {
 		t.Errorf("expected manager to be Alice, got '%s'", updated.ManagerId)
+	}
+}
+
+func TestOrgService_Move_SelfAsManager(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	bob := findByName(data.Working, "Bob")
+
+	_, err := svc.Move(bob.Id, bob.Id, "")
+	if err == nil {
+		t.Fatal("expected error when moving person to be their own manager")
+	}
+}
+
+func TestOrgService_Move_CycleDetection(t *testing.T) {
+	// Alice -> Bob -> Carol
+	// Moving Alice under Carol would create Alice -> Carol -> ... -> Alice
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	carol := findByName(data.Working, "Carol")
+
+	_, err := svc.Move(alice.Id, carol.Id, "")
+	if err == nil {
+		t.Fatal("expected error when creating circular manager chain")
+	}
+}
+
+func TestOrgService_Update_CycleDetection(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	carol := findByName(data.Working, "Carol")
+
+	// Alice -> Bob -> Carol; setting Alice's manager to Carol creates cycle
+	_, err := svc.Update(alice.Id, map[string]string{"managerId": carol.Id})
+	if err == nil {
+		t.Fatal("expected error when creating circular manager chain via Update")
 	}
 }
 

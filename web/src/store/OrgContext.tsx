@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
-import type { Person, MappedColumn, SnapshotInfo, AutosaveData } from '../api/types'
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { ORIGINAL_SNAPSHOT, type Person, type MappedColumn, type SnapshotInfo, type AutosaveData } from '../api/types'
 import * as api from '../api/client'
 
 type ViewMode = 'detail' | 'manager'
@@ -13,6 +13,8 @@ interface OrgState {
   viewMode: ViewMode
   dataView: DataView
   selectedIds: Set<string>
+  hiddenEmploymentTypes: Set<string>
+  headPersonId: string | null
   binOpen: boolean
   layoutKey: number
   pendingMapping: {
@@ -35,6 +37,7 @@ interface OrgActions {
   clearSelection: () => void
   upload: (file: File) => Promise<void>
   move: (personId: string, newManagerId: string, newTeam: string) => Promise<void>
+  reparent: (personId: string, newManagerId: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
   update: (personId: string, fields: Record<string, string>) => Promise<void>
   add: (person: Omit<Person, 'id'>) => Promise<void>
@@ -51,6 +54,10 @@ interface OrgActions {
   deleteSnapshot: (name: string) => Promise<void>
   restoreAutosave: () => void
   dismissAutosave: () => Promise<void>
+  toggleEmploymentTypeFilter: (type: string) => void
+  showAllEmploymentTypes: () => void
+  hideAllEmploymentTypes: (types: string[]) => void
+  setHead: (id: string | null) => void
   clearError: () => void
 }
 
@@ -78,6 +85,8 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     viewMode: 'detail',
     dataView: 'working',
     selectedIds: new Set(),
+    hiddenEmploymentTypes: new Set(),
+    headPersonId: null,
     binOpen: false,
     layoutKey: 0,
     pendingMapping: null,
@@ -86,6 +95,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     autosaveAvailable: null,
     error: null,
   })
+
+  // Ref to access latest state in callbacks without re-creating them
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   // Backward compat getter
   const selectedId = useMemo(() => {
@@ -221,77 +234,115 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string) => {
-    const working = await api.movePerson({ personId, newManagerId, newTeam })
-    setState((s) => ({ ...s, working, currentSnapshotName: null }))
+  const setError = useCallback((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err)
+    setState((s) => ({ ...s, error: msg }))
   }, [])
+
+  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string) => {
+    try {
+      const working = await api.movePerson({ personId, newManagerId, newTeam })
+      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
+
+  const reparent = useCallback(async (personId: string, newManagerId: string) => {
+    const currentWorking = stateRef.current.working
+    const newManager = currentWorking.find((p) => p.id === newManagerId)
+    if (!newManager) {
+      setState((s) => ({ ...s, error: `Manager not found (may have been deleted)` }))
+      return
+    }
+    try {
+      const working = await api.movePerson({ personId, newManagerId, newTeam: newManager.team })
+      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const reorder = useCallback(async (personIds: string[]) => {
-    const working = await api.reorderPeople(personIds)
-    setState((s) => ({ ...s, working, currentSnapshotName: null }))
-  }, [])
+    try {
+      const working = await api.reorderPeople(personIds)
+      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const update = useCallback(async (personId: string, fields: Record<string, string>) => {
-    const working = await api.updatePerson({ personId, fields })
-    setState((s) => ({ ...s, working, currentSnapshotName: null }))
-  }, [])
+    try {
+      const working = await api.updatePerson({ personId, fields })
+      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const add = useCallback(async (person: Omit<Person, 'id'>) => {
-    const working = await api.addPerson(person)
-    setState((s) => ({ ...s, working, currentSnapshotName: null }))
-  }, [])
+    try {
+      const working = await api.addPerson(person)
+      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const remove = useCallback(async (personId: string) => {
-    const resp = await api.deletePerson({ personId })
-    setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, currentSnapshotName: null }))
-  }, [])
+    try {
+      const resp = await api.deletePerson({ personId })
+      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const restore = useCallback(async (personId: string) => {
-    const resp = await api.restorePerson(personId)
-    setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, currentSnapshotName: null }))
-  }, [])
+    try {
+      const resp = await api.restorePerson(personId)
+      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const emptyBinAction = useCallback(async () => {
-    const resp = await api.emptyBin()
-    setState((s) => ({ ...s, recycled: resp.recycled, currentSnapshotName: null }))
-  }, [])
+    try {
+      const resp = await api.emptyBin()
+      setState((s) => ({ ...s, recycled: resp.recycled, currentSnapshotName: null }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const setBinOpen = useCallback((binOpen: boolean) => {
     setState((s) => ({ ...s, binOpen, selectedIds: binOpen ? new Set() : s.selectedIds }))
   }, [])
 
   const saveSnapshot = useCallback(async (name: string) => {
-    const snapshots = await api.saveSnapshot(name)
-    setState((s) => ({ ...s, snapshots, currentSnapshotName: name }))
-  }, [])
+    try {
+      const snapshots = await api.saveSnapshot(name)
+      setState((s) => ({ ...s, snapshots, currentSnapshotName: name }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const loadSnapshotAction = useCallback(async (name: string) => {
-    if (name === '__original__') {
-      const data = await api.resetToOriginal()
-      setState((s) => ({
-        ...s,
-        original: data.original,
-        working: data.working,
-        recycled: [],
-        currentSnapshotName: '__original__',
-      }))
-    } else {
-      const data = await api.loadSnapshot(name)
-      setState((s) => ({
-        ...s,
-        original: data.original,
-        working: data.working,
-        recycled: [],
-        currentSnapshotName: name,
-        loaded: true,
-      }))
-    }
-  }, [])
+    try {
+      if (name === ORIGINAL_SNAPSHOT) {
+        const data = await api.resetToOriginal()
+        setState((s) => ({
+          ...s,
+          original: data.original,
+          working: data.working,
+          recycled: [],
+          currentSnapshotName: ORIGINAL_SNAPSHOT,
+        }))
+      } else {
+        const data = await api.loadSnapshot(name)
+        setState((s) => ({
+          ...s,
+          original: data.original,
+          working: data.working,
+          recycled: [],
+          currentSnapshotName: name,
+          loaded: true,
+        }))
+      }
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const deleteSnapshotAction = useCallback(async (name: string) => {
-    const snapshots = await api.deleteSnapshot(name)
-    setState((s) => ({ ...s, snapshots }))
-  }, [])
+    try {
+      const snapshots = await api.deleteSnapshot(name)
+      setState((s) => ({ ...s, snapshots }))
+    } catch (err) { setError(err) }
+  }, [setError])
 
   const restoreAutosave = useCallback(() => {
     setState((s) => {
@@ -333,18 +384,57 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, error: null }))
   }, [])
 
-  // Warn before leaving when there are unsaved changes
+  const toggleEmploymentTypeFilter = useCallback((type: string) => {
+    setState((s) => {
+      const next = new Set(s.hiddenEmploymentTypes)
+      if (next.has(type)) {
+        next.delete(type)
+      } else {
+        next.add(type)
+      }
+      return { ...s, hiddenEmploymentTypes: next }
+    })
+  }, [])
+
+  const showAllEmploymentTypes = useCallback(() => {
+    setState((s) => ({ ...s, hiddenEmploymentTypes: new Set() }))
+  }, [])
+
+  const hideAllEmploymentTypes = useCallback((types: string[]) => {
+    setState((s) => ({ ...s, hiddenEmploymentTypes: new Set(types) }))
+  }, [])
+
+  const setHead = useCallback((id: string | null) => {
+    setState((s) => ({ ...s, headPersonId: id }))
+  }, [])
+
+  // Track dirty state — set on any mutation, cleared on upload/reset/snapshot load
+  const isDirtyRef = useRef(false)
+
+  // Mark dirty after any mutation
   useEffect(() => {
-    const hasChanges = state.loaded && state.working.length > 0 && (
-      state.working.length !== state.original.length ||
-      JSON.stringify(state.working.map(p => [p.id, p.name, p.role, p.discipline, p.team, p.managerId, p.status, p.employmentType]))
-      !== JSON.stringify(state.original.map(p => [p.id, p.name, p.role, p.discipline, p.team, p.managerId, p.status, p.employmentType]))
-    )
-    if (!hasChanges) return
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    if (state.loaded && state.working.length > 0) {
+      isDirtyRef.current = true
+    }
+  }, [state.working]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clear dirty on fresh load
+  useEffect(() => {
+    if (!state.loaded) {
+      isDirtyRef.current = false
+    }
+  }, [state.loaded])
+
+  // Warn before leaving when dirty
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirtyRef.current) {
+        e.preventDefault()
+      }
+    }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [state.loaded, state.working, state.original])
+  }, [])
 
   const value: OrgContextValue = {
     ...state,
@@ -356,6 +446,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     clearSelection,
     upload,
     move,
+    reparent,
     reorder,
     update,
     add,
@@ -372,6 +463,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     deleteSnapshot: deleteSnapshotAction,
     restoreAutosave,
     dismissAutosave,
+    toggleEmploymentTypeFilter,
+    showAllEmploymentTypes,
+    hideAllEmploymentTypes,
+    setHead,
     clearError,
   }
 

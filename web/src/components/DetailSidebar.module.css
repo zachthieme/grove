@@ -141,6 +141,12 @@
   font-size: 13px;
 }
 
+.saveError {
+  font-size: 12px;
+  color: var(--grove-red);
+  padding: 4px 0;
+}
+
 .actions {
   display: flex;
   gap: 8px;

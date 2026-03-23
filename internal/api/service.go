@@ -10,8 +10,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
 )
+
+var validStatuses = map[string]bool{
+	model.StatusActive:      true,
+	model.StatusOpen:        true,
+	model.StatusPendingOpen: true,
+	model.StatusTransferIn:  true,
+	model.StatusTransferOut: true,
+	model.StatusBackfill:    true,
+	model.StatusPlanned:     true,
+}
 
 type OrgService struct {
 	mu              sync.RWMutex
@@ -55,7 +66,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 		s.recycled = nil
 		return &UploadResponse{
 			Status:  "ready",
-			OrgData: &OrgData{Original: s.original, Working: s.working},
+			OrgData: &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)},
 		}, nil
 	}
 
@@ -100,7 +111,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	s.recycled = nil
 	s.pendingFile = nil
 	s.pendingFilename = ""
-	return &OrgData{Original: s.original, Working: s.working}, nil
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
 }
 
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
@@ -150,7 +161,7 @@ func (s *OrgService) GetOrg() *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: s.original, Working: s.working}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
 }
 
 func (s *OrgService) GetWorking() []Person {
@@ -170,7 +181,7 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 	defer s.mu.Unlock()
 	s.working = deepCopyPeople(s.original)
 	s.recycled = nil
-	return &OrgData{Original: s.original, Working: s.working}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
 }
 
 func (s *OrgService) findWorking(id string) (int, *Person) {
@@ -190,8 +201,14 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string) ([]Person, err
 		return nil, fmt.Errorf("person %s not found", personId)
 	}
 	if newManagerId != "" {
+		if newManagerId == personId {
+			return nil, fmt.Errorf("a person cannot be their own manager")
+		}
 		if _, mgr := s.findWorking(newManagerId); mgr == nil {
 			return nil, fmt.Errorf("manager %s not found", newManagerId)
+		}
+		if s.wouldCreateCycle(personId, newManagerId) {
+			return nil, fmt.Errorf("this move would create a circular reporting chain")
 		}
 	}
 	p.ManagerId = newManagerId
@@ -199,6 +216,26 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string) ([]Person, err
 		p.Team = newTeam
 	}
 	return deepCopyPeople(s.working), nil
+}
+
+// wouldCreateCycle checks if setting personId's manager to newManagerId
+// would create a cycle. This happens if newManagerId is a descendant of personId.
+// Must be called with s.mu held.
+func (s *OrgService) wouldCreateCycle(personId, newManagerId string) bool {
+	current := newManagerId
+	visited := map[string]bool{personId: true}
+	for current != "" {
+		if visited[current] {
+			return true
+		}
+		visited[current] = true
+		_, p := s.findWorking(current)
+		if p == nil {
+			return false
+		}
+		current = p.ManagerId
+	}
+	return false
 }
 
 func (s *OrgService) Update(personId string, fields map[string]string) ([]Person, error) {
@@ -221,8 +258,17 @@ func (s *OrgService) Update(personId string, fields map[string]string) ([]Person
 		case "team":
 			p.Team = v
 		case "status":
+			if !validStatuses[v] {
+				return nil, fmt.Errorf("invalid status '%s'", v)
+			}
 			p.Status = v
 		case "managerId":
+			if v != "" && v == personId {
+				return nil, fmt.Errorf("a person cannot be their own manager")
+			}
+			if v != "" && s.wouldCreateCycle(personId, v) {
+				return nil, fmt.Errorf("this assignment would create a circular reporting chain")
+			}
 			p.ManagerId = v
 		case "employmentType":
 			p.EmploymentType = v

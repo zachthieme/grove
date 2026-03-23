@@ -1,3 +1,5 @@
+export const ORIGINAL_SNAPSHOT = '__original__'
+
 export interface Person {
   id: string
   name: string

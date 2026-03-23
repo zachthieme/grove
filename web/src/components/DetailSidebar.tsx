@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useOrg } from '../store/OrgContext'
 import { isManager } from '../hooks/useIsManager'
 import type { Person } from '../api/types'
@@ -68,7 +68,7 @@ function computeBatchDefaults(people: Person[]): BatchFormFields {
 }
 
 export default function DetailSidebar() {
-  const { working, selectedId, selectedIds, setSelectedId, clearSelection, update, remove } = useOrg()
+  const { working, selectedId, selectedIds, setSelectedId, clearSelection, update, remove, reparent } = useOrg()
   const [form, setForm] = useState<FormFields>(blankForm)
   const [batchForm, setBatchForm] = useState<BatchFormFields>({ role: '', discipline: '', team: '', managerId: '', status: 'Active', employmentType: 'FTE' })
   const [batchDirty, setBatchDirty] = useState<Set<string>>(new Set())
@@ -114,10 +114,26 @@ export default function DetailSidebar() {
   }, [isBatch, selectedIds.size]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (field: keyof FormFields, value: string) => {
+    if (field === 'managerId') {
+      // Auto-update team to match new manager's team
+      const newManager = working.find((p) => p.id === value)
+      if (newManager) {
+        setForm((f) => ({ ...f, managerId: value, team: newManager.team }))
+        return
+      }
+    }
     setForm((f) => ({ ...f, [field]: value }))
   }
 
   const handleBatchChange = (field: keyof BatchFormFields, value: string) => {
+    if (field === 'managerId') {
+      const newManager = working.find((p) => p.id === value)
+      if (newManager) {
+        setBatchForm((f) => ({ ...f, managerId: value, team: newManager.team }))
+        setBatchDirty((d) => { const n = new Set(d); n.add('managerId'); n.add('team'); return n })
+        return
+      }
+    }
     setBatchForm((f) => ({ ...f, [field]: value }))
     setBatchDirty((d) => new Set(d).add(field))
   }
@@ -126,61 +142,100 @@ export default function DetailSidebar() {
     clearSelection()
   }
 
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const saveTimerRef = useRef<number>(undefined)
+
+  // Cleanup save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [])
+
+  const markSaved = () => {
+    setSaveStatus('saved')
+    setSaveError(null)
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = window.setTimeout(() => setSaveStatus('idle'), 1500)
+  }
 
   const handleSave = async () => {
     if (!person) return
     setSaveStatus('saving')
+    setSaveError(null)
     try {
-      await update(person.id, {
+      const managerChanged = form.managerId !== person.managerId
+      if (managerChanged) {
+        await reparent(person.id, form.managerId)
+      }
+      const fields: Record<string, string> = {
         name: form.name,
         role: form.role,
         discipline: form.discipline,
-        team: form.team,
-        managerId: form.managerId,
         status: form.status,
         employmentType: form.employmentType,
         additionalTeams: form.otherTeams,
-      })
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 1500)
+      }
+      if (!managerChanged) {
+        fields.team = form.team
+        fields.managerId = form.managerId
+      }
+      await update(person.id, fields)
+      markSaved()
     } catch {
-      setSaveStatus('idle')
+      setSaveStatus('error')
+      setSaveError('Save failed')
     }
   }
 
   const handleBatchSave = async () => {
     if (batchDirty.size === 0) return
+    const managerChanged = batchDirty.has('managerId') && batchForm.managerId !== MIXED
     const fields: Record<string, string> = {}
     for (const key of batchDirty) {
+      if (managerChanged && (key === 'managerId' || key === 'team')) continue
       const val = batchForm[key as keyof BatchFormFields]
       if (val !== MIXED) {
         fields[key] = val
       }
     }
-    if (Object.keys(fields).length === 0) return
     setSaveStatus('saving')
-    let failed = 0
-    for (const p of selectedPeople) {
-      try {
-        await update(p.id, fields)
-      } catch {
-        failed++
+    setSaveError(null)
+    let failedCount = 0
+
+    if (managerChanged) {
+      for (const p of selectedPeople) {
+        try {
+          await reparent(p.id, batchForm.managerId)
+        } catch {
+          failedCount++
+        }
       }
     }
-    if (failed > 0) {
-      setSaveStatus('idle')
-      // Could show error but at minimum don't claim success
+    if (Object.keys(fields).length > 0) {
+      const results = await Promise.allSettled(
+        selectedPeople.map((p) => update(p.id, fields))
+      )
+      failedCount += results.filter((r) => r.status === 'rejected').length
+    }
+
+    if (failedCount > 0) {
+      setSaveStatus('error')
+      setSaveError(`${failedCount} of ${selectedPeople.length} updates failed`)
     } else {
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 1500)
+      markSaved()
     }
   }
 
   const handleDelete = async () => {
     if (!person) return
-    await remove(person.id)
-    setSelectedId(null)
+    try {
+      await remove(person.id)
+      setSelectedId(null)
+    } catch {
+      // Error surfaced via OrgContext.error
+    }
   }
 
   // Batch edit UI
@@ -251,13 +306,16 @@ export default function DetailSidebar() {
               onChange={(e) => handleBatchChange('employmentType', e.target.value)}
             />
           </div>
+          {saveError && (
+            <div className={styles.saveError}>{saveError}</div>
+          )}
           <div className={styles.actions}>
             <button
               className={styles.saveBtn}
               onClick={handleBatchSave}
               disabled={batchDirty.size === 0 || saveStatus === 'saving'}
             >
-              {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
+              {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
             </button>
             <button className={styles.deleteBtn} onClick={handleClose}>
               Clear selection
@@ -374,9 +432,12 @@ export default function DetailSidebar() {
             placeholder="Comma-separated (creates dotted lines)"
           />
         </div>
+        {saveError && (
+          <div className={styles.saveError}>{saveError}</div>
+        )}
         <div className={styles.actions}>
           <button className={styles.saveBtn} onClick={handleSave} disabled={saveStatus === 'saving'}>
-            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
+            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
           </button>
           <button className={styles.deleteBtn} onClick={handleDelete}>
             Delete
