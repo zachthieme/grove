@@ -16,6 +16,7 @@ interface ManagerViewProps {
   onAddReport?: (id: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
+  onFocus?: (id: string) => void
 }
 
 function SummaryCard({ people }: { people: Person[] }) {
@@ -66,7 +67,7 @@ function SummaryCard({ people }: { people: Person[] }) {
   )
 }
 
-function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onDeletePerson, onInfo }: {
+function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onDeletePerson, onInfo, onFocus }: {
   node: OrgNode
   selectedIds: Set<string>
   onSelect: (id: string, event?: React.MouseEvent) => void
@@ -76,6 +77,7 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
   onAddReport?: (id: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
+  onFocus?: (id: string) => void
 }) {
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
@@ -92,6 +94,7 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
+          onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
           nodeRef={setNodeRef(node.person.id)}
         />
@@ -112,6 +115,7 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
               onAddReport={onAddReport}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
+              onFocus={onFocus}
             />
           ))}
           {/* ICs summarized */}
@@ -122,7 +126,7 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
   )
 }
 
-export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo }: ManagerViewProps) {
+export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo, onFocus }: ManagerViewProps) {
   const { onDragEnd } = useDragDrop()
   const containerRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -245,14 +249,25 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
               onAddReport={onAddReport}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
+              onFocus={onFocus}
             />
           ))}
         </div>
       </div>
       <DragOverlay dropAnimation={null}>
         {draggedPerson && (
-          <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none' }}>
+          <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none', position: 'relative' }}>
             <PersonNode person={draggedPerson} selected={false} />
+            {selectedIds.has(draggedPerson.id) && selectedIds.size > 1 && (
+              <div style={{
+                position: 'absolute', top: -8, right: -8,
+                background: 'var(--grove-green)', color: '#fff', borderRadius: '50%',
+                width: 20, height: 20, fontSize: 11, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {selectedIds.size}
+              </div>
+            )}
           </div>
         )}
       </DragOverlay>

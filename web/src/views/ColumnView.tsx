@@ -21,6 +21,7 @@ interface ColumnViewProps {
   onAddToTeam?: (parentId: string, team: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
+  onFocus?: (id: string) => void
 }
 
 function TeamHeaderNode({ team, memberCount, onAdd }: {
@@ -54,7 +55,7 @@ function TeamHeaderNode({ team, memberCount, onAdd }: {
   )
 }
 
-function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onAddToTeam, onDeletePerson, onInfo }: {
+function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus }: {
   node: OrgNode
   selectedIds: Set<string>
   onSelect: (id: string, event?: React.MouseEvent) => void
@@ -65,6 +66,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   onAddToTeam?: (parentId: string, team: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
+  onFocus?: (id: string) => void
 }) {
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
@@ -84,6 +86,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
         onAdd={onAddReport ? () => onAddReport(child.person.id) : undefined}
         onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
         onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
+        onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
         onSelect={(e) => onSelect(child.person.id, e)}
         nodeRef={setNodeRef(child.person.id)}
       />
@@ -102,6 +105,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
+          onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
           nodeRef={setNodeRef(node.person.id)}
         />
@@ -149,47 +153,75 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
               )
             })()
           ) : (
-            renderItems.map((item) => {
-              if (item.type === 'manager') {
-                return (
-                  <SubtreeNode
-                    key={item.node.person.id}
-                    node={item.node}
-                    selectedIds={selectedIds}
-                    onSelect={onSelect}
-                    changes={changes}
-                    setNodeRef={setNodeRef}
-                    managerSet={managerSet}
-                    onAddReport={onAddReport}
-                    onAddToTeam={onAddToTeam}
-                    onDeletePerson={onDeletePerson}
-                    onInfo={onInfo}
-                  />
-                )
-              }
-              if (item.type === 'ic') {
-                return renderIC(item.node)
-              }
-              if (item.type === 'icGroup') {
-                return (
-                  <div key={`group-${item.team}`} className={styles.subtree}>
-                    <div className={styles.nodeSlot}>
-                      <TeamHeaderNode
-                        team={item.team}
-                        memberCount={item.members.length}
-                        onAdd={onAddToTeam ? () => onAddToTeam(node.person.id, item.team) : undefined}
-                      />
-                    </div>
-                    <div className={styles.children}>
-                      <div className={styles.icStack}>
-                        {item.members.map((child) => renderIC(child))}
-                      </div>
-                    </div>
+            (() => {
+              // ICs with additionalTeams are cross-team connectors — render individually (horizontal).
+              // ICs on a single team — batch into vertical stacks.
+              const elements: React.ReactNode[] = []
+              let icBatch: OrgNode[] = []
+
+              const flushIcBatch = () => {
+                if (icBatch.length === 0) return
+                elements.push(
+                  <div key={`ic-stack-${icBatch[0].person.id}`} className={styles.icStack}>
+                    {icBatch.map((child) => renderIC(child))}
                   </div>
                 )
+                icBatch = []
               }
-              return null
-            })
+
+              const isCrossTeam = (n: OrgNode) =>
+                (n.person.additionalTeams?.length ?? 0) > 0
+
+              for (const item of renderItems) {
+                if (item.type === 'ic') {
+                  if (isCrossTeam(item.node)) {
+                    flushIcBatch()
+                    elements.push(renderIC(item.node))
+                  } else {
+                    icBatch.push(item.node)
+                  }
+                } else {
+                  flushIcBatch()
+                  if (item.type === 'manager') {
+                    elements.push(
+                      <SubtreeNode
+                        key={item.node.person.id}
+                        node={item.node}
+                        selectedIds={selectedIds}
+                        onSelect={onSelect}
+                        changes={changes}
+                        setNodeRef={setNodeRef}
+                        managerSet={managerSet}
+                        onAddReport={onAddReport}
+                        onAddToTeam={onAddToTeam}
+                        onDeletePerson={onDeletePerson}
+                        onInfo={onInfo}
+                        onFocus={onFocus}
+                      />
+                    )
+                  } else if (item.type === 'icGroup') {
+                    elements.push(
+                      <div key={`group-${item.team}`} className={styles.subtree}>
+                        <div className={styles.nodeSlot}>
+                          <TeamHeaderNode
+                            team={item.team}
+                            memberCount={item.members.length}
+                            onAdd={onAddToTeam ? () => onAddToTeam(node.person.id, item.team) : undefined}
+                          />
+                        </div>
+                        <div className={styles.children}>
+                          <div className={styles.icStack}>
+                            {item.members.map((child) => renderIC(child))}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                }
+              }
+              flushIcBatch()
+              return elements
+            })()
           )}
         </div>
       )}
@@ -197,7 +229,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   )
 }
 
-export default function ColumnView({ people, selectedIds, onSelect, changes, ghostPeople = [], managerSet, onAddReport, onAddToTeam, onDeletePerson, onInfo }: ColumnViewProps) {
+export default function ColumnView({ people, selectedIds, onSelect, changes, ghostPeople = [], managerSet, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus }: ColumnViewProps) {
   const { onDragEnd } = useDragDrop()
   const containerRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -277,10 +309,8 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
         <svg className={styles.svgOverlay}>
           {lines.map((l, i) => {
             if (l.dashed) {
-              // Dashed lines: right-angle path — down, across, up
-              // Route below both boxes: halfway between the lower box bottom and 40px below it
               const lowerY = Math.max(l.y1, l.y2)
-              const midY = lowerY + 20
+              const midY = lowerY + 15
               return (
                 <path
                   key={i}
@@ -318,14 +348,25 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
               onAddToTeam={onAddToTeam}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
+              onFocus={onFocus}
             />
           ))}
         </div>
       </div>
       <DragOverlay dropAnimation={null}>
         {draggedPerson && (
-          <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none' }}>
+          <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none', position: 'relative' }}>
             <PersonNode person={draggedPerson} selected={false} />
+            {selectedIds.has(draggedPerson.id) && selectedIds.size > 1 && (
+              <div style={{
+                position: 'absolute', top: -8, right: -8,
+                background: 'var(--grove-green)', color: '#fff', borderRadius: '50%',
+                width: 20, height: 20, fontSize: 11, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {selectedIds.size}
+              </div>
+            )}
           </div>
         )}
       </DragOverlay>

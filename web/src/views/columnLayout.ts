@@ -6,47 +6,51 @@ export type RenderItem =
   | { type: 'icGroup'; team: string; members: OrgNode[] }
 
 /**
- * Build an ordered list of render items: manager subtrees interleaved with ICs.
- * ICs with additionalTeams are placed next to the manager subtree they connect to.
- * Remaining unaffiliated ICs are grouped by team if there are multiple teams.
+ * Build an ordered list of render items.
+ * Managers form the spine. Affiliated ICs are inserted after the last manager
+ * they connect to, keeping them close to the teams they support without
+ * pushing unrelated managers apart.
+ * Unaffiliated ICs go last, grouped by team if multiple teams.
  */
 export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderItem[] {
-  // Build a map of manager team -> manager node (for positioning ICs near them)
   const managerByTeam = new Map<string, OrgNode>()
-  for (const m of managers) {
-    managerByTeam.set(m.person.team, m)
+  const managerIndex = new Map<string, number>()
+  for (let i = 0; i < managers.length; i++) {
+    managerByTeam.set(managers[i].person.team, managers[i])
+    managerIndex.set(managers[i].person.id, i)
   }
 
-  // Split ICs into "affiliated" (have additionalTeams matching a manager) and "unaffiliated"
-  const affiliated = new Map<string, OrgNode[]>() // managerId -> ICs to place near them
+  // For each IC with additionalTeams, find the highest-indexed manager they connect to
+  // Place them after that manager — keeps them between the teams they serve
+  const afterManager = new Map<number, OrgNode[]>() // manager index → ICs to place after
   const unaffiliated: OrgNode[] = []
 
   for (const ic of ics) {
     const addlTeams = ic.person.additionalTeams || []
-    let placed = false
+    let bestIdx = -1
     if (addlTeams.length > 0) {
-      // Find the first manager subtree whose team matches an additional team
       for (const at of addlTeams) {
         const mgr = managerByTeam.get(at)
         if (mgr) {
-          const list = affiliated.get(mgr.person.id) || []
-          list.push(ic)
-          affiliated.set(mgr.person.id, list)
-          placed = true
-          break
+          const idx = managerIndex.get(mgr.person.id) ?? -1
+          if (idx > bestIdx) bestIdx = idx
         }
       }
     }
-    if (!placed) {
+    if (bestIdx >= 0) {
+      const list = afterManager.get(bestIdx) || []
+      list.push(ic)
+      afterManager.set(bestIdx, list)
+    } else {
       unaffiliated.push(ic)
     }
   }
 
-  // Build render list: for each manager, emit the subtree then any affiliated ICs
+  // Build: emit each manager, then any affiliated ICs that belong after it
   const items: RenderItem[] = []
-  for (const m of managers) {
-    items.push({ type: 'manager', node: m })
-    const affIcs = affiliated.get(m.person.id)
+  for (let i = 0; i < managers.length; i++) {
+    items.push({ type: 'manager', node: managers[i] })
+    const affIcs = afterManager.get(i)
     if (affIcs) {
       for (const ic of affIcs) {
         items.push({ type: 'ic', node: ic })
@@ -54,7 +58,7 @@ export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderI
     }
   }
 
-  // Remaining unaffiliated ICs: group by team if multiple teams
+  // Unaffiliated ICs: grouped by team if multiple teams
   if (unaffiliated.length > 0) {
     const teamOrder: string[] = []
     const teamMap = new Map<string, OrgNode[]>()
