@@ -88,8 +88,10 @@ export default function DetailSidebar() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [working])
 
-  // Single-person form sync — re-run when person data changes (not just ID)
-  const personJson = person ? JSON.stringify([person.name, person.role, person.discipline, person.team, person.managerId, person.status, person.employmentType, person.additionalTeams]) : ''
+  // Stable key that changes only when person data actually changes
+  const personDataKey = person
+    ? `${person.id}\0${person.name}\0${person.role}\0${person.discipline}\0${person.team}\0${person.managerId}\0${person.status}\0${person.employmentType ?? ''}\0${(person.additionalTeams ?? []).join(',')}`
+    : ''
   useEffect(() => {
     if (person) {
       setForm({
@@ -103,7 +105,7 @@ export default function DetailSidebar() {
         employmentType: person.employmentType || 'FTE',
       })
     }
-  }, [personJson]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [personDataKey]) // eslint-disable-line react-hooks/exhaustive-deps -- personDataKey encodes all person fields
 
   // Batch form sync
   useEffect(() => {

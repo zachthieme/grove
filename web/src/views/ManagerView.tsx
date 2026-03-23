@@ -216,7 +216,7 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
       })
     }
     setLines(computed)
-  }, [edges, roots, selectedIds])
+  }, [edges, roots])
 
   if (people.length === 0) {
     return <div className={styles.container}>No people to display.</div>

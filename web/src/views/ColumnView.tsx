@@ -297,7 +297,7 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
       }
     }
     setLines(computed)
-  }, [edges, roots, selectedIds])
+  }, [edges, roots])
 
   if (people.length === 0 && ghostPeople.length === 0) {
     return <div className={styles.container}>No people to display.</div>

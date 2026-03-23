@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect, type ChangeEvent } from 'react'
 import { useOrg } from '../store/OrgContext'
+import { exportDataUrl } from '../api/client'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
@@ -127,28 +128,24 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting }: Toolbar
                 </button>
                 <button
                   className={styles.exportMenuItem}
-                  onClick={async () => {
+                  onClick={() => {
                     setExportOpen(false)
-                    const resp = await fetch('/api/export/csv')
-                    const blob = await resp.blob()
-                    const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
-                    a.href = url; a.download = 'grove.csv'; a.click()
-                    URL.revokeObjectURL(url)
+                    a.href = exportDataUrl('csv')
+                    a.download = 'grove.csv'
+                    a.click()
                   }}
                 >
                   CSV
                 </button>
                 <button
                   className={styles.exportMenuItem}
-                  onClick={async () => {
+                  onClick={() => {
                     setExportOpen(false)
-                    const resp = await fetch('/api/export/xlsx')
-                    const blob = await resp.blob()
-                    const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
-                    a.href = url; a.download = 'grove.xlsx'; a.click()
-                    URL.revokeObjectURL(url)
+                    a.href = exportDataUrl('xlsx')
+                    a.download = 'grove.xlsx'
+                    a.click()
                   }}
                 >
                   XLSX
