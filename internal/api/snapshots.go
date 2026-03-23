@@ -32,7 +32,7 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 	}
 	s.working = deepCopyPeople(snap.People)
 	s.recycled = nil
-	return &OrgData{Original: s.original, Working: s.working}, nil
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
 }
 
 func (s *OrgService) DeleteSnapshot(name string) {

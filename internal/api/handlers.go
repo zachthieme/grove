@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
+	"strconv"
 )
 
 func NewRouter(svc *OrgService) http.Handler {
@@ -234,8 +236,10 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Content-Disposition", "attachment; filename="+filename)
-		// Write error indicates client disconnect; nothing to do
-		w.Write(data)
+		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+		if _, err := w.Write(data); err != nil {
+			log.Printf("export write error (client disconnect?): %v", err)
+		}
 	}
 }
 
@@ -319,11 +323,15 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJSON encode error: %v", err)
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	if err := json.NewEncoder(w).Encode(map[string]string{"error": msg}); err != nil {
+		log.Printf("writeError encode error: %v", err)
+	}
 }
