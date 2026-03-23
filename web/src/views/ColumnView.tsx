@@ -1,4 +1,4 @@
-import { useMemo, useRef, useLayoutEffect, useState, useCallback } from 'react'
+import { useMemo, useRef, useLayoutEffect, useEffect, useState, useCallback } from 'react'
 import { DndContext, DragOverlay, MouseSensor, useSensor, useSensors, type DragStartEvent } from '@dnd-kit/core'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
@@ -259,6 +259,16 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
 
   const edges = useMemo(() => computeEdges(people), [people])
 
+  // Track container resizes (e.g. sidebar open/close) to recompute lines
+  const [resizeKey, setResizeKey] = useState(0)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => setResizeKey((k) => k + 1))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   // Compute lines after layout
   useLayoutEffect(() => {
     if (!containerRef.current || edges.length === 0) {
@@ -297,7 +307,7 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
       }
     }
     setLines(computed)
-  }, [edges, roots])
+  }, [edges, roots, resizeKey])
 
   if (people.length === 0 && ghostPeople.length === 0) {
     return <div className={styles.container}>No people to display.</div>
