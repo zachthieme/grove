@@ -117,7 +117,8 @@ func TestUploadZip_UnprefixedFiles(t *testing.T) {
 
 func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	svc := NewOrgService()
-	csvContent := "Full Name,Title,Dept,Reports To,Group,Extra Teams,State\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
+	// Use headers that don't match "name" at all so inference fails
+	csvContent := "Who,Title,Dept,Reports To,Group,Extra Teams,State\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", csvContent},
 		{"1-working.csv", csvContent},
@@ -132,7 +133,7 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	}
 
 	orgData, err := svc.ConfirmMapping(map[string]string{
-		"name": "Full Name", "role": "Title", "discipline": "Dept",
+		"name": "Who", "role": "Title", "discipline": "Dept",
 		"manager": "Reports To", "team": "Group", "additionalTeams": "Extra Teams",
 		"status": "State",
 	})

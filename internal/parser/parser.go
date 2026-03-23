@@ -28,16 +28,9 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 		cols[field] = idx
 	}
 
-	// Validate required fields are present in the mapping.
-	required := []string{"name", "role", "discipline", "team", "status"}
-	var missing []string
-	for _, r := range required {
-		if _, ok := cols[r]; !ok {
-			missing = append(missing, r)
-		}
-	}
-	if len(missing) > 0 {
-		return nil, fmt.Errorf("missing required field mappings: %s", strings.Join(missing, ", "))
+	// Validate that at least "name" is mapped — other fields default to empty if unmapped.
+	if _, ok := cols["name"]; !ok {
+		return nil, fmt.Errorf("missing required field mapping: name")
 	}
 
 	var people []model.Person

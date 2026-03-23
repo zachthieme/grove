@@ -4,11 +4,11 @@ import styles from './ColumnMappingModal.module.css'
 
 const APP_FIELDS = [
   { key: 'name', label: 'Name', required: true },
-  { key: 'role', label: 'Role', required: true },
-  { key: 'discipline', label: 'Discipline', required: true },
+  { key: 'role', label: 'Role', required: false },
+  { key: 'discipline', label: 'Discipline', required: false },
   { key: 'manager', label: 'Manager', required: false },
-  { key: 'team', label: 'Team', required: true },
-  { key: 'status', label: 'Status', required: true },
+  { key: 'team', label: 'Team', required: false },
+  { key: 'status', label: 'Status', required: false },
   { key: 'additionalTeams', label: 'Additional Teams', required: false },
   { key: 'newRole', label: 'New Role', required: false },
   { key: 'newTeam', label: 'New Team', required: false },

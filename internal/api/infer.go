@@ -150,10 +150,11 @@ func InferMapping(headers []string) map[string]MappedColumn {
 	return result
 }
 
-// AllRequiredHigh returns true if all required fields (name, role, discipline,
-// team, status) are present in the mapping with high confidence.
+// AllRequiredHigh returns true if all required fields are present in the
+// mapping with high confidence. Only "name" is truly required — other fields
+// default to empty if unmapped.
 func AllRequiredHigh(m map[string]MappedColumn) bool {
-	required := []string{"name", "role", "discipline", "team", "status"}
+	required := []string{"name"}
 	for _, field := range required {
 		mc, ok := m[field]
 		if !ok || mc.Confidence != "high" {

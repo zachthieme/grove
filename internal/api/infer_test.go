@@ -212,28 +212,32 @@ func TestAllRequiredHigh_True(t *testing.T) {
 	}
 }
 
-func TestAllRequiredHigh_MissingField(t *testing.T) {
+func TestAllRequiredHigh_MissingName(t *testing.T) {
 	m := map[string]MappedColumn{
-		"name":       {Column: "Name", Confidence: "high"},
 		"role":       {Column: "Role", Confidence: "high"},
-		"discipline": {Column: "Discipline", Confidence: "high"},
-		"team":       {Column: "Team", Confidence: "high"},
-		// status missing
-	}
-	if AllRequiredHigh(m) {
-		t.Error("expected AllRequiredHigh to return false when status is missing")
-	}
-}
-
-func TestAllRequiredHigh_MediumConfidence(t *testing.T) {
-	m := map[string]MappedColumn{
-		"name":       {Column: "Name", Confidence: "high"},
-		"role":       {Column: "Role", Confidence: "medium"},
 		"discipline": {Column: "Discipline", Confidence: "high"},
 		"team":       {Column: "Team", Confidence: "high"},
 		"status":     {Column: "Status", Confidence: "high"},
 	}
 	if AllRequiredHigh(m) {
-		t.Error("expected AllRequiredHigh to return false when role is medium confidence")
+		t.Error("expected AllRequiredHigh to return false when name is missing")
+	}
+}
+
+func TestAllRequiredHigh_NameMediumConfidence(t *testing.T) {
+	m := map[string]MappedColumn{
+		"name": {Column: "Name", Confidence: "medium"},
+	}
+	if AllRequiredHigh(m) {
+		t.Error("expected AllRequiredHigh to return false when name is medium confidence")
+	}
+}
+
+func TestAllRequiredHigh_OnlyNameRequired(t *testing.T) {
+	m := map[string]MappedColumn{
+		"name": {Column: "Name", Confidence: "high"},
+	}
+	if !AllRequiredHigh(m) {
+		t.Error("expected AllRequiredHigh to return true with only name mapped")
 	}
 }
