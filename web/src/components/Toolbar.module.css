@@ -128,3 +128,9 @@
   background: var(--surface-sunken);
   color: var(--text-primary);
 }
+
+.exportSeparator {
+  height: 1px;
+  background: var(--border-default, #e0d6cc);
+  margin: 4px 0;
+}

@@ -15,6 +15,7 @@
 .main {
   flex: 1;
   overflow: auto;
+  position: relative;
 }
 
 .placeholder {
@@ -60,4 +61,24 @@
 
 .warnText {
   color: var(--text-secondary);
+}
+
+.exportOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.exportOverlayText {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface-raised, #fff);
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

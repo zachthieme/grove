@@ -3,6 +3,7 @@ import styles from './App.module.css'
 import { OrgProvider, useOrg } from './store/OrgContext'
 import { useOrgDiff } from './hooks/useOrgDiff'
 import { useExport } from './hooks/useExport'
+import { useSnapshotExport } from './hooks/useSnapshotExport'
 import { useManagerSet } from './hooks/useIsManager'
 import { useAutosave } from './hooks/useAutosave'
 import { useHeadSubtree } from './hooks/useHeadSubtree'
@@ -22,10 +23,19 @@ import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead } = useOrg()
-  const { serverSaveError } = useAutosave({ original, working, recycled, currentSnapshotName, loaded })
+  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError } = useExport(mainRef)
+  const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosave } = useSnapshotExport({
+    snapshots,
+    mainRef,
+    loadSnapshot,
+    saveSnapshot,
+    deleteSnapshot,
+    showAllEmploymentTypes,
+    setHead,
+  })
+  const { serverSaveError } = useAutosave({ original, working, recycled, currentSnapshotName, loaded, suppressAutosave })
 
   const rawPeople = dataView === 'original' ? original : working
   const changes = useOrgDiff(original, working)
@@ -86,7 +96,7 @@ function AppContent() {
 
   return (
     <div className={styles.app}>
-      <Toolbar onExportPng={exportPng} onExportSvg={exportSvg} exporting={exporting} />
+      <Toolbar onExportPng={exportPng} onExportSvg={exportSvg} exporting={exporting || snapshotExporting} hasSnapshots={snapshots.length > 0} onExportAllSnapshots={exportAllSnapshots} />
       {error && (
         <div className={styles.errorBanner}>
           <span className={styles.errorText}>{error}</span>
@@ -140,6 +150,13 @@ function AppContent() {
               onFocus={handleFocus}
             />
           ) : null}
+          {snapshotExporting && (
+            <div className={styles.exportOverlay}>
+              <div className={styles.exportOverlayText}>
+                Exporting snapshot {snapshotProgress.current} of {snapshotProgress.total}...
+              </div>
+            </div>
+          )}
         </main>
         {hasSidebarSelection && <DetailSidebar />}
         <RecycleBinDrawer />

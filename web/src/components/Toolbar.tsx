@@ -21,9 +21,11 @@ interface ToolbarProps {
   onExportPng?: () => void
   onExportSvg?: () => void
   exporting?: boolean
+  hasSnapshots?: boolean
+  onExportAllSnapshots?: (format: 'csv' | 'xlsx' | 'png' | 'svg') => void
 }
 
-export default function Toolbar({ onExportPng, onExportSvg, exporting }: ToolbarProps) {
+export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots }: ToolbarProps) {
   const { loaded, viewMode, dataView, setViewMode, setDataView, upload, reflow } = useOrg()
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
@@ -150,6 +152,27 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting }: Toolbar
                 >
                   XLSX
                 </button>
+                {hasSnapshots && onExportAllSnapshots && (
+                  <>
+                    <div className={styles.exportSeparator} />
+                    <button className={styles.exportMenuItem} disabled={exporting}
+                      onClick={() => { onExportAllSnapshots('csv'); setExportOpen(false) }}>
+                      All Snapshots (CSV)
+                    </button>
+                    <button className={styles.exportMenuItem} disabled={exporting}
+                      onClick={() => { onExportAllSnapshots('xlsx'); setExportOpen(false) }}>
+                      All Snapshots (XLSX)
+                    </button>
+                    <button className={styles.exportMenuItem} disabled={exporting}
+                      onClick={() => { onExportAllSnapshots('png'); setExportOpen(false) }}>
+                      All Snapshots (PNG)
+                    </button>
+                    <button className={styles.exportMenuItem} disabled={exporting}
+                      onClick={() => { onExportAllSnapshots('svg'); setExportOpen(false) }}>
+                      All Snapshots (SVG)
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
