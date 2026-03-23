@@ -147,3 +147,11 @@ export async function deleteAutosave(): Promise<void> {
     throw new Error(`Delete autosave failed: ${resp.status}`)
   }
 }
+
+export async function exportSnapshotBlob(name: string, format: 'csv' | 'xlsx'): Promise<Blob> {
+  const resp = await fetch(`${BASE}/export/snapshot?name=${encodeURIComponent(name)}&format=${format}`)
+  if (!resp.ok) {
+    throw new Error(`Export snapshot failed: ${resp.status}`)
+  }
+  return resp.blob()
+}
