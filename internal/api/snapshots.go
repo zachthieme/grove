@@ -11,7 +11,15 @@ type snapshotData struct {
 	Timestamp time.Time
 }
 
-func (s *OrgService) SaveSnapshot(name string) {
+var reservedSnapshotNames = map[string]bool{
+	"__working__":  true,
+	"__original__": true,
+}
+
+func (s *OrgService) SaveSnapshot(name string) error {
+	if reservedSnapshotNames[name] {
+		return fmt.Errorf("snapshot name %q is reserved", name)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.snapshots == nil {
@@ -20,6 +28,24 @@ func (s *OrgService) SaveSnapshot(name string) {
 	s.snapshots[name] = snapshotData{
 		People:    deepCopyPeople(s.working),
 		Timestamp: time.Now(),
+	}
+	return nil
+}
+
+func (s *OrgService) ExportSnapshot(name string) ([]Person, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	switch name {
+	case "__working__":
+		return deepCopyPeople(s.working), nil
+	case "__original__":
+		return deepCopyPeople(s.original), nil
+	default:
+		snap, ok := s.snapshots[name]
+		if !ok {
+			return nil, fmt.Errorf("snapshot '%s' not found", name)
+		}
+		return deepCopyPeople(snap.People), nil
 	}
 }
 

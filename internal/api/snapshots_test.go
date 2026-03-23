@@ -8,9 +8,13 @@ import (
 func TestSnapshot_SaveAndList(t *testing.T) {
 	svc := newTestService(t)
 
-	svc.SaveSnapshot("v1")
+	if err := svc.SaveSnapshot("v1"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
 	time.Sleep(time.Millisecond)
-	svc.SaveSnapshot("v2")
+	if err := svc.SaveSnapshot("v2"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
 
 	list := svc.ListSnapshots()
 	if len(list) != 2 {
@@ -32,7 +36,9 @@ func TestSnapshot_Load(t *testing.T) {
 	svc := newTestService(t)
 
 	// Save snapshot, then mutate working data.
-	svc.SaveSnapshot("before")
+	if err := svc.SaveSnapshot("before"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
 	bob := findByName(svc.GetWorking(), "Bob")
 	if _, err := svc.Update(bob.Id, map[string]string{"role": "Senior Engineer"}); err != nil {
 		t.Fatalf("update: %v", err)
@@ -62,8 +68,12 @@ func TestSnapshot_Load(t *testing.T) {
 func TestSnapshot_Overwrite(t *testing.T) {
 	svc := newTestService(t)
 
-	svc.SaveSnapshot("v1")
-	svc.SaveSnapshot("v1") // Overwrite silently.
+	if err := svc.SaveSnapshot("v1"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
+	if err := svc.SaveSnapshot("v1"); err != nil { // Overwrite silently.
+		t.Fatalf("save snapshot: %v", err)
+	}
 
 	list := svc.ListSnapshots()
 	if len(list) != 1 {
@@ -74,7 +84,9 @@ func TestSnapshot_Overwrite(t *testing.T) {
 func TestSnapshot_Delete(t *testing.T) {
 	svc := newTestService(t)
 
-	svc.SaveSnapshot("v1")
+	if err := svc.SaveSnapshot("v1"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
 	svc.DeleteSnapshot("v1")
 
 	list := svc.ListSnapshots()
@@ -95,7 +107,9 @@ func TestSnapshot_LoadNotFound(t *testing.T) {
 func TestSnapshot_LoadClearsRecycled(t *testing.T) {
 	svc := newTestService(t)
 
-	svc.SaveSnapshot("clean")
+	if err := svc.SaveSnapshot("clean"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
 
 	// Delete someone to populate recycled.
 	bob := findByName(svc.GetWorking(), "Bob")

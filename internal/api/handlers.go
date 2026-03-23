@@ -266,7 +266,10 @@ func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		svc.SaveSnapshot(req.Name)
+		if err := svc.SaveSnapshot(req.Name); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		writeJSON(w, http.StatusOK, svc.ListSnapshots())
 	}
 }

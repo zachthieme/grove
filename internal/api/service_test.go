@@ -730,6 +730,72 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 	})
 }
 
+func TestOrgService_ExportSnapshot(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.SaveSnapshot("snap1"); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+
+	t.Run("returns working for __working__", func(t *testing.T) {
+		people, err := svc.ExportSnapshot("__working__")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(people) != 3 {
+			t.Errorf("expected 3 people, got %d", len(people))
+		}
+	})
+
+	t.Run("returns original for __original__", func(t *testing.T) {
+		people, err := svc.ExportSnapshot("__original__")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(people) != 3 {
+			t.Errorf("expected 3 people, got %d", len(people))
+		}
+	})
+
+	t.Run("returns named snapshot", func(t *testing.T) {
+		people, err := svc.ExportSnapshot("snap1")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(people) != 3 {
+			t.Errorf("expected 3 people, got %d", len(people))
+		}
+	})
+
+	t.Run("errors on missing snapshot", func(t *testing.T) {
+		_, err := svc.ExportSnapshot("nonexistent")
+		if err == nil {
+			t.Error("expected error for missing snapshot")
+		}
+	})
+
+	t.Run("returns deep copy", func(t *testing.T) {
+		people, _ := svc.ExportSnapshot("snap1")
+		people[0].Name = "MUTATED"
+		original, _ := svc.ExportSnapshot("snap1")
+		if original[0].Name == "MUTATED" {
+			t.Error("ExportSnapshot should return a deep copy")
+		}
+	})
+}
+
+func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
+	svc := newTestService(t)
+
+	for _, name := range []string{"__working__", "__original__"} {
+		t.Run(name, func(t *testing.T) {
+			err := svc.SaveSnapshot(name)
+			if err == nil {
+				t.Errorf("expected error for reserved name %q", name)
+			}
+		})
+	}
+}
+
 func findById(people []Person, id string) *Person {
 	for i := range people {
 		if people[i].Id == id {
