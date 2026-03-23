@@ -67,9 +67,9 @@ func (s *OrgService) DeleteSnapshot(name string) {
 	delete(s.snapshots, name)
 }
 
-func (s *OrgService) ListSnapshots() []SnapshotInfo {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+// ListSnapshotsUnlocked returns snapshot info without acquiring the lock.
+// Must be called with s.mu held.
+func (s *OrgService) ListSnapshotsUnlocked() []SnapshotInfo {
 	var list []SnapshotInfo
 	for name, snap := range s.snapshots {
 		list = append(list, SnapshotInfo{
@@ -81,4 +81,10 @@ func (s *OrgService) ListSnapshots() []SnapshotInfo {
 		return list[i].Timestamp > list[j].Timestamp
 	})
 	return list
+}
+
+func (s *OrgService) ListSnapshots() []SnapshotInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.ListSnapshotsUnlocked()
 }
