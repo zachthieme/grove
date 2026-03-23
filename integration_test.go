@@ -23,9 +23,16 @@ func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
 	}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", "simple.csv")
-	part.Write(csvData)
-	writer.Close()
+	part, err2 := writer.CreateFormFile("file", "simple.csv")
+	if err2 != nil {
+		t.Fatalf("create form file: %v", err2)
+	}
+	if _, err2 = part.Write(csvData); err2 != nil {
+		t.Fatalf("write form: %v", err2)
+	}
+	if err2 = writer.Close(); err2 != nil {
+		t.Fatalf("close writer: %v", err2)
+	}
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/api/upload", body)
@@ -36,7 +43,9 @@ func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
 	}
 
 	var resp api.UploadResponse
-	json.NewDecoder(rec.Body).Decode(&resp)
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode upload response: %v", err)
+	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected upload status 'ready', got '%s'", resp.Status)
 	}

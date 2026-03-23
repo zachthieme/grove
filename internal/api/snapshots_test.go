@@ -99,7 +99,9 @@ func TestSnapshot_LoadClearsRecycled(t *testing.T) {
 
 	// Delete someone to populate recycled.
 	bob := findByName(svc.GetWorking(), "Bob")
-	svc.Delete(bob.Id)
+	if err := svc.Delete(bob.Id); err != nil {
+		t.Fatalf("delete failed: %v", err)
+	}
 	if len(svc.GetRecycled()) == 0 {
 		t.Fatal("expected recycled to be non-empty")
 	}

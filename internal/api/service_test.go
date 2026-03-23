@@ -207,8 +207,12 @@ func TestOrgService_EmptyBin(t *testing.T) {
 	bobId := findByName(data.Working, "Bob").Id
 	carolId := findByName(data.Working, "Carol").Id
 
-	svc.Delete(bobId)
-	svc.Delete(carolId)
+	if err := svc.Delete(bobId); err != nil {
+		t.Fatalf("delete bob: %v", err)
+	}
+	if err := svc.Delete(carolId); err != nil {
+		t.Fatalf("delete carol: %v", err)
+	}
 
 	if len(svc.GetRecycled()) != 2 {
 		t.Fatalf("expected 2 recycled")
