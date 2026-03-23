@@ -5,31 +5,37 @@ import { useOrgDiff } from './hooks/useOrgDiff'
 import { useExport } from './hooks/useExport'
 import { useManagerSet } from './hooks/useIsManager'
 import { useAutosave } from './hooks/useAutosave'
+import { useHeadSubtree } from './hooks/useHeadSubtree'
+import { useFilteredPeople } from './hooks/useFilteredPeople'
+import { useEscapeKey } from './hooks/useEscapeKey'
 import UploadPrompt from './components/UploadPrompt'
 import Toolbar from './components/Toolbar'
 import DetailSidebar from './components/DetailSidebar'
 import RecycleBinDrawer from './components/RecycleBinDrawer'
 import UnparentedBar from './components/UnparentedBar'
 import AutosaveBanner from './components/AutosaveBanner'
+import Breadcrumbs from './components/Breadcrumbs'
 import ColumnMappingModal from './components/ColumnMappingModal'
 import ManagerInfoPopover from './components/ManagerInfoPopover'
+import ErrorBoundary from './components/ErrorBoundary'
 import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError } = useOrg()
-  useAutosave({ original, working, recycled, currentSnapshotName, loaded })
+  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead } = useOrg()
+  const { serverSaveError } = useAutosave({ original, working, recycled, currentSnapshotName, loaded })
   const mainRef = useRef<HTMLElement>(null)
-  const { exportPng, exportSvg } = useExport(mainRef)
+  const { exportPng, exportSvg, exporting, exportError } = useExport(mainRef)
 
-  const people = dataView === 'original' ? original : working
+  const rawPeople = dataView === 'original' ? original : working
   const changes = useOrgDiff(original, working)
   const showChanges = dataView === 'diff'
   const managerSet = useManagerSet(working)
 
-  const ghostPeople = showChanges
-    ? original.filter((o) => !working.find((w) => w.id === o.id))
-    : []
+  const headSubtree = useHeadSubtree(headPersonId, working)
+  const { people, ghostPeople } = useFilteredPeople(rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges)
+  const clearHead = useCallback(() => setHead(null), [setHead])
+  useEscapeKey(clearHead, !!headPersonId)
 
   const handleSelect = useCallback((id: string, event?: React.MouseEvent) => {
     const multi = !!(event && (event.shiftKey || event.metaKey || event.ctrlKey))
@@ -72,24 +78,34 @@ function AppContent() {
     setInfoPopoverId(personId)
   }, [])
 
+  const handleFocus = useCallback((personId: string) => {
+    setHead(personId)
+  }, [setHead])
+
   const hasSidebarSelection = selectedIds.size > 0
 
   return (
     <div className={styles.app}>
-      <Toolbar onExportPng={exportPng} onExportSvg={exportSvg} />
+      <Toolbar onExportPng={exportPng} onExportSvg={exportSvg} exporting={exporting} />
       {error && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '8px 20px', background: 'var(--grove-red-light)',
-          borderBottom: '1px solid var(--grove-red)', fontSize: 13, color: 'var(--grove-red)',
-        }}>
-          <span style={{ flex: 1 }}>{error}</span>
-          <button onClick={clearError} style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--grove-red)', fontSize: 16,
-          }}>×</button>
+        <div className={styles.errorBanner}>
+          <span className={styles.errorText}>{error}</span>
+          <button onClick={clearError} className={styles.errorClose}>×</button>
+        </div>
+      )}
+      {exportError && (
+        <div className={styles.errorBanner}>
+          <span className={styles.errorText}>Export failed: {exportError}</span>
+          <button onClick={() => {}} className={styles.errorClose}>×</button>
+        </div>
+      )}
+      {serverSaveError && (
+        <div className={styles.warnBanner}>
+          <span className={styles.warnText}>Server autosave unavailable — data saved locally only</span>
         </div>
       )}
       <UnparentedBar />
+      <Breadcrumbs />
       <AutosaveBanner />
       <div className={styles.body}>
         <main className={styles.main} ref={mainRef}>
@@ -106,6 +122,7 @@ function AppContent() {
               onAddReport={handleAddReport}
               onDeletePerson={handleDeletePerson}
               onInfo={handleShowInfo}
+              onFocus={handleFocus}
             />
           ) : viewMode === 'detail' ? (
             <ColumnView
@@ -120,6 +137,7 @@ function AppContent() {
               onAddToTeam={handleAddToTeam}
               onDeletePerson={handleDeletePerson}
               onInfo={handleShowInfo}
+              onFocus={handleFocus}
             />
           ) : null}
         </main>
@@ -148,8 +166,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <OrgProvider>
-      <AppContent />
-    </OrgProvider>
+    <ErrorBoundary>
+      <OrgProvider>
+        <AppContent />
+      </OrgProvider>
+    </ErrorBoundary>
   )
 }

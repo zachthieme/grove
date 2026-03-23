@@ -1,0 +1,21 @@
+.bar {
+  background: var(--grove-gold-light, #fef3c7);
+  border-bottom: 1px solid var(--grove-gold, #b8923e);
+  padding: 6px 20px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--text-primary);
+}
+
+.orphanBtn {
+  background: var(--surface-raised, #fff);
+  border: 1px solid var(--grove-gold, #b8923e);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}

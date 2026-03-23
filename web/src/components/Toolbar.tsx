@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useEffect, type ChangeEvent } from 'reac
 import { useOrg } from '../store/OrgContext'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
+import EmploymentTypeFilter from './EmploymentTypeFilter'
 import styles from './Toolbar.module.css'
 
 const viewModes = [
@@ -18,9 +19,10 @@ const dataViews = [
 interface ToolbarProps {
   onExportPng?: () => void
   onExportSvg?: () => void
+  exporting?: boolean
 }
 
-export default function Toolbar({ onExportPng, onExportSvg }: ToolbarProps) {
+export default function Toolbar({ onExportPng, onExportSvg, exporting }: ToolbarProps) {
   const { loaded, viewMode, dataView, setViewMode, setDataView, upload, reflow } = useOrg()
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
@@ -94,6 +96,8 @@ export default function Toolbar({ onExportPng, onExportSvg }: ToolbarProps) {
             ))}
           </div>
 
+          <EmploymentTypeFilter />
+
           <RecycleBinButton />
 
           <SnapshotsDropdown />
@@ -105,7 +109,7 @@ export default function Toolbar({ onExportPng, onExportSvg }: ToolbarProps) {
               className={styles.exportBtn}
               onClick={() => setExportOpen((o) => !o)}
             >
-              Export ▾
+              {exporting ? 'Exporting...' : 'Export ▾'}
             </button>
             {exportOpen && (
               <div className={styles.exportMenu}>
@@ -121,12 +125,34 @@ export default function Toolbar({ onExportPng, onExportSvg }: ToolbarProps) {
                 >
                   SVG
                 </button>
-                <a className={styles.exportMenuItem} href="/api/export/csv" onClick={() => setExportOpen(false)}>
+                <button
+                  className={styles.exportMenuItem}
+                  onClick={async () => {
+                    setExportOpen(false)
+                    const resp = await fetch('/api/export/csv')
+                    const blob = await resp.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url; a.download = 'grove.csv'; a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                >
                   CSV
-                </a>
-                <a className={styles.exportMenuItem} href="/api/export/xlsx" onClick={() => setExportOpen(false)}>
+                </button>
+                <button
+                  className={styles.exportMenuItem}
+                  onClick={async () => {
+                    setExportOpen(false)
+                    const resp = await fetch('/api/export/xlsx')
+                    const blob = await resp.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url; a.download = 'grove.xlsx'; a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                >
                   XLSX
-                </a>
+                </button>
               </div>
             )}
           </div>

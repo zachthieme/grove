@@ -1,0 +1,41 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: var(--grove-gold-light);
+  border-bottom: 1px solid var(--grove-gold);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.message {
+  flex: 1;
+}
+
+.restoreBtn {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: all 0.12s ease;
+  background: var(--grove-green);
+  color: #fff;
+  border: none;
+}
+
+.dismissBtn {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: all 0.12s ease;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+}

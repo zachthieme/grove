@@ -24,3 +24,40 @@
   height: 100%;
   color: var(--text-tertiary);
 }
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: var(--grove-red-light);
+  border-bottom: 1px solid var(--grove-red);
+  font-size: 13px;
+  color: var(--grove-red);
+}
+
+.errorText {
+  flex: 1;
+}
+
+.errorClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--grove-red);
+  font-size: 16px;
+}
+
+.warnBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+  background: var(--grove-gold-light);
+  border-bottom: 1px solid var(--grove-gold);
+  font-size: 12px;
+}
+
+.warnText {
+  color: var(--text-secondary);
+}

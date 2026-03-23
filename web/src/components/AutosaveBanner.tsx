@@ -1,4 +1,5 @@
 import { useOrg } from '../store/OrgContext'
+import styles from './AutosaveBanner.module.css'
 
 function formatTime(iso: string): string {
   try {
@@ -9,28 +10,6 @@ function formatTime(iso: string): string {
   }
 }
 
-const bannerStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  padding: '8px 20px',
-  background: 'var(--grove-gold-light)',
-  borderBottom: '1px solid var(--grove-gold)',
-  fontSize: 13,
-  fontWeight: 500,
-  color: 'var(--text-primary)',
-}
-
-const btnBase: React.CSSProperties = {
-  padding: '4px 14px',
-  fontSize: 12,
-  fontWeight: 600,
-  borderRadius: 4,
-  cursor: 'pointer',
-  letterSpacing: '0.01em',
-  transition: 'all 0.12s ease',
-}
-
 export default function AutosaveBanner() {
   const { autosaveAvailable, restoreAutosave, dismissAutosave } = useOrg()
 
@@ -39,20 +18,14 @@ export default function AutosaveBanner() {
   const time = formatTime(autosaveAvailable.timestamp)
 
   return (
-    <div style={bannerStyle}>
-      <span style={{ flex: 1 }}>
+    <div className={styles.banner}>
+      <span className={styles.message}>
         Restore previous session?{time ? ` (saved at ${time})` : ''}
       </span>
-      <button
-        style={{ ...btnBase, background: 'var(--grove-green)', color: '#fff', border: 'none' }}
-        onClick={restoreAutosave}
-      >
+      <button className={styles.restoreBtn} onClick={restoreAutosave}>
         Restore
       </button>
-      <button
-        style={{ ...btnBase, background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)' }}
-        onClick={dismissAutosave}
-      >
+      <button className={styles.dismissBtn} onClick={dismissAutosave}>
         Dismiss
       </button>
     </div>

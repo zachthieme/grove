@@ -1,5 +1,6 @@
 import { useCallback, useRef, type ChangeEvent } from 'react'
 import { useOrg } from '../store/OrgContext'
+import styles from './UploadPrompt.module.css'
 
 export default function UploadPrompt() {
   const { upload } = useOrg()
@@ -16,74 +17,29 @@ export default function UploadPrompt() {
   )
 
   return (
-    <div style={{
-      textAlign: 'center',
-      maxWidth: 440,
-      margin: '0 auto',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-      padding: '0 20px',
-    }}>
+    <div className={styles.container}>
       <img
         src="/grove-icon.svg"
         alt="Grove"
-        style={{ width: 80, height: 80, marginBottom: 20 }}
+        className={styles.icon}
       />
-      <p style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 28,
-        fontWeight: 400,
-        marginBottom: 2,
-        color: 'var(--text-primary)',
-        letterSpacing: '-0.02em',
-      }}>
+      <p className={styles.titleLine}>
         grove
-        <span style={{
-          color: 'var(--text-muted)',
-          fontSize: 16,
-          fontFamily: 'var(--font-body)',
-          fontWeight: 400,
-          marginLeft: 10,
-        }}>
+        <span className={styles.pronunciation}>
           /&#x261;ro&#x28A;v/
         </span>
-        <span style={{
-          fontStyle: 'italic',
-          color: 'var(--text-tertiary)',
-          fontSize: 16,
-          fontFamily: 'var(--font-body)',
-          marginLeft: 6,
-        }}>
+        <span className={styles.partOfSpeech}>
           n.
         </span>
       </p>
 
-      <p style={{
-        color: 'var(--text-secondary)',
-        marginBottom: 32,
-        fontSize: 15,
-        lineHeight: 1.6,
-        fontStyle: 'italic',
-      }}>
+      <p className={styles.definition}>
         a small group of trees, deliberately planted and carefully tended.
       </p>
 
-      <div style={{
-        width: 48,
-        height: 1,
-        background: 'var(--border-medium)',
-        marginBottom: 32,
-      }} />
+      <div className={styles.divider} />
 
-      <p style={{
-        color: 'var(--text-tertiary)',
-        fontSize: 13,
-        marginBottom: 32,
-        letterSpacing: '0.02em',
-      }}>
+      <p className={styles.tagline}>
         Org planning for people who think in structures, not spreadsheets.
       </p>
 
@@ -96,20 +52,7 @@ export default function UploadPrompt() {
       />
       <button
         onClick={() => inputRef.current?.click()}
-        style={{
-          padding: '10px 28px',
-          fontSize: 13,
-          fontWeight: 600,
-          borderRadius: 6,
-          border: '1px solid var(--grove-green)',
-          background: 'var(--grove-green)',
-          color: '#fff',
-          cursor: 'pointer',
-          letterSpacing: '0.02em',
-          transition: 'background 0.15s ease',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--grove-green-light)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--grove-green)')}
+        className={styles.uploadBtn}
       >
         Choose File
       </button>
