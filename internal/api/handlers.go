@@ -25,6 +25,7 @@ func NewRouter(svc *OrgService) http.Handler {
 	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svc))
 	mux.HandleFunc("POST /api/restore", handleRestore(svc))
 	mux.HandleFunc("POST /api/empty-bin", handleEmptyBin(svc))
+	mux.HandleFunc("GET /api/export/snapshot", handleExportSnapshot(svc))
 	mux.HandleFunc("GET /api/export/{format}", handleExport(svc))
 
 	mux.HandleFunc("GET /api/snapshots", handleListSnapshots(svc))
@@ -247,6 +248,51 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 		if _, err := w.Write(data); err != nil {
 			log.Printf("export write error (client disconnect?): %v", err)
+		}
+	}
+}
+
+func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+		format := r.URL.Query().Get("format")
+
+		people, err := svc.ExportSnapshot(name)
+		if err != nil {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
+
+		var (
+			data        []byte
+			contentType string
+			filename    string
+		)
+
+		switch format {
+		case "csv":
+			data, err = ExportCSV(people)
+			contentType = "text/csv"
+			filename = "snapshot.csv"
+		case "xlsx":
+			data, err = ExportXLSX(people)
+			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+			filename = "snapshot.xlsx"
+		default:
+			writeError(w, http.StatusBadRequest, "unsupported export format")
+			return
+		}
+
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+		if _, err := w.Write(data); err != nil {
+			log.Printf("snapshot export write error: %v", err)
 		}
 	}
 }

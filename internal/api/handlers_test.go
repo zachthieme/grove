@@ -1175,6 +1175,58 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	}
 }
 
+func TestExportSnapshotHandler(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc)
+	uploadCSV(t, handler)
+
+	// Save a snapshot
+	body, _ := json.Marshal(map[string]any{"name": "snap1"})
+	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	t.Run("exports working as CSV", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/export/snapshot?name=__working__&format=csv", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+		if rec.Header().Get("Content-Type") != "text/csv" {
+			t.Errorf("expected text/csv, got %s", rec.Header().Get("Content-Type"))
+		}
+	})
+
+	t.Run("exports named snapshot as CSV", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/export/snapshot?name=snap1&format=csv", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("404 for missing snapshot", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/export/snapshot?name=nope&format=csv", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("400 for unsupported format", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/export/snapshot?name=__working__&format=pdf", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", rec.Code)
+		}
+	})
+}
+
 func TestHealthEndpoint(t *testing.T) {
 	svc := NewOrgService()
 	handler := NewRouter(svc)
