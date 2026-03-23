@@ -11,50 +11,74 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        frontend = pkgs.buildNpmPackage {
-          pname = "grove-frontend";
-          version = "2.1.0";
-          src = ./web;
-          npmDepsHash = "";  # Will need to be set after first build attempt
-          buildPhase = ''
-            npm run build
-          '';
-          installPhase = ''
-            mkdir -p $out
-            cp -r dist/* $out/
-          '';
+        groveVersion = "2.1.0";
+
+        hashes = {
+          x86_64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          aarch64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          x86_64-darwin = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          aarch64-darwin = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
         };
 
-        grove = pkgs.buildGoModule {
+        platformMap = {
+          x86_64-linux = "linux_amd64";
+          aarch64-linux = "linux_arm64";
+          x86_64-darwin = "darwin_amd64";
+          aarch64-darwin = "darwin_arm64";
+        };
+
+        platform = platformMap.${system} or (throw "Unsupported system: ${system}");
+
+        grove = pkgs.stdenv.mkDerivation {
           pname = "grove";
-          version = "2.1.0";
-          src = ./.;
-          vendorHash = null;  # Will need to be set after first build attempt
+          version = groveVersion;
 
-          nativeBuildInputs = [ pkgs.nodejs ];
+          src = pkgs.fetchurl {
+            url = "https://github.com/zachthieme/grove/releases/download/v${groveVersion}/grove_${platform}.tar.gz";
+            hash = hashes.${system} or (throw "No hash for ${system}");
+          };
 
-          preBuild = ''
-            # Build frontend
-            cd web
-            npm ci
-            npm run build
-            cd ..
+          sourceRoot = ".";
+          dontBuild = true;
+
+          installPhase = ''
+            mkdir -p $out/bin
+            cp grove $out/bin/grove
+            chmod +x $out/bin/grove
           '';
-
-          ldflags = [ "-s" "-w" ];
 
           meta = with pkgs.lib; {
             description = "Interactive org chart planning tool";
             homepage = "https://github.com/zachthieme/grove";
             license = licenses.mit;
             mainProgram = "grove";
+            platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
           };
+        };
+
+        # Source build for development
+        grove-src = pkgs.buildGoModule {
+          pname = "grove";
+          version = groveVersion;
+          src = ./.;
+          vendorHash = null;
+
+          nativeBuildInputs = [ pkgs.nodejs ];
+
+          preBuild = ''
+            cd web && npm ci && npm run build && cd ..
+          '';
+
+          ldflags = [ "-s" "-w" ];
+
+          meta = grove.meta;
         };
       in
       {
         packages = {
           default = grove;
           grove = grove;
+          grove-src = grove-src;
         };
 
         devShells.default = pkgs.mkShell {
