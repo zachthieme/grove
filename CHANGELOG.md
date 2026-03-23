@@ -1,76 +1,79 @@
 # Changelog
 
-## v2.1 — Full-Featured Org Planning
+## v0.5.0 — First Release
 
-### Layout & Views
-- Detail view: managers horizontal, ICs stacked, team-grouped columns
+Grove is an interactive web-based org chart tool. Single Go binary, embedded React frontend.
+
+### Views & Layout
+- Detail view: managers horizontal, ICs stacked vertically, team-grouped columns
 - Manager-only view: IC summary cards by discipline/status
-- Team-aware IC positioning: cross-team people render next to teams they support
-- Virtual team header nodes with + button for multi-team managers
-- Dashed right-angle lines for cross-team (additional teams) relationships
+- Cross-team people (with additional teams) render horizontally for dotted-line visibility
+- Single-team ICs stack vertically under their manager
+- Team header nodes with + button for adding to specific teams
+- Dashed right-angle lines for cross-team relationships
 - Drag overlay with green drop-target highlighting
-- Scrollable canvas, consistent 160px node sizing
-- Manager accent bar (green left border), reflow button
+- Subtree focus mode with breadcrumb navigation (Escape to exit)
+- Scrollable canvas, consistent 160px node sizing, reflow button
 
-### Node CRUD & Data
+### Editing
 - Hover actions (+/edit/delete/info) on all nodes
-- Soft-delete with recycle bin drawer, restore, empty
+- Detail sidebar with field editing, manager dropdown, status info popover
+- Soft-delete with recycle bin drawer, restore, and empty bin
 - Multi-select via Shift/Ctrl+click with batch edit form
-- Graceful imports: broken rows get warning badges, not upload failures
-- Employment type field (FTE, PSP, CW, Evergreen, Intern, custom)
-- Non-FTE types show purple right accent bar and inline abbreviation
-- Other Teams field in sidebar for editing cross-team assignments
-- Manager dropdown in sidebar, status info popover
+- Multi-select drag-and-drop (all selected people reparent together)
+- Employment type filter with show/hide toggles and hidden-count badge
+- Employment type field with purple accent bar for non-FTE types
+
+### Data Integrity
+- Cycle detection prevents circular manager chains in Move and Update
+- Status validation against 7 known types (Active, Open, Pending Open, Transfer In, Transfer Out, Backfill, Planned)
+- All API returns are deep-copied — no mutation of internal state
+- All frontend mutations surface errors to the UI
+- Batch edit failures report count and allow retry
 
 ### Smart Upload
 - Column inference with exact/synonym/fuzzy matching and confidence scores
 - Fallback mapping UI with data preview when inference is uncertain
-- Duplicate names allowed, row ordering doesn't matter
-- Upload errors surfaced via dismissable banner
+- Backwards-compatible parsing of legacy Hiring/Transfer values
+- Graceful imports: broken rows get warning badges, not upload failures
 
 ### Snapshots & Persistence
-- Named snapshots: save, load, branch between org versions
+- Named snapshots: save, load, delete, branch between org versions
 - Autosave: debounced dual persistence (localStorage + ~/.grove/autosave.json)
 - Restore previous session banner on reload
-- Browser navigation guard with deep field comparison
+- Browser navigation guard for unsaved changes
 
-### Statuses
-- 7 types: Active, Open, Pending Open, Transfer In, Transfer Out, Backfill, Planned
-- Backwards-compatible parsing of legacy Hiring/Transfer values
+### Export
+- PNG and SVG via html-to-image with error handling and loading state
+- CSV and XLSX download from working state
 
 ### Design
 - Botanical design system: Fraunces + DM Sans fonts, warm earthy palette
-- Grove tree icon (favicon, toolbar, upload screen) and banner SVG
-- Paper noise texture, green focus rings, backdrop blur on modals
-- Pike-style identity on upload screen
-- Save feedback (Saving.../Saved!) on sidebar
+- CSS modules throughout (no inline styles in production components)
+- Grove tree icon, paper noise texture, green focus rings
+
+### Error Handling
+- React ErrorBoundary wraps the entire app with recovery UI
+- JSON encoding errors logged server-side
+- Export handler sets Content-Length, logs write failures
+- Server autosave failure surfaced via warning banner
+
+### Testing
+- Go: 90%+ coverage — service, handlers, model, parser, infer, convert, export, snapshots, autosave
+- Frontend: 69 vitest tests — hooks, components, tree building, layout, edge computation
 
 ### Architecture
-- Removed CLI commands, Mermaid renderer, views layer
-- Simplified model: field validation only, no relationship checks
-- Concurrency: mutations return state under same lock, deep-copied slices
-- Consistent JSON error responses across all API endpoints
-- 92% API coverage, 97% model coverage, 82% parser coverage
-- 44 frontend tests (vitest: hooks + component render tests)
-- ColumnView split into modules (columnEdges, columnLayout)
-- Shared view components, O(n) manager detection
+- Single Go binary with `go:embed` for frontend assets
+- Cobra CLI: `grove serve [-p port] [--dev]`
+- Layered backend: model → service (mutex-protected) → HTTP handlers
+- React 19, dnd-kit, Vite, TypeScript strict mode
+- CI: GitHub Actions (test + lint), GoReleaser, Nix flake with auto-hash-update
 
 ---
 
-## v2.0 — Grove
-
-Pivoted from CLI Mermaid generator to interactive web-based org chart tool.
-
-- Single Go binary with embedded React frontend (`grove serve`)
-- Compact hierarchy view with drag-and-drop
-- Change detection with diff mode and ghost nodes
-- Export to PNG, SVG, CSV, XLSX
-
----
-
-## v1.0 — orgchart CLI
+## v0.0.1 — Prototype
 
 Go CLI tool generating Mermaid flowchart diagrams from CSV/XLSX spreadsheets.
 
 - People view and headcount view as Mermaid `flowchart TD`
-- Cross-team edges, planned state flag, cycle detection
+- Cross-team edges, planned state flag

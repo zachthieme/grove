@@ -33,10 +33,11 @@ interface Props {
   onAdd?: () => void
   onDelete?: () => void
   onInfo?: () => void
+  onFocus?: () => void
   onClick?: (e?: React.MouseEvent) => void
 }
 
-export default function PersonNode({ person, selected, ghost, changes, showTeam, isManager, onAdd, onDelete, onInfo, onClick }: Props) {
+export default function PersonNode({ person, selected, ghost, changes, showTeam, isManager, onAdd, onDelete, onInfo, onFocus, onClick }: Props) {
   const [hovered, setHovered] = useState(false)
   const isRecruiting = person.status === 'Open' || person.status === 'Backfill'
   const isFuture = person.status === 'Pending Open' || person.status === 'Planned'
@@ -61,7 +62,7 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
   ].filter(Boolean).join(' ')
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
-  const showActions = !ghost && (onAdd || onDelete || onInfo)
+  const showActions = !ghost && (onAdd || onDelete || onInfo || onFocus)
 
   const nodeStyle = empColor ? { '--emp-color': empColor } as React.CSSProperties : undefined
 
@@ -75,10 +76,12 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
         <NodeActions
           showAdd={!!isManager}
           showInfo={!!onInfo}
+          showFocus={!!onFocus}
           onAdd={(e) => { e.stopPropagation(); onAdd?.() }}
           onDelete={(e) => { e.stopPropagation(); onDelete?.() }}
           onEdit={(e) => { e.stopPropagation(); onClick?.(e) }}
           onInfo={(e) => { e.stopPropagation(); onInfo?.() }}
+          onFocus={onFocus ? (e) => { e.stopPropagation(); onFocus() } : undefined}
         />
       )}
       {person.warning && person.warning.length > 0 && (
