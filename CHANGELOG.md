@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.6.0
+
+### Bug Fixes
+- Manager green bar now based solely on direct reports — role titles like "Lead" or "Manager" no longer trigger it without actual reports (fixes #1)
+- Cross-team-connected teams (e.g. SEC and SEC-2) now render adjacent in the layout via affinity graph clustering (fixes #2)
+- Root nodes no longer appear in "unparented" indicator; only truly orphaned people (those who lost their manager) are shown (fixes #3)
+- Unparented indicator changed from full-width top bar to a small collapsible floating notice in the bottom-left corner
+
+### Hardening
+- Input field length validation (500 char max) on all API mutations
+- Autosave handler body size limit (1MB)
+- Graceful HTTP server shutdown on SIGINT with 5-second connection drain
+- Read/write/idle timeouts on the HTTP server (30s/60s/120s)
+- Health check endpoint (`GET /api/health`)
+- Error messages no longer leak user input (export format error sanitized)
+
+### Code Quality
+- Extracted shared `validateManagerChange` helper — DRY'd cycle detection from Move and Update
+- ColumnView/ManagerView no longer redraw SVG lines on selection changes (perf fix)
+- DetailSidebar uses explicit template literal instead of JSON.stringify for dep tracking
+- Toolbar export buttons use existing `exportDataUrl` helper instead of inline fetch
+- `interface{}` → `any` in Go test files
+
+### Testing
+- Added field length validation tests (Update rejects/accepts, Add rejects)
+- Added manager change validation tests (self-ref, cycle, nonexistent manager)
+- Added health endpoint handler test
+- Added export format sanitization test
+- Added cross-team affinity layout test
+- Updated isManager tests to reflect direct-reports-only behavior
+
+---
+
 ## v0.5.0 — First Release
 
 Grove is an interactive web-based org chart tool. Single Go binary, embedded React frontend.
