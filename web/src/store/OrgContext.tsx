@@ -47,12 +47,16 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function init() {
       // Check localStorage first
-      const localRaw = localStorage.getItem('grove-autosave')
+      let localRaw = localStorage.getItem('grove-autosave')
       if (localRaw) {
         try {
           const data = JSON.parse(localRaw) as AutosaveData
           setState((s) => ({ ...s, autosaveAvailable: data }))
-        } catch { /* ignore corrupt data */ }
+        } catch {
+          // Corrupt data — clear it so the app doesn't get stuck
+          localStorage.removeItem('grove-autosave')
+          localRaw = null
+        }
       }
 
       // Check server autosave if nothing in localStorage

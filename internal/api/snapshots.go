@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"time"
 )
@@ -12,8 +13,9 @@ type snapshotData struct {
 }
 
 var reservedSnapshotNames = map[string]bool{
-	"__working__":  true,
-	"__original__": true,
+	"__working__":     true,
+	"__original__":    true,
+	"__export_temp__": true,
 }
 
 func (s *OrgService) SaveSnapshot(name string) error {
@@ -28,6 +30,9 @@ func (s *OrgService) SaveSnapshot(name string) error {
 	s.snapshots[name] = snapshotData{
 		People:    deepCopyPeople(s.working),
 		Timestamp: time.Now(),
+	}
+	if err := WriteSnapshots(s.snapshots); err != nil {
+		log.Printf("snapshot persist error: %v", err)
 	}
 	return nil
 }
@@ -65,6 +70,9 @@ func (s *OrgService) DeleteSnapshot(name string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.snapshots, name)
+	if err := WriteSnapshots(s.snapshots); err != nil {
+		log.Printf("snapshot persist error: %v", err)
+	}
 }
 
 // ListSnapshotsUnlocked returns snapshot info without acquiring the lock.

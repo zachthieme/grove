@@ -157,18 +157,13 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 }
 
 func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.pendingFile = nil
-	s.pendingFilename = ""
-	s.pendingIsZip = false
-	s.snapshots = nil
-
+	// Parse before acquiring lock — no state mutation if parsing fails
 	entries, err := parseZipFileList(data)
 	if err != nil {
 		return nil, err
 	}
 
+	// Extract and infer before mutating state — if anything fails, service state is unchanged
 	first := entries[0]
 	header, dataRows, err := extractRows(first.filename, first.data)
 	if err != nil {
@@ -176,6 +171,10 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 	}
 
 	mapping := InferMapping(header)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if AllRequiredHigh(mapping) {
 		simpleMapping := make(map[string]string, len(mapping))
 		for field, mc := range mapping {
@@ -187,10 +186,18 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 			return nil, fmt.Errorf("parsing zip: %w", err)
 		}
 
+		// All parsing succeeded — now commit state atomically
+		s.pendingFile = nil
+		s.pendingFilename = ""
+		s.pendingIsZip = false
 		s.original = orig
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
 		s.snapshots = snaps
+		_ = DeleteSnapshotStore()
+		if err := WriteSnapshots(s.snapshots); err != nil {
+			log.Printf("snapshot persist error: %v", err)
+		}
 
 		return &UploadResponse{
 			Status:    "ready",
@@ -199,6 +206,9 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 		}, nil
 	}
 
+	// Needs mapping — store as pending, clear old snapshots
+	s.snapshots = nil
+	_ = DeleteSnapshotStore()
 	s.pendingFile = data
 	s.pendingFilename = "upload.zip"
 	s.pendingIsZip = true

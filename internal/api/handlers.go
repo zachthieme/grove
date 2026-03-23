@@ -98,6 +98,7 @@ func handleUploadZip(svc *OrgService) http.HandlerFunc {
 
 func handleConfirmMapping(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			Mapping map[string]string `json:"mapping"`
 		}
@@ -127,6 +128,7 @@ func handleGetOrg(svc *OrgService) http.HandlerFunc {
 
 func handleMove(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			PersonId     string `json:"personId"`
 			NewManagerId string `json:"newManagerId"`
@@ -147,6 +149,7 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 
 func handleUpdate(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			PersonId string            `json:"personId"`
 			Fields   map[string]string `json:"fields"`
@@ -166,6 +169,7 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 
 func handleAdd(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var p Person
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
@@ -182,6 +186,7 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 
 func handleDelete(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			PersonId string `json:"personId"`
 		}
@@ -208,6 +213,7 @@ func handleGetRecycled(svc *OrgService) http.HandlerFunc {
 
 func handleRestore(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			PersonId string `json:"personId"`
 		}
@@ -332,6 +338,7 @@ func handleListSnapshots(svc *OrgService) http.HandlerFunc {
 
 func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			Name string `json:"name"`
 		}
@@ -349,6 +356,7 @@ func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
 
 func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			Name string `json:"name"`
 		}
@@ -367,6 +375,7 @@ func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
 
 func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			Name string `json:"name"`
 		}
@@ -388,6 +397,7 @@ func handleReset(svc *OrgService) http.HandlerFunc {
 
 func handleReorder(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		var req struct {
 			PersonIds []string `json:"personIds"`
 		}

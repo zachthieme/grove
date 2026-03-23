@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -38,7 +39,11 @@ type OrgService struct {
 }
 
 func NewOrgService() *OrgService {
-	return &OrgService{}
+	svc := &OrgService{}
+	if snaps, err := ReadSnapshots(); err == nil && snaps != nil {
+		svc.snapshots = snaps
+	}
+	return svc
 }
 
 func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, error) {
@@ -48,6 +53,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 	s.pendingFilename = ""
 	s.pendingIsZip = false
 	s.snapshots = nil
+	_ = DeleteSnapshotStore()
 
 	header, dataRows, err := extractRows(filename, data)
 	if err != nil {
@@ -74,7 +80,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 		}, nil
 	}
 
-	// Not all required fields matched with high confidence — hold as pending.
+	// Required field (name) not matched with high confidence — hold as pending.
 	s.pendingFile = data
 	s.pendingFilename = filename
 	preview := [][]string{header}
@@ -112,6 +118,9 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
 		s.snapshots = snaps
+		if err := WriteSnapshots(s.snapshots); err != nil {
+			log.Printf("snapshot persist error: %v", err)
+		}
 		s.pendingFile = nil
 		s.pendingFilename = ""
 		s.pendingIsZip = false
