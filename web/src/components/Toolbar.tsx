@@ -61,7 +61,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,.xlsx"
+        accept=".csv,.xlsx,.zip"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />

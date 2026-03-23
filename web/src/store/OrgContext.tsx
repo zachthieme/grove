@@ -190,9 +190,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const upload = useCallback(async (file: File) => {
+    const isZip = file.name.toLowerCase().endsWith('.zip')
     let resp: Awaited<ReturnType<typeof api.uploadFile>>
     try {
-      resp = await api.uploadFile(file)
+      resp = isZip ? await api.uploadZipFile(file) : await api.uploadFile(file)
     } catch (err) {
       setState((s) => ({ ...s, error: `Upload failed: ${err instanceof Error ? err.message : String(err)}` }))
       return
@@ -205,6 +206,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
         recycled: [],
         loaded: true,
         pendingMapping: null,
+        snapshots: resp.snapshots ?? [],
       }))
     } else if (resp.status === 'needs_mapping') {
       setState((s) => ({
@@ -220,6 +222,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   const confirmMappingAction = useCallback(async (mapping: Record<string, string>) => {
     const data = await api.confirmMapping(mapping)
+    const snapshots = await api.listSnapshots()
     setState((s) => ({
       ...s,
       original: data.original,
@@ -227,6 +230,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       recycled: [],
       loaded: true,
       pendingMapping: null,
+      snapshots,
     }))
   }, [])
 

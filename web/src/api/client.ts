@@ -155,3 +155,10 @@ export async function exportSnapshotBlob(name: string, format: 'csv' | 'xlsx'): 
   }
   return resp.blob()
 }
+
+export async function uploadZipFile(file: File): Promise<UploadResponse> {
+  const form = new FormData()
+  form.append('file', file)
+  const resp = await fetch(`${BASE}/upload/zip`, { method: 'POST', body: form })
+  return json<UploadResponse>(resp)
+}
