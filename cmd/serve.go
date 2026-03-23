@@ -7,7 +7,9 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -59,13 +61,30 @@ var serveCmd = &cobra.Command{
 			_ = server.Shutdown(shutdownCtx)
 		}()
 
-		fmt.Fprintf(os.Stderr, "Listening on http://localhost%s\n", addr)
+		url := fmt.Sprintf("http://localhost%s", addr)
+		fmt.Fprintf(os.Stderr, "Listening on %s\n", url)
+		if !serveDev {
+			go openBrowser(url)
+		}
 		err := server.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
 		return err
 	},
+}
+
+func openBrowser(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	default: // linux, freebsd, etc.
+		cmd = exec.Command("xdg-open", url)
+	}
+	_ = cmd.Start()
 }
 
 func init() {
