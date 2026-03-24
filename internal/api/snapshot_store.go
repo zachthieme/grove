@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -45,7 +47,7 @@ func WriteSnapshots(snapshots map[string]snapshotData) error {
 	if err != nil {
 		return fmt.Errorf("marshaling snapshots: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return atomicWriteFile(path, data, 0644)
 }
 
 // ReadSnapshots loads snapshots from disk. Returns nil if file doesn't exist.
@@ -56,7 +58,7 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("reading snapshots: %w", err)
@@ -72,13 +74,47 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 	return result, nil
 }
 
+// atomicWriteFile writes data to path atomically by writing to a temp file
+// in the same directory then renaming it, preventing corruption on crash mid-write.
+func atomicWriteFile(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	f, err := os.CreateTemp(dir, filepath.Base(path)+".tmp")
+	if err != nil {
+		return fmt.Errorf("creating temp file: %w", err)
+	}
+	tmpPath := f.Name()
+	if _, err := f.Write(data); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("writing temp file: %w", err)
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("syncing temp file: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("closing temp file: %w", err)
+	}
+	if err := os.Chmod(tmpPath, perm); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("setting file permissions: %w", err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("renaming temp file: %w", err)
+	}
+	return nil
+}
+
 // DeleteSnapshotStore removes the snapshots file.
 func DeleteSnapshotStore() error {
 	path, err := snapshotStorePath()
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	return nil

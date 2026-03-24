@@ -9,7 +9,7 @@ build: frontend
 dev:
 	@echo "Starting dev servers..."
 	@cd web && npm run dev &
-	@go run . serve --dev
+	@go run . --dev
 	@wait
 
 clean:

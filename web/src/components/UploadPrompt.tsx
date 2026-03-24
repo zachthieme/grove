@@ -46,7 +46,7 @@ export default function UploadPrompt() {
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,.xlsx"
+        accept=".csv,.xlsx,.zip"
         onChange={handleChange}
         style={{ display: 'none' }}
       />

@@ -194,12 +194,21 @@ func TestAddHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var people []Person
-	if err := json.NewDecoder(rec.Body).Decode(&people); err != nil {
+	var resp struct {
+		Created Person   `json:"created"`
+		Working []Person `json:"working"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
-	if len(people) != 4 {
-		t.Errorf("expected 4 people, got %d", len(people))
+	if resp.Created.Id == "" {
+		t.Error("expected created person to have an ID")
+	}
+	if resp.Created.Name != "Dave" {
+		t.Errorf("expected created name 'Dave', got '%s'", resp.Created.Name)
+	}
+	if len(resp.Working) != 4 {
+		t.Errorf("expected 4 people, got %d", len(resp.Working))
 	}
 }
 
@@ -939,8 +948,7 @@ func TestConfirmMappingHandler_NoPending(t *testing.T) {
 }
 
 func TestExportHandler_EmptyOrg(t *testing.T) {
-	// When no data has been uploaded, GetWorking returns an empty (non-nil) slice,
-	// so the export succeeds with only headers.
+	// When no data has been uploaded, export should return 400.
 	svc := NewOrgService()
 	handler := NewRouter(svc)
 
@@ -948,11 +956,8 @@ func TestExportHandler_EmptyOrg(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if ct := rec.Header().Get("Content-Type"); ct != "text/csv" {
-		t.Errorf("expected text/csv, got %s", ct)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

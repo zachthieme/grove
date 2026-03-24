@@ -29,7 +29,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 rows (header + 2 data), got %d", len(records))
 	}
 
-	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status"}
+	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team"}
 	for i, h := range expectedHeaders {
 		if records[0][i] != h {
 			t.Errorf("header[%d]: expected %s, got %s", i, h, records[0][i])
@@ -47,5 +47,12 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	// Bob's manager should be "Alice" (name, not UUID)
 	if records[2][3] != "Alice" {
 		t.Errorf("expected Bob's manager to be 'Alice', got '%s'", records[2][3])
+	}
+
+	// Employment type should default to "FTE" when not in input
+	for _, row := range records[1:] {
+		if row[7] != "FTE" {
+			t.Errorf("expected employment type 'FTE' for %s, got '%s'", row[0], row[7])
+		}
 	}
 }

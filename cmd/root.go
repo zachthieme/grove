@@ -10,9 +10,11 @@ import (
 var version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "grove",
-	Short:   "Interactive org chart tool",
-	Long:    "grove /ɡroʊv/ n. — a small group of trees, deliberately planted and carefully tended.\n\nOrg planning for people who think in structures, not spreadsheets.",
+	Use:   "grove",
+	Short: "Interactive org chart tool",
+	Long:  "grove /ɡroʊv/ n. — a small group of trees, deliberately planted and carefully tended.\n\nOrg planning for people who think in structures, not spreadsheets.",
+	// Run the server by default when no subcommand is given.
+	RunE:    runServe,
 	Version: version,
 }
 

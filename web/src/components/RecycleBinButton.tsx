@@ -7,6 +7,8 @@ export default function RecycleBinButton() {
     <button
       onClick={() => setBinOpen(!binOpen)}
       className={`${styles.btn} ${binOpen ? styles.open : styles.closed}`}
+      aria-label={`Recycle bin${recycled.length > 0 ? ` (${recycled.length} items)` : ''}`}
+      aria-pressed={binOpen}
     >
       🗑
       {recycled.length > 0 && (

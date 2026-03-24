@@ -1,9 +1,10 @@
-import { useMemo, useRef, useLayoutEffect, useEffect, useState, useCallback } from 'react'
-import { DndContext, DragOverlay, MouseSensor, useSensor, useSensors, type DragStartEvent } from '@dnd-kit/core'
+import { useMemo } from 'react'
+import { DndContext, DragOverlay } from '@dnd-kit/core'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
-import { useDragDrop } from '../hooks/useDragDrop'
+import { useChartLayout } from '../hooks/useChartLayout'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
+import { OrphanGroup } from './OrphanGroup'
 import PersonNode from '../components/PersonNode'
 import styles from './ManagerView.module.css'
 
@@ -127,31 +128,6 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
 }
 
 export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo, onFocus }: ManagerViewProps) {
-  const { onDragEnd } = useDragDrop()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([])
-  const [activeDragId, setActiveDragId] = useState<string | null>(null)
-
-  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } })
-  const sensors = useSensors(mouseSensor)
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveDragId(event.active.id as string)
-  }, [])
-
-  const handleDragEnd = useCallback((event: Parameters<typeof onDragEnd>[0]) => {
-    setActiveDragId(null)
-    onDragEnd(event)
-  }, [onDragEnd])
-
-  const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
-
-  const setNodeRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
-    if (el) nodeRefs.current.set(id, el)
-    else nodeRefs.current.delete(id)
-  }, [])
-
   const roots = useMemo(() => buildOrgTree(people), [people])
 
   // Edges only between rendered manager nodes (not ICs, since they are summarized)
@@ -191,42 +167,9 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
     return result
   }, [roots])
 
-  // Track container resizes (e.g. sidebar open/close) to recompute lines
-  const [resizeKey, setResizeKey] = useState(0)
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const observer = new ResizeObserver(() => setResizeKey((k) => k + 1))
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+  const { containerRef, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
 
-  // Compute lines after layout
-  useLayoutEffect(() => {
-    if (!containerRef.current || edges.length === 0) {
-      setLines([])
-      return
-    }
-    const rect = containerRef.current.getBoundingClientRect()
-    const sl = containerRef.current.scrollLeft
-    const st = containerRef.current.scrollTop
-    const computed: typeof lines = []
-
-    for (const { fromId, toId } of edges) {
-      const fromEl = nodeRefs.current.get(fromId)
-      const toEl = nodeRefs.current.get(toId)
-      if (!fromEl || !toEl) continue
-      const fr = fromEl.getBoundingClientRect()
-      const tr = toEl.getBoundingClientRect()
-      computed.push({
-        x1: fr.left + fr.width / 2 - rect.left + sl,
-        y1: fr.bottom - rect.top + st,
-        x2: tr.left + tr.width / 2 - rect.left + sl,
-        y2: tr.top - rect.top + st,
-      })
-    }
-    setLines(computed)
-  }, [edges, roots, resizeKey])
+  const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
   if (people.length === 0) {
     return <div className={styles.container}>No people to display.</div>
@@ -234,7 +177,7 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={styles.container} ref={containerRef}>
+      <div className={styles.container} ref={containerRef} data-role="chart-container">
         <svg className={styles.svgOverlay}>
           {lines.map((l, i) => (
             <path
@@ -246,8 +189,8 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
             />
           ))}
         </svg>
-        <div className={styles.forest}>
-          {roots.map((root) => (
+        <div className={styles.forest} data-role="forest">
+          {roots.filter((r) => r.children.length > 0).map((root) => (
             <ManagerSubtree
               key={root.person.id}
               node={root}
@@ -262,6 +205,26 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
               onFocus={onFocus}
             />
           ))}
+          <OrphanGroup
+            orphans={roots.filter((r) => r.children.length === 0)}
+            roots={roots}
+            selectedIds={selectedIds}
+            onSelect={onSelect}
+            changes={changes}
+            setNodeRef={setNodeRef}
+            managerSet={managerSet}
+            onAddReport={onAddReport}
+            onDeletePerson={onDeletePerson}
+            onInfo={onInfo}
+            styles={styles}
+            wrapInIcStack={false}
+            renderSubtree={(node) => (
+              <ManagerSubtree key={node.person.id} node={node} selectedIds={selectedIds} onSelect={onSelect}
+                changes={changes} setNodeRef={setNodeRef} managerSet={managerSet}
+                onAddReport={onAddReport} onDeletePerson={onDeletePerson}
+                onInfo={onInfo} onFocus={onFocus} />
+            )}
+          />
         </div>
       </div>
       <DragOverlay dropAnimation={null}>

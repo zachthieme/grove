@@ -25,7 +25,7 @@ import ManagerView from './views/ManagerView'
 function AppContent() {
   const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
-  const { exportPng, exportSvg, exporting, exportError } = useExport(mainRef)
+  const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
     snapshots,
     mainRef,
@@ -98,19 +98,19 @@ function AppContent() {
     <div className={styles.app}>
       <Toolbar onExportPng={exportPng} onExportSvg={exportSvg} exporting={exporting || snapshotExporting} hasSnapshots={snapshots.length > 0} onExportAllSnapshots={exportAllSnapshots} />
       {error && (
-        <div className={styles.errorBanner}>
+        <div className={styles.errorBanner} role="alert">
           <span className={styles.errorText}>{error}</span>
           <button onClick={clearError} className={styles.errorClose}>×</button>
         </div>
       )}
       {exportError && (
-        <div className={styles.errorBanner}>
+        <div className={styles.errorBanner} role="alert">
           <span className={styles.errorText}>Export failed: {exportError}</span>
-          <button onClick={() => {}} className={styles.errorClose}>×</button>
+          <button onClick={clearExportError} className={styles.errorClose}>×</button>
         </div>
       )}
       {serverSaveError && (
-        <div className={styles.warnBanner}>
+        <div className={styles.warnBanner} role="alert">
           <span className={styles.warnText}>Server autosave unavailable — data saved locally only</span>
         </div>
       )}

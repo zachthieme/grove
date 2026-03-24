@@ -33,8 +33,8 @@ This builds the React frontend and embeds it into a single Go binary (`grove`).
 ## Quick Start
 
 ```
-grove serve
-grove serve -p 3000
+grove
+grove -p 3000
 ```
 
 Your browser opens automatically. Upload a CSV, XLSX, or ZIP of snapshots and start planning.
@@ -104,12 +104,14 @@ Shows only the management hierarchy. ICs are collapsed into summary cards showin
 
 **Employment types** — Track FTE, Contractor, Agency, Vendor, or any custom label. Non-FTE types show as a pill badge on the node.
 
+**Accessible** — ARIA labels on all interactive controls, screen reader text for status indicators, keyboard support for drag-and-drop and all menus, `role="alert"` for error/warning banners.
+
 ## Configuration
 
 Grove requires no configuration. It runs as a self-contained server. It writes to `~/.grove/` for autosave (`autosave.json`) and snapshot persistence (`snapshots.json`).
 
 ```
-grove serve [flags]
+grove [flags]
 ```
 
 | Flag     | Short | Default | Description                        |
@@ -139,15 +141,15 @@ Single Go binary serving a React SPA via `go:embed`.
 
 ```
 grove
-├── cmd/serve.go          # HTTP server
+├── cmd/                  # CLI entry point + HTTP server
 ├── internal/
 │   ├── api/              # REST handlers, service, inference, export, ZIP import
 │   ├── model/            # Person, Org, field validation
 │   └── parser/           # CSV/XLSX parsing with column mapping
 ├── web/src/
-│   ├── views/            # ColumnView, ManagerView, layout algorithms
-│   ├── components/       # PersonNode, DetailSidebar, modals
-│   ├── hooks/            # useOrgDiff, useIsManager, useAutosave, useSnapshotExport
-│   └── store/            # OrgContext, orgTypes, useDirtyTracking
+│   ├── views/            # ColumnView, ManagerView, OrphanGroup, layout algorithms
+│   ├── components/       # PersonNode, DetailSidebar, BatchEditSidebar, modals
+│   ├── hooks/            # useChartLayout, useOrgDiff, useAutosave, useSnapshotExport
+│   └── store/            # OrgDataContext, UIContext, SelectionContext, useDirtyTracking
 └── embed.go              # go:embed web/dist
 ```

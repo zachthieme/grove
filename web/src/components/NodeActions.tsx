@@ -15,16 +15,16 @@ export default function NodeActions({ showAdd, showInfo, showFocus, onAdd, onDel
   return (
     <div className={styles.actions}>
       {showFocus && onFocus && (
-        <button className={styles.btn} onClick={onFocus} title="Focus on subtree">{'\u2299'}</button>
+        <button className={styles.btn} onClick={onFocus} title="Focus on subtree" aria-label="Focus on subtree">{'\u2299'}</button>
       )}
       {showAdd && (
-        <button className={styles.btn} onClick={onAdd} title="Add direct report">+</button>
+        <button className={styles.btn} onClick={onAdd} title="Add direct report" aria-label="Add direct report">+</button>
       )}
       {showInfo && (
-        <button className={styles.btn} onClick={onInfo} title="Org metrics">{'\u2139'}</button>
+        <button className={styles.btn} onClick={onInfo} title="Org metrics" aria-label="Org metrics">{'\u2139'}</button>
       )}
-      <button className={styles.btn} onClick={onEdit} title="Edit">{'\u270E'}</button>
-      <button className={`${styles.btn} ${styles.danger}`} onClick={onDelete} title="Delete">{'\u00D7'}</button>
+      <button className={styles.btn} onClick={onEdit} title="Edit" aria-label="Edit">{'\u270E'}</button>
+      <button className={`${styles.btn} ${styles.danger}`} onClick={onDelete} title="Delete" aria-label="Delete">{'\u00D7'}</button>
     </div>
   )
 }

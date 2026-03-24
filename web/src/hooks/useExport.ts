@@ -6,7 +6,7 @@ const EXPORT_PADDING = 32
 /** Get tight content dimensions from the chart container, cropping dead space. */
 function getContentBounds(el: HTMLElement): { width: number; height: number } | null {
   // The .container holds the SVG overlay + .forest. Measure .forest for content size.
-  const forest = el.querySelector('[class*="forest"]') as HTMLElement | null
+  const forest = el.querySelector('[data-role="forest"]') as HTMLElement | null
   if (!forest) return null
   const w = forest.scrollWidth + EXPORT_PADDING * 2
   const h = forest.scrollHeight + EXPORT_PADDING * 2
@@ -20,7 +20,7 @@ export function useExport(mainRef: React.RefObject<HTMLElement | null>) {
   const exportPng = useCallback(async () => {
     if (!mainRef.current || exporting) return
     // Target the chart container (child of main), not main itself
-    const container = mainRef.current.querySelector('[class*="container"]') as HTMLElement | null
+    const container = mainRef.current.querySelector('[data-role="chart-container"]') as HTMLElement | null
     if (!container) return
     setExporting(true)
     setExportError(null)
@@ -45,7 +45,7 @@ export function useExport(mainRef: React.RefObject<HTMLElement | null>) {
 
   const exportSvg = useCallback(async () => {
     if (!mainRef.current || exporting) return
-    const container = mainRef.current.querySelector('[class*="container"]') as HTMLElement | null
+    const container = mainRef.current.querySelector('[data-role="chart-container"]') as HTMLElement | null
     if (!container) return
     setExporting(true)
     setExportError(null)
@@ -68,5 +68,7 @@ export function useExport(mainRef: React.RefObject<HTMLElement | null>) {
     }
   }, [mainRef, exporting])
 
-  return { exportPng, exportSvg, exporting, exportError }
+  const clearExportError = useCallback(() => setExportError(null), [])
+
+  return { exportPng, exportSvg, exporting, exportError, clearExportError }
 }

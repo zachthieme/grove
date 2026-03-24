@@ -82,10 +82,11 @@ export function useSnapshotExport({
             // Wait for DOM to settle
             await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 300)))
 
-            if (!mainRef.current) throw new Error('Chart container not found')
+            const chartContainer = mainRef.current?.querySelector('[data-role="chart-container"]') as HTMLElement | null
+            if (!chartContainer) throw new Error('Chart container not found')
             const dataUrl = format === 'png'
-              ? await toPng(mainRef.current, { backgroundColor: '#ffffff' })
-              : await toSvg(mainRef.current, { backgroundColor: '#ffffff' })
+              ? await toPng(chartContainer, { backgroundColor: '#ffffff' })
+              : await toSvg(chartContainer, { backgroundColor: '#ffffff' })
 
             const resp = await fetch(dataUrl)
             blob = await resp.blob()

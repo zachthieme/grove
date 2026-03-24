@@ -9,7 +9,7 @@ type Person struct {
 	Team            string   `json:"team"`
 	AdditionalTeams []string `json:"additionalTeams"`
 	Status          string   `json:"status"`
-	EmploymentType  string   `json:"employmentType,omitempty"`
+	EmploymentType  string   `json:"employmentType"`
 	Warning         string   `json:"warning,omitempty"`
 	SortIndex       int      `json:"sortIndex"`
 	NewRole         string   `json:"newRole,omitempty"`
@@ -17,8 +17,9 @@ type Person struct {
 }
 
 type OrgData struct {
-	Original []Person `json:"original"`
-	Working  []Person `json:"working"`
+	Original           []Person `json:"original"`
+	Working            []Person `json:"working"`
+	PersistenceWarning string   `json:"persistenceWarning,omitempty"`
 }
 
 type AutosaveData struct {
@@ -40,10 +41,11 @@ type MappedColumn struct {
 }
 
 type UploadResponse struct {
-	Status    string                  `json:"status"` // "ready" or "needs_mapping"
-	OrgData   *OrgData                `json:"orgData,omitempty"`
-	Headers   []string                `json:"headers,omitempty"`
-	Mapping   map[string]MappedColumn `json:"mapping,omitempty"`
-	Preview   [][]string              `json:"preview,omitempty"`
-	Snapshots []SnapshotInfo          `json:"snapshots,omitempty"`
+	Status             string                  `json:"status"` // "ready" or "needs_mapping"
+	OrgData            *OrgData                `json:"orgData,omitempty"`
+	Headers            []string                `json:"headers,omitempty"`
+	Mapping            map[string]MappedColumn `json:"mapping,omitempty"`
+	Preview            [][]string              `json:"preview,omitempty"`
+	Snapshots          []SnapshotInfo          `json:"snapshots,omitempty"`
+	PersistenceWarning string                  `json:"persistenceWarning,omitempty"`
 }

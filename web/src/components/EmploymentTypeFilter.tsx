@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useCallback } from 'react'
 import { useOrg } from '../store/OrgContext'
+import { useOutsideClick } from '../hooks/useOutsideClick'
 import styles from './EmploymentTypeFilter.module.css'
 
 export default function EmploymentTypeFilter() {
@@ -23,23 +24,13 @@ export default function EmploymentTypeFilter() {
     return sorted
   }, [working])
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  useOutsideClick(wrapperRef, useCallback(() => setOpen(false), []), open)
 
   const hiddenCount = hiddenEmploymentTypes.size
 
   return (
     <div className={styles.wrapper} ref={wrapperRef}>
-      <button className={styles.trigger} onClick={() => setOpen((o) => !o)}>
+      <button className={styles.trigger} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Employment type filter">
         Filter
         {hiddenCount > 0 && <span className={styles.badge}>{hiddenCount}</span>}
       </button>
@@ -61,6 +52,8 @@ export default function EmploymentTypeFilter() {
                 key={type}
                 className={styles.menuItem}
                 onClick={() => toggleEmploymentTypeFilter(type)}
+                role="menuitemcheckbox"
+                aria-checked={isVisible}
               >
                 <span className={`${styles.checkbox} ${isVisible ? styles.checked : ''}`}>
                   {isVisible ? '\u2713' : ''}

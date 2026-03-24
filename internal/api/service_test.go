@@ -106,7 +106,7 @@ func TestOrgService_Delete(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
-	err := svc.Delete(bob.Id)
+	_, err := svc.Delete(bob.Id)
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestOrgService_SoftDelete(t *testing.T) {
 	bobId := findByName(data.Working, "Bob").Id
 	carolId := findByName(data.Working, "Carol").Id
 
-	err := svc.Delete(bobId)
+	_, err := svc.Delete(bobId)
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
@@ -163,10 +163,10 @@ func TestOrgService_Restore(t *testing.T) {
 	data := svc.GetOrg()
 	bobId := findByName(data.Working, "Bob").Id
 
-	if err := svc.Delete(bobId); err != nil {
+	if _, err := svc.Delete(bobId); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
-	err := svc.Restore(bobId)
+	_, err := svc.Restore(bobId)
 	if err != nil {
 		t.Fatalf("restore failed: %v", err)
 	}
@@ -187,13 +187,13 @@ func TestOrgService_Restore_ManagerGone(t *testing.T) {
 	carolId := findByName(data.Working, "Carol").Id
 	bobId := findByName(data.Working, "Bob").Id
 
-	if err := svc.Delete(bobId); err != nil {
+	if _, err := svc.Delete(bobId); err != nil {
 		t.Fatalf("delete bob: %v", err)
 	}
-	if err := svc.Delete(carolId); err != nil {
+	if _, err := svc.Delete(carolId); err != nil {
 		t.Fatalf("delete carol: %v", err)
 	}
-	if err := svc.Restore(carolId); err != nil {
+	if _, err := svc.Restore(carolId); err != nil {
 		t.Fatalf("restore carol: %v", err)
 	}
 
@@ -210,10 +210,10 @@ func TestOrgService_EmptyBin(t *testing.T) {
 	bobId := findByName(data.Working, "Bob").Id
 	carolId := findByName(data.Working, "Carol").Id
 
-	if err := svc.Delete(bobId); err != nil {
+	if _, err := svc.Delete(bobId); err != nil {
 		t.Fatalf("delete bob: %v", err)
 	}
-	if err := svc.Delete(carolId); err != nil {
+	if _, err := svc.Delete(carolId); err != nil {
 		t.Fatalf("delete carol: %v", err)
 	}
 
@@ -368,7 +368,7 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 	if _, err := svc.Move(bob.Id, alice.Id, "Eng"); err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
-	if err := svc.Delete(carol.Id); err != nil {
+	if _, err := svc.Delete(carol.Id); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
 
@@ -598,7 +598,7 @@ func TestOrgService_Update_CycleDetection(t *testing.T) {
 
 func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 	svc := newTestService(t)
-	err := svc.Delete("nonexistent")
+	_, err := svc.Delete("nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -606,9 +606,65 @@ func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 
 func TestOrgService_Restore_PersonNotFound(t *testing.T) {
 	svc := newTestService(t)
-	err := svc.Restore("nonexistent")
+	_, err := svc.Restore("nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent person in recycled")
+	}
+}
+
+func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	bob := findByName(data.Working, "Bob")
+
+	result, err := svc.Delete(bob.Id)
+	if err != nil {
+		t.Fatalf("delete failed: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil MutationResult")
+	}
+	if len(result.Working) != 2 {
+		t.Errorf("expected 2 working in result, got %d", len(result.Working))
+	}
+	if len(result.Recycled) != 1 {
+		t.Errorf("expected 1 recycled in result, got %d", len(result.Recycled))
+	}
+	if result.Recycled[0].Id != bob.Id {
+		t.Errorf("expected recycled person to be Bob, got %s", result.Recycled[0].Id)
+	}
+
+	// Verify the result is a deep copy (mutating it doesn't affect service state)
+	result.Working[0].Name = "MUTATED"
+	working := svc.GetWorking()
+	for _, p := range working {
+		if p.Name == "MUTATED" {
+			t.Error("expected result to be a deep copy, but mutation leaked to service state")
+		}
+	}
+}
+
+func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	bob := findByName(data.Working, "Bob")
+
+	if _, err := svc.Delete(bob.Id); err != nil {
+		t.Fatalf("delete failed: %v", err)
+	}
+
+	result, err := svc.Restore(bob.Id)
+	if err != nil {
+		t.Fatalf("restore failed: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil MutationResult")
+	}
+	if len(result.Working) != 3 {
+		t.Errorf("expected 3 working in result, got %d", len(result.Working))
+	}
+	if len(result.Recycled) != 0 {
+		t.Errorf("expected 0 recycled in result, got %d", len(result.Recycled))
 	}
 }
 
@@ -793,6 +849,41 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 				t.Errorf("expected error for reserved name %q", name)
 			}
 		})
+	}
+}
+
+func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
+	svc := newTestService(t)
+	_, _, err := svc.Add(Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
+	if err == nil {
+		t.Fatal("expected error for invalid status")
+	}
+}
+
+func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
+	svc := newTestService(t)
+	_, _, err := svc.Add(Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
+	if err == nil {
+		t.Fatal("expected error for invalid manager")
+	}
+}
+
+func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.SaveSnapshot("important"); err != nil {
+		t.Fatalf("save snapshot: %v", err)
+	}
+	if len(svc.ListSnapshots()) != 1 {
+		t.Fatal("expected 1 snapshot")
+	}
+	// Upload invalid data — should fail without destroying snapshots
+	_, err := svc.Upload("bad.csv", []byte("just-one-row-no-data\n"))
+	if err == nil {
+		t.Fatal("expected upload to fail")
+	}
+	// Snapshots should still exist
+	if len(svc.ListSnapshots()) != 1 {
+		t.Error("expected snapshot to survive failed upload")
 	}
 }
 

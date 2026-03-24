@@ -62,6 +62,7 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
   ].filter(Boolean).join(' ')
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
+  const statusLabel = isRecruiting ? 'Recruiting' : isFuture ? 'Planned' : isTransfer ? 'Transfer' : null
   const showActions = !ghost && (onAdd || onDelete || onInfo || onFocus)
 
   const nodeStyle = empColor ? { '--emp-color': empColor } as React.CSSProperties : undefined
@@ -87,8 +88,11 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
       {person.warning && person.warning.length > 0 && (
         <div className={styles.warningDot} title={person.warning}>{'\u26A0'}</div>
       )}
-      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)}>
-        <div className={styles.name}>{prefix}{person.name}</div>
+      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} aria-selected={selected || false}>
+        <div className={styles.name}>
+          {statusLabel && <span className="sr-only">{statusLabel}: </span>}
+          {prefix}{person.name}
+        </div>
         {showTeam && <div className={styles.team}>{person.team}</div>}
         <div className={styles.role}>
           {person.role || 'TBD'}

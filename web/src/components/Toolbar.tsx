@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState, useEffect, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState, type ChangeEvent } from 'react'
 import { useOrg } from '../store/OrgContext'
 import { exportDataUrl } from '../api/client'
+import { useOutsideClick } from '../hooks/useOutsideClick'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
@@ -41,17 +42,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
     [upload],
   )
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!exportOpen) return
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setExportOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [exportOpen])
+  useOutsideClick(dropdownRef, useCallback(() => setExportOpen(false), []), exportOpen)
 
   return (
     <header className={styles.toolbar}>
@@ -65,7 +56,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
-      <button className={styles.uploadBtn} onClick={() => inputRef.current?.click()}>
+      <button className={styles.uploadBtn} onClick={() => inputRef.current?.click()} aria-label="Upload file">
         Upload
       </button>
 
@@ -83,7 +74,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             ))}
           </div>
 
-          <button className={styles.pill} onClick={() => reflow()} title="Re-layout">
+          <button className={styles.pill} onClick={() => reflow()} title="Re-layout" aria-label="Re-layout">
             ↻
           </button>
 
@@ -111,6 +102,8 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             <button
               className={styles.exportBtn}
               onClick={() => setExportOpen((o) => !o)}
+              aria-expanded={exportOpen}
+              aria-label="Export options"
             >
               {exporting ? 'Exporting...' : 'Export ▾'}
             </button>

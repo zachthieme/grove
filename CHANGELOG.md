@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.8.0
+
+### Features
+- **Accessibility**: ARIA labels on all interactive controls, `aria-expanded` on dropdown menus, `aria-selected` on person nodes, `aria-pressed` on toggle buttons, `role="alert"` on error/warning banners, `role="menuitemcheckbox"` on filter items, screen reader text for status emojis, Space key support for all `role="button"` elements
+- **API client timeouts**: All API requests now have a 30-second timeout (120 seconds for file uploads) via `AbortSignal.timeout`, preventing hung requests
+- **Persistence warnings**: Snapshot save/delete errors during upload are now surfaced to the user via a warning banner instead of being silently swallowed
+
+### Bug Fixes
+- Atomic file writes for snapshots and autosave prevent data corruption on crash (temp file → sync → chmod → rename)
+- TOCTOU race in Delete/Restore eliminated — both working and recycled arrays returned atomically via `MutationResult`
+- Disk I/O moved outside mutex in `ConfirmMapping` and `UploadZip` (prevents long-held locks)
+- Snapshots preserved when upload parsing fails (cleared only when mapping is confirmed)
+- Status and managerId validated in `Add` method
+- `limitBody` (1MB) applied to all mutation handlers including `handleReset`
+- Sequential batch updates prevent concurrent mutation races
+- golangci-lint errcheck and staticcheck findings resolved
+- Dead code removed (unreachable nil check, unused parser fallback)
+
+### Refactoring
+- `OrgContext` split into three focused contexts: `OrgDataContext`, `UIContext`, `SelectionContext` (reduces unnecessary re-renders)
+- Shared `useChartLayout` hook extracted with `KeyboardSensor` for drag-and-drop
+- `OrphanGroup` component extracted from ColumnView and ManagerView (eliminates ~80 lines of duplication)
+- `BatchEditSidebar` extracted from `DetailSidebar` (440 → 200 + 170 lines)
+- Magic strings (`team::`, `__mixed__`, `__export_temp__`, `__original__`) extracted to `constants.ts`
+
+### Testing
+- 142 frontend tests across 20 test files (was 88 across 12)
+- New component tests: DetailSidebar (35 tests), ColumnView, ManagerView
+- Smoke tests for all remaining components: Toolbar, RecycleBinDrawer, SnapshotsDropdown, AutosaveBanner, UploadPrompt, Breadcrumbs, EmploymentTypeFilter, RecycleBinButton
+- Go test suite unchanged (all passing with `-race`)
+
+---
+
 ## v0.7.0
 
 ### Features

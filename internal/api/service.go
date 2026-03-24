@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -16,16 +15,6 @@ import (
 )
 
 const maxFieldLen = 500
-
-var validStatuses = map[string]bool{
-	model.StatusActive:      true,
-	model.StatusOpen:        true,
-	model.StatusPendingOpen: true,
-	model.StatusTransferIn:  true,
-	model.StatusTransferOut: true,
-	model.StatusBackfill:    true,
-	model.StatusPlanned:     true,
-}
 
 type OrgService struct {
 	mu              sync.RWMutex
@@ -52,8 +41,6 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 	s.pendingFile = nil
 	s.pendingFilename = ""
 	s.pendingIsZip = false
-	s.snapshots = nil
-	_ = DeleteSnapshotStore()
 
 	header, dataRows, err := extractRows(filename, data)
 	if err != nil {
@@ -71,16 +58,24 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 			return nil, fmt.Errorf("building org: %w", err)
 		}
 		people := ConvertOrg(org)
+		s.snapshots = nil
+		var persistWarn string
+		if err := DeleteSnapshotStore(); err != nil {
+			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+		}
 		s.original = people
 		s.working = deepCopyPeople(people)
 		s.recycled = nil
 		return &UploadResponse{
-			Status:  "ready",
-			OrgData: &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)},
+			Status:             "ready",
+			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)},
+			PersistenceWarning: persistWarn,
 		}, nil
 	}
 
 	// Required field (name) not matched with high confidence — hold as pending.
+	// Don't clear snapshots yet — user may cancel the mapping dialog.
+	// Snapshots are cleared when the mapping is confirmed in ConfirmMapping.
 	s.pendingFile = data
 	s.pendingFilename = filename
 	preview := [][]string{header}
@@ -100,40 +95,62 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 
 func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.pendingFile == nil {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("no pending file to confirm")
 	}
 
 	if s.pendingIsZip {
 		entries, err := parseZipFileList(s.pendingFile)
 		if err != nil {
+			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing pending zip: %w", err)
 		}
 		orig, work, snaps, err := parseZipEntries(entries, mapping)
 		if err != nil {
+			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing pending zip: %w", err)
 		}
 		s.original = orig
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
 		s.snapshots = snaps
-		if err := WriteSnapshots(s.snapshots); err != nil {
-			log.Printf("snapshot persist error: %v", err)
+		snapCopy := make(map[string]snapshotData, len(s.snapshots))
+		for k, v := range s.snapshots {
+			snapCopy[k] = v
 		}
 		s.pendingFile = nil
 		s.pendingFilename = ""
 		s.pendingIsZip = false
-		return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
+		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
+		s.mu.Unlock()
+
+		// Disk I/O outside the lock
+		var persistWarn string
+		if err := DeleteSnapshotStore(); err != nil {
+			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+		}
+		if err := WriteSnapshots(snapCopy); err != nil {
+			msg := fmt.Sprintf("snapshot persist error: %v", err)
+			if persistWarn != "" {
+				persistWarn += "; " + msg
+			} else {
+				persistWarn = msg
+			}
+		}
+		resp.PersistenceWarning = persistWarn
+		return resp, nil
 	}
 
 	header, dataRows, err := extractRows(s.pendingFilename, s.pendingFile)
 	if err != nil {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("parsing pending file: %w", err)
 	}
 
 	org, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
 	if err != nil {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("building org: %w", err)
 	}
 
@@ -141,10 +158,20 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	s.original = people
 	s.working = deepCopyPeople(people)
 	s.recycled = nil
+	s.snapshots = nil
 	s.pendingFile = nil
 	s.pendingFilename = ""
 	s.pendingIsZip = false
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
+	s.mu.Unlock()
+
+	// Disk I/O outside the lock
+	var persistWarn string
+	if err := DeleteSnapshotStore(); err != nil {
+		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+	}
+	resp.PersistenceWarning = persistWarn
+	return resp, nil
 }
 
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
@@ -313,7 +340,7 @@ func (s *OrgService) Update(personId string, fields map[string]string) ([]Person
 		case "team":
 			p.Team = v
 		case "status":
-			if !validStatuses[v] {
+			if !model.ValidStatuses[v] {
 				return nil, fmt.Errorf("invalid status '%s'", v)
 			}
 			p.Status = v
@@ -375,17 +402,32 @@ func (s *OrgService) Add(p Person) (Person, []Person, error) {
 	if err := validateFieldLengths(fields); err != nil {
 		return Person{}, nil, err
 	}
+	if p.Status != "" && !model.ValidStatuses[p.Status] {
+		return Person{}, nil, fmt.Errorf("invalid status '%s'", p.Status)
+	}
+	if p.ManagerId != "" {
+		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
+			return Person{}, nil, fmt.Errorf("manager %s not found", p.ManagerId)
+		}
+	}
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
 	return p, deepCopyPeople(s.working), nil
 }
 
-func (s *OrgService) Delete(personId string) error {
+// MutationResult holds both working and recycled slices, returned atomically
+// from mutations that affect both (e.g. Delete, Restore).
+type MutationResult struct {
+	Working  []Person
+	Recycled []Person
+}
+
+func (s *OrgService) Delete(personId string) (*MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx, _ := s.findWorking(personId)
 	if idx == -1 {
-		return fmt.Errorf("person %s not found", personId)
+		return nil, fmt.Errorf("person %s not found", personId)
 	}
 	for i := range s.working {
 		if s.working[i].ManagerId == personId {
@@ -394,12 +436,13 @@ func (s *OrgService) Delete(personId string) error {
 	}
 	s.recycled = append(s.recycled, s.working[idx])
 	s.working = append(s.working[:idx], s.working[idx+1:]...)
-	return nil
+	return &MutationResult{
+		Working:  deepCopyPeople(s.working),
+		Recycled: deepCopyPeople(s.recycled),
+	}, nil
 }
 
-
-
-func (s *OrgService) Restore(personId string) error {
+func (s *OrgService) Restore(personId string) (*MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx := -1
@@ -410,7 +453,7 @@ func (s *OrgService) Restore(personId string) error {
 		}
 	}
 	if idx == -1 {
-		return fmt.Errorf("person %s not found in recycled", personId)
+		return nil, fmt.Errorf("person %s not found in recycled", personId)
 	}
 	person := s.recycled[idx]
 	s.recycled = append(s.recycled[:idx], s.recycled[idx+1:]...)
@@ -420,13 +463,17 @@ func (s *OrgService) Restore(personId string) error {
 		}
 	}
 	s.working = append(s.working, person)
-	return nil
+	return &MutationResult{
+		Working:  deepCopyPeople(s.working),
+		Recycled: deepCopyPeople(s.recycled),
+	}, nil
 }
 
-func (s *OrgService) EmptyBin() {
+func (s *OrgService) EmptyBin() []Person {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.recycled = nil
+	return deepCopyPeople(s.recycled)
 }
 
 func deepCopyPeople(src []Person) []Person {

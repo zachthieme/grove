@@ -175,12 +175,15 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		_, working, err := svc.Add(p)
+		created, working, err := svc.Add(p)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, working)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"created": created,
+			"working": working,
+		})
 	}
 }
 
@@ -194,13 +197,14 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		if err := svc.Delete(req.PersonId); err != nil {
+		result, err := svc.Delete(req.PersonId)
+		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
-			"working":  svc.GetWorking(),
-			"recycled": svc.GetRecycled(),
+			"working":  result.Working,
+			"recycled": result.Recycled,
 		})
 	}
 }
@@ -221,22 +225,24 @@ func handleRestore(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		if err := svc.Restore(req.PersonId); err != nil {
+		result, err := svc.Restore(req.PersonId)
+		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
-			"working":  svc.GetWorking(),
-			"recycled": svc.GetRecycled(),
+			"working":  result.Working,
+			"recycled": result.Recycled,
 		})
 	}
 }
 
 func handleEmptyBin(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		svc.EmptyBin()
+		limitBody(w, r)
+		recycled := svc.EmptyBin()
 		writeJSON(w, http.StatusOK, map[string]any{
-			"recycled": svc.GetRecycled(),
+			"recycled": recycled,
 		})
 	}
 }
@@ -245,7 +251,7 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		format := r.PathValue("format")
 		working := svc.GetWorking()
-		if working == nil {
+		if len(working) == 0 {
 			writeError(w, http.StatusBadRequest, "no data loaded")
 			return
 		}
@@ -383,13 +389,17 @@ func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		svc.DeleteSnapshot(req.Name)
+		if err := svc.DeleteSnapshot(req.Name); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 		writeJSON(w, http.StatusOK, svc.ListSnapshots())
 	}
 }
 
 func handleReset(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
 		orgData := svc.ResetToOriginal()
 		writeJSON(w, http.StatusOK, orgData)
 	}

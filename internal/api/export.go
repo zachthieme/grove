@@ -9,7 +9,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type"}
+var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team"}
 
 func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
@@ -33,6 +33,7 @@ func ExportCSV(people []Person) ([]byte, error) {
 func ExportXLSX(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
 	f := excelize.NewFile()
+	defer func() { _ = f.Close() }()
 	sheet := "Sheet1"
 	for i, h := range exportHeaders {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
@@ -69,5 +70,6 @@ func personToRow(p Person, idToName map[string]string) []string {
 	return []string{
 		p.Name, p.Role, p.Discipline, managerName, p.Team,
 		strings.Join(p.AdditionalTeams, ","), p.Status, p.EmploymentType,
+		p.NewRole, p.NewTeam,
 	}
 }

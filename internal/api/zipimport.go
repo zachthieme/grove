@@ -173,7 +173,6 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 	mapping := InferMapping(header)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if AllRequiredHigh(mapping) {
 		simpleMapping := make(map[string]string, len(mapping))
@@ -183,6 +182,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 
 		orig, work, snaps, err := parseZipEntries(entries, simpleMapping)
 		if err != nil {
+			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing zip: %w", err)
 		}
 
@@ -194,24 +194,43 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
 		s.snapshots = snaps
-		_ = DeleteSnapshotStore()
-		if err := WriteSnapshots(s.snapshots); err != nil {
-			log.Printf("snapshot persist error: %v", err)
+		snapCopy := make(map[string]snapshotData, len(s.snapshots))
+		for k, v := range s.snapshots {
+			snapCopy[k] = v
 		}
-
-		return &UploadResponse{
+		resp := &UploadResponse{
 			Status:    "ready",
 			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)},
 			Snapshots: s.ListSnapshotsUnlocked(),
-		}, nil
+		}
+		s.mu.Unlock()
+
+		// Disk I/O outside the lock
+		var persistWarn string
+		if err := DeleteSnapshotStore(); err != nil {
+			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+		}
+		if err := WriteSnapshots(snapCopy); err != nil {
+			msg := fmt.Sprintf("snapshot persist error: %v", err)
+			if persistWarn != "" {
+				persistWarn += "; " + msg
+			} else {
+				persistWarn = msg
+			}
+		}
+		resp.PersistenceWarning = persistWarn
+
+		return resp, nil
 	}
 
-	// Needs mapping — store as pending, clear old snapshots
-	s.snapshots = nil
-	_ = DeleteSnapshotStore()
+	// Needs mapping — store as pending.
+	// Don't clear snapshots yet — user may cancel the mapping dialog.
+	// Snapshots are cleared when the mapping is confirmed in ConfirmMapping.
 	s.pendingFile = data
 	s.pendingFilename = "upload.zip"
 	s.pendingIsZip = true
+	s.mu.Unlock()
+
 	preview := [][]string{header}
 	for i, row := range dataRows {
 		if i >= 3 {

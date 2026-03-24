@@ -1,6 +1,20 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
+
+// ValidStatuses is the set of allowed person statuses.
+var ValidStatuses = map[string]bool{
+	StatusActive:      true,
+	StatusOpen:        true,
+	StatusPendingOpen: true,
+	StatusTransferIn:  true,
+	StatusTransferOut: true,
+	StatusBackfill:    true,
+	StatusPlanned:     true,
+}
 
 const (
 	StatusActive      = "Active"
@@ -38,12 +52,6 @@ func NewOrg(people []Person) (*Org, error) {
 		return nil, fmt.Errorf("no data rows found")
 	}
 
-	validStatuses := map[string]bool{
-		StatusActive: true, StatusOpen: true, StatusPendingOpen: true,
-		StatusTransferIn: true, StatusTransferOut: true,
-		StatusBackfill: true, StatusPlanned: true,
-	}
-
 	var warnings []string
 	for i := range people {
 		p := &people[i]
@@ -58,7 +66,7 @@ func NewOrg(people []Person) (*Org, error) {
 		}
 		if p.Status == "" {
 			issues = append(issues, "missing Status")
-		} else if !validStatuses[p.Status] {
+		} else if !ValidStatuses[p.Status] {
 			issues = append(issues, fmt.Sprintf("invalid status '%s'", p.Status))
 		}
 
@@ -74,7 +82,7 @@ func NewOrg(people []Person) (*Org, error) {
 		}
 
 		if len(issues) > 0 {
-			msg := fmt.Sprintf("row %d: %s", row, joinIssues(issues))
+			msg := fmt.Sprintf("row %d: %s", row, strings.Join(issues, "; "))
 			p.Warning = msg
 			warnings = append(warnings, msg)
 		}
@@ -83,13 +91,3 @@ func NewOrg(people []Person) (*Org, error) {
 	return &Org{People: people, Warnings: warnings}, nil
 }
 
-func joinIssues(issues []string) string {
-	if len(issues) == 1 {
-		return issues[0]
-	}
-	result := issues[0]
-	for _, s := range issues[1:] {
-		result += "; " + s
-	}
-	return result
-}

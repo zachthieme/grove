@@ -67,3 +67,14 @@
   font-weight: 600;
   color: var(--text-primary);
 }
+
+.teamHeader {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  text-align: center;
+  font-size: 13px;
+  width: 160px;
+  box-sizing: border-box;
+}

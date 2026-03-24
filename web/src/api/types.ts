@@ -1,5 +1,3 @@
-export const ORIGINAL_SNAPSHOT = '__original__'
-
 export interface Person {
   id: string
   name: string
@@ -19,6 +17,7 @@ export interface Person {
 export interface OrgData {
   original: Person[]
   working: Person[]
+  persistenceWarning?: string
 }
 
 export interface MovePayload {
@@ -50,6 +49,11 @@ export interface EmptyBinResponse {
   recycled: Person[]
 }
 
+export interface AddResponse {
+  created: Person
+  working: Person[]
+}
+
 export interface MappedColumn {
   column: string
   confidence: 'high' | 'medium' | 'none'
@@ -62,6 +66,7 @@ export interface UploadResponse {
   mapping?: Record<string, MappedColumn>
   preview?: string[][]
   snapshots?: SnapshotInfo[]
+  persistenceWarning?: string
 }
 
 export interface SnapshotInfo {

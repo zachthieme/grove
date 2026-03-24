@@ -20,7 +20,7 @@ export default function ManagerInfoPopover({ personId, working, onClose }: Props
       <div className={styles.popover} onMouseDown={(e) => e.stopPropagation()}>
         <div className={styles.titleBar}>
           <div className={styles.header}>{person?.name ?? 'Unknown'}</div>
-          <button className={styles.closeBtn} onClick={onClose}>×</button>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
         </div>
 
         <div className={styles.row}>

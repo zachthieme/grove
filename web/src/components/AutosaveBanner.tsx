@@ -18,7 +18,7 @@ export default function AutosaveBanner() {
   const time = formatTime(autosaveAvailable.timestamp)
 
   return (
-    <div className={styles.banner}>
+    <div className={styles.banner} role="alert">
       <span className={styles.message}>
         Restore previous session?{time ? ` (saved at ${time})` : ''}
       </span>

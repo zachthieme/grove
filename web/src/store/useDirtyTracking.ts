@@ -6,20 +6,25 @@ import { useEffect, useRef } from 'react'
  */
 export function useDirtyTracking(loaded: boolean, working: unknown[]) {
   const isDirtyRef = useRef(false)
+  const initialWorkingRef = useRef<unknown[] | null>(null)
 
-  // Mark dirty after any mutation
+  // Capture the initial working state on first load
   useEffect(() => {
-    if (loaded && working.length > 0) {
-      isDirtyRef.current = true
+    if (loaded && initialWorkingRef.current === null) {
+      initialWorkingRef.current = working
     }
-  }, [working]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Clear dirty on fresh load
-  useEffect(() => {
     if (!loaded) {
       isDirtyRef.current = false
+      initialWorkingRef.current = null
     }
-  }, [loaded])
+  }, [loaded, working])
+
+  // Mark dirty when working changes AFTER initial load
+  useEffect(() => {
+    if (loaded && initialWorkingRef.current !== null && working !== initialWorkingRef.current) {
+      isDirtyRef.current = true
+    }
+  }, [loaded, working])
 
   // Warn before leaving when dirty
   useEffect(() => {

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useOrg } from '../store/OrgContext'
-import { ORIGINAL_SNAPSHOT } from '../api/types'
+import { ORIGINAL_SNAPSHOT } from '../constants'
+import { useOutsideClick } from '../hooks/useOutsideClick'
 import styles from './SnapshotsDropdown.module.css'
 
 function formatTimestamp(iso: string): string {
@@ -18,16 +19,7 @@ export default function SnapshotsDropdown() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  useOutsideClick(ref, useCallback(() => setOpen(false), []), open)
 
   const label = currentSnapshotName
     ? (currentSnapshotName === ORIGINAL_SNAPSHOT ? 'Original' : currentSnapshotName)
@@ -45,7 +37,7 @@ export default function SnapshotsDropdown() {
     setOpen(false)
   }
 
-  const handleDelete = async (e: React.MouseEvent, name: string) => {
+  const handleDelete = async (e: { stopPropagation(): void }, name: string) => {
     e.stopPropagation()
     await deleteSnapshot(name)
   }
@@ -56,6 +48,8 @@ export default function SnapshotsDropdown() {
         className={styles.trigger}
         onClick={() => setOpen((o) => !o)}
         title={`Snapshot: ${label}`}
+        aria-expanded={open}
+        aria-label={`Snapshot: ${label}`}
       >
         {label} ▾
       </button>
@@ -84,7 +78,8 @@ export default function SnapshotsDropdown() {
                 role="button"
                 tabIndex={0}
                 onClick={(e) => handleDelete(e, snap.name)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleDelete(e as unknown as React.MouseEvent, snap.name) }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDelete(e, snap.name) } }}
+                aria-label={`Delete snapshot ${snap.name}`}
               >
                 ×
               </span>

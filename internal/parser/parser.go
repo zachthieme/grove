@@ -53,7 +53,7 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 
 		empType := get("employmentType")
 		if empType == "" {
-			empType = get("employment type")
+			empType = "FTE"
 		}
 
 		p := model.Person{

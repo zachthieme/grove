@@ -87,7 +87,7 @@ func TestSnapshot_Delete(t *testing.T) {
 	if err := svc.SaveSnapshot("v1"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
-	svc.DeleteSnapshot("v1")
+	_ = svc.DeleteSnapshot("v1")
 
 	list := svc.ListSnapshots()
 	if len(list) != 0 {
@@ -113,7 +113,7 @@ func TestSnapshot_LoadClearsRecycled(t *testing.T) {
 
 	// Delete someone to populate recycled.
 	bob := findByName(svc.GetWorking(), "Bob")
-	if err := svc.Delete(bob.Id); err != nil {
+	if _, err := svc.Delete(bob.Id); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
 	if len(svc.GetRecycled()) == 0 {

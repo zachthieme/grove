@@ -8,7 +8,7 @@ This project uses **jj** (Jujutsu) for version control, colocated with git. Use 
 
 ## What This Is
 
-**Grove** is an interactive web-based org chart tool. It runs as a single Go binary with an embedded React frontend (`grove serve`). Users upload CSV/XLSX/ZIP files, then view, edit, and restructure org charts through drag-and-drop, with features like named snapshots, autosave, recycle bin, and multiple view modes.
+**Grove** is an interactive web-based org chart tool. It runs as a single Go binary with an embedded React frontend (`grove`). Users upload CSV/XLSX/ZIP files, then view, edit, and restructure org charts through drag-and-drop, with features like named snapshots, autosave, recycle bin, and multiple view modes.
 
 ## Development
 
@@ -28,9 +28,9 @@ cd web && npm test               # Run frontend tests (vitest)
 ### Running
 
 ```bash
-./grove serve                   # Start on port 8080
-./grove serve -p 3000           # Custom port
-./grove serve --dev             # Dev mode (frontend served by Vite, not embedded)
+./grove                         # Start on port 8080
+./grove -p 3000                 # Custom port
+./grove --dev                   # Dev mode (frontend served by Vite, not embedded)
 ```
 
 ### Testing
