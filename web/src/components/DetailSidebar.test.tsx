@@ -177,7 +177,7 @@ describe('DetailSidebar', () => {
       expect(mockOrg.reparent).not.toHaveBeenCalled()
     })
 
-    it('clears manager via update (not reparent) when set to no manager', async () => {
+    it('clears manager via reparent when set to no manager', async () => {
       render(<DetailSidebar />)
       // bob's manager is alice (a1); clear the manager.
       const selects = screen.getAllByRole('combobox')
@@ -185,12 +185,8 @@ describe('DetailSidebar', () => {
       await act(async () => {
         fireEvent.click(screen.getByText('Save'))
       })
-      // Clearing manager should NOT call reparent (reparent requires a target manager)
-      expect(mockOrg.reparent).not.toHaveBeenCalled()
-      expect(mockOrg.update).toHaveBeenCalledTimes(1)
-      const [, fields] = mockOrg.update.mock.calls[0]
-      // managerId="" sent via update when clearing manager
-      expect(fields.managerId).toBe('')
+      // Clearing manager goes through reparent (which handles empty string internally)
+      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '')
     })
 
     it('calls remove with person id when Delete is clicked', async () => {
@@ -358,6 +354,24 @@ describe('DetailSidebar', () => {
       const clearBtn = screen.getByText('Clear selection')
       fireEvent.click(clearBtn)
       expect(mockOrg.clearSelection).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears manager via reparent when batch-set to no manager', async () => {
+      // bob and carol both have managerId 'a1' (alice)
+      render(<DetailSidebar />)
+      // Change manager dropdown to "(No manager)" — value=""
+      const selects = screen.getAllByRole('combobox')
+      const managerSelect = selects.find(
+        (s) => Array.from(s.querySelectorAll('option')).some((o) => o.textContent === '(No manager)'),
+      )!
+      fireEvent.change(managerSelect, { target: { value: '' } })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Save'))
+      })
+      // reparent is called with empty string to clear manager
+      expect(mockOrg.reparent).toHaveBeenCalledTimes(2)
+      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '')
+      expect(mockOrg.reparent).toHaveBeenCalledWith('c3', '')
     })
   })
 

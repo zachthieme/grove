@@ -172,6 +172,14 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   }, [handleError])
 
   const reparent = useCallback(async (personId: string, newManagerId: string) => {
+    if (!newManagerId) {
+      // Clearing manager — use update, not move
+      try {
+        const working = await api.updatePerson({ personId, fields: { managerId: '' } })
+        setState((s) => ({ ...s, working, currentSnapshotName: null }))
+      } catch (err) { handleError(err) }
+      return
+    }
     const currentWorking = stateRef.current.working
     const newManager = currentWorking.find((p) => p.id === newManagerId)
     if (!newManager) {

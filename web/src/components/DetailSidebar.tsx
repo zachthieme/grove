@@ -100,7 +100,7 @@ export default function DetailSidebar() {
     setSaveError(null)
     try {
       const managerChanged = form.managerId !== person.managerId
-      if (managerChanged && form.managerId) {
+      if (managerChanged) {
         await reparent(person.id, form.managerId)
       }
       const fields: Record<string, string> = {
@@ -114,10 +114,6 @@ export default function DetailSidebar() {
       if (!managerChanged) {
         fields.team = form.team
         fields.managerId = form.managerId
-      } else if (!form.managerId) {
-        // Clearing the manager — send managerId="" via update instead of reparent
-        fields.managerId = ''
-        fields.team = form.team
       }
       await update(person.id, fields)
       markSaved()
