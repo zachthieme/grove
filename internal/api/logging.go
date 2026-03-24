@@ -1,9 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -99,4 +103,81 @@ func (b *LogBuffer) Count() int {
 
 func (b *LogBuffer) Size() int {
 	return b.cap
+}
+
+type responseCapture struct {
+	http.ResponseWriter
+	statusCode  int
+	body        bytes.Buffer
+	captureBody bool
+	wroteHeader bool
+}
+
+func (rc *responseCapture) WriteHeader(code int) {
+	if !rc.wroteHeader {
+		rc.statusCode = code
+		rc.wroteHeader = true
+	}
+	rc.ResponseWriter.WriteHeader(code)
+}
+
+func (rc *responseCapture) Write(b []byte) (int, error) {
+	if rc.captureBody {
+		rc.body.Write(b)
+	}
+	if !rc.wroteHeader {
+		rc.statusCode = http.StatusOK
+		rc.wroteHeader = true
+	}
+	return rc.ResponseWriter.Write(b)
+}
+
+func LoggingMiddleware(buf *LogBuffer) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+
+			if strings.HasPrefix(path, "/api/logs") || strings.HasPrefix(path, "/api/config") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			start := time.Now()
+			correlationID := r.Header.Get("X-Correlation-ID")
+
+			isUpload := path == "/api/upload" || path == "/api/upload/zip"
+			var reqBody json.RawMessage
+			if !isUpload && r.Body != nil {
+				bodyBytes, err := io.ReadAll(r.Body)
+				if err == nil && len(bodyBytes) > 0 {
+					reqBody = bodyBytes
+					r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+				}
+			}
+
+			isExport := strings.HasPrefix(path, "/api/export")
+			rc := &responseCapture{
+				ResponseWriter: w,
+				statusCode:     http.StatusOK,
+				captureBody:    !isExport,
+			}
+
+			next.ServeHTTP(rc, r)
+
+			entry := LogEntry{
+				Source:         "api",
+				Method:         r.Method,
+				Path:           path,
+				CorrelationID:  correlationID,
+				RequestBody:    reqBody,
+				ResponseStatus: rc.statusCode,
+				DurationMs:     time.Since(start).Milliseconds(),
+			}
+			if rc.captureBody && rc.body.Len() > 0 {
+				entry.ResponseBody = json.RawMessage(rc.body.Bytes())
+			}
+
+			buf.Add(entry)
+		})
+	}
 }

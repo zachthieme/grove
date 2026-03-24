@@ -1,6 +1,10 @@
 package api
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -113,5 +117,117 @@ func TestLogBuffer_Size(t *testing.T) {
 	buf := NewLogBuffer(100)
 	if buf.Size() != 100 {
 		t.Errorf("expected size 100, got %d", buf.Size())
+	}
+}
+
+func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
+	buf := NewLogBuffer(100)
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+	})
+	handler := LoggingMiddleware(buf)(inner)
+
+	body := `{"personId":"abc"}`
+	req := httptest.NewRequest("POST", "/api/update", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Correlation-ID", "corr-123")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+
+	entries := buf.Entries(LogFilter{})
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 log entry, got %d", len(entries))
+	}
+	e := entries[0]
+	if e.Source != "api" {
+		t.Errorf("expected source api, got %s", e.Source)
+	}
+	if e.Method != "POST" {
+		t.Errorf("expected POST, got %s", e.Method)
+	}
+	if e.Path != "/api/update" {
+		t.Errorf("expected /api/update, got %s", e.Path)
+	}
+	if e.CorrelationID != "corr-123" {
+		t.Errorf("expected corr-123, got %s", e.CorrelationID)
+	}
+	if e.ResponseStatus != 200 {
+		t.Errorf("expected status 200, got %d", e.ResponseStatus)
+	}
+	if e.DurationMs < 0 {
+		t.Errorf("expected non-negative duration, got %d", e.DurationMs)
+	}
+	if len(e.RequestBody) == 0 {
+		t.Error("expected request body to be captured")
+	}
+	if len(e.ResponseBody) == 0 {
+		t.Error("expected response body to be captured")
+	}
+}
+
+func TestLoggingMiddleware_ExcludesLogEndpoints(t *testing.T) {
+	buf := NewLogBuffer(100)
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := LoggingMiddleware(buf)(inner)
+
+	for _, path := range []string{"/api/logs", "/api/config"} {
+		req := httptest.NewRequest("GET", path, nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+	}
+	req := httptest.NewRequest("POST", "/api/logs", strings.NewReader(`{}`))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	entries := buf.Entries(LogFilter{})
+	if len(entries) != 0 {
+		t.Fatalf("expected 0 entries (excluded paths), got %d", len(entries))
+	}
+}
+
+func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
+	buf := NewLogBuffer(100)
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := LoggingMiddleware(buf)(inner)
+
+	req := httptest.NewRequest("POST", "/api/upload", strings.NewReader("large file data"))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	entries := buf.Entries(LogFilter{})
+	if len(entries) != 1 {
+		t.Fatalf("expected 1, got %d", len(entries))
+	}
+	if entries[0].RequestBody != nil {
+		t.Error("upload request body should not be captured")
+	}
+}
+
+func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
+	buf := NewLogBuffer(100)
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("binary data"))
+	})
+	handler := LoggingMiddleware(buf)(inner)
+
+	req := httptest.NewRequest("GET", "/api/export/csv", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	entries := buf.Entries(LogFilter{})
+	if len(entries) != 1 {
+		t.Fatalf("expected 1, got %d", len(entries))
+	}
+	if entries[0].ResponseBody != nil {
+		t.Error("export response body should not be captured")
 	}
 }
