@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -229,5 +230,126 @@ func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
 	}
 	if entries[0].ResponseBody != nil {
 		t.Error("export response body should not be captured")
+	}
+}
+
+func TestLogEndpoints_GET(t *testing.T) {
+	buf := NewLogBuffer(100)
+	buf.Add(LogEntry{Source: "api", Method: "GET", Path: "/api/org", CorrelationID: "c1"})
+	buf.Add(LogEntry{Source: "web", Method: "POST", Path: "/api/update", CorrelationID: "c2"})
+
+	router := NewRouter(NewOrgService(), buf)
+
+	req := httptest.NewRequest("GET", "/api/logs", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	var resp struct {
+		Entries    []LogEntry `json:"entries"`
+		Count      int        `json:"count"`
+		BufferSize int        `json:"bufferSize"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Count != 2 {
+		t.Errorf("expected count 2, got %d", resp.Count)
+	}
+	if resp.BufferSize != 100 {
+		t.Errorf("expected bufferSize 100, got %d", resp.BufferSize)
+	}
+
+	req = httptest.NewRequest("GET", "/api/logs?correlationId=c1", nil)
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	json.NewDecoder(rr.Body).Decode(&resp)
+	if resp.Count != 1 {
+		t.Errorf("expected 1 filtered entry, got %d", resp.Count)
+	}
+
+	req = httptest.NewRequest("GET", "/api/logs?source=web", nil)
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	json.NewDecoder(rr.Body).Decode(&resp)
+	if resp.Count != 1 {
+		t.Errorf("expected 1 web entry, got %d", resp.Count)
+	}
+}
+
+func TestLogEndpoints_POST(t *testing.T) {
+	buf := NewLogBuffer(100)
+	router := NewRouter(NewOrgService(), buf)
+
+	body := `{"source":"web","method":"POST","path":"/api/update","responseStatus":200,"durationMs":15}`
+	req := httptest.NewRequest("POST", "/api/logs", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", rr.Code)
+	}
+	entries := buf.Entries(LogFilter{})
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	if entries[0].Source != "web" {
+		t.Errorf("expected source web, got %s", entries[0].Source)
+	}
+}
+
+func TestLogEndpoints_DELETE(t *testing.T) {
+	buf := NewLogBuffer(100)
+	buf.Add(LogEntry{Path: "/a"})
+	buf.Add(LogEntry{Path: "/b"})
+	router := NewRouter(NewOrgService(), buf)
+
+	req := httptest.NewRequest("DELETE", "/api/logs", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", rr.Code)
+	}
+	if buf.Count() != 0 {
+		t.Errorf("expected buffer cleared, got %d", buf.Count())
+	}
+}
+
+func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
+	router := NewRouter(NewOrgService(), nil)
+
+	req := httptest.NewRequest("GET", "/api/logs", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when logging disabled, got %d", rr.Code)
+	}
+}
+
+func TestConfigEndpoint(t *testing.T) {
+	router := NewRouter(NewOrgService(), NewLogBuffer(10))
+	req := httptest.NewRequest("GET", "/api/config", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	var cfg map[string]bool
+	json.NewDecoder(rr.Body).Decode(&cfg)
+	if !cfg["logging"] {
+		t.Error("expected logging: true")
+	}
+
+	router = NewRouter(NewOrgService(), nil)
+	req = httptest.NewRequest("GET", "/api/config", nil)
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	json.NewDecoder(rr.Body).Decode(&cfg)
+	if cfg["logging"] {
+		t.Error("expected logging: false")
 	}
 }

@@ -48,7 +48,7 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 
 func TestUploadHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 
@@ -68,7 +68,7 @@ func TestUploadHandler(t *testing.T) {
 
 func TestGetOrg_NoData(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("GET", "/api/org", nil)
 	rec := httptest.NewRecorder()
@@ -81,7 +81,7 @@ func TestGetOrg_NoData(t *testing.T) {
 
 func TestGetOrg_WithData(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("GET", "/api/org", nil)
@@ -103,7 +103,7 @@ func TestGetOrg_WithData(t *testing.T) {
 
 func TestMoveHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	carol := findByName(data.Working, "Carol")
@@ -145,7 +145,7 @@ func TestMoveHandler(t *testing.T) {
 
 func TestUpdateHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
@@ -176,7 +176,7 @@ func TestUpdateHandler(t *testing.T) {
 
 func TestAddHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	uploadCSV(t, handler)
 
@@ -214,7 +214,7 @@ func TestAddHandler(t *testing.T) {
 
 func TestDeleteHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
@@ -247,7 +247,7 @@ func TestDeleteHandler(t *testing.T) {
 
 func TestRecycledHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
@@ -282,7 +282,7 @@ func TestRecycledHandler(t *testing.T) {
 
 func TestRestoreHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
@@ -325,7 +325,7 @@ func TestRestoreHandler(t *testing.T) {
 
 func TestEmptyBinHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
@@ -362,7 +362,7 @@ func TestEmptyBinHandler(t *testing.T) {
 
 func TestExportHandler_CSV(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("GET", "/api/export/csv", nil)
@@ -382,7 +382,7 @@ func TestExportHandler_CSV(t *testing.T) {
 
 func TestExportHandler_XLSX(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("GET", "/api/export/xlsx", nil)
@@ -436,7 +436,7 @@ func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
 
 func TestConfirmMappingHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	resp := uploadNonStandardCSV(t, handler)
 	if resp.Status != "needs_mapping" {
@@ -481,7 +481,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 
 func TestReorderHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	alice := findByName(data.Working, "Alice")
@@ -522,7 +522,7 @@ func TestReorderHandler(t *testing.T) {
 
 func TestReorderHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/reorder", bytes.NewReader([]byte("not json")))
@@ -545,7 +545,7 @@ func TestReorderHandler_InvalidJSON(t *testing.T) {
 
 func TestResetHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob")
@@ -622,7 +622,7 @@ func TestResetHandler(t *testing.T) {
 
 func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	// Save a snapshot.
@@ -665,7 +665,7 @@ func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 
 func TestSnapshotHandlers_Load(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	data := uploadCSV(t, handler)
 
 	// Save a snapshot.
@@ -715,7 +715,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 
 func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	body, _ := json.Marshal(map[string]string{"name": "nonexistent"})
@@ -731,7 +731,7 @@ func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 
 func TestSnapshotHandlers_Delete(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	// Save a snapshot.
@@ -768,7 +768,7 @@ func TestSnapshotHandlers_Delete(t *testing.T) {
 
 func TestMoveHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/move", bytes.NewReader([]byte("not json")))
@@ -790,7 +790,7 @@ func TestMoveHandler_InvalidJSON(t *testing.T) {
 
 func TestMoveHandler_PersonNotFound(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	body, _ := json.Marshal(map[string]string{
@@ -809,7 +809,7 @@ func TestMoveHandler_PersonNotFound(t *testing.T) {
 
 func TestUpdateHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader([]byte("bad")))
@@ -824,7 +824,7 @@ func TestUpdateHandler_InvalidJSON(t *testing.T) {
 
 func TestUpdateHandler_PersonNotFound(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	body, _ := json.Marshal(map[string]any{
@@ -843,7 +843,7 @@ func TestUpdateHandler_PersonNotFound(t *testing.T) {
 
 func TestAddHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/add", bytes.NewReader([]byte("bad")))
@@ -858,7 +858,7 @@ func TestAddHandler_InvalidJSON(t *testing.T) {
 
 func TestDeleteHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader([]byte("bad")))
@@ -873,7 +873,7 @@ func TestDeleteHandler_InvalidJSON(t *testing.T) {
 
 func TestDeleteHandler_PersonNotFound(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	body, _ := json.Marshal(map[string]string{"personId": "nonexistent"})
@@ -889,7 +889,7 @@ func TestDeleteHandler_PersonNotFound(t *testing.T) {
 
 func TestRestoreHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/restore", bytes.NewReader([]byte("bad")))
@@ -904,7 +904,7 @@ func TestRestoreHandler_InvalidJSON(t *testing.T) {
 
 func TestRestoreHandler_PersonNotFound(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	body, _ := json.Marshal(map[string]string{"personId": "nonexistent"})
@@ -920,7 +920,7 @@ func TestRestoreHandler_PersonNotFound(t *testing.T) {
 
 func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
@@ -934,7 +934,7 @@ func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 
 func TestConfirmMappingHandler_NoPending(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	body, _ := json.Marshal(map[string]any{"mapping": map[string]string{"name": "Name"}})
 	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader(body))
@@ -950,7 +950,7 @@ func TestConfirmMappingHandler_NoPending(t *testing.T) {
 func TestExportHandler_EmptyOrg(t *testing.T) {
 	// When no data has been uploaded, export should return 400.
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("GET", "/api/export/csv", nil)
 	rec := httptest.NewRecorder()
@@ -963,7 +963,7 @@ func TestExportHandler_EmptyOrg(t *testing.T) {
 
 func TestExportHandler_UnsupportedFormat(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("GET", "/api/export/pdf", nil)
@@ -984,7 +984,7 @@ func TestExportHandler_UnsupportedFormat(t *testing.T) {
 
 func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader([]byte("bad")))
@@ -999,7 +999,7 @@ func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 
 func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader([]byte("bad")))
@@ -1014,7 +1014,7 @@ func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 
 func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	req := httptest.NewRequest("POST", "/api/snapshots/delete", bytes.NewReader([]byte("bad")))
@@ -1029,7 +1029,7 @@ func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 
 func TestUploadHandler_NoFile(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("POST", "/api/upload", nil)
 	req.Header.Set("Content-Type", "multipart/form-data")
@@ -1043,7 +1043,7 @@ func TestUploadHandler_NoFile(t *testing.T) {
 
 func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -1076,7 +1076,7 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 	defer func() { autosaveDir = "" }()
 
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	// Write autosave
 	data := AutosaveData{
@@ -1135,7 +1135,7 @@ func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 	defer func() { autosaveDir = "" }()
 
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("POST", "/api/autosave", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
@@ -1153,7 +1153,7 @@ func TestAutosaveHandler_ReadMissing(t *testing.T) {
 	defer func() { autosaveDir = "" }()
 
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("GET", "/api/autosave", nil)
 	rec := httptest.NewRecorder()
@@ -1170,7 +1170,7 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	defer func() { autosaveDir = "" }()
 
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
 	rec := httptest.NewRecorder()
@@ -1183,7 +1183,7 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 
 func TestExportSnapshotHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 	uploadCSV(t, handler)
 
 	// Save a snapshot
@@ -1235,7 +1235,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 
 func TestHealthEndpoint(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	req := httptest.NewRequest("GET", "/api/health", nil)
 	rec := httptest.NewRecorder()
@@ -1255,7 +1255,7 @@ func TestHealthEndpoint(t *testing.T) {
 
 func TestUploadZipHandler(t *testing.T) {
 	svc := NewOrgService()
-	handler := NewRouter(svc)
+	handler := NewRouter(svc, nil)
 
 	csvContent := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 	csvContent2 := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Senior Engineer,Eng,Alice,Platform,,Active\n"

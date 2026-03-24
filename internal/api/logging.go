@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -130,6 +131,52 @@ func (rc *responseCapture) Write(b []byte) (int, error) {
 		rc.wroteHeader = true
 	}
 	return rc.ResponseWriter.Write(b)
+}
+
+func handleGetLogs(buf *LogBuffer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		f := LogFilter{
+			CorrelationID: q.Get("correlationId"),
+			Source:        q.Get("source"),
+		}
+		if since := q.Get("since"); since != "" {
+			if t, err := time.Parse(time.RFC3339Nano, since); err == nil {
+				f.Since = t
+			}
+		}
+		if limit := q.Get("limit"); limit != "" {
+			if n, err := strconv.Atoi(limit); err == nil && n > 0 {
+				f.Limit = n
+			}
+		}
+		entries := buf.Entries(f)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"entries":    entries,
+			"count":      len(entries),
+			"bufferSize": buf.Size(),
+		})
+	}
+}
+
+func handlePostLog(buf *LogBuffer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
+		var entry LogEntry
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		buf.Add(entry)
+		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func handleDeleteLogs(buf *LogBuffer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		buf.Clear()
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func LoggingMiddleware(buf *LogBuffer) func(http.Handler) http.Handler {

@@ -28,7 +28,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	svc := api.NewOrgService()
 	mux := http.NewServeMux()
 
-	apiRouter := api.NewRouter(svc)
+	apiRouter := api.NewRouter(svc, nil)
 	mux.Handle("/api/", apiRouter)
 
 	if !serveDev {

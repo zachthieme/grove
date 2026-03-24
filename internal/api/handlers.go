@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func NewRouter(svc *OrgService) http.Handler {
+func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +40,18 @@ func NewRouter(svc *OrgService) http.Handler {
 	mux.HandleFunc("POST /api/autosave", handleWriteAutosave())
 	mux.HandleFunc("GET /api/autosave", handleReadAutosave())
 	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave())
+
+	// Config endpoint — always registered
+	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]bool{"logging": logBuf != nil})
+	})
+
+	// Log endpoints — only when logging is enabled
+	if logBuf != nil {
+		mux.HandleFunc("GET /api/logs", handleGetLogs(logBuf))
+		mux.HandleFunc("POST /api/logs", handlePostLog(logBuf))
+		mux.HandleFunc("DELETE /api/logs", handleDeleteLogs(logBuf))
+	}
 
 	return mux
 }
