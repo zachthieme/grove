@@ -2,19 +2,52 @@ import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, Delete
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
+function generateCorrelationId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+let loggingEnabled = false
+
+export function setLoggingEnabled(enabled: boolean) {
+  loggingEnabled = enabled
+}
+
+function postLogEntry(entry: Record<string, unknown>): void {
+  if (!loggingEnabled) return
+  fetch(`${BASE}/logs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  }).catch(() => {})
+}
+
 function fetchWithTimeout(
   input: RequestInfo | URL,
-  init?: RequestInit & { timeoutMs?: number },
+  init?: RequestInit & { timeoutMs?: number; correlationId?: string },
 ): Promise<Response> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchInit } = init ?? {}
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, correlationId, ...fetchInit } = init ?? {}
+  const cid = correlationId ?? generateCorrelationId()
+
+  const headers: Record<string, string> = {}
+  if (fetchInit.headers) {
+    if (fetchInit.headers instanceof Headers) {
+      fetchInit.headers.forEach((v, k) => { headers[k] = v })
+    } else if (Array.isArray(fetchInit.headers)) {
+      fetchInit.headers.forEach(([k, v]) => { headers[k] = v })
+    } else {
+      Object.assign(headers, fetchInit.headers)
+    }
+  }
+  headers['X-Correlation-ID'] = cid
+
   const timeoutSignal = AbortSignal.timeout(timeoutMs)
+  const finalInit: RequestInit = { ...fetchInit, headers, signal: timeoutSignal }
 
   if (fetchInit.signal) {
-    const combined = AbortSignal.any([fetchInit.signal, timeoutSignal])
-    return fetch(input, { ...fetchInit, signal: combined })
+    finalInit.signal = AbortSignal.any([fetchInit.signal, timeoutSignal])
   }
 
-  return fetch(input, { ...fetchInit, signal: timeoutSignal })
+  return fetch(input, finalInit)
 }
 
 const BASE = '/api'
@@ -27,6 +60,40 @@ async function json<T>(resp: Response): Promise<T> {
   return resp.json() as Promise<T>
 }
 
+async function jsonWithLog<T>(
+  resp: Response,
+  meta: { method: string; path: string; correlationId: string; requestBody?: unknown; startTime: number },
+): Promise<T> {
+  const durationMs = Date.now() - meta.startTime
+  if (!resp.ok) {
+    const text = await resp.text()
+    postLogEntry({
+      timestamp: new Date().toISOString(),
+      correlationId: meta.correlationId,
+      source: 'web',
+      method: meta.method,
+      path: meta.path,
+      requestBody: meta.requestBody,
+      responseStatus: resp.status,
+      error: text,
+      durationMs,
+    })
+    throw new Error(`API ${resp.status}: ${text}`)
+  }
+  const data = await resp.json() as T
+  postLogEntry({
+    timestamp: new Date().toISOString(),
+    correlationId: meta.correlationId,
+    source: 'web',
+    method: meta.method,
+    path: meta.path,
+    requestBody: meta.requestBody,
+    responseStatus: resp.status,
+    durationMs,
+  })
+  return data
+}
+
 export async function uploadFile(file: File): Promise<UploadResponse> {
   const form = new FormData()
   form.append('file', file)
@@ -34,112 +101,177 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
   return json<UploadResponse>(resp)
 }
 
-export async function confirmMapping(mapping: Record<string, string>): Promise<OrgData> {
+export async function confirmMapping(mapping: Record<string, string>, correlationId?: string): Promise<OrgData> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/upload/confirm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mapping }),
+    correlationId: cid,
   })
-  return json<OrgData>(resp)
+  return jsonWithLog<OrgData>(resp, {
+    method: 'POST', path: '/api/upload/confirm', correlationId: cid, requestBody: { mapping }, startTime,
+  })
 }
 
-export async function getOrg(): Promise<OrgData | null> {
-  const resp = await fetchWithTimeout(`${BASE}/org`)
+export async function getOrg(correlationId?: string): Promise<OrgData | null> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/org`, { correlationId: cid })
   if (resp.status === 204) return null
-  return json<OrgData>(resp)
+  return jsonWithLog<OrgData>(resp, {
+    method: 'GET', path: '/api/org', correlationId: cid, startTime,
+  })
 }
 
-export async function movePerson(payload: MovePayload): Promise<Person[]> {
+export async function movePerson(payload: MovePayload, correlationId?: string): Promise<Person[]> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/move`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    correlationId: cid,
   })
-  return json<Person[]>(resp)
+  return jsonWithLog<Person[]>(resp, {
+    method: 'POST', path: '/api/move', correlationId: cid, requestBody: payload, startTime,
+  })
 }
 
-export async function updatePerson(payload: UpdatePayload): Promise<Person[]> {
+export async function updatePerson(payload: UpdatePayload, correlationId?: string): Promise<Person[]> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    correlationId: cid,
   })
-  return json<Person[]>(resp)
+  return jsonWithLog<Person[]>(resp, {
+    method: 'POST', path: '/api/update', correlationId: cid, requestBody: payload, startTime,
+  })
 }
 
-export async function addPerson(person: Omit<Person, 'id'>): Promise<AddResponse> {
+export async function addPerson(person: Omit<Person, 'id'>, correlationId?: string): Promise<AddResponse> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/add`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(person),
+    correlationId: cid,
   })
-  return json<AddResponse>(resp)
+  return jsonWithLog<AddResponse>(resp, {
+    method: 'POST', path: '/api/add', correlationId: cid, requestBody: person, startTime,
+  })
 }
 
-export async function deletePerson(payload: DeletePayload): Promise<DeleteResponse> {
+export async function deletePerson(payload: DeletePayload, correlationId?: string): Promise<DeleteResponse> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/delete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    correlationId: cid,
   })
-  return json<DeleteResponse>(resp)
+  return jsonWithLog<DeleteResponse>(resp, {
+    method: 'POST', path: '/api/delete', correlationId: cid, requestBody: payload, startTime,
+  })
 }
 
-export async function restorePerson(personId: string): Promise<RestoreResponse> {
+export async function restorePerson(personId: string, correlationId?: string): Promise<RestoreResponse> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/restore`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ personId }),
+    correlationId: cid,
   })
-  return json<RestoreResponse>(resp)
+  return jsonWithLog<RestoreResponse>(resp, {
+    method: 'POST', path: '/api/restore', correlationId: cid, requestBody: { personId }, startTime,
+  })
 }
 
-export async function emptyBin(): Promise<EmptyBinResponse> {
-  const resp = await fetchWithTimeout(`${BASE}/empty-bin`, { method: 'POST' })
-  return json<EmptyBinResponse>(resp)
+export async function emptyBin(correlationId?: string): Promise<EmptyBinResponse> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/empty-bin`, { method: 'POST', correlationId: cid })
+  return jsonWithLog<EmptyBinResponse>(resp, {
+    method: 'POST', path: '/api/empty-bin', correlationId: cid, startTime,
+  })
 }
 
 export function exportDataUrl(format: 'csv' | 'xlsx'): string {
   return `${BASE}/export/${format}`
 }
 
-export async function reorderPeople(personIds: string[]): Promise<Person[]> {
+export async function reorderPeople(personIds: string[], correlationId?: string): Promise<Person[]> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/reorder`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ personIds }),
+    correlationId: cid,
   })
-  return json<Person[]>(resp)
+  return jsonWithLog<Person[]>(resp, {
+    method: 'POST', path: '/api/reorder', correlationId: cid, requestBody: { personIds }, startTime,
+  })
 }
 
-export async function resetToOriginal(): Promise<OrgData> {
-  const resp = await fetchWithTimeout(`${BASE}/reset`, { method: 'POST' })
-  return json<OrgData>(resp)
+export async function resetToOriginal(correlationId?: string): Promise<OrgData> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/reset`, { method: 'POST', correlationId: cid })
+  return jsonWithLog<OrgData>(resp, {
+    method: 'POST', path: '/api/reset', correlationId: cid, startTime,
+  })
 }
 
 export async function listSnapshots(): Promise<SnapshotInfo[]> {
   return json<SnapshotInfo[]>(await fetchWithTimeout(`${BASE}/snapshots`))
 }
 
-export async function saveSnapshot(name: string): Promise<SnapshotInfo[]> {
-  return json<SnapshotInfo[]>(await fetchWithTimeout(`${BASE}/snapshots/save`, {
+export async function saveSnapshot(name: string, correlationId?: string): Promise<SnapshotInfo[]> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/snapshots/save`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
-  }))
+    correlationId: cid,
+  })
+  return jsonWithLog<SnapshotInfo[]>(resp, {
+    method: 'POST', path: '/api/snapshots/save', correlationId: cid, requestBody: { name }, startTime,
+  })
 }
 
-export async function loadSnapshot(name: string): Promise<OrgData> {
-  return json<OrgData>(await fetchWithTimeout(`${BASE}/snapshots/load`, {
+export async function loadSnapshot(name: string, correlationId?: string): Promise<OrgData> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/snapshots/load`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
-  }))
+    correlationId: cid,
+  })
+  return jsonWithLog<OrgData>(resp, {
+    method: 'POST', path: '/api/snapshots/load', correlationId: cid, requestBody: { name }, startTime,
+  })
 }
 
-export async function deleteSnapshot(name: string): Promise<SnapshotInfo[]> {
-  return json<SnapshotInfo[]>(await fetchWithTimeout(`${BASE}/snapshots/delete`, {
+export async function deleteSnapshot(name: string, correlationId?: string): Promise<SnapshotInfo[]> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/snapshots/delete`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
-  }))
+    correlationId: cid,
+  })
+  return jsonWithLog<SnapshotInfo[]>(resp, {
+    method: 'POST', path: '/api/snapshots/delete', correlationId: cid, requestBody: { name }, startTime,
+  })
 }
 
 export async function writeAutosave(data: AutosaveData): Promise<void> {
@@ -178,4 +310,47 @@ export async function uploadZipFile(file: File): Promise<UploadResponse> {
   form.append('file', file)
   const resp = await fetchWithTimeout(`${BASE}/upload/zip`, { method: 'POST', body: form, timeoutMs: 120_000 })
   return json<UploadResponse>(resp)
+}
+
+export interface AppConfig {
+  logging: boolean
+}
+
+export async function getConfig(): Promise<AppConfig> {
+  const resp = await fetchWithTimeout(`${BASE}/config`)
+  return json<AppConfig>(resp)
+}
+
+export interface LogEntry {
+  id: string
+  timestamp: string
+  correlationId?: string
+  source: string
+  method: string
+  path: string
+  requestBody?: unknown
+  responseStatus?: number
+  responseBody?: unknown
+  durationMs?: number
+  error?: string
+}
+
+export interface LogsResponse {
+  entries: LogEntry[]
+  count: number
+  bufferSize: number
+}
+
+export async function getLogs(params?: { correlationId?: string; source?: string; limit?: number }): Promise<LogsResponse> {
+  const q = new URLSearchParams()
+  if (params?.correlationId) q.set('correlationId', params.correlationId)
+  if (params?.source) q.set('source', params.source)
+  if (params?.limit) q.set('limit', String(params.limit))
+  const qs = q.toString()
+  const resp = await fetchWithTimeout(`${BASE}/logs${qs ? '?' + qs : ''}`)
+  return json<LogsResponse>(resp)
+}
+
+export async function clearLogs(): Promise<void> {
+  await fetchWithTimeout(`${BASE}/logs`, { method: 'DELETE' })
 }
