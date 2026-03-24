@@ -14,10 +14,10 @@
         groveVersion = "0.8.0";
 
         hashes = {
-          x86_64-linux = "sha256-kPnuc8YnbE5uX3JyJttPnCac4qTSDL8ovBgYsY9M3aY=";
-          aarch64-linux = "sha256-sjFU9bnS+Avqc6K8nM3lURy1f2GIfNOcBVpSl7INtig=";
-          x86_64-darwin = "sha256-cgngZ1TssFnYUdX+1GZlu7QDyDBtTX1ViureiHAhzCI=";
-          aarch64-darwin = "sha256-mtadLRDWL8a4aNDtvyQZDti9CVhz7DmGjyfD9wY6enA=";
+          x86_64-linux = "sha256-K1aIepBjLaAH1mFT+duM8y752N7cnsmhHY0n9MpnMQY=";
+          aarch64-linux = "sha256-JAcOlCU/R/r/HRCLUgPfBhHLcGMKDlaCBifXiwQys74=";
+          x86_64-darwin = "sha256-xV1O5wy4XKjq9/08TOIPQlnxwcVVNywjt0y5MtLzFLU=";
+          aarch64-darwin = "sha256-iUKPZ7VVJpOiYpiW/gbwti2uc593zvQ9hh2hlSQFBCU=";
         };
 
         platformMap = {
@@ -35,32 +35,24 @@
 
           src = pkgs.fetchurl {
             url = "https://github.com/zachthieme/grove/releases/download/v${groveVersion}/grove_${platform}.tar.gz";
-            hash = hashes.${system} or (throw "No hash for ${system}");
+            hash = hashes.${system} or (throw "No hash for system: ${system}");
           };
 
           sourceRoot = ".";
           dontBuild = true;
+          dontFixup = true;
 
           installPhase = ''
             mkdir -p $out/bin
-            cp grove $out/bin/grove
-            chmod +x $out/bin/grove
+            cp grove $out/bin/
           '';
-
-          meta = with pkgs.lib; {
-            description = "Interactive org chart planning tool";
-            homepage = "https://github.com/zachthieme/grove";
-            license = licenses.mit;
-            mainProgram = "grove";
-            platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-          };
         };
 
-        # Source build for development
         grove-src = pkgs.buildGoModule {
           pname = "grove";
           version = groveVersion;
           src = ./.;
+
           vendorHash = null;
 
           nativeBuildInputs = [ pkgs.nodejs ];
@@ -70,24 +62,20 @@
           '';
 
           ldflags = [ "-s" "-w" ];
-
-          meta = grove.meta;
         };
       in
       {
         packages = {
           default = grove;
-          grove = grove;
-          grove-src = grove-src;
+          inherit grove grove-src;
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            go
-            nodejs
-            jujutsu
+          buildInputs = [
+            pkgs.go
+            pkgs.nodejs
+            pkgs.jujutsu
           ];
         };
-      }
-    );
+      });
 }
