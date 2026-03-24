@@ -145,6 +145,92 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	}
 }
 
+func TestUploadZip_SharedIDsAcrossFiles(t *testing.T) {
+	svc := NewOrgService()
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", testCSVContent},
+		{"1-working.csv", testCSVContent2},
+	})
+
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+
+	// Build name→ID maps for original and working
+	origByName := make(map[string]string)
+	for _, p := range resp.OrgData.Original {
+		origByName[p.Name] = p.Id
+	}
+	workByName := make(map[string]string)
+	for _, p := range resp.OrgData.Working {
+		workByName[p.Name] = p.Id
+	}
+
+	// People with the same name must share the same UUID across original and working
+	for name, origID := range origByName {
+		workID, ok := workByName[name]
+		if !ok {
+			t.Errorf("person %q in original but not in working", name)
+			continue
+		}
+		if origID != workID {
+			t.Errorf("person %q has different IDs: original=%s working=%s", name, origID, workID)
+		}
+	}
+
+	// Manager references must also use shared IDs
+	for _, w := range resp.OrgData.Working {
+		if w.ManagerId != "" {
+			found := false
+			for _, o := range resp.OrgData.Working {
+				if o.Id == w.ManagerId {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("working person %q has managerID %s that doesn't match any working person", w.Name, w.ManagerId)
+			}
+		}
+	}
+}
+
+func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
+	svc := NewOrgService()
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", testCSVContent},
+		{"1-working.csv", testCSVContent2},
+		{"2-snapshot.csv", testCSVContent3},
+	})
+
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+
+	// Build name→ID from original
+	origByName := make(map[string]string)
+	for _, p := range resp.OrgData.Original {
+		origByName[p.Name] = p.Id
+	}
+
+	// Load the snapshot and verify shared IDs
+	orgData, err := svc.LoadSnapshot("snapshot")
+	if err != nil {
+		t.Fatalf("LoadSnapshot failed: %v", err)
+	}
+
+	for _, p := range orgData.Working {
+		if origID, ok := origByName[p.Name]; ok {
+			if p.Id != origID {
+				t.Errorf("snapshot person %q has ID %s, want %s (from original)", p.Name, p.Id, origID)
+			}
+		}
+		// Carol is new in snapshot — she should have a unique ID (no match expected)
+	}
+}
+
 func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	svc := NewOrgService()
 	data := buildTestZip(t, []zipFile{

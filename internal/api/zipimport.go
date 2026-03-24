@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
 )
 
@@ -92,10 +93,13 @@ func parseZipFileList(data []byte) ([]zipEntry, error) {
 
 func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []Person, working []Person, snaps map[string]snapshotData, err error) {
 	snaps = make(map[string]snapshotData)
-	var parsed []struct {
-		entry  zipEntry
-		people []Person
+
+	// Parse raw orgs from all entries first.
+	type parsedEntry struct {
+		entry zipEntry
+		org   *model.Org
 	}
+	var parsed []parsedEntry
 
 	for _, e := range entries {
 		header, dataRows, err := extractRows(e.filename, e.data)
@@ -110,11 +114,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 			continue
 		}
 
-		people := ConvertOrg(org)
-		parsed = append(parsed, struct {
-			entry  zipEntry
-			people []Person
-		}{entry: e, people: people})
+		parsed = append(parsed, parsedEntry{entry: e, org: org})
 	}
 
 	if len(parsed) == 0 {
@@ -122,7 +122,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	}
 
 	if len(parsed) == 1 {
-		people := parsed[0].people
+		people := ConvertOrg(parsed[0].org)
 		return people, deepCopyPeople(people), nil, nil
 	}
 
@@ -139,8 +139,12 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 		}
 	}
 
-	original = parsed[originalIdx].people
-	working = parsed[workingIdx].people
+	// Convert original first to establish stable IDs, then reuse them
+	// for working and snapshot files so diff can match people by UUID.
+	original = ConvertOrg(parsed[originalIdx].org)
+	idMap := BuildIDMap(original)
+
+	working = ConvertOrgWithIDMap(parsed[workingIdx].org, idMap)
 
 	now := time.Now()
 	for i, p := range parsed {
@@ -148,7 +152,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 			continue
 		}
 		snaps[p.entry.name] = snapshotData{
-			People:    p.people,
+			People:    ConvertOrgWithIDMap(p.org, idMap),
 			Timestamp: now.Add(time.Duration(i) * time.Millisecond),
 		}
 	}
