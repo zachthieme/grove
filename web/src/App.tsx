@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import styles from './App.module.css'
 import { OrgProvider, useOrg } from './store/OrgContext'
 import { useOrgDiff } from './hooks/useOrgDiff'
@@ -18,6 +18,8 @@ import AutosaveBanner from './components/AutosaveBanner'
 import Breadcrumbs from './components/Breadcrumbs'
 import ColumnMappingModal from './components/ColumnMappingModal'
 import ManagerInfoPopover from './components/ManagerInfoPopover'
+import LogPanel from './components/LogPanel'
+import { getConfig, setLoggingEnabled as setClientLogging } from './api/client'
 import ErrorBoundary from './components/ErrorBoundary'
 import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
@@ -82,6 +84,16 @@ function AppContent() {
     await remove(personId)
   }, [remove])
 
+  const [loggingEnabled, setLoggingEnabled] = useState(false)
+  const [logPanelOpen, setLogPanelOpen] = useState(false)
+
+  useEffect(() => {
+    getConfig().then((cfg) => {
+      setLoggingEnabled(cfg.logging)
+      setClientLogging(cfg.logging)
+    }).catch(() => {})
+  }, [])
+
   const [infoPopoverId, setInfoPopoverId] = useState<string | null>(null)
 
   const handleShowInfo = useCallback((personId: string) => {
@@ -96,7 +108,16 @@ function AppContent() {
 
   return (
     <div className={styles.app}>
-      <Toolbar onExportPng={exportPng} onExportSvg={exportSvg} exporting={exporting || snapshotExporting} hasSnapshots={snapshots.length > 0} onExportAllSnapshots={exportAllSnapshots} />
+      <Toolbar
+        onExportPng={exportPng}
+        onExportSvg={exportSvg}
+        exporting={exporting || snapshotExporting}
+        hasSnapshots={snapshots.length > 0}
+        onExportAllSnapshots={exportAllSnapshots}
+        loggingEnabled={loggingEnabled}
+        onToggleLogs={() => setLogPanelOpen((o) => !o)}
+        logPanelOpen={logPanelOpen}
+      />
       {error && (
         <div className={styles.errorBanner} role="alert">
           <span className={styles.errorText}>{error}</span>
@@ -177,6 +198,7 @@ function AppContent() {
           onCancel={cancelMapping}
         />
       )}
+      {logPanelOpen && <LogPanel onClose={() => setLogPanelOpen(false)} />}
     </div>
   )
 }

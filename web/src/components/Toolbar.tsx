@@ -24,9 +24,12 @@ interface ToolbarProps {
   exporting?: boolean
   hasSnapshots?: boolean
   onExportAllSnapshots?: (format: 'csv' | 'xlsx' | 'png' | 'svg') => void
+  loggingEnabled?: boolean
+  onToggleLogs?: () => void
+  logPanelOpen?: boolean
 }
 
-export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots }: ToolbarProps) {
+export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen }: ToolbarProps) {
   const { loaded, viewMode, dataView, setViewMode, setDataView, upload, reflow } = useOrg()
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
@@ -170,6 +173,15 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             )}
           </div>
         </>
+      )}
+      {loggingEnabled && (
+        <button
+          className={`${styles.pill} ${logPanelOpen ? styles.pillActive : ''}`}
+          onClick={onToggleLogs}
+          aria-label="Toggle log viewer"
+        >
+          Logs
+        </button>
       )}
     </header>
   )
