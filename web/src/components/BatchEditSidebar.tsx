@@ -27,6 +27,10 @@ function computeBatchDefaults(people: ReturnType<typeof useOrg>['working']): Bat
   }
 }
 
+function generateCorrelationId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
 export default function BatchEditSidebar() {
   const { working, selectedIds, clearSelection, update, reparent } = useOrg()
 
@@ -85,6 +89,7 @@ export default function BatchEditSidebar() {
 
   const handleBatchSave = async () => {
     if (batchDirty.size === 0) return
+    const corrId = generateCorrelationId()
     const managerChanged = batchDirty.has('managerId') && batchForm.managerId !== MIXED_VALUE
     const fields: Record<string, string> = {}
     for (const key of batchDirty) {
@@ -101,7 +106,7 @@ export default function BatchEditSidebar() {
     if (managerChanged) {
       for (const p of selectedPeople) {
         try {
-          await reparent(p.id, batchForm.managerId)
+          await reparent(p.id, batchForm.managerId, corrId)
         } catch {
           failedCount++
         }
@@ -110,7 +115,7 @@ export default function BatchEditSidebar() {
     if (Object.keys(fields).length > 0) {
       for (const p of selectedPeople) {
         try {
-          await update(p.id, fields)
+          await update(p.id, fields, corrId)
         } catch {
           failedCount++
         }

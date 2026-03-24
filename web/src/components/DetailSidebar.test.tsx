@@ -186,7 +186,7 @@ describe('DetailSidebar', () => {
         fireEvent.click(screen.getByText('Save'))
       })
       // Clearing manager goes through reparent (which handles empty string internally)
-      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '')
+      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '', expect.any(String))
     })
 
     it('calls remove with person id when Delete is clicked', async () => {
@@ -370,8 +370,8 @@ describe('DetailSidebar', () => {
       })
       // reparent is called with empty string to clear manager
       expect(mockOrg.reparent).toHaveBeenCalledTimes(2)
-      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '')
-      expect(mockOrg.reparent).toHaveBeenCalledWith('c3', '')
+      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '', expect.any(String))
+      expect(mockOrg.reparent).toHaveBeenCalledWith('c3', '', expect.any(String))
     })
   })
 

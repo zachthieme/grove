@@ -27,6 +27,10 @@ const blankForm: FormFields = {
   employmentType: 'FTE',
 }
 
+function generateCorrelationId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
 export default function DetailSidebar() {
   const { working, selectedId, selectedIds, setSelectedId, clearSelection, update, remove, reparent } = useOrg()
 
@@ -98,10 +102,11 @@ export default function DetailSidebar() {
     if (!person) return
     setSaveStatus('saving')
     setSaveError(null)
+    const corrId = generateCorrelationId()
     try {
       const managerChanged = form.managerId !== person.managerId
       if (managerChanged) {
-        await reparent(person.id, form.managerId)
+        await reparent(person.id, form.managerId, corrId)
       }
       const fields: Record<string, string> = {
         name: form.name,
@@ -115,7 +120,7 @@ export default function DetailSidebar() {
         fields.team = form.team
         fields.managerId = form.managerId
       }
-      await update(person.id, fields)
+      await update(person.id, fields, corrId)
       markSaved()
     } catch {
       setSaveStatus('error')

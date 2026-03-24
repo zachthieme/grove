@@ -164,18 +164,18 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string) => {
+  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string) => {
     try {
-      const working = await api.movePerson({ personId, newManagerId, newTeam })
+      const working = await api.movePerson({ personId, newManagerId, newTeam }, correlationId)
       setState((s) => ({ ...s, working, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
-  const reparent = useCallback(async (personId: string, newManagerId: string) => {
+  const reparent = useCallback(async (personId: string, newManagerId: string, correlationId?: string) => {
     if (!newManagerId) {
       // Clearing manager — use update, not move
       try {
-        const working = await api.updatePerson({ personId, fields: { managerId: '' } })
+        const working = await api.updatePerson({ personId, fields: { managerId: '' } }, correlationId)
         setState((s) => ({ ...s, working, currentSnapshotName: null }))
       } catch (err) { handleError(err) }
       return
@@ -187,7 +187,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      const working = await api.movePerson({ personId, newManagerId, newTeam: newManager.team })
+      const working = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
       setState((s) => ({ ...s, working, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError, setError])
@@ -199,9 +199,9 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     } catch (err) { handleError(err) }
   }, [handleError])
 
-  const update = useCallback(async (personId: string, fields: Record<string, string>) => {
+  const update = useCallback(async (personId: string, fields: Record<string, string>, correlationId?: string) => {
     try {
-      const working = await api.updatePerson({ personId, fields })
+      const working = await api.updatePerson({ personId, fields }, correlationId)
       setState((s) => ({ ...s, working, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])

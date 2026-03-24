@@ -34,10 +34,10 @@ export interface OrgActions {
   toggleSelect: (id: string, multi: boolean) => void
   clearSelection: () => void
   upload: (file: File) => Promise<void>
-  move: (personId: string, newManagerId: string, newTeam: string) => Promise<void>
-  reparent: (personId: string, newManagerId: string) => Promise<void>
+  move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string) => Promise<void>
+  reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
-  update: (personId: string, fields: Record<string, string>) => Promise<void>
+  update: (personId: string, fields: Record<string, string>, correlationId?: string) => Promise<void>
   add: (person: Omit<Person, 'id'>) => Promise<void>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>
@@ -105,10 +105,10 @@ export interface OrgDataContextValue {
   currentSnapshotName: string | null
   autosaveAvailable: AutosaveData | null
   upload: (file: File) => Promise<void>
-  move: (personId: string, newManagerId: string, newTeam: string) => Promise<void>
-  reparent: (personId: string, newManagerId: string) => Promise<void>
+  move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string) => Promise<void>
+  reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
-  update: (personId: string, fields: Record<string, string>) => Promise<void>
+  update: (personId: string, fields: Record<string, string>, correlationId?: string) => Promise<void>
   add: (person: Omit<Person, 'id'>) => Promise<void>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>
