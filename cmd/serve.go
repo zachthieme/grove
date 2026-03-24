@@ -22,14 +22,23 @@ var GetFrontendFS func() (fs.FS, error)
 var (
 	servePort int
 	serveDev  bool
+	serveLog  bool
 )
 
 func runServe(cmd *cobra.Command, args []string) error {
 	svc := api.NewOrgService()
 	mux := http.NewServeMux()
 
-	apiRouter := api.NewRouter(svc, nil)
-	mux.Handle("/api/", apiRouter)
+	var logBuf *api.LogBuffer
+	if serveLog {
+		logBuf = api.NewLogBuffer(1000)
+	}
+	apiRouter := api.NewRouter(svc, logBuf)
+	if logBuf != nil {
+		mux.Handle("/api/", api.LoggingMiddleware(logBuf)(apiRouter))
+	} else {
+		mux.Handle("/api/", apiRouter)
+	}
 
 	if !serveDev {
 		frontendFS, err := GetFrontendFS()
@@ -71,6 +80,9 @@ func runServe(cmd *cobra.Command, args []string) error {
 
 	url := fmt.Sprintf("http://localhost%s", addr)
 	fmt.Fprintf(os.Stderr, "Listening on %s\n", url)
+	if serveLog {
+		fmt.Fprintln(os.Stderr, "Request logging enabled (--log)")
+	}
 	if !serveDev {
 		go openBrowser(url)
 	}
@@ -87,7 +99,7 @@ func corsDevMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Correlation-ID")
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -112,4 +124,5 @@ func openBrowser(url string) {
 func init() {
 	rootCmd.Flags().IntVarP(&servePort, "port", "p", 8080, "port to listen on")
 	rootCmd.Flags().BoolVar(&serveDev, "dev", false, "dev mode (frontend served by Vite)")
+	rootCmd.Flags().BoolVar(&serveLog, "log", false, "enable request logging and log viewer")
 }
