@@ -177,21 +177,20 @@ describe('DetailSidebar', () => {
       expect(mockOrg.reparent).not.toHaveBeenCalled()
     })
 
-    it('calls reparent before update when manager is changed', async () => {
+    it('clears manager via update (not reparent) when set to no manager', async () => {
       render(<DetailSidebar />)
       // bob's manager is alice (a1); clear the manager.
-      // First combobox in single edit form is Manager, second is Status.
       const selects = screen.getAllByRole('combobox')
       fireEvent.change(selects[0], { target: { value: '' } })
       await act(async () => {
         fireEvent.click(screen.getByText('Save'))
       })
-      expect(mockOrg.reparent).toHaveBeenCalledWith('b2', '')
+      // Clearing manager should NOT call reparent (reparent requires a target manager)
+      expect(mockOrg.reparent).not.toHaveBeenCalled()
       expect(mockOrg.update).toHaveBeenCalledTimes(1)
       const [, fields] = mockOrg.update.mock.calls[0]
-      // team and managerId NOT included when manager changed
-      expect(fields.team).toBeUndefined()
-      expect(fields.managerId).toBeUndefined()
+      // managerId="" sent via update when clearing manager
+      expect(fields.managerId).toBe('')
     })
 
     it('calls remove with person id when Delete is clicked', async () => {
