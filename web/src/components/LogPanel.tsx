@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getLogs, clearLogs, type LogEntry, type LogsResponse } from '../api/client'
+import { getLogs, clearLogs, type LogsResponse } from '../api/client'
 import styles from './LogPanel.module.css'
 
 interface LogPanelProps {
@@ -108,19 +108,19 @@ export default function LogPanel({ onClose }: LogPanelProps) {
             </div>
             {expandedId === entry.id && (
               <div className={styles.detail}>
-                {entry.requestBody && (
+                {entry.requestBody != null && (
                   <div>
                     <strong>Request:</strong>
                     <pre>{JSON.stringify(entry.requestBody, null, 2)}</pre>
                   </div>
                 )}
-                {entry.responseBody && (
+                {entry.responseBody != null && (
                   <div>
                     <strong>Response:</strong>
                     <pre>{JSON.stringify(entry.responseBody, null, 2)}</pre>
                   </div>
                 )}
-                {entry.error && <div className={styles.error}>Error: {entry.error}</div>}
+                {entry.error && <div className={styles.error}>Error: {String(entry.error)}</div>}
               </div>
             )}
           </div>

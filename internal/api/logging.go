@@ -197,7 +197,9 @@ func LoggingMiddleware(buf *LogBuffer) func(http.Handler) http.Handler {
 			if !isUpload && r.Body != nil {
 				bodyBytes, err := io.ReadAll(r.Body)
 				if err == nil && len(bodyBytes) > 0 {
-					reqBody = bodyBytes
+					if json.Valid(bodyBytes) {
+						reqBody = bodyBytes
+					}
 					r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 				}
 			}
@@ -221,7 +223,10 @@ func LoggingMiddleware(buf *LogBuffer) func(http.Handler) http.Handler {
 				DurationMs:     time.Since(start).Milliseconds(),
 			}
 			if rc.captureBody && rc.body.Len() > 0 {
-				entry.ResponseBody = json.RawMessage(rc.body.Bytes())
+				if respBytes := rc.body.Bytes(); json.Valid(respBytes) {
+					entry.ResponseBody = make(json.RawMessage, len(respBytes))
+					copy(entry.ResponseBody, respBytes)
+				}
 			}
 
 			buf.Add(entry)
