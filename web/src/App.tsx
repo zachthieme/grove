@@ -24,6 +24,7 @@ import { getConfig, setLoggingEnabled as setClientLogging } from './api/client'
 import ErrorBoundary from './components/ErrorBoundary'
 import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
+import TableView from './views/TableView'
 
 function AppContent() {
   const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
@@ -144,6 +145,13 @@ function AppContent() {
         <main className={styles.main} ref={mainRef}>
           {!loaded ? (
             <UploadPrompt />
+          ) : viewMode === 'table' ? (
+            <TableView
+              people={sortedPeople}
+              pods={pods}
+              changes={showChanges ? changes : undefined}
+              readOnly={dataView === 'original'}
+            />
           ) : viewMode === 'manager' ? (
             <ManagerView
               key={layoutKey}

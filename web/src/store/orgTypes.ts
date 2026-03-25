@@ -1,6 +1,6 @@
 import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings } from '../api/types'
 
-export type ViewMode = 'detail' | 'manager'
+export type ViewMode = 'detail' | 'manager' | 'table'
 export type DataView = 'original' | 'working' | 'diff'
 
 export interface OrgState {

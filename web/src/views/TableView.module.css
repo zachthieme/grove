@@ -1,0 +1,227 @@
+.container {
+  padding: 16px;
+  overflow: auto;
+  height: 100%;
+}
+
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.rowCount {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.tableWrapper {
+  overflow: auto;
+  max-height: calc(100vh - 160px);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.headerCell {
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary, #f3f4f6);
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.cell {
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.cellText {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellEditing {
+  padding: 2px 4px;
+  background: var(--bg-input, #f9fafb);
+}
+
+.cellInput {
+  width: 100%;
+  border: 1px solid var(--accent, #3b82f6);
+  border-radius: 2px;
+  padding: 2px 4px;
+  font-size: inherit;
+  font-family: inherit;
+  outline: none;
+}
+
+.flashSuccess {
+  background-color: rgba(34, 197, 94, 0.15);
+}
+
+.flashError {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.row:hover {
+  background: var(--bg-hover, #f9fafb);
+}
+
+.actionCell {
+  border: 1px solid var(--border, #e5e7eb);
+  padding: 2px;
+  text-align: center;
+  width: 32px;
+}
+
+.expandBtn, .deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #9ca3af);
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.expandBtn:hover { color: var(--accent, #3b82f6); }
+.deleteBtn:hover { color: var(--danger, #ef4444); }
+
+.rowAdded { background: rgba(34, 197, 94, 0.08); }
+.rowRemoved { background: rgba(239, 68, 68, 0.08); text-decoration: line-through; }
+.rowReporting { background: rgba(59, 130, 246, 0.08); }
+.rowTitle { background: rgba(168, 85, 247, 0.08); }
+.rowReorg { background: rgba(245, 158, 11, 0.08); }
+.rowPod { background: rgba(20, 184, 166, 0.08); }
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.headerLabel {
+  cursor: pointer;
+  flex: 1;
+  user-select: none;
+}
+
+.sortArrow {
+  font-size: 0.7rem;
+}
+
+.filterBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.6rem;
+  color: var(--text-secondary, #9ca3af);
+  padding: 2px;
+  opacity: 0.5;
+}
+
+.filterBtn:hover, .filterBtnActive {
+  opacity: 1;
+  color: var(--accent, #3b82f6);
+}
+
+.colToggleBtn {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+}
+
+.colToggleDropdown {
+  position: absolute;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.colToggleItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.filterDropdown {
+  position: absolute;
+  top: 40px;
+  left: 16px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  padding: 8px;
+  min-width: 180px;
+  max-height: 300px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 20;
+}
+
+.filterSearch {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+  outline: none;
+}
+
+.filterList {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.addBtn {
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  background: var(--bg-hover, #f9fafb);
+}
+
+.rowDraft {
+  background: var(--bg-draft, #fffbeb);
+  border-left: 2px dashed var(--warning, #f59e0b);
+}

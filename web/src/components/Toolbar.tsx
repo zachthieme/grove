@@ -11,6 +11,7 @@ import styles from './Toolbar.module.css'
 const viewModes = [
   { value: 'detail', label: 'Detail' },
   { value: 'manager', label: 'Manager' },
+  { value: 'table', label: 'Table' },
 ] as const
 
 const dataViews = [
@@ -79,9 +80,11 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             ))}
           </div>
 
-          <button className={styles.pill} onClick={() => reflow()} title="Re-layout" aria-label="Re-layout">
-            ↻
-          </button>
+          {viewMode !== 'table' && (
+            <button className={styles.pill} onClick={() => reflow()} title="Re-layout" aria-label="Re-layout">
+              ↻
+            </button>
+          )}
 
           <div className={styles.pillGroup}>
             {dataViews.map((d) => (
