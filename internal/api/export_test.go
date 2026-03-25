@@ -30,7 +30,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 rows (header + 2 data), got %d", len(records))
 	}
 
-	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Pod", "Public Note", "Private Note"}
+	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note"}
 	for i, h := range expectedHeaders {
 		if records[0][i] != h {
 			t.Errorf("header[%d]: expected %s, got %s", i, h, records[0][i])
@@ -84,9 +84,9 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 	// Verify headers include the three new columns
 	header := records[0]
 	expectedNewHeaders := map[string]int{
-		"Pod":          10,
-		"Public Note":  11,
-		"Private Note": 12,
+		"Pod":          11,
+		"Public Note":  12,
+		"Private Note": 13,
 	}
 	for name, idx := range expectedNewHeaders {
 		if idx >= len(header) {
@@ -100,14 +100,14 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 
 	// Verify data row contains the values
 	row := records[1]
-	if row[10] != "Alpha" {
-		t.Errorf("Pod = %q, want %q", row[10], "Alpha")
+	if row[11] != "Alpha" {
+		t.Errorf("Pod = %q, want %q", row[11], "Alpha")
 	}
-	if row[11] != "public info" {
-		t.Errorf("Public Note = %q, want %q", row[11], "public info")
+	if row[12] != "public info" {
+		t.Errorf("Public Note = %q, want %q", row[12], "public info")
 	}
-	if row[12] != "secret info" {
-		t.Errorf("Private Note = %q, want %q", row[12], "secret info")
+	if row[13] != "secret info" {
+		t.Errorf("Private Note = %q, want %q", row[13], "secret info")
 	}
 }
 
@@ -136,5 +136,22 @@ func TestExportPodsSidecarCSV(t *testing.T) {
 	}
 	if !strings.Contains(csv, "needs headcount") {
 		t.Error("expected private note")
+	}
+}
+
+func TestExportCSV_IncludesLevel(t *testing.T) {
+	people := []Person{
+		{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7},
+	}
+	data, err := ExportCSV(people)
+	if err != nil {
+		t.Fatal(err)
+	}
+	csv := string(data)
+	if !strings.Contains(csv, "Level") {
+		t.Error("expected Level header")
+	}
+	if !strings.Contains(csv, "7") {
+		t.Error("expected level value 7")
 	}
 }

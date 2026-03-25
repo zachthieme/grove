@@ -31,6 +31,7 @@ func snapshotStorePath() (string, error) {
 type persistedSnapshot struct {
 	People    []Person  `json:"people"`
 	Pods      []Pod     `json:"pods,omitempty"`
+	Settings  Settings  `json:"settings,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -45,6 +46,7 @@ func WriteSnapshots(snapshots map[string]snapshotData) error {
 		persisted[name] = persistedSnapshot{
 			People:    snap.People,
 			Pods:      snap.Pods,
+			Settings:  snap.Settings,
 			Timestamp: snap.Timestamp,
 		}
 	}
@@ -77,6 +79,7 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 		result[name] = snapshotData{
 			People:    ps.People,
 			Pods:      ps.Pods,
+			Settings:  ps.Settings,
 			Timestamp: ps.Timestamp,
 		}
 	}

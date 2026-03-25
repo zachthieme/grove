@@ -295,6 +295,27 @@ func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
 	}
 }
 
+func TestUploadZip_RestoresSettingsFromSidecar(t *testing.T) {
+	svc := NewOrgService()
+	settingsCsv := "Discipline Order\nProduct\nEng\n"
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", testCSVContent},
+		{"1-working.csv", testCSVContent2},
+		{"settings.csv", settingsCsv},
+	})
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+	if resp.OrgData.Settings == nil {
+		t.Fatal("expected settings")
+	}
+	order := resp.OrgData.Settings.DisciplineOrder
+	if len(order) != 2 || order[0] != "Product" || order[1] != "Eng" {
+		t.Errorf("expected [Product Eng], got %v", order)
+	}
+}
+
 func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	svc := NewOrgService()
 	data := buildTestZip(t, []zipFile{

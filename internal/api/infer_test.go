@@ -297,3 +297,11 @@ func TestAllRequiredHigh_OnlyNameRequired(t *testing.T) {
 		t.Error("expected AllRequiredHigh to return true with only name mapped")
 	}
 }
+
+func TestInferMapping_Level(t *testing.T) {
+	headers := []string{"Name", "Team", "Level"}
+	m := InferMapping(headers)
+	if mc, ok := m["level"]; !ok || mc.Column != "Level" {
+		t.Errorf("expected level mapped, got %+v", m["level"])
+	}
+}

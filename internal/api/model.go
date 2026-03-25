@@ -17,6 +17,7 @@ type Person struct {
 	Pod             string   `json:"pod,omitempty"`
 	PublicNote      string   `json:"publicNote,omitempty"`
 	PrivateNote     string   `json:"privateNote,omitempty"`
+	Level           int      `json:"level,omitempty"`
 }
 
 type Pod struct {
@@ -33,21 +34,27 @@ type PodInfo struct {
 	MemberCount int `json:"memberCount"`
 }
 
+type Settings struct {
+	DisciplineOrder []string `json:"disciplineOrder"`
+}
+
 type OrgData struct {
-	Original           []Person `json:"original"`
-	Working            []Person `json:"working"`
-	Pods               []Pod    `json:"pods,omitempty"`
-	PersistenceWarning string   `json:"persistenceWarning,omitempty"`
+	Original           []Person  `json:"original"`
+	Working            []Person  `json:"working"`
+	Pods               []Pod     `json:"pods,omitempty"`
+	Settings           *Settings `json:"settings,omitempty"`
+	PersistenceWarning string    `json:"persistenceWarning,omitempty"`
 }
 
 type AutosaveData struct {
-	Original     []Person `json:"original"`
-	Working      []Person `json:"working"`
-	Recycled     []Person `json:"recycled"`
-	Pods         []Pod    `json:"pods,omitempty"`
-	OriginalPods []Pod    `json:"originalPods,omitempty"`
-	SnapshotName string   `json:"snapshotName"`
-	Timestamp    string   `json:"timestamp"`
+	Original     []Person  `json:"original"`
+	Working      []Person  `json:"working"`
+	Recycled     []Person  `json:"recycled"`
+	Pods         []Pod     `json:"pods,omitempty"`
+	OriginalPods []Pod     `json:"originalPods,omitempty"`
+	Settings     *Settings `json:"settings,omitempty"`
+	SnapshotName string    `json:"snapshotName"`
+	Timestamp    string    `json:"timestamp"`
 }
 
 type SnapshotInfo struct {

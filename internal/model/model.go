@@ -41,6 +41,7 @@ type Person struct {
 	Pod             string
 	PublicNote      string
 	PrivateNote     string
+	Level           int
 }
 
 type Org struct {

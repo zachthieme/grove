@@ -5,6 +5,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -23,10 +25,24 @@ type OrgService struct {
 	recycled        []Person
 	pods            []Pod
 	originalPods    []Pod
+	settings        Settings
 	snapshots       map[string]snapshotData
 	pendingFile     []byte
 	pendingFilename string
 	pendingIsZip    bool
+}
+
+func deriveDisciplineOrder(people []Person) []string {
+	seen := map[string]bool{}
+	var disciplines []string
+	for _, p := range people {
+		if p.Discipline != "" && !seen[p.Discipline] {
+			seen[p.Discipline] = true
+			disciplines = append(disciplines, p.Discipline)
+		}
+	}
+	sort.Strings(disciplines)
+	return disciplines
 }
 
 // MoveResult holds working people and pods, returned from mutations that
@@ -79,9 +95,10 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 		s.originalPods = CopyPods(s.pods)
 		// Seed original people's pod fields too
 		_ = SeedPods(s.original)
+		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		return &UploadResponse{
 			Status:             "ready",
-			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)},
+			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings},
 			PersistenceWarning: persistWarn,
 		}, nil
 	}
@@ -114,7 +131,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	}
 
 	if s.pendingIsZip {
-		entries, podsSidecar, err := parseZipFileList(s.pendingFile)
+		entries, podsSidecar, settingsSidecar, err := parseZipFileList(s.pendingFile)
 		if err != nil {
 			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing pending zip: %w", err)
@@ -141,6 +158,13 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 			}
 		}
 
+		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		if settingsSidecar != nil {
+			if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
+				s.settings = Settings{DisciplineOrder: order}
+			}
+		}
+
 		snapCopy := make(map[string]snapshotData, len(s.snapshots))
 		for k, v := range s.snapshots {
 			snapCopy[k] = v
@@ -148,7 +172,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 		s.pendingFile = nil
 		s.pendingFilename = ""
 		s.pendingIsZip = false
-		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
+		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 		s.mu.Unlock()
 
 		// Disk I/O outside the lock
@@ -188,10 +212,11 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	s.pods = SeedPods(s.working)
 	s.originalPods = CopyPods(s.pods)
 	_ = SeedPods(s.original)
+	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	s.pendingFile = nil
 	s.pendingFilename = ""
 	s.pendingIsZip = false
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Disk I/O outside the lock
@@ -250,7 +275,7 @@ func (s *OrgService) GetOrg() *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 }
 
 func (s *OrgService) GetWorking() []Person {
@@ -271,7 +296,8 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 	s.working = deepCopyPeople(s.original)
 	s.recycled = nil
 	s.pods = CopyPods(s.originalPods)
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
+	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 }
 
 func (s *OrgService) findWorking(id string) (int, *Person) {
@@ -428,6 +454,12 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 				return nil, err
 			}
 			p.PrivateNote = v
+		case "level":
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid level: %s", v)
+			}
+			p.Level = n
 		case "pod":
 			if v == "" {
 				s.pods = ReassignPersonPod(s.pods, p)
@@ -608,6 +640,19 @@ func (s *OrgService) CreatePod(managerID, name, team string) (*MoveResult, error
 	pod := Pod{Id: uuid.NewString(), Name: name, Team: team, ManagerId: managerID}
 	s.pods = append(s.pods, pod)
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
+}
+
+func (s *OrgService) GetSettings() Settings {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.settings
+}
+
+func (s *OrgService) UpdateSettings(settings Settings) Settings {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.settings = settings
+	return s.settings
 }
 
 func deepCopyPeople(src []Person) []Person {

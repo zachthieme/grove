@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
 )
 
-var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Pod", "Public Note", "Private Note"}
+var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note"}
 
 func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
@@ -84,11 +85,30 @@ func ExportPodsSidecarCSV(pods []Pod, people []Person) ([]byte, error) {
 	return buf.Bytes(), w.Error()
 }
 
+func ExportSettingsSidecarCSV(settings Settings) ([]byte, error) {
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+	if err := w.Write([]string{"Discipline Order"}); err != nil {
+		return nil, fmt.Errorf("writing settings header: %w", err)
+	}
+	for _, d := range settings.DisciplineOrder {
+		if err := w.Write([]string{d}); err != nil {
+			return nil, fmt.Errorf("writing settings row: %w", err)
+		}
+	}
+	w.Flush()
+	return buf.Bytes(), w.Error()
+}
+
 func personToRow(p Person, idToName map[string]string) []string {
 	managerName := idToName[p.ManagerId]
+	levelStr := ""
+	if p.Level != 0 {
+		levelStr = strconv.Itoa(p.Level)
+	}
 	return []string{
 		p.Name, p.Role, p.Discipline, managerName, p.Team,
 		strings.Join(p.AdditionalTeams, ","), p.Status, p.EmploymentType,
-		p.NewRole, p.NewTeam, p.Pod, p.PublicNote, p.PrivateNote,
+		p.NewRole, p.NewTeam, levelStr, p.Pod, p.PublicNote, p.PrivateNote,
 	}
 }

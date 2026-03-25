@@ -42,6 +42,10 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
 	mux.HandleFunc("POST /api/reset", handleReset(svc))
 	mux.HandleFunc("POST /api/reorder", handleReorder(svc))
 
+	mux.HandleFunc("GET /api/settings", handleGetSettings(svc))
+	mux.HandleFunc("POST /api/settings", handleUpdateSettings(svc))
+	mux.HandleFunc("GET /api/export/settings-sidecar", handleExportSettingsSidecar(svc))
+
 	mux.HandleFunc("POST /api/autosave", handleWriteAutosave())
 	mux.HandleFunc("GET /api/autosave", handleReadAutosave())
 	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave())
@@ -509,6 +513,43 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	}
+}
+
+func handleGetSettings(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, svc.GetSettings())
+	}
+}
+
+func handleUpdateSettings(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
+		var settings Settings
+		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		result := svc.UpdateSettings(settings)
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
+func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		settings := svc.GetSettings()
+		if len(settings.DisciplineOrder) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		data, err := ExportSettingsSidecarCSV(settings)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", "attachment; filename=settings.csv")
+		w.Write(data)
 	}
 }
 

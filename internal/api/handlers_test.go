@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -1321,6 +1322,30 @@ func TestUploadZipHandler(t *testing.T) {
 	}
 	if len(resp.Snapshots) != 1 {
 		t.Errorf("expected 1 snapshot, got %d", len(resp.Snapshots))
+	}
+}
+
+func TestSettingsHandler_GetAndPost(t *testing.T) {
+	svc := NewOrgService()
+	svc.Upload("test.csv", []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n"))
+	req := httptest.NewRequest("GET", "/api/settings", nil)
+	w := httptest.NewRecorder()
+	NewRouter(svc, nil).ServeHTTP(w, req)
+	if w.Code != 200 {
+		t.Fatalf("GET: expected 200, got %d", w.Code)
+	}
+	var settings Settings
+	json.Unmarshal(w.Body.Bytes(), &settings)
+	if len(settings.DisciplineOrder) == 0 {
+		t.Error("expected non-empty discipline order")
+	}
+	body := `{"disciplineOrder":["Product","Eng"]}`
+	req = httptest.NewRequest("POST", "/api/settings", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	NewRouter(svc, nil).ServeHTTP(w, req)
+	if w.Code != 200 {
+		t.Fatalf("POST: expected 200, got %d", w.Code)
 	}
 }
 

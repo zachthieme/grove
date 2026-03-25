@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/zachthieme/grove/internal/model"
@@ -69,6 +70,12 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 			Pod:            get("pod"),
 			PublicNote:     get("publicNote"),
 			PrivateNote:    get("privateNote"),
+		}
+
+		if raw := get("level"); raw != "" {
+			if n, err := strconv.Atoi(raw); err == nil {
+				p.Level = n
+			}
 		}
 
 		raw := get("additionalTeams")

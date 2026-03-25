@@ -902,6 +902,25 @@ func TestUpload_SeedsPods(t *testing.T) {
 	}
 }
 
+func TestUpload_DerivesSettings(t *testing.T) {
+	svc := NewOrgService()
+	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Product,,Eng,Active\nBob,Engineer,Engineering,Alice,Platform,Active\n"
+	resp, err := svc.Upload("test.csv", []byte(csv))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.OrgData.Settings == nil {
+		t.Fatal("expected settings")
+	}
+	order := resp.OrgData.Settings.DisciplineOrder
+	if len(order) != 2 {
+		t.Fatalf("expected 2 disciplines, got %d", len(order))
+	}
+	if order[0] != "Engineering" || order[1] != "Product" {
+		t.Errorf("expected [Engineering Product], got %v", order)
+	}
+}
+
 func findById(people []Person, id string) *Person {
 	for i := range people {
 		if people[i].Id == id {

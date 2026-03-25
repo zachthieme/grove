@@ -29,14 +29,15 @@ type zipEntry struct {
 	data     []byte
 }
 
-func parseZipFileList(data []byte) ([]zipEntry, []byte, error) {
+func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, fmt.Errorf("opening zip: %w", err)
+		return nil, nil, nil, fmt.Errorf("opening zip: %w", err)
 	}
 
 	var entries []zipEntry
 	var podsSidecarData []byte
+	var settingsSidecarData []byte
 	var totalSize int64
 
 	for _, f := range r.File {
@@ -59,7 +60,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, error) {
 		}
 		totalSize += int64(len(content))
 		if totalSize > maxDecompressedSize {
-			return nil, nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
+			return nil, nil, nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
 		}
 
 		nameNoExt := strings.TrimSuffix(base, filepath.Ext(base))
@@ -67,6 +68,12 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, error) {
 		// pods.csv sidecar — store separately, don't treat as person data
 		if strings.ToLower(nameNoExt) == "pods" && ext == ".csv" {
 			podsSidecarData = content
+			continue
+		}
+
+		// settings.csv sidecar — store separately, don't treat as person data
+		if strings.ToLower(nameNoExt) == "settings" && ext == ".csv" {
+			settingsSidecarData = content
 			continue
 		}
 
@@ -87,7 +94,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, error) {
 	}
 
 	if len(entries) == 0 {
-		return nil, nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
+		return nil, nil, nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
 	}
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -97,7 +104,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, error) {
 		return entries[i].filename < entries[j].filename
 	})
 
-	return entries, podsSidecarData, nil
+	return entries, podsSidecarData, settingsSidecarData, nil
 }
 
 type podSidecarEntry struct {
@@ -136,6 +143,21 @@ func parsePodsSidecar(data []byte) []podSidecarEntry {
 		})
 	}
 	return entries
+}
+
+func parseSettingsSidecar(data []byte) []string {
+	reader := csv.NewReader(bytes.NewReader(data))
+	records, err := reader.ReadAll()
+	if err != nil || len(records) < 2 {
+		return nil
+	}
+	var order []string
+	for _, row := range records[1:] {
+		if len(row) > 0 && strings.TrimSpace(row[0]) != "" {
+			order = append(order, strings.TrimSpace(row[0]))
+		}
+	}
+	return order
 }
 
 func applyPodSidecarNotes(pods []Pod, sidecar []podSidecarEntry, idToName map[string]string) {
@@ -222,7 +244,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 
 func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 	// Parse before acquiring lock — no state mutation if parsing fails
-	entries, podsSidecar, err := parseZipFileList(data)
+	entries, podsSidecar, settingsSidecar, err := parseZipFileList(data)
 	if err != nil {
 		return nil, err
 	}
@@ -272,13 +294,20 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 			}
 		}
 
+		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		if settingsSidecar != nil {
+			if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
+				s.settings = Settings{DisciplineOrder: order}
+			}
+		}
+
 		snapCopy := make(map[string]snapshotData, len(s.snapshots))
 		for k, v := range s.snapshots {
 			snapCopy[k] = v
 		}
 		resp := &UploadResponse{
 			Status:    "ready",
-			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)},
+			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings},
 			Snapshots: s.ListSnapshotsUnlocked(),
 		}
 		s.mu.Unlock()
