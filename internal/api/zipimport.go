@@ -3,6 +3,7 @@ package api
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
@@ -28,13 +29,14 @@ type zipEntry struct {
 	data     []byte
 }
 
-func parseZipFileList(data []byte) ([]zipEntry, error) {
+func parseZipFileList(data []byte) ([]zipEntry, []byte, error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, fmt.Errorf("opening zip: %w", err)
+		return nil, nil, fmt.Errorf("opening zip: %w", err)
 	}
 
 	var entries []zipEntry
+	var podsSidecarData []byte
 	var totalSize int64
 
 	for _, f := range r.File {
@@ -57,10 +59,17 @@ func parseZipFileList(data []byte) ([]zipEntry, error) {
 		}
 		totalSize += int64(len(content))
 		if totalSize > maxDecompressedSize {
-			return nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
+			return nil, nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
 		}
 
 		nameNoExt := strings.TrimSuffix(base, filepath.Ext(base))
+
+		// pods.csv sidecar — store separately, don't treat as person data
+		if strings.ToLower(nameNoExt) == "pods" && ext == ".csv" {
+			podsSidecarData = content
+			continue
+		}
+
 		prefix := math.MaxInt
 		displayName := nameNoExt
 
@@ -78,7 +87,7 @@ func parseZipFileList(data []byte) ([]zipEntry, error) {
 	}
 
 	if len(entries) == 0 {
-		return nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
+		return nil, nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
 	}
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -88,7 +97,58 @@ func parseZipFileList(data []byte) ([]zipEntry, error) {
 		return entries[i].filename < entries[j].filename
 	})
 
-	return entries, nil
+	return entries, podsSidecarData, nil
+}
+
+type podSidecarEntry struct {
+	podName     string
+	managerName string
+	team        string
+	publicNote  string
+	privateNote string
+}
+
+func parsePodsSidecar(data []byte) []podSidecarEntry {
+	reader := csv.NewReader(bytes.NewReader(data))
+	records, err := reader.ReadAll()
+	if err != nil || len(records) < 2 {
+		return nil
+	}
+	header := records[0]
+	idx := map[string]int{}
+	for i, h := range header {
+		idx[strings.ToLower(strings.TrimSpace(h))] = i
+	}
+	get := func(row []string, key string) string {
+		if i, ok := idx[key]; ok && i < len(row) {
+			return strings.TrimSpace(row[i])
+		}
+		return ""
+	}
+	var entries []podSidecarEntry
+	for _, row := range records[1:] {
+		entries = append(entries, podSidecarEntry{
+			podName:     get(row, "pod name"),
+			managerName: get(row, "manager"),
+			team:        get(row, "team"),
+			publicNote:  get(row, "public note"),
+			privateNote: get(row, "private note"),
+		})
+	}
+	return entries
+}
+
+func applyPodSidecarNotes(pods []Pod, sidecar []podSidecarEntry, idToName map[string]string) {
+	for i := range pods {
+		mgrName := idToName[pods[i].ManagerId]
+		for _, entry := range sidecar {
+			if entry.podName == pods[i].Name && entry.managerName == mgrName {
+				pods[i].PublicNote = entry.publicNote
+				pods[i].PrivateNote = entry.privateNote
+				break
+			}
+		}
+	}
 }
 
 func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []Person, working []Person, snaps map[string]snapshotData, err error) {
@@ -162,7 +222,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 
 func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 	// Parse before acquiring lock — no state mutation if parsing fails
-	entries, err := parseZipFileList(data)
+	entries, podsSidecar, err := parseZipFileList(data)
 	if err != nil {
 		return nil, err
 	}
@@ -198,13 +258,27 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
 		s.snapshots = snaps
+		s.pods = SeedPods(s.working)
+		s.originalPods = CopyPods(s.pods)
+		// Seed original people's pod fields too
+		_ = SeedPods(s.original)
+
+		if podsSidecar != nil {
+			sidecarEntries := parsePodsSidecar(podsSidecar)
+			if len(sidecarEntries) > 0 {
+				idToName := buildIDToName(s.working)
+				applyPodSidecarNotes(s.pods, sidecarEntries, idToName)
+				applyPodSidecarNotes(s.originalPods, sidecarEntries, idToName)
+			}
+		}
+
 		snapCopy := make(map[string]snapshotData, len(s.snapshots))
 		for k, v := range s.snapshots {
 			snapCopy[k] = v
 		}
 		resp := &UploadResponse{
 			Status:    "ready",
-			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)},
+			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)},
 			Snapshots: s.ListSnapshotsUnlocked(),
 		}
 		s.mu.Unlock()

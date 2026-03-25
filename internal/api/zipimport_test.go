@@ -231,6 +231,70 @@ func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 	}
 }
 
+func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
+	svc := NewOrgService()
+	podsCsv := "Pod Name,Manager,Team,Public Note,Private Note\nPlatform,Alice,Platform,pod note,secret\n"
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", testCSVContent},
+		{"1-working.csv", testCSVContent2},
+		{"pods.csv", podsCsv},
+	})
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("expected ready, got %s", resp.Status)
+	}
+	if len(resp.OrgData.Original) != 2 {
+		t.Errorf("expected 2 original people, got %d", len(resp.OrgData.Original))
+	}
+}
+
+func TestUploadZip_SeedsPods(t *testing.T) {
+	svc := NewOrgService()
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", testCSVContent},
+		{"1-working.csv", testCSVContent2},
+	})
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+	if len(resp.OrgData.Pods) == 0 {
+		t.Error("expected pods to be seeded from ZIP import")
+	}
+}
+
+func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
+	svc := NewOrgService()
+	podsCsv := "Pod Name,Manager,Team,Public Note,Private Note\nPlatform,Alice,Platform,pod note,secret note\n"
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", testCSVContent},
+		{"1-working.csv", testCSVContent2},
+		{"pods.csv", podsCsv},
+	})
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+	found := false
+	for _, pod := range resp.OrgData.Pods {
+		if pod.Name == "Platform" {
+			found = true
+			if pod.PublicNote != "pod note" {
+				t.Errorf("expected public note 'pod note', got %q", pod.PublicNote)
+			}
+			if pod.PrivateNote != "secret note" {
+				t.Errorf("expected private note 'secret note', got %q", pod.PrivateNote)
+			}
+		}
+	}
+	if !found {
+		t.Error("Platform pod not found")
+	}
+}
+
 func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	svc := NewOrgService()
 	data := buildTestZip(t, []zipFile{
