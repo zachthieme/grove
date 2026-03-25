@@ -5,6 +5,7 @@ import { useOutsideClick } from '../hooks/useOutsideClick'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
+import SettingsModal from './SettingsModal'
 import styles from './Toolbar.module.css'
 
 const viewModes = [
@@ -33,6 +34,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
   const { loaded, viewMode, dataView, setViewMode, setDataView, upload, reflow } = useOrg()
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const handleFileChange = useCallback(
@@ -98,6 +100,14 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           <RecycleBinButton />
 
           <SnapshotsDropdown />
+
+          <button
+            className={styles.pill}
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+          >
+            &#x2699;
+          </button>
 
           <div className={styles.spacer} />
 
@@ -183,6 +193,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           Logs
         </button>
       )}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </header>
   )
 }

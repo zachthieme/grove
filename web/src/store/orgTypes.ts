@@ -1,4 +1,4 @@
-import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData } from '../api/types'
+import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings } from '../api/types'
 
 export type ViewMode = 'detail' | 'manager'
 export type DataView = 'original' | 'working' | 'diff'
@@ -9,6 +9,7 @@ export interface OrgState {
   recycled: Person[]
   pods: Pod[]
   originalPods: Pod[]
+  settings: Settings
   loaded: boolean
   viewMode: ViewMode
   dataView: DataView
@@ -62,6 +63,7 @@ export interface OrgActions {
   selectPod: (id: string | null) => void
   updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
   createPod: (managerId: string, name: string, team: string) => Promise<void>
+  updateSettings: (settings: Settings) => Promise<void>
 }
 
 export type OrgContextValue = OrgState & OrgActions & {
@@ -109,6 +111,7 @@ export interface OrgDataContextValue {
   recycled: Person[]
   pods: Pod[]
   originalPods: Pod[]
+  settings: Settings
   loaded: boolean
   pendingMapping: OrgState['pendingMapping']
   snapshots: SnapshotInfo[]
@@ -132,4 +135,5 @@ export interface OrgDataContextValue {
   dismissAutosave: () => Promise<void>
   updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
   createPod: (managerId: string, name: string, team: string) => Promise<void>
+  updateSettings: (settings: Settings) => Promise<void>
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo } from '../api/types'
+import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
 import type { OrgDataContextValue } from './orgTypes'
@@ -12,6 +12,7 @@ interface OrgDataState {
   recycled: Person[]
   pods: Pod[]
   originalPods: Pod[]
+  settings: Settings
   loaded: boolean
   pendingMapping: {
     headers: string[]
@@ -42,6 +43,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     recycled: [],
     pods: [],
     originalPods: [],
+    settings: { disciplineOrder: [] },
     loaded: false,
     pendingMapping: null,
     snapshots: [],
@@ -93,6 +95,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
             original: data.original,
             working: data.working,
             pods: data.pods ?? [],
+            settings: data.settings ?? { disciplineOrder: [] },
             loaded: true,
           }))
         }
@@ -129,6 +132,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         recycled: [],
         pods: resp.orgData!.pods ?? [],
         originalPods: resp.orgData!.pods ?? [],
+        settings: resp.orgData!.settings ?? { disciplineOrder: [] },
         loaded: true,
         pendingMapping: null,
         snapshots: resp.snapshots ?? [],
@@ -159,6 +163,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         recycled: [],
         pods: data.pods ?? [],
         originalPods: data.pods ?? [],
+        settings: data.settings ?? { disciplineOrder: [] },
         loaded: true,
         pendingMapping: null,
         snapshots,
@@ -260,6 +265,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
           working: data.working,
           recycled: [],
           pods: data.pods ?? [],
+          settings: data.settings ?? { disciplineOrder: [] },
           currentSnapshotName: ORIGINAL_SNAPSHOT,
         }))
       } else {
@@ -270,6 +276,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
           working: data.working,
           recycled: [],
           pods: data.pods ?? [],
+          settings: data.settings ?? { disciplineOrder: [] },
           currentSnapshotName: name,
           loaded: true,
         }))
@@ -295,6 +302,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         recycled: ad.recycled,
         pods: ad.pods ?? [],
         originalPods: ad.originalPods ?? [],
+        settings: ad.settings ?? { disciplineOrder: [] },
         currentSnapshotName: ad.snapshotName || null,
         loaded: true,
         autosaveAvailable: null,
@@ -314,6 +322,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
       recycled: [],
       pods: [],
       originalPods: [],
+      settings: { disciplineOrder: [] },
       loaded: false,
       snapshots: [],
       currentSnapshotName: null,
@@ -334,6 +343,13 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     } catch (err) { handleError(err) }
   }, [handleError])
 
+  const updateSettings = useCallback(async (newSettings: Settings) => {
+    try {
+      const result = await api.updateSettings(newSettings)
+      setState(s => ({ ...s, settings: result }))
+    } catch (err) { handleError(err) }
+  }, [handleError])
+
   // Warn before navigating away with unsaved changes
   useDirtyTracking(state.loaded, state.working)
 
@@ -343,6 +359,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     recycled: state.recycled,
     pods: state.pods,
     originalPods: state.originalPods,
+    settings: state.settings,
     loaded: state.loaded,
     pendingMapping: state.pendingMapping,
     snapshots: state.snapshots,
@@ -366,11 +383,13 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     dismissAutosave,
     updatePod,
     createPod,
+    updateSettings,
   }), [
     state, upload, move, reparent, reorder, update, add, remove,
     restore, emptyBin, confirmMapping, cancelMapping,
     saveSnapshot, loadSnapshot, deleteSnapshot,
     restoreAutosave, dismissAutosave, updatePod, createPod,
+    updateSettings,
   ])
 
   return <OrgDataContext.Provider value={value}>{children}</OrgDataContext.Provider>

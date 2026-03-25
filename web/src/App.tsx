@@ -8,6 +8,7 @@ import { useManagerSet } from './hooks/useIsManager'
 import { useAutosave } from './hooks/useAutosave'
 import { useHeadSubtree } from './hooks/useHeadSubtree'
 import { useFilteredPeople } from './hooks/useFilteredPeople'
+import { useSortedPeople } from './hooks/useSortedPeople'
 import { useEscapeKey } from './hooks/useEscapeKey'
 import UploadPrompt from './components/UploadPrompt'
 import Toolbar from './components/Toolbar'
@@ -25,7 +26,7 @@ import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, pods, originalPods, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
+  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
@@ -37,7 +38,7 @@ function AppContent() {
     showAllEmploymentTypes,
     setHead,
   })
-  const { serverSaveError } = useAutosave({ original, working, recycled, pods, originalPods, currentSnapshotName, loaded, suppressAutosaveRef })
+  const { serverSaveError } = useAutosave({ original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded, suppressAutosaveRef })
 
   const rawPeople = dataView === 'original' ? original : working
   const changes = useOrgDiff(original, working)
@@ -46,6 +47,7 @@ function AppContent() {
 
   const headSubtree = useHeadSubtree(headPersonId, working)
   const { people, ghostPeople } = useFilteredPeople(rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges)
+  const sortedPeople = useSortedPeople(people, settings.disciplineOrder)
   const clearHead = useCallback(() => setHead(null), [setHead])
   useEscapeKey(clearHead, !!headPersonId)
 
@@ -145,7 +147,7 @@ function AppContent() {
           ) : viewMode === 'manager' ? (
             <ManagerView
               key={layoutKey}
-              people={people}
+              people={sortedPeople}
               selectedIds={selectedIds}
               onSelect={handleSelect}
               changes={showChanges ? changes : undefined}
@@ -160,7 +162,7 @@ function AppContent() {
           ) : viewMode === 'detail' ? (
             <ColumnView
               key={layoutKey}
-              people={people}
+              people={sortedPeople}
               selectedIds={selectedIds}
               onSelect={handleSelect}
               changes={showChanges ? changes : undefined}

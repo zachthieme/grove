@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { toPng, toSvg } from 'html-to-image'
 import JSZip from 'jszip'
 import type { SnapshotInfo } from '../api/types'
-import { exportSnapshotBlob, exportPodsSidecarBlob } from '../api/client'
+import { exportSnapshotBlob, exportPodsSidecarBlob, exportSettingsSidecarBlob } from '../api/client'
 import { sanitizeFilename, deduplicateFilenames } from '../utils/snapshotExportUtils'
 
 type ExportFormat = 'csv' | 'xlsx' | 'png' | 'svg'
@@ -108,6 +108,16 @@ export function useSnapshotExport({
         }
       } catch {
         console.warn('Failed to export pods sidecar')
+      }
+
+      // Add settings.csv sidecar
+      try {
+        const settingsSidecar = await exportSettingsSidecarBlob()
+        if (settingsSidecar) {
+          zip.file('settings.csv', settingsSidecar)
+        }
+      } catch {
+        console.warn('Failed to export settings sidecar')
       }
 
       if (successCount === 0) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Person, Pod, AutosaveData } from '../api/types'
+import type { Person, Pod, AutosaveData, Settings } from '../api/types'
 import * as api from '../api/client'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
@@ -10,6 +10,7 @@ export function useAutosave(state: {
   recycled: Person[]
   pods: Pod[]
   originalPods: Pod[]
+  settings: Settings
   currentSnapshotName: string | null
   loaded: boolean
   suppressAutosaveRef?: React.RefObject<boolean>
@@ -28,6 +29,7 @@ export function useAutosave(state: {
         recycled: state.recycled,
         pods: state.pods,
         originalPods: state.originalPods,
+        settings: state.settings,
         snapshotName: state.currentSnapshotName ?? '',
         timestamp: new Date().toISOString(),
       }
@@ -47,7 +49,7 @@ export function useAutosave(state: {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [state.original, state.working, state.recycled, state.pods, state.originalPods, state.currentSnapshotName, state.loaded])
+  }, [state.original, state.working, state.recycled, state.pods, state.originalPods, state.settings, state.currentSnapshotName, state.loaded])
 
   return { serverSaveError }
 }

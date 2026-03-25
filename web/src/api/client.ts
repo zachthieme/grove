@@ -1,4 +1,4 @@
-import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse } from './types'
+import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings } from './types'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -382,4 +382,24 @@ export async function getLogs(params?: { correlationId?: string; source?: string
 
 export async function clearLogs(): Promise<void> {
   await fetchWithTimeout(`${BASE}/logs`, { method: 'DELETE' })
+}
+
+export async function getSettings(): Promise<Settings> {
+  return json<Settings>(await fetchWithTimeout(`${BASE}/settings`))
+}
+
+export async function updateSettings(settings: Settings): Promise<Settings> {
+  const resp = await fetchWithTimeout(`${BASE}/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  return json<Settings>(resp)
+}
+
+export async function exportSettingsSidecarBlob(): Promise<Blob | null> {
+  const resp = await fetchWithTimeout(`${BASE}/export/settings-sidecar`)
+  if (resp.status === 204) return null
+  if (!resp.ok) throw new Error(`Export settings sidecar failed: ${resp.status}`)
+  return resp.blob()
 }

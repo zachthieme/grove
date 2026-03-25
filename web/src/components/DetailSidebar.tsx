@@ -15,6 +15,7 @@ interface FormFields {
   managerId: string
   status: Person['status']
   employmentType: string
+  level: string
   pod: string
   publicNote: string
   privateNote: string
@@ -29,6 +30,7 @@ const blankForm: FormFields = {
   managerId: '',
   status: 'Active',
   employmentType: 'FTE',
+  level: '0',
   pod: '',
   publicNote: '',
   privateNote: '',
@@ -58,7 +60,7 @@ export default function DetailSidebar() {
 
   // Stable key that changes only when person data actually changes
   const personDataKey = person
-    ? `${person.id}\0${person.name}\0${person.role}\0${person.discipline}\0${person.team}\0${person.managerId}\0${person.status}\0${person.employmentType ?? ''}\0${(person.additionalTeams ?? []).join(',')}\0${person.pod ?? ''}\0${person.publicNote ?? ''}\0${person.privateNote ?? ''}`
+    ? `${person.id}\0${person.name}\0${person.role}\0${person.discipline}\0${person.team}\0${person.managerId}\0${person.status}\0${person.employmentType ?? ''}\0${(person.additionalTeams ?? []).join(',')}\0${person.pod ?? ''}\0${person.publicNote ?? ''}\0${person.privateNote ?? ''}\0${person.level ?? 0}`
     : ''
   useEffect(() => {
     if (person) {
@@ -71,6 +73,7 @@ export default function DetailSidebar() {
         managerId: person.managerId,
         status: person.status,
         employmentType: person.employmentType || 'FTE',
+        level: String(person.level ?? 0),
         pod: person.pod ?? '',
         publicNote: person.publicNote ?? '',
         privateNote: person.privateNote ?? '',
@@ -130,6 +133,7 @@ export default function DetailSidebar() {
         fields.team = form.team
         fields.managerId = form.managerId
       }
+      if (form.level !== String(person.level ?? 0)) fields.level = form.level
       if (form.pod !== (person.pod ?? '')) fields.pod = form.pod
       if (form.publicNote !== (person.publicNote ?? '')) fields.publicNote = form.publicNote
       if (form.privateNote !== (person.privateNote ?? '')) fields.privateNote = form.privateNote
@@ -271,6 +275,15 @@ export default function DetailSidebar() {
             value={form.employmentType}
             onChange={(e) => handleChange('employmentType', e.target.value)}
             placeholder="FTE"
+          />
+        </div>
+        <div className={styles.field}>
+          <label>Level</label>
+          <input
+            type="number"
+            min="0"
+            value={form.level}
+            onChange={(e) => setForm(f => ({ ...f, level: e.target.value }))}
           />
         </div>
         <div className={styles.field}>

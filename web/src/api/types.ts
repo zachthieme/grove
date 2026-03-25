@@ -15,6 +15,7 @@ export interface Person {
   pod?: string
   publicNote?: string
   privateNote?: string
+  level?: number
 }
 
 export interface Pod {
@@ -34,6 +35,7 @@ export interface OrgData {
   original: Person[]
   working: Person[]
   pods?: Pod[]
+  settings?: Settings
   persistenceWarning?: string
 }
 
@@ -99,12 +101,17 @@ export interface SnapshotInfo {
   timestamp: string
 }
 
+export interface Settings {
+  disciplineOrder: string[]
+}
+
 export interface AutosaveData {
   original: Person[]
   working: Person[]
   recycled: Person[]
   pods?: Pod[]
   originalPods?: Pod[]
+  settings?: Settings
   snapshotName: string
   timestamp: string
 }

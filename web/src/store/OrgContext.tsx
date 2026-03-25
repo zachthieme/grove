@@ -36,6 +36,7 @@ export function useOrg(): OrgContextValue {
     recycled: data.recycled,
     pods: data.pods,
     originalPods: data.originalPods,
+    settings: data.settings,
     loaded: data.loaded,
     pendingMapping: data.pendingMapping,
     snapshots: data.snapshots,
@@ -75,6 +76,7 @@ export function useOrg(): OrgContextValue {
     dismissAutosave: data.dismissAutosave,
     updatePod: data.updatePod,
     createPod: data.createPod,
+    updateSettings: data.updateSettings,
 
     // UI actions
     setViewMode: ui.setViewMode,
