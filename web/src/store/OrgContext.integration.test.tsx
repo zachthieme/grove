@@ -187,7 +187,7 @@ describe('OrgContext integration', () => {
 
     it('move updates working state', async () => {
       const updated = [alice, { ...bob, managerId: '' }]
-      vi.mocked(api.movePerson).mockResolvedValue(updated)
+      vi.mocked(api.movePerson).mockResolvedValue({ working: updated, pods: [] })
 
       await setupLoaded()
       await act(async () => {
@@ -199,7 +199,7 @@ describe('OrgContext integration', () => {
 
     it('update changes person fields', async () => {
       const updated = [alice, { ...bob, role: 'Senior Engineer' }]
-      vi.mocked(api.updatePerson).mockResolvedValue(updated)
+      vi.mocked(api.updatePerson).mockResolvedValue({ working: updated, pods: [] })
 
       await setupLoaded()
       await act(async () => {
@@ -213,6 +213,7 @@ describe('OrgContext integration', () => {
       vi.mocked(api.deletePerson).mockResolvedValue({
         working: [alice],
         recycled: [bob],
+        pods: [],
       })
 
       await setupLoaded()
@@ -225,8 +226,8 @@ describe('OrgContext integration', () => {
     })
 
     it('restore moves person back to working', async () => {
-      vi.mocked(api.deletePerson).mockResolvedValue({ working: [alice], recycled: [bob] })
-      vi.mocked(api.restorePerson).mockResolvedValue({ working: [alice, bob], recycled: [] })
+      vi.mocked(api.deletePerson).mockResolvedValue({ working: [alice], recycled: [bob], pods: [] })
+      vi.mocked(api.restorePerson).mockResolvedValue({ working: [alice, bob], recycled: [], pods: [] })
 
       await setupLoaded()
       await act(async () => { await captured!.remove('b2') })

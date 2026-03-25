@@ -62,7 +62,8 @@
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   padding: 7px 10px;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
@@ -72,8 +73,14 @@
   transition: border-color var(--transition-fast);
 }
 
+.field textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
   outline: none;
   border-color: var(--grove-green);
   box-shadow: var(--shadow-focus);

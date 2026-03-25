@@ -1,4 +1,4 @@
-import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData } from './types'
+import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse } from './types'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -125,7 +125,7 @@ export async function getOrg(correlationId?: string): Promise<OrgData | null> {
   })
 }
 
-export async function movePerson(payload: MovePayload, correlationId?: string): Promise<Person[]> {
+export async function movePerson(payload: MovePayload, correlationId?: string): Promise<MutationResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/move`, {
@@ -134,12 +134,12 @@ export async function movePerson(payload: MovePayload, correlationId?: string): 
     body: JSON.stringify(payload),
     correlationId: cid,
   })
-  return jsonWithLog<Person[]>(resp, {
+  return jsonWithLog<MutationResponse>(resp, {
     method: 'POST', path: '/api/move', correlationId: cid, requestBody: payload, startTime,
   })
 }
 
-export async function updatePerson(payload: UpdatePayload, correlationId?: string): Promise<Person[]> {
+export async function updatePerson(payload: UpdatePayload, correlationId?: string): Promise<MutationResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/update`, {
@@ -148,7 +148,7 @@ export async function updatePerson(payload: UpdatePayload, correlationId?: strin
     body: JSON.stringify(payload),
     correlationId: cid,
   })
-  return jsonWithLog<Person[]>(resp, {
+  return jsonWithLog<MutationResponse>(resp, {
     method: 'POST', path: '/api/update', correlationId: cid, requestBody: payload, startTime,
   })
 }
@@ -208,7 +208,7 @@ export function exportDataUrl(format: 'csv' | 'xlsx'): string {
   return `${BASE}/export/${format}`
 }
 
-export async function reorderPeople(personIds: string[], correlationId?: string): Promise<Person[]> {
+export async function reorderPeople(personIds: string[], correlationId?: string): Promise<MutationResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/reorder`, {
@@ -217,7 +217,7 @@ export async function reorderPeople(personIds: string[], correlationId?: string)
     body: JSON.stringify({ personIds }),
     correlationId: cid,
   })
-  return jsonWithLog<Person[]>(resp, {
+  return jsonWithLog<MutationResponse>(resp, {
     method: 'POST', path: '/api/reorder', correlationId: cid, requestBody: { personIds }, startTime,
   })
 }
@@ -303,6 +303,35 @@ export async function exportSnapshotBlob(name: string, format: 'csv' | 'xlsx'): 
     throw new Error(`Export snapshot failed: ${resp.status}`)
   }
   return resp.blob()
+}
+
+export async function exportPodsSidecarBlob(): Promise<Blob | null> {
+  const resp = await fetchWithTimeout(`${BASE}/export/pods-sidecar`)
+  if (resp.status === 204) return null
+  if (!resp.ok) throw new Error(`Export pods sidecar failed: ${resp.status}`)
+  return resp.blob()
+}
+
+export async function listPods(): Promise<PodInfo[]> {
+  return json<PodInfo[]>(await fetchWithTimeout(`${BASE}/pods`))
+}
+
+export async function updatePod(podId: string, fields: Record<string, string>): Promise<MutationResponse> {
+  const resp = await fetchWithTimeout(`${BASE}/pods/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ podId, fields }),
+  })
+  return json<MutationResponse>(resp)
+}
+
+export async function createPod(managerId: string, name: string, team: string): Promise<MutationResponse> {
+  const resp = await fetchWithTimeout(`${BASE}/pods/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ managerId, name, team }),
+  })
+  return json<MutationResponse>(resp)
 }
 
 export async function uploadZipFile(file: File): Promise<UploadResponse> {

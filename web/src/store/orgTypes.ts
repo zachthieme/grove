@@ -1,4 +1,4 @@
-import type { Person, MappedColumn, SnapshotInfo, AutosaveData } from '../api/types'
+import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData } from '../api/types'
 
 export type ViewMode = 'detail' | 'manager'
 export type DataView = 'original' | 'working' | 'diff'
@@ -7,6 +7,8 @@ export interface OrgState {
   original: Person[]
   working: Person[]
   recycled: Person[]
+  pods: Pod[]
+  originalPods: Pod[]
   loaded: boolean
   viewMode: ViewMode
   dataView: DataView
@@ -57,11 +59,15 @@ export interface OrgActions {
   hideAllEmploymentTypes: (types: string[]) => void
   setHead: (id: string | null) => void
   clearError: () => void
+  selectPod: (id: string | null) => void
+  updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
+  createPod: (managerId: string, name: string, team: string) => Promise<void>
 }
 
 export type OrgContextValue = OrgState & OrgActions & {
   /** Backward compat: returns the single selected ID when exactly one is selected, null otherwise */
   selectedId: string | null
+  selectedPodId: string | null
 }
 
 // --- Split context types ---
@@ -70,9 +76,11 @@ export interface SelectionContextValue {
   selectedIds: Set<string>
   /** Backward compat: returns the single selected ID when exactly one is selected, null otherwise */
   selectedId: string | null
+  selectedPodId: string | null
   setSelectedId: (id: string | null) => void
   toggleSelect: (id: string, multi: boolean) => void
   clearSelection: () => void
+  selectPod: (id: string | null) => void
 }
 
 export interface UIContextValue {
@@ -99,6 +107,8 @@ export interface OrgDataContextValue {
   original: Person[]
   working: Person[]
   recycled: Person[]
+  pods: Pod[]
+  originalPods: Pod[]
   loaded: boolean
   pendingMapping: OrgState['pendingMapping']
   snapshots: SnapshotInfo[]
@@ -120,4 +130,6 @@ export interface OrgDataContextValue {
   deleteSnapshot: (name: string) => Promise<void>
   restoreAutosave: () => void
   dismissAutosave: () => Promise<void>
+  updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
+  createPod: (managerId: string, name: string, team: string) => Promise<void>
 }

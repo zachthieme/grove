@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { toPng, toSvg } from 'html-to-image'
 import JSZip from 'jszip'
 import type { SnapshotInfo } from '../api/types'
-import { exportSnapshotBlob } from '../api/client'
+import { exportSnapshotBlob, exportPodsSidecarBlob } from '../api/client'
 import { sanitizeFilename, deduplicateFilenames } from '../utils/snapshotExportUtils'
 
 type ExportFormat = 'csv' | 'xlsx' | 'png' | 'svg'
@@ -98,6 +98,16 @@ export function useSnapshotExport({
         } catch (err) {
           console.warn(`Snapshot export failed for "${entry.label}":`, err)
         }
+      }
+
+      // Add pods.csv sidecar for working pod set
+      try {
+        const podsSidecar = await exportPodsSidecarBlob()
+        if (podsSidecar) {
+          zip.file('pods.csv', podsSidecar)
+        }
+      } catch {
+        console.warn('Failed to export pods sidecar')
       }
 
       if (successCount === 0) {

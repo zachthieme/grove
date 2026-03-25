@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { type Person, type AutosaveData, type MappedColumn, type SnapshotInfo } from '../api/types'
+import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo } from '../api/types'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
 import type { OrgDataContextValue } from './orgTypes'
@@ -10,6 +10,8 @@ interface OrgDataState {
   original: Person[]
   working: Person[]
   recycled: Person[]
+  pods: Pod[]
+  originalPods: Pod[]
   loaded: boolean
   pendingMapping: {
     headers: string[]
@@ -38,6 +40,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     original: [],
     working: [],
     recycled: [],
+    pods: [],
+    originalPods: [],
     loaded: false,
     pendingMapping: null,
     snapshots: [],
@@ -88,6 +92,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
             ...s,
             original: data.original,
             working: data.working,
+            pods: data.pods ?? [],
             loaded: true,
           }))
         }
@@ -122,6 +127,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         original: resp.orgData!.original,
         working: resp.orgData!.working,
         recycled: [],
+        pods: resp.orgData!.pods ?? [],
+        originalPods: resp.orgData!.pods ?? [],
         loaded: true,
         pendingMapping: null,
         snapshots: resp.snapshots ?? [],
@@ -150,6 +157,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         original: data.original,
         working: data.working,
         recycled: [],
+        pods: data.pods ?? [],
+        originalPods: data.pods ?? [],
         loaded: true,
         pendingMapping: null,
         snapshots,
@@ -166,8 +175,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
 
   const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string) => {
     try {
-      const working = await api.movePerson({ personId, newManagerId, newTeam }, correlationId)
-      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+      const resp = await api.movePerson({ personId, newManagerId, newTeam }, correlationId)
+      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
@@ -175,8 +184,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     if (!newManagerId) {
       // Clearing manager — use update, not move
       try {
-        const working = await api.updatePerson({ personId, fields: { managerId: '' } }, correlationId)
-        setState((s) => ({ ...s, working, currentSnapshotName: null }))
+        const resp = await api.updatePerson({ personId, fields: { managerId: '' } }, correlationId)
+        setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
       } catch (err) { handleError(err) }
       return
     }
@@ -187,43 +196,43 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      const working = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
-      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+      const resp = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
+      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError, setError])
 
   const reorder = useCallback(async (personIds: string[]) => {
     try {
-      const working = await api.reorderPeople(personIds)
-      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+      const resp = await api.reorderPeople(personIds)
+      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
   const update = useCallback(async (personId: string, fields: Record<string, string>, correlationId?: string) => {
     try {
-      const working = await api.updatePerson({ personId, fields }, correlationId)
-      setState((s) => ({ ...s, working, currentSnapshotName: null }))
+      const resp = await api.updatePerson({ personId, fields }, correlationId)
+      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
   const add = useCallback(async (person: Omit<Person, 'id'>) => {
     try {
       const resp = await api.addPerson(person)
-      setState((s) => ({ ...s, working: resp.working, currentSnapshotName: null }))
+      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
   const remove = useCallback(async (personId: string) => {
     try {
       const resp = await api.deletePerson({ personId })
-      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, currentSnapshotName: null }))
+      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
   const restore = useCallback(async (personId: string) => {
     try {
       const resp = await api.restorePerson(personId)
-      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, currentSnapshotName: null }))
+      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])
 
@@ -250,6 +259,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
           original: data.original,
           working: data.working,
           recycled: [],
+          pods: data.pods ?? [],
           currentSnapshotName: ORIGINAL_SNAPSHOT,
         }))
       } else {
@@ -259,6 +269,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
           original: data.original,
           working: data.working,
           recycled: [],
+          pods: data.pods ?? [],
           currentSnapshotName: name,
           loaded: true,
         }))
@@ -282,6 +293,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         original: ad.original,
         working: ad.working,
         recycled: ad.recycled,
+        pods: ad.pods ?? [],
+        originalPods: ad.originalPods ?? [],
         currentSnapshotName: ad.snapshotName || null,
         loaded: true,
         autosaveAvailable: null,
@@ -299,11 +312,27 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
       original: [],
       working: [],
       recycled: [],
+      pods: [],
+      originalPods: [],
       loaded: false,
       snapshots: [],
       currentSnapshotName: null,
     }))
   }, [])
+
+  const updatePod = useCallback(async (podId: string, fields: Record<string, string>) => {
+    try {
+      const resp = await api.updatePod(podId, fields)
+      setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
+    } catch (err) { handleError(err) }
+  }, [handleError])
+
+  const createPod = useCallback(async (managerId: string, name: string, team: string) => {
+    try {
+      const resp = await api.createPod(managerId, name, team)
+      setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
+    } catch (err) { handleError(err) }
+  }, [handleError])
 
   // Warn before navigating away with unsaved changes
   useDirtyTracking(state.loaded, state.working)
@@ -312,6 +341,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     original: state.original,
     working: state.working,
     recycled: state.recycled,
+    pods: state.pods,
+    originalPods: state.originalPods,
     loaded: state.loaded,
     pendingMapping: state.pendingMapping,
     snapshots: state.snapshots,
@@ -333,11 +364,13 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     deleteSnapshot,
     restoreAutosave,
     dismissAutosave,
+    updatePod,
+    createPod,
   }), [
     state, upload, move, reparent, reorder, update, add, remove,
     restore, emptyBin, confirmMapping, cancelMapping,
     saveSnapshot, loadSnapshot, deleteSnapshot,
-    restoreAutosave, dismissAutosave,
+    restoreAutosave, dismissAutosave, updatePod, createPod,
   ])
 
   return <OrgDataContext.Provider value={value}>{children}</OrgDataContext.Provider>

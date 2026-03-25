@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { Person } from '../api/types'
 
-export type ChangeType = 'added' | 'removed' | 'reporting' | 'title' | 'reorg'
+export type ChangeType = 'added' | 'removed' | 'reporting' | 'title' | 'reorg' | 'pod'
 
 export interface PersonChange {
   types: Set<ChangeType>
@@ -22,6 +22,7 @@ export function useOrgDiff(original: Person[], working: Person[]): Map<string, P
         if (w.managerId !== o.managerId) types.add('reporting')
         if (w.role !== o.role || w.discipline !== o.discipline) types.add('title')
         if (w.team !== o.team) types.add('reorg')
+        if ((w.pod ?? '') !== (o.pod ?? '')) types.add('pod')
       }
       if (types.size > 0) changes.set(w.id, { types })
     }

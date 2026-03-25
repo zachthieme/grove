@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
-import type { Person } from '../api/types'
+import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
@@ -14,13 +14,21 @@ interface ManagerViewProps {
   onSelect: (id: string, event?: React.MouseEvent) => void
   changes?: Map<string, PersonChange>
   managerSet?: Set<string>
+  pods?: Pod[]
   onAddReport?: (id: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
+  onPodSelect?: (podId: string) => void
 }
 
-function SummaryCard({ people }: { people: Person[] }) {
+function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
+  people: Person[]
+  podName?: string
+  publicNote?: string
+  podId?: string
+  onPodClick?: (podId: string) => void
+}) {
   const groups: { label: string; count: number }[] = []
 
   // Active people: count by discipline
@@ -54,10 +62,21 @@ function SummaryCard({ people }: { people: Person[] }) {
     groups.push({ label: 'Transfers', count: transfers.length })
   }
 
-  if (groups.length === 0) return null
+  if (groups.length === 0 && !podName) return null
+
+  const isClickable = podId && onPodClick
 
   return (
-    <div className={styles.summaryCard}>
+    <div
+      className={`${styles.summaryCard}${isClickable ? ` ${styles.summaryCardClickable}` : ''}`}
+      onClick={isClickable ? () => onPodClick(podId) : undefined}
+    >
+      {podName && <div className={styles.podCardHeader}>{podName}</div>}
+      {publicNote && (
+        <div className={styles.podCardNote}>
+          {publicNote.length > 50 ? publicNote.slice(0, 47) + '...' : publicNote}
+        </div>
+      )}
       {groups.map((g) => (
         <div key={g.label} className={styles.summaryRow}>
           <span className={styles.summaryLabel}>{g.label}</span>
@@ -68,20 +87,48 @@ function SummaryCard({ people }: { people: Person[] }) {
   )
 }
 
-function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onDeletePerson, onInfo, onFocus }: {
+function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, pods, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect }: {
   node: OrgNode
   selectedIds: Set<string>
   onSelect: (id: string, event?: React.MouseEvent) => void
   changes?: Map<string, PersonChange>
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
   managerSet?: Set<string>
+  pods?: Pod[]
   onAddReport?: (id: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
+  onPodSelect?: (podId: string) => void
 }) {
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
+
+  // Group ICs by team (pod key) for separate summary cards
+  const icPodGroups = useMemo(() => {
+    if (ics.length === 0) return []
+    const teamOrder: string[] = []
+    const teamMap = new Map<string, Person[]>()
+    for (const ic of ics) {
+      const team = ic.person.team || ''
+      if (!teamMap.has(team)) {
+        teamOrder.push(team)
+        teamMap.set(team, [])
+      }
+      teamMap.get(team)!.push(ic.person)
+    }
+    // Sort alphabetically by pod name
+    teamOrder.sort((a, b) => {
+      const podA = pods?.find((p) => p.managerId === node.person.id && p.team === a)
+      const podB = pods?.find((p) => p.managerId === node.person.id && p.team === b)
+      return (podA?.name ?? a).localeCompare(podB?.name ?? b)
+    })
+    return teamOrder.map((team) => ({
+      team,
+      people: teamMap.get(team)!,
+      pod: pods?.find((p) => p.managerId === node.person.id && p.team === team),
+    }))
+  }, [ics, pods, node.person.id])
 
   return (
     <div className={styles.subtree}>
@@ -113,21 +160,36 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
+              pods={pods}
               onAddReport={onAddReport}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
               onFocus={onFocus}
+              onPodSelect={onPodSelect}
             />
           ))}
-          {/* ICs summarized */}
-          {ics.length > 0 && <SummaryCard people={ics.map((c) => c.person)} />}
+          {/* ICs summarized — one card per pod group */}
+          {icPodGroups.length === 1 && !icPodGroups[0].pod ? (
+            <SummaryCard people={icPodGroups[0].people} />
+          ) : (
+            icPodGroups.map((group) => (
+              <SummaryCard
+                key={group.team}
+                people={group.people}
+                podName={group.pod?.name}
+                publicNote={group.pod?.publicNote}
+                podId={group.pod?.id}
+                onPodClick={onPodSelect}
+              />
+            ))
+          )}
         </div>
       )}
     </div>
   )
 }
 
-export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo, onFocus }: ManagerViewProps) {
+export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, pods, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect }: ManagerViewProps) {
   const roots = useMemo(() => buildOrgTree(people), [people])
 
   // Edges only between rendered manager nodes (not ICs, since they are summarized)
@@ -199,10 +261,12 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
+              pods={pods}
               onAddReport={onAddReport}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
               onFocus={onFocus}
+              onPodSelect={onPodSelect}
             />
           ))}
           <OrphanGroup
@@ -220,9 +284,9 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
             wrapInIcStack={false}
             renderSubtree={(node) => (
               <ManagerSubtree key={node.person.id} node={node} selectedIds={selectedIds} onSelect={onSelect}
-                changes={changes} setNodeRef={setNodeRef} managerSet={managerSet}
+                changes={changes} setNodeRef={setNodeRef} managerSet={managerSet} pods={pods}
                 onAddReport={onAddReport} onDeletePerson={onDeletePerson}
-                onInfo={onInfo} onFocus={onFocus} />
+                onInfo={onInfo} onFocus={onFocus} onPodSelect={onPodSelect} />
             )}
           />
         </div>

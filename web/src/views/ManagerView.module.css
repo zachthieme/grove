@@ -52,6 +52,29 @@
   max-width: 180px;
 }
 
+.summaryCardClickable {
+  cursor: pointer;
+}
+
+.summaryCardClickable:hover {
+  border-color: var(--grove-green);
+}
+
+.podCardHeader {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.podCardNote {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
 .summaryRow {
   display: flex;
   justify-content: space-between;

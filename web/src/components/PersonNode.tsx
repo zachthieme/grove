@@ -98,6 +98,13 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
           {person.role || 'TBD'}
           {empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}
         </div>
+        {person.publicNote && (
+          <div className={styles.notePreview}>
+            {person.publicNote.length > 60
+              ? person.publicNote.slice(0, 57) + '...'
+              : person.publicNote}
+          </div>
+        )}
       </div>
     </div>
   )

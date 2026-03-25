@@ -65,8 +65,20 @@
   transition: all var(--transition-normal);
 }
 
+.teamHeaderClickable {
+  cursor: pointer;
+}
+
 .teamHeader:hover {
   box-shadow: var(--shadow-md);
+}
+
+.podNote {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .teamHeaderName {

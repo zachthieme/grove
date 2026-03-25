@@ -73,6 +73,14 @@ const mockOrg = {
   hideAllEmploymentTypes: vi.fn(),
   setHead: vi.fn(),
   clearError: vi.fn(),
+  pods: [] as any[],
+  originalPods: [] as any[],
+  selectedPodId: null as string | null,
+  selectPod: vi.fn(),
+  updatePod: vi.fn().mockResolvedValue(undefined),
+  createPod: vi.fn().mockResolvedValue(undefined),
+  setViewMode: vi.fn(),
+  setDataView: vi.fn(),
 }
 
 vi.mock('../store/OrgContext', () => ({

@@ -25,7 +25,7 @@ import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes } = useOrg()
+  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, pods, originalPods, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
@@ -37,7 +37,7 @@ function AppContent() {
     showAllEmploymentTypes,
     setHead,
   })
-  const { serverSaveError } = useAutosave({ original, working, recycled, currentSnapshotName, loaded, suppressAutosaveRef })
+  const { serverSaveError } = useAutosave({ original, working, recycled, pods, originalPods, currentSnapshotName, loaded, suppressAutosaveRef })
 
   const rawPeople = dataView === 'original' ? original : working
   const changes = useOrgDiff(original, working)
@@ -150,10 +150,12 @@ function AppContent() {
               onSelect={handleSelect}
               changes={showChanges ? changes : undefined}
               managerSet={managerSet}
+              pods={pods}
               onAddReport={handleAddReport}
               onDeletePerson={handleDeletePerson}
               onInfo={handleShowInfo}
               onFocus={handleFocus}
+              onPodSelect={selectPod}
             />
           ) : viewMode === 'detail' ? (
             <ColumnView
@@ -164,11 +166,13 @@ function AppContent() {
               changes={showChanges ? changes : undefined}
               ghostPeople={ghostPeople}
               managerSet={managerSet}
+              pods={pods}
               onAddReport={handleAddReport}
               onAddToTeam={handleAddToTeam}
               onDeletePerson={handleDeletePerson}
               onInfo={handleShowInfo}
               onFocus={handleFocus}
+              onPodSelect={selectPod}
             />
           ) : null}
           {snapshotExporting && (

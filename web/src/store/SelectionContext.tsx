@@ -13,6 +13,7 @@ export function useSelection(): SelectionContextValue {
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedPodId, setSelectedPodId] = useState<string | null>(null)
 
   const selectedId = useMemo(() => {
     return selectedIds.size === 1 ? [...selectedIds][0] : null
@@ -23,6 +24,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toggleSelect = useCallback((id: string, multi: boolean) => {
+    setSelectedPodId(null)
     setSelectedIds((prev) => {
       if (multi) {
         const next = new Set(prev)
@@ -45,13 +47,20 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     setSelectedIds(new Set())
   }, [])
 
+  const selectPod = useCallback((id: string | null) => {
+    setSelectedPodId(id)
+    setSelectedIds(new Set())
+  }, [])
+
   const value: SelectionContextValue = useMemo(() => ({
     selectedIds,
     selectedId,
+    selectedPodId,
     setSelectedId,
     toggleSelect,
     clearSelection,
-  }), [selectedIds, selectedId, setSelectedId, toggleSelect, clearSelection])
+    selectPod,
+  }), [selectedIds, selectedId, selectedPodId, setSelectedId, toggleSelect, clearSelection, selectPod])
 
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>
 }

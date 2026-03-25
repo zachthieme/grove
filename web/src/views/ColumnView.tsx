@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
-import type { Person } from '../api/types'
+import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
@@ -18,17 +18,21 @@ interface ColumnViewProps {
   changes?: Map<string, PersonChange>
   ghostPeople?: Person[]
   managerSet?: Set<string>
+  pods?: Pod[]
   onAddReport?: (id: string) => void
   onAddToTeam?: (parentId: string, team: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
+  onPodSelect?: (podId: string) => void
 }
 
-function TeamHeaderNode({ team, memberCount, onAdd }: {
-  team: string
+function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick }: {
+  podName: string
   memberCount: number
+  publicNote?: string
   onAdd?: () => void
+  onClick?: () => void
 }) {
   const [hovered, setHovered] = useState(false)
 
@@ -48,26 +52,36 @@ function TeamHeaderNode({ team, memberCount, onAdd }: {
           onInfo={(e) => { e.stopPropagation() }}
         />
       )}
-      <div className={styles.teamHeader}>
-        <div className={styles.teamHeaderName}>{team}</div>
+      <div
+        className={`${styles.teamHeader}${onClick ? ` ${styles.teamHeaderClickable}` : ''}`}
+        onClick={onClick}
+      >
+        <div className={styles.teamHeaderName}>{podName}</div>
+        {publicNote && (
+          <div className={styles.podNote}>
+            {publicNote.length > 50 ? publicNote.slice(0, 47) + '...' : publicNote}
+          </div>
+        )}
         <div className={styles.teamHeaderCount}>{memberCount} {memberCount === 1 ? 'person' : 'people'}</div>
       </div>
     </div>
   )
 }
 
-function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus }: {
+function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect }: {
   node: OrgNode
   selectedIds: Set<string>
   onSelect: (id: string, event?: React.MouseEvent) => void
   changes?: Map<string, PersonChange>
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
   managerSet?: Set<string>
+  pods?: Pod[]
   onAddReport?: (id: string) => void
   onAddToTeam?: (parentId: string, team: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
+  onPodSelect?: (podId: string) => void
 }) {
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
@@ -76,6 +90,23 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
 
   // Check if all render items are ICs (no managers) — use vertical stack
   const allICs = managers.length === 0
+
+  // Look up pod by (managerId, team) pair
+  const findPod = (managerId: string, team: string): Pod | undefined =>
+    pods?.find((p) => p.managerId === managerId && p.team === team)
+
+  const renderPodHeader = (managerId: string, team: string, memberCount: number) => {
+    const pod = findPod(managerId, team)
+    return (
+      <PodHeaderNode
+        podName={pod?.name ?? team}
+        memberCount={memberCount}
+        publicNote={pod?.publicNote}
+        onAdd={onAddToTeam ? () => onAddToTeam(managerId, team) : undefined}
+        onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
+      />
+    )
+  }
 
   const renderIC = (child: OrgNode) => (
     <div key={child.person.id} className={styles.nodeSlot}>
@@ -126,17 +157,19 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
                 }
                 teamMap.get(ic.person.team)!.push(ic)
               }
+              // Sort teams alphabetically by pod name
+              teamOrder.sort((a, b) => {
+                const podA = findPod(node.person.id, a)
+                const podB = findPod(node.person.id, b)
+                return (podA?.name ?? a).localeCompare(podB?.name ?? b)
+              })
               if (teamOrder.length > 1) {
                 return teamOrder.map((team) => {
                   const members = teamMap.get(team)!
                   return (
                     <div key={team} className={styles.subtree}>
                       <div className={styles.nodeSlot}>
-                        <TeamHeaderNode
-                          team={team}
-                          memberCount={members.length}
-                          onAdd={onAddToTeam ? () => onAddToTeam(node.person.id, team) : undefined}
-                        />
+                        {renderPodHeader(node.person.id, team, members.length)}
                       </div>
                       <div className={styles.children}>
                         <div className={styles.icStack}>
@@ -193,22 +226,20 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
                         changes={changes}
                         setNodeRef={setNodeRef}
                         managerSet={managerSet}
+                        pods={pods}
                         onAddReport={onAddReport}
                         onAddToTeam={onAddToTeam}
                         onDeletePerson={onDeletePerson}
                         onInfo={onInfo}
                         onFocus={onFocus}
+                        onPodSelect={onPodSelect}
                       />
                     )
                   } else if (item.type === 'icGroup') {
                     elements.push(
                       <div key={`group-${item.team}`} className={styles.subtree}>
                         <div className={styles.nodeSlot}>
-                          <TeamHeaderNode
-                            team={item.team}
-                            memberCount={item.members.length}
-                            onAdd={onAddToTeam ? () => onAddToTeam(node.person.id, item.team) : undefined}
-                          />
+                          {renderPodHeader(node.person.id, item.team, item.members.length)}
                         </div>
                         <div className={styles.children}>
                           <div className={styles.icStack}>
@@ -230,7 +261,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   )
 }
 
-export default function ColumnView({ people, selectedIds, onSelect, changes, ghostPeople = [], managerSet, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus }: ColumnViewProps) {
+export default function ColumnView({ people, selectedIds, onSelect, changes, ghostPeople = [], managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect }: ColumnViewProps) {
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people), [people])
 
@@ -283,11 +314,13 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
+              pods={pods}
               onAddReport={onAddReport}
               onAddToTeam={onAddToTeam}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
               onFocus={onFocus}
+              onPodSelect={onPodSelect}
             />
           ))}
           <OrphanGroup
@@ -304,11 +337,11 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
             styles={styles}
             renderSubtree={(node) => (
               <SubtreeNode key={node.person.id} node={node} selectedIds={selectedIds} onSelect={onSelect}
-                changes={changes} setNodeRef={setNodeRef} managerSet={managerSet}
+                changes={changes} setNodeRef={setNodeRef} managerSet={managerSet} pods={pods}
                 onAddReport={onAddReport} onAddToTeam={onAddToTeam} onDeletePerson={onDeletePerson}
-                onInfo={onInfo} onFocus={onFocus} />
+                onInfo={onInfo} onFocus={onFocus} onPodSelect={onPodSelect} />
             )}
-            renderTeamHeader={(team, count) => <TeamHeaderNode team={team} memberCount={count} />}
+            renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}
           />
         </div>
       </div>

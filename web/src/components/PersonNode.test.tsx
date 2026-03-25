@@ -110,4 +110,18 @@ describe('PersonNode', () => {
     const node = container.querySelector('[class*="ghost"]')
     expect(node).toBeNull()
   })
+
+  it('shows truncated public note when present', () => {
+    const longNote = 'This is a very long public note that exceeds sixty characters in total length'
+    render(<PersonNode person={makePerson({ publicNote: longNote })} />)
+    expect(screen.getByText(longNote.slice(0, 57) + '...')).toBeDefined()
+  })
+
+  it('does not show note line when publicNote is empty', () => {
+    const { container } = render(
+      <PersonNode person={makePerson()} />
+    )
+    const note = container.querySelector('[class*="notePreview"]')
+    expect(note).toBeNull()
+  })
 })

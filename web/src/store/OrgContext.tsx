@@ -34,6 +34,8 @@ export function useOrg(): OrgContextValue {
     original: data.original,
     working: data.working,
     recycled: data.recycled,
+    pods: data.pods,
+    originalPods: data.originalPods,
     loaded: data.loaded,
     pendingMapping: data.pendingMapping,
     snapshots: data.snapshots,
@@ -52,6 +54,7 @@ export function useOrg(): OrgContextValue {
     // Selection state
     selectedIds: selection.selectedIds,
     selectedId: selection.selectedId,
+    selectedPodId: selection.selectedPodId,
 
     // OrgData actions
     upload: data.upload,
@@ -70,6 +73,8 @@ export function useOrg(): OrgContextValue {
     deleteSnapshot: data.deleteSnapshot,
     restoreAutosave: data.restoreAutosave,
     dismissAutosave: data.dismissAutosave,
+    updatePod: data.updatePod,
+    createPod: data.createPod,
 
     // UI actions
     setViewMode: ui.setViewMode,
@@ -86,5 +91,6 @@ export function useOrg(): OrgContextValue {
     setSelectedId: selection.setSelectedId,
     toggleSelect: selection.toggleSelect,
     clearSelection: selection.clearSelection,
+    selectPod: selection.selectPod,
   }), [data, ui, selection, setBinOpen])
 }
