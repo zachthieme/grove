@@ -14,11 +14,29 @@ type Person struct {
 	SortIndex       int      `json:"sortIndex"`
 	NewRole         string   `json:"newRole,omitempty"`
 	NewTeam         string   `json:"newTeam,omitempty"`
+	Pod             string   `json:"pod,omitempty"`
+	PublicNote      string   `json:"publicNote,omitempty"`
+	PrivateNote     string   `json:"privateNote,omitempty"`
+}
+
+type Pod struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Team        string `json:"team"`
+	ManagerId   string `json:"managerId"`
+	PublicNote  string `json:"publicNote,omitempty"`
+	PrivateNote string `json:"privateNote,omitempty"`
+}
+
+type PodInfo struct {
+	Pod
+	MemberCount int `json:"memberCount"`
 }
 
 type OrgData struct {
 	Original           []Person `json:"original"`
 	Working            []Person `json:"working"`
+	Pods               []Pod    `json:"pods,omitempty"`
 	PersistenceWarning string   `json:"persistenceWarning,omitempty"`
 }
 
@@ -26,6 +44,8 @@ type AutosaveData struct {
 	Original     []Person `json:"original"`
 	Working      []Person `json:"working"`
 	Recycled     []Person `json:"recycled"`
+	Pods         []Pod    `json:"pods,omitempty"`
+	OriginalPods []Pod    `json:"originalPods,omitempty"`
 	SnapshotName string   `json:"snapshotName"`
 	Timestamp    string   `json:"timestamp"`
 }

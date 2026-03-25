@@ -30,6 +30,7 @@ func snapshotStorePath() (string, error) {
 
 type persistedSnapshot struct {
 	People    []Person  `json:"people"`
+	Pods      []Pod     `json:"pods,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -41,7 +42,11 @@ func WriteSnapshots(snapshots map[string]snapshotData) error {
 	}
 	persisted := make(map[string]persistedSnapshot, len(snapshots))
 	for name, snap := range snapshots {
-		persisted[name] = persistedSnapshot(snap)
+		persisted[name] = persistedSnapshot{
+			People:    snap.People,
+			Pods:      snap.Pods,
+			Timestamp: snap.Timestamp,
+		}
 	}
 	data, err := json.Marshal(persisted)
 	if err != nil {
@@ -69,7 +74,11 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 	}
 	result := make(map[string]snapshotData, len(persisted))
 	for name, ps := range persisted {
-		result[name] = snapshotData(ps)
+		result[name] = snapshotData{
+			People:    ps.People,
+			Pods:      ps.Pods,
+			Timestamp: ps.Timestamp,
+		}
 	}
 	return result, nil
 }

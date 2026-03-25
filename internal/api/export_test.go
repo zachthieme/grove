@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/csv"
+	"strings"
 	"testing"
 )
 
@@ -29,7 +30,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 rows (header + 2 data), got %d", len(records))
 	}
 
-	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team"}
+	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Pod", "Public Note", "Private Note"}
 	for i, h := range expectedHeaders {
 		if records[0][i] != h {
 			t.Errorf("header[%d]: expected %s, got %s", i, h, records[0][i])
@@ -54,5 +55,86 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 		if row[7] != "FTE" {
 			t.Errorf("expected employment type 'FTE' for %s, got '%s'", row[0], row[7])
 		}
+	}
+}
+
+func TestExportCSV_IncludesNewFields(t *testing.T) {
+	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
+
+	svc := NewOrgService()
+	if _, err := svc.Upload("test.csv", []byte(input)); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	data, err := ExportCSV(svc.GetWorking())
+	if err != nil {
+		t.Fatalf("export: %v", err)
+	}
+
+	reader := csv.NewReader(bytes.NewReader(data))
+	records, err := reader.ReadAll()
+	if err != nil {
+		t.Fatalf("parsing exported CSV: %v", err)
+	}
+
+	if len(records) < 2 {
+		t.Fatalf("expected at least 2 rows (header + data), got %d", len(records))
+	}
+
+	// Verify headers include the three new columns
+	header := records[0]
+	expectedNewHeaders := map[string]int{
+		"Pod":          10,
+		"Public Note":  11,
+		"Private Note": 12,
+	}
+	for name, idx := range expectedNewHeaders {
+		if idx >= len(header) {
+			t.Errorf("header too short to contain %q at index %d", name, idx)
+			continue
+		}
+		if header[idx] != name {
+			t.Errorf("header[%d] = %q, want %q", idx, header[idx], name)
+		}
+	}
+
+	// Verify data row contains the values
+	row := records[1]
+	if row[10] != "Alpha" {
+		t.Errorf("Pod = %q, want %q", row[10], "Alpha")
+	}
+	if row[11] != "public info" {
+		t.Errorf("Public Note = %q, want %q", row[11], "public info")
+	}
+	if row[12] != "secret info" {
+		t.Errorf("Private Note = %q, want %q", row[12], "secret info")
+	}
+}
+
+func TestExportPodsSidecarCSV(t *testing.T) {
+	people := []Person{
+		{Id: "m1", Name: "Alice", Team: "Eng"},
+		{Id: "p1", Name: "Bob", ManagerId: "m1", Team: "Platform"},
+	}
+	pods := []Pod{
+		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "m1",
+			PublicNote: "owns pipeline", PrivateNote: "needs headcount"},
+	}
+	data, err := ExportPodsSidecarCSV(pods, people)
+	if err != nil {
+		t.Fatal(err)
+	}
+	csv := string(data)
+	if !strings.Contains(csv, "Pod Name") {
+		t.Error("expected Pod Name header")
+	}
+	if !strings.Contains(csv, "Alice") {
+		t.Error("expected manager name Alice")
+	}
+	if !strings.Contains(csv, "owns pipeline") {
+		t.Error("expected public note")
+	}
+	if !strings.Contains(csv, "needs headcount") {
+		t.Error("expected private note")
 	}
 }

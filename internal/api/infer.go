@@ -17,6 +17,9 @@ var exactMatches = map[string]string{
 	"employment type":  "employmentType",
 	"new role":         "newRole",
 	"new team":         "newTeam",
+	"pod":              "pod",
+	"public note":      "publicNote",
+	"private note":     "privateNote",
 }
 
 // synonyms maps lowercased synonym phrases to the app field name.
@@ -56,6 +59,16 @@ var synonyms = map[string]string{
 	// newTeam
 	"future team":  "newTeam",
 	"planned team": "newTeam",
+	// pod
+	"pod name":      "pod",
+	"sub-team":      "pod",
+	"subteam":       "pod",
+	// publicNote
+	"note":          "publicNote",
+	"notes":         "publicNote",
+	"public notes":  "publicNote",
+	// privateNote
+	"private notes": "privateNote",
 	// employmentType
 	"worker type":       "employmentType",
 	"employee type":     "employmentType",

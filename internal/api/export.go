@@ -9,7 +9,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team"}
+var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Pod", "Public Note", "Private Note"}
 
 func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
@@ -65,11 +65,30 @@ func buildIDToName(people []Person) map[string]string {
 	return m
 }
 
+var podSidecarHeaders = []string{"Pod Name", "Manager", "Team", "Public Note", "Private Note"}
+
+func ExportPodsSidecarCSV(pods []Pod, people []Person) ([]byte, error) {
+	idToName := buildIDToName(people)
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+	if err := w.Write(podSidecarHeaders); err != nil {
+		return nil, fmt.Errorf("writing pod sidecar headers: %w", err)
+	}
+	for _, pod := range pods {
+		row := []string{pod.Name, idToName[pod.ManagerId], pod.Team, pod.PublicNote, pod.PrivateNote}
+		if err := w.Write(row); err != nil {
+			return nil, fmt.Errorf("writing pod sidecar row: %w", err)
+		}
+	}
+	w.Flush()
+	return buf.Bytes(), w.Error()
+}
+
 func personToRow(p Person, idToName map[string]string) []string {
 	managerName := idToName[p.ManagerId]
 	return []string{
 		p.Name, p.Role, p.Discipline, managerName, p.Team,
 		strings.Join(p.AdditionalTeams, ","), p.Status, p.EmploymentType,
-		p.NewRole, p.NewTeam,
+		p.NewRole, p.NewTeam, p.Pod, p.PublicNote, p.PrivateNote,
 	}
 }

@@ -66,6 +66,9 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 			EmploymentType: empType,
 			NewRole:        get("newRole"),
 			NewTeam:        get("newTeam"),
+			Pod:            get("pod"),
+			PublicNote:     get("publicNote"),
+			PrivateNote:    get("privateNote"),
 		}
 
 		raw := get("additionalTeams")

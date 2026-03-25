@@ -38,6 +38,9 @@ type Person struct {
 	NewRole         string
 	NewTeam         string
 	Warning         string // non-empty if this row had validation issues
+	Pod             string
+	PublicNote      string
+	PrivateNote     string
 }
 
 type Org struct {

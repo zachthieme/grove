@@ -12,12 +12,34 @@ export interface Person {
   newTeam?: string
   warning?: string
   sortIndex?: number
+  pod?: string
+  publicNote?: string
+  privateNote?: string
+}
+
+export interface Pod {
+  id: string
+  name: string
+  team: string
+  managerId: string
+  publicNote?: string
+  privateNote?: string
+}
+
+export interface PodInfo extends Pod {
+  memberCount: number
 }
 
 export interface OrgData {
   original: Person[]
   working: Person[]
+  pods?: Pod[]
   persistenceWarning?: string
+}
+
+export interface MutationResponse {
+  working: Person[]
+  pods: Pod[]
 }
 
 export interface MovePayload {
@@ -38,11 +60,13 @@ export interface DeletePayload {
 export interface DeleteResponse {
   working: Person[]
   recycled: Person[]
+  pods: Pod[]
 }
 
 export interface RestoreResponse {
   working: Person[]
   recycled: Person[]
+  pods: Pod[]
 }
 
 export interface EmptyBinResponse {
@@ -52,6 +76,7 @@ export interface EmptyBinResponse {
 export interface AddResponse {
   created: Person
   working: Person[]
+  pods: Pod[]
 }
 
 export interface MappedColumn {
@@ -78,6 +103,8 @@ export interface AutosaveData {
   original: Person[]
   working: Person[]
   recycled: Person[]
+  pods?: Pod[]
+  originalPods?: Pod[]
   snapshotName: string
   timestamp: string
 }

@@ -62,6 +62,9 @@ func ConvertOrgWithIDMap(org *model.Org, idMap map[string][]string) []Person {
 			Warning:         p.Warning,
 			NewRole:         p.NewRole,
 			NewTeam:         p.NewTeam,
+			Pod:             p.Pod,
+			PublicNote:      p.PublicNote,
+			PrivateNote:     p.PrivateNote,
 		}
 	}
 	return result

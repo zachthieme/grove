@@ -199,6 +199,62 @@ func TestInferMapping_FuzzyLongerKeywordsFirst(t *testing.T) {
 	}
 }
 
+func TestInferMapping_PodAndNotes(t *testing.T) {
+	// Exact matches
+	headers := []string{"Name", "Pod", "Public Note", "Private Note"}
+	m := InferMapping(headers)
+
+	want := map[string]struct {
+		column     string
+		confidence string
+	}{
+		"pod":         {"Pod", "high"},
+		"publicNote":  {"Public Note", "high"},
+		"privateNote": {"Private Note", "high"},
+	}
+
+	for field, exp := range want {
+		mc, ok := m[field]
+		if !ok {
+			t.Errorf("field %q not found in mapping", field)
+			continue
+		}
+		if mc.Column != exp.column {
+			t.Errorf("field %q: column = %q, want %q", field, mc.Column, exp.column)
+		}
+		if mc.Confidence != exp.confidence {
+			t.Errorf("field %q: confidence = %q, want %q", field, mc.Confidence, exp.confidence)
+		}
+	}
+
+	// Synonym matches
+	synHeaders := []string{"Name", "Pod Name", "Notes", "Private Notes"}
+	synM := InferMapping(synHeaders)
+
+	synWant := map[string]struct {
+		column     string
+		confidence string
+	}{
+		"pod":         {"Pod Name", "high"},
+		"publicNote":  {"Notes", "high"},
+		"privateNote": {"Private Notes", "high"},
+	}
+
+	for field, exp := range synWant {
+		mc, ok := synM[field]
+		if !ok {
+			t.Errorf("synonym: field %q not found in mapping", field)
+			continue
+		}
+		if mc.Column != exp.column {
+			t.Errorf("synonym: field %q: column = %q, want %q", field, mc.Column, exp.column)
+		}
+		if mc.Confidence != exp.confidence {
+			t.Errorf("synonym: field %q: confidence = %q, want %q", field, mc.Confidence, exp.confidence)
+		}
+	}
+}
+
 func TestAllRequiredHigh_True(t *testing.T) {
 	m := map[string]MappedColumn{
 		"name":       {Column: "Name", Confidence: "high"},

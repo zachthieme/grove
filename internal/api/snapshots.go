@@ -8,6 +8,7 @@ import (
 
 type snapshotData struct {
 	People    []Person
+	Pods      []Pod
 	Timestamp time.Time
 }
 
@@ -26,6 +27,7 @@ func (s *OrgService) SaveSnapshot(name string) error {
 	}
 	s.snapshots[name] = snapshotData{
 		People:    deepCopyPeople(s.working),
+		Pods:      CopyPods(s.pods),
 		Timestamp: time.Now(),
 	}
 	// Copy snapshot data for persistence outside the lock
@@ -65,8 +67,13 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 		return nil, fmt.Errorf("snapshot '%s' not found", name)
 	}
 	s.working = deepCopyPeople(snap.People)
+	if snap.Pods != nil {
+		s.pods = CopyPods(snap.Pods)
+	} else {
+		s.pods = SeedPods(s.working)
+	}
 	s.recycled = nil
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}, nil
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
 }
 
 func (s *OrgService) DeleteSnapshot(name string) error {
