@@ -21,10 +21,19 @@ type OrgService struct {
 	original        []Person
 	working         []Person
 	recycled        []Person
+	pods            []Pod
+	originalPods    []Pod
 	snapshots       map[string]snapshotData
 	pendingFile     []byte
 	pendingFilename string
 	pendingIsZip    bool
+}
+
+// MoveResult holds working people and pods, returned from mutations that
+// affect both (e.g. Move, Update, Reorder).
+type MoveResult struct {
+	Working []Person
+	Pods    []Pod
 }
 
 func NewOrgService() *OrgService {
@@ -66,9 +75,13 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 		s.original = people
 		s.working = deepCopyPeople(people)
 		s.recycled = nil
+		s.pods = SeedPods(s.working)
+		s.originalPods = CopyPods(s.pods)
+		// Seed original people's pod fields too
+		_ = SeedPods(s.original)
 		return &UploadResponse{
 			Status:             "ready",
-			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)},
+			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)},
 			PersistenceWarning: persistWarn,
 		}, nil
 	}
@@ -101,7 +114,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	}
 
 	if s.pendingIsZip {
-		entries, err := parseZipFileList(s.pendingFile)
+		entries, podsSidecar, err := parseZipFileList(s.pendingFile)
 		if err != nil {
 			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing pending zip: %w", err)
@@ -115,6 +128,19 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
 		s.snapshots = snaps
+		s.pods = SeedPods(s.working)
+		s.originalPods = CopyPods(s.pods)
+		_ = SeedPods(s.original)
+
+		if podsSidecar != nil {
+			sidecarEntries := parsePodsSidecar(podsSidecar)
+			if len(sidecarEntries) > 0 {
+				idToName := buildIDToName(s.working)
+				applyPodSidecarNotes(s.pods, sidecarEntries, idToName)
+				applyPodSidecarNotes(s.originalPods, sidecarEntries, idToName)
+			}
+		}
+
 		snapCopy := make(map[string]snapshotData, len(s.snapshots))
 		for k, v := range s.snapshots {
 			snapCopy[k] = v
@@ -122,7 +148,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 		s.pendingFile = nil
 		s.pendingFilename = ""
 		s.pendingIsZip = false
-		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
+		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
 		s.mu.Unlock()
 
 		// Disk I/O outside the lock
@@ -159,10 +185,13 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	s.working = deepCopyPeople(people)
 	s.recycled = nil
 	s.snapshots = nil
+	s.pods = SeedPods(s.working)
+	s.originalPods = CopyPods(s.pods)
+	_ = SeedPods(s.original)
 	s.pendingFile = nil
 	s.pendingFilename = ""
 	s.pendingIsZip = false
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
 	s.mu.Unlock()
 
 	// Disk I/O outside the lock
@@ -221,7 +250,7 @@ func (s *OrgService) GetOrg() *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
 }
 
 func (s *OrgService) GetWorking() []Person {
@@ -241,7 +270,8 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 	defer s.mu.Unlock()
 	s.working = deepCopyPeople(s.original)
 	s.recycled = nil
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working)}
+	s.pods = CopyPods(s.originalPods)
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}
 }
 
 func (s *OrgService) findWorking(id string) (int, *Person) {
@@ -278,7 +308,7 @@ func (s *OrgService) validateManagerChange(personId, newManagerId string) error 
 	return nil
 }
 
-func (s *OrgService) Move(personId, newManagerId, newTeam string) ([]Person, error) {
+func (s *OrgService) Move(personId, newManagerId, newTeam string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, p := s.findWorking(personId)
@@ -294,7 +324,9 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string) ([]Person, err
 	if newTeam != "" {
 		p.Team = newTeam
 	}
-	return deepCopyPeople(s.working), nil
+	s.pods = ReassignPersonPod(s.pods, p)
+	s.pods = CleanupEmptyPods(s.pods, s.working)
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
 }
 
 // wouldCreateCycle checks if setting personId's manager to newManagerId
@@ -317,11 +349,23 @@ func (s *OrgService) wouldCreateCycle(personId, newManagerId string) bool {
 	return false
 }
 
-func (s *OrgService) Update(personId string, fields map[string]string) ([]Person, error) {
+func (s *OrgService) Update(personId string, fields map[string]string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Extract note/pod fields so they don't hit the 500-char limit
+	noteFields := map[string]string{}
+	for _, key := range []string{"publicNote", "privateNote", "pod"} {
+		if v, ok := fields[key]; ok {
+			noteFields[key] = v
+			delete(fields, key)
+		}
+	}
 	if err := validateFieldLengths(fields); err != nil {
 		return nil, err
+	}
+	// Re-add for switch processing
+	for k, v := range noteFields {
+		fields[k] = v
 	}
 	_, p := s.findWorking(personId)
 	if p == nil {
@@ -339,6 +383,8 @@ func (s *OrgService) Update(personId string, fields map[string]string) ([]Person
 			p.Discipline = v
 		case "team":
 			p.Team = v
+			s.pods = ReassignPersonPod(s.pods, p)
+			s.pods = CleanupEmptyPods(s.pods, s.working)
 		case "status":
 			if !model.ValidStatuses[v] {
 				return nil, fmt.Errorf("invalid status '%s'", v)
@@ -351,6 +397,8 @@ func (s *OrgService) Update(personId string, fields map[string]string) ([]Person
 				}
 			}
 			p.ManagerId = v
+			s.pods = ReassignPersonPod(s.pods, p)
+			s.pods = CleanupEmptyPods(s.pods, s.working)
 		case "employmentType":
 			p.EmploymentType = v
 		case "additionalTeams":
@@ -370,15 +418,36 @@ func (s *OrgService) Update(personId string, fields map[string]string) ([]Person
 			p.NewRole = v
 		case "newTeam":
 			p.NewTeam = v
+		case "publicNote":
+			if err := validateNoteLen(v); err != nil {
+				return nil, err
+			}
+			p.PublicNote = v
+		case "privateNote":
+			if err := validateNoteLen(v); err != nil {
+				return nil, err
+			}
+			p.PrivateNote = v
+		case "pod":
+			if v == "" {
+				s.pods = ReassignPersonPod(s.pods, p)
+			} else {
+				pod := FindPod(s.pods, v, p.ManagerId)
+				if pod == nil {
+					return nil, fmt.Errorf("pod %q not found under this manager", v)
+				}
+				p.Pod = v
+				p.Team = pod.Team
+			}
 		default:
 			return nil, fmt.Errorf("unknown field: %s", k)
 		}
 	}
-	return deepCopyPeople(s.working), nil
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
-func (s *OrgService) Reorder(personIds []string) ([]Person, error) {
+func (s *OrgService) Reorder(personIds []string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for i, id := range personIds {
@@ -389,10 +458,10 @@ func (s *OrgService) Reorder(personIds []string) ([]Person, error) {
 			}
 		}
 	}
-	return deepCopyPeople(s.working), nil
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
 }
 
-func (s *OrgService) Add(p Person) (Person, []Person, error) {
+func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fields := map[string]string{
@@ -400,19 +469,20 @@ func (s *OrgService) Add(p Person) (Person, []Person, error) {
 		"discipline": p.Discipline, "team": p.Team,
 	}
 	if err := validateFieldLengths(fields); err != nil {
-		return Person{}, nil, err
+		return Person{}, nil, nil, err
 	}
 	if p.Status != "" && !model.ValidStatuses[p.Status] {
-		return Person{}, nil, fmt.Errorf("invalid status '%s'", p.Status)
+		return Person{}, nil, nil, fmt.Errorf("invalid status '%s'", p.Status)
 	}
 	if p.ManagerId != "" {
 		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
-			return Person{}, nil, fmt.Errorf("manager %s not found", p.ManagerId)
+			return Person{}, nil, nil, fmt.Errorf("manager %s not found", p.ManagerId)
 		}
 	}
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
-	return p, deepCopyPeople(s.working), nil
+	s.pods = ReassignPersonPod(s.pods, &s.working[len(s.working)-1])
+	return p, deepCopyPeople(s.working), CopyPods(s.pods), nil
 }
 
 // MutationResult holds both working and recycled slices, returned atomically
@@ -420,6 +490,7 @@ func (s *OrgService) Add(p Person) (Person, []Person, error) {
 type MutationResult struct {
 	Working  []Person
 	Recycled []Person
+	Pods     []Pod
 }
 
 func (s *OrgService) Delete(personId string) (*MutationResult, error) {
@@ -436,9 +507,11 @@ func (s *OrgService) Delete(personId string) (*MutationResult, error) {
 	}
 	s.recycled = append(s.recycled, s.working[idx])
 	s.working = append(s.working[:idx], s.working[idx+1:]...)
+	s.pods = CleanupEmptyPods(s.pods, s.working)
 	return &MutationResult{
 		Working:  deepCopyPeople(s.working),
 		Recycled: deepCopyPeople(s.recycled),
+		Pods:     CopyPods(s.pods),
 	}, nil
 }
 
@@ -463,9 +536,11 @@ func (s *OrgService) Restore(personId string) (*MutationResult, error) {
 		}
 	}
 	s.working = append(s.working, person)
+	s.pods = ReassignPersonPod(s.pods, &s.working[len(s.working)-1])
 	return &MutationResult{
 		Working:  deepCopyPeople(s.working),
 		Recycled: deepCopyPeople(s.recycled),
+		Pods:     CopyPods(s.pods),
 	}, nil
 }
 
@@ -474,6 +549,65 @@ func (s *OrgService) EmptyBin() []Person {
 	defer s.mu.Unlock()
 	s.recycled = nil
 	return deepCopyPeople(s.recycled)
+}
+
+func (s *OrgService) ListPods() []PodInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	counts := map[string]int{}
+	for _, p := range s.working {
+		if p.Pod != "" && p.ManagerId != "" {
+			counts[p.ManagerId+":"+p.Pod]++
+		}
+	}
+	result := make([]PodInfo, len(s.pods))
+	for i, pod := range s.pods {
+		result[i] = PodInfo{Pod: pod, MemberCount: counts[pod.ManagerId+":"+pod.Name]}
+	}
+	return result
+}
+
+func (s *OrgService) UpdatePod(podID string, fields map[string]string) (*MoveResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	pod := FindPodByID(s.pods, podID)
+	if pod == nil {
+		return nil, fmt.Errorf("pod %s not found", podID)
+	}
+	for k, v := range fields {
+		switch k {
+		case "name":
+			if err := RenamePod(s.pods, s.working, podID, v); err != nil {
+				return nil, err
+			}
+		case "publicNote":
+			if err := validateNoteLen(v); err != nil {
+				return nil, err
+			}
+			pod.PublicNote = v
+		case "privateNote":
+			if err := validateNoteLen(v); err != nil {
+				return nil, err
+			}
+			pod.PrivateNote = v
+		default:
+			return nil, fmt.Errorf("unknown pod field: %s", k)
+		}
+	}
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
+}
+
+func (s *OrgService) CreatePod(managerID, name, team string) (*MoveResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, p := range s.pods {
+		if p.ManagerId == managerID && p.Team == team {
+			return nil, fmt.Errorf("pod already exists for this manager and team")
+		}
+	}
+	pod := Pod{Id: uuid.NewString(), Name: name, Team: team, ManagerId: managerID}
+	s.pods = append(s.pods, pod)
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
 }
 
 func deepCopyPeople(src []Person) []Person {

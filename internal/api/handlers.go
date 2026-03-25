@@ -26,6 +26,7 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
 	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svc))
 	mux.HandleFunc("POST /api/restore", handleRestore(svc))
 	mux.HandleFunc("POST /api/empty-bin", handleEmptyBin(svc))
+	mux.HandleFunc("GET /api/export/pods-sidecar", handleExportPodsSidecar(svc))
 	mux.HandleFunc("GET /api/export/snapshot", handleExportSnapshot(svc))
 	mux.HandleFunc("GET /api/export/{format}", handleExport(svc))
 
@@ -33,6 +34,10 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
 	mux.HandleFunc("POST /api/snapshots/save", handleSaveSnapshot(svc))
 	mux.HandleFunc("POST /api/snapshots/load", handleLoadSnapshot(svc))
 	mux.HandleFunc("POST /api/snapshots/delete", handleDeleteSnapshot(svc))
+
+	mux.HandleFunc("GET /api/pods", handleListPods(svc))
+	mux.HandleFunc("POST /api/pods/update", handleUpdatePod(svc))
+	mux.HandleFunc("POST /api/pods/create", handleCreatePod(svc))
 
 	mux.HandleFunc("POST /api/reset", handleReset(svc))
 	mux.HandleFunc("POST /api/reorder", handleReorder(svc))
@@ -150,12 +155,12 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		working, err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam)
+		result, err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, working)
+		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
 	}
 }
 
@@ -170,12 +175,12 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		working, err := svc.Update(req.PersonId, req.Fields)
+		result, err := svc.Update(req.PersonId, req.Fields)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, working)
+		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
 	}
 }
 
@@ -187,7 +192,7 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		created, working, err := svc.Add(p)
+		created, working, pods, err := svc.Add(p)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
@@ -195,6 +200,7 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"created": created,
 			"working": working,
+			"pods":    pods,
 		})
 	}
 }
@@ -217,6 +223,7 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"working":  result.Working,
 			"recycled": result.Recycled,
+			"pods":     result.Pods,
 		})
 	}
 }
@@ -245,6 +252,7 @@ func handleRestore(svc *OrgService) http.HandlerFunc {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"working":  result.Working,
 			"recycled": result.Recycled,
+			"pods":     result.Pods,
 		})
 	}
 }
@@ -256,6 +264,27 @@ func handleEmptyBin(svc *OrgService) http.HandlerFunc {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"recycled": recycled,
 		})
+	}
+}
+
+func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		svc.mu.RLock()
+		pods := CopyPods(svc.pods)
+		people := deepCopyPeople(svc.working)
+		svc.mu.RUnlock()
+		if len(pods) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		data, err := ExportPodsSidecarCSV(pods, people)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", "attachment; filename=pods.csv")
+		w.Write(data)
 	}
 }
 
@@ -409,6 +438,53 @@ func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
 	}
 }
 
+func handleListPods(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, svc.ListPods())
+	}
+}
+
+func handleUpdatePod(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
+		var req struct {
+			PodId  string            `json:"podId"`
+			Fields map[string]string `json:"fields"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		result, err := svc.UpdatePod(req.PodId, req.Fields)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	}
+}
+
+func handleCreatePod(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
+		var req struct {
+			ManagerId string `json:"managerId"`
+			Name      string `json:"name"`
+			Team      string `json:"team"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		result, err := svc.CreatePod(req.ManagerId, req.Name, req.Team)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	}
+}
+
 func handleReset(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
@@ -427,12 +503,12 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		working, err := svc.Reorder(req.PersonIds)
+		result, err := svc.Reorder(req.PersonIds)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, working)
+		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
 	}
 }
 

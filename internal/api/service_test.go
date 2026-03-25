@@ -41,11 +41,11 @@ func TestOrgService_Move(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 	alice := findByName(data.Working, "Alice")
 
-	working, err := svc.Move(carol.Id, alice.Id, "Eng")
+	result, err := svc.Move(carol.Id, alice.Id, "Eng")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
-	updated := findById(working, carol.Id)
+	updated := findById(result.Working, carol.Id)
 	if updated.ManagerId != alice.Id {
 		t.Errorf("expected Carol's manager to be Alice, got %s", updated.ManagerId)
 	}
@@ -64,11 +64,11 @@ func TestOrgService_Update(t *testing.T) {
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
 
-	working, err := svc.Update(bob.Id, map[string]string{"role": "Senior Engineer", "discipline": "SRE"})
+	result, err := svc.Update(bob.Id, map[string]string{"role": "Senior Engineer", "discipline": "SRE"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
-	updated := findById(working, bob.Id)
+	updated := findById(result.Working, bob.Id)
 	if updated.Role != "Senior Engineer" {
 		t.Errorf("expected role 'Senior Engineer', got '%s'", updated.Role)
 	}
@@ -82,7 +82,7 @@ func TestOrgService_Add(t *testing.T) {
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
 
-	added, _, err := svc.Add(Person{
+	added, _, _, err := svc.Add(Person{
 		Name: "Dave", Role: "Engineer", Discipline: "Eng",
 		ManagerId: alice.Id, Team: "Eng", Status: "Active",
 	})
@@ -320,14 +320,14 @@ func TestOrgService_Reorder(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 
 	// Reorder: Carol first, then Alice, then Bob
-	working, err := svc.Reorder([]string{carol.Id, alice.Id, bob.Id})
+	result, err := svc.Reorder([]string{carol.Id, alice.Id, bob.Id})
 	if err != nil {
 		t.Fatalf("reorder failed: %v", err)
 	}
 
-	carolUpdated := findById(working, carol.Id)
-	aliceUpdated := findById(working, alice.Id)
-	bobUpdated := findById(working, bob.Id)
+	carolUpdated := findById(result.Working, carol.Id)
+	aliceUpdated := findById(result.Working, alice.Id)
+	bobUpdated := findById(result.Working, bob.Id)
 
 	if carolUpdated.SortIndex != 0 {
 		t.Errorf("expected Carol sortIndex 0, got %d", carolUpdated.SortIndex)
@@ -346,12 +346,12 @@ func TestOrgService_Reorder_PartialIds(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Only reorder Bob — others should be unaffected (SortIndex stays 0)
-	working, err := svc.Reorder([]string{bob.Id})
+	result, err := svc.Reorder([]string{bob.Id})
 	if err != nil {
 		t.Fatalf("reorder failed: %v", err)
 	}
 
-	bobUpdated := findById(working, bob.Id)
+	bobUpdated := findById(result.Working, bob.Id)
 	if bobUpdated.SortIndex != 0 {
 		t.Errorf("expected Bob sortIndex 0, got %d", bobUpdated.SortIndex)
 	}
@@ -422,7 +422,7 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 
 	// Update every supported field
-	working, err := svc.Update(bob.Id, map[string]string{
+	result, err := svc.Update(bob.Id, map[string]string{
 		"name":            "Robert",
 		"role":            "Staff Engineer",
 		"discipline":      "SRE",
@@ -437,7 +437,7 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
-	updated := findById(working, bob.Id)
+	updated := findById(result.Working, bob.Id)
 	if updated.Name != "Robert" {
 		t.Errorf("expected name 'Robert', got '%s'", updated.Name)
 	}
@@ -490,11 +490,11 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	}
 
 	// Then clear them
-	working, err := svc.Update(bob.Id, map[string]string{"additionalTeams": ""})
+	result, err := svc.Update(bob.Id, map[string]string{"additionalTeams": ""})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
-	updated := findById(working, bob.Id)
+	updated := findById(result.Working, bob.Id)
 	if updated.AdditionalTeams != nil {
 		t.Errorf("expected nil additional teams, got %v", updated.AdditionalTeams)
 	}
@@ -545,11 +545,11 @@ func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 
 	// Move with empty newTeam — team should stay the same
-	working, err := svc.Move(carol.Id, alice.Id, "")
+	result, err := svc.Move(carol.Id, alice.Id, "")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
-	updated := findById(working, carol.Id)
+	updated := findById(result.Working, carol.Id)
 	if updated.Team != "Platform" {
 		t.Errorf("expected team to remain 'Platform', got '%s'", updated.Team)
 	}
@@ -739,7 +739,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 	})
 
 	t.Run("Add rejects long name", func(t *testing.T) {
-		_, _, err := svc.Add(Person{
+		_, _, _, err := svc.Add(Person{
 			Name: longStr, Role: "Eng", Discipline: "Eng",
 			Team: "Eng", Status: "Active",
 		})
@@ -854,7 +854,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 
 func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 	svc := newTestService(t)
-	_, _, err := svc.Add(Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
+	_, _, _, err := svc.Add(Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
 	if err == nil {
 		t.Fatal("expected error for invalid status")
 	}
@@ -862,7 +862,7 @@ func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 
 func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 	svc := newTestService(t)
-	_, _, err := svc.Add(Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
+	_, _, _, err := svc.Add(Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
 	if err == nil {
 		t.Fatal("expected error for invalid manager")
 	}
@@ -884,6 +884,21 @@ func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 	// Snapshots should still exist
 	if len(svc.ListSnapshots()) != 1 {
 		t.Error("expected snapshot to survive failed upload")
+	}
+}
+
+func TestUpload_SeedsPods(t *testing.T) {
+	svc := NewOrgService()
+	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Engineer,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Alice,Infra,Active\n"
+	resp, err := svc.Upload("test.csv", []byte(csv))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.OrgData == nil {
+		t.Fatal("expected orgData")
+	}
+	if len(resp.OrgData.Pods) != 2 {
+		t.Errorf("expected 2 pods, got %d", len(resp.OrgData.Pods))
 	}
 }
 

@@ -124,14 +124,17 @@ func TestMoveHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var people []Person
-	if err := json.NewDecoder(rec.Body).Decode(&people); err != nil {
+	var resp struct {
+		Working []Person `json:"working"`
+		Pods    []Pod    `json:"pods"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
-	if len(people) != 3 {
-		t.Errorf("expected 3 people, got %d", len(people))
+	if len(resp.Working) != 3 {
+		t.Errorf("expected 3 people, got %d", len(resp.Working))
 	}
-	updated := findById(people, carol.Id)
+	updated := findById(resp.Working, carol.Id)
 	if updated == nil {
 		t.Fatal("Carol not found in response")
 	}
@@ -164,11 +167,14 @@ func TestUpdateHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var people []Person
-	if err := json.NewDecoder(rec.Body).Decode(&people); err != nil {
+	var resp struct {
+		Working []Person `json:"working"`
+		Pods    []Pod    `json:"pods"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
-	updated := findById(people, bob.Id)
+	updated := findById(resp.Working, bob.Id)
 	if updated.Role != "Senior Engineer" {
 		t.Errorf("expected role 'Senior Engineer', got '%s'", updated.Role)
 	}
@@ -501,13 +507,16 @@ func TestReorderHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var people []Person
-	if err := json.NewDecoder(rec.Body).Decode(&people); err != nil {
+	var resp struct {
+		Working []Person `json:"working"`
+		Pods    []Pod    `json:"pods"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
-	carolUpdated := findById(people, carol.Id)
-	aliceUpdated := findById(people, alice.Id)
-	bobUpdated := findById(people, bob.Id)
+	carolUpdated := findById(resp.Working, carol.Id)
+	aliceUpdated := findById(resp.Working, alice.Id)
+	bobUpdated := findById(resp.Working, bob.Id)
 
 	if carolUpdated.SortIndex != 0 {
 		t.Errorf("expected Carol sortIndex 0, got %d", carolUpdated.SortIndex)
