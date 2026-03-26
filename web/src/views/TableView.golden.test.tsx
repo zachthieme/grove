@@ -1,31 +1,20 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import TableView from './TableView'
-import type { Person } from '../api/types'
+import { normalizeHTML, makePerson } from '../test-helpers'
 import type { PersonChange } from '../hooks/useOrgDiff'
 
-const mockUpdate = vi.fn().mockResolvedValue(undefined)
-const mockRemove = vi.fn().mockResolvedValue(undefined)
-const mockToggleSelect = vi.fn()
-const mockAdd = vi.fn().mockResolvedValue(undefined)
-
-const basePeople: Person[] = [
-  {
-    id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering',
-    additionalTeams: [], status: 'Active', employmentType: 'FTE',
-  },
-  {
-    id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform',
-    additionalTeams: [], status: 'Active', employmentType: 'FTE',
-  },
+const basePeople = [
+  makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
+  makePerson({ id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform', employmentType: 'FTE' }),
 ]
 
 vi.mock('../store/OrgContext', () => ({
   useOrg: () => ({
-    update: mockUpdate,
-    remove: mockRemove,
-    toggleSelect: mockToggleSelect,
-    add: mockAdd,
+    update: vi.fn().mockResolvedValue(undefined),
+    remove: vi.fn().mockResolvedValue(undefined),
+    toggleSelect: vi.fn(),
+    add: vi.fn().mockResolvedValue(undefined),
     working: basePeople,
     pods: [],
     settings: { disciplineOrder: [] },
@@ -79,14 +68,6 @@ vi.mock('../store/OrgContext', () => ({
   OrgProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
-function normalizeHTML(html: string): string {
-  return html
-    .replace(/\s*style="[^"]*"/g, '')
-    .replace(/\s+/g, ' ')
-    .replace(/> </g, '>\n<')
-    .trim()
-}
-
 describe('TableView golden', () => {
   afterEach(() => {
     cleanup()
@@ -120,5 +101,14 @@ describe('TableView golden', () => {
     const { container } = render(<TableView people={[]} />)
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/table-view-empty.golden')
+  })
+
+  it('renders single person table', () => {
+    const singlePerson = [
+      makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
+    ]
+    const { container } = render(<TableView people={singlePerson} />)
+
+    expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/table-view-single.golden')
   })
 })

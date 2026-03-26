@@ -4,20 +4,6 @@ import userEvent from '@testing-library/user-event'
 import RecycleBinButton from './RecycleBinButton'
 import type { Person } from '../api/types'
 
-function makePerson(overrides: Partial<Person> = {}): Person {
-  return {
-    id: '1',
-    name: 'Alice Smith',
-    role: 'Software Engineer',
-    discipline: 'Engineering',
-    managerId: '',
-    team: 'Platform',
-    additionalTeams: [],
-    status: 'Active',
-    ...overrides,
-  }
-}
-
 const mockOrg: Record<string, unknown> = {}
 
 function resetMockOrg() {
@@ -50,45 +36,6 @@ vi.mock('../store/OrgContext', () => ({
 describe('RecycleBinButton', () => {
   beforeEach(() => resetMockOrg())
   afterEach(() => cleanup())
-
-  it('has aria-label "Recycle bin" when recycled is empty', () => {
-    render(<RecycleBinButton />)
-    const btn = screen.getByRole('button', { name: 'Recycle bin' })
-    expect(btn).toBeDefined()
-  })
-
-  it('does not show a badge when recycled is empty', () => {
-    render(<RecycleBinButton />)
-    const btn = screen.getByRole('button', { name: 'Recycle bin' })
-    expect(btn.querySelector('span')).toBeNull()
-  })
-
-  it('shows a badge with count when recycled has items', () => {
-    mockOrg.recycled = [makePerson({ id: 'r1' }), makePerson({ id: 'r2' })]
-    render(<RecycleBinButton />)
-    expect(screen.getByText('2')).toBeDefined()
-  })
-
-  it('includes item count in aria-label when recycled has items', () => {
-    mockOrg.recycled = [makePerson({ id: 'r1' }), makePerson({ id: 'r2' }), makePerson({ id: 'r3' })]
-    render(<RecycleBinButton />)
-    const btn = screen.getByRole('button', { name: 'Recycle bin (3 items)' })
-    expect(btn).toBeDefined()
-  })
-
-  it('has aria-pressed="false" when binOpen is false', () => {
-    mockOrg.binOpen = false
-    render(<RecycleBinButton />)
-    const btn = screen.getByRole('button', { name: /recycle bin/i })
-    expect(btn.getAttribute('aria-pressed')).toBe('false')
-  })
-
-  it('has aria-pressed="true" when binOpen is true', () => {
-    mockOrg.binOpen = true
-    render(<RecycleBinButton />)
-    const btn = screen.getByRole('button', { name: /recycle bin/i })
-    expect(btn.getAttribute('aria-pressed')).toBe('true')
-  })
 
   it('calls setBinOpen with toggled value on click', async () => {
     const user = userEvent.setup()

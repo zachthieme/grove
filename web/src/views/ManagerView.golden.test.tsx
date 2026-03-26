@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import ManagerView from './ManagerView'
-import type { Person } from '../api/types'
+import { normalizeHTML, makePerson } from '../test-helpers'
 
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
@@ -35,28 +35,6 @@ vi.mock('../hooks/useDragDrop', () => ({
 vi.mock('../store/OrgContext', () => ({
   useOrg: () => ({ move: vi.fn(), reparent: vi.fn(), selectedIds: new Set() }),
 }))
-
-function makePerson(overrides: Partial<Person> = {}): Person {
-  return {
-    id: 'default-id',
-    name: 'Default Person',
-    role: 'Engineer',
-    discipline: 'Engineering',
-    managerId: '',
-    team: 'Platform',
-    additionalTeams: [],
-    status: 'Active',
-    ...overrides,
-  }
-}
-
-function normalizeHTML(html: string): string {
-  return html
-    .replace(/\s*style="[^"]*"/g, '')
-    .replace(/\s+/g, ' ')
-    .replace(/> </g, '>\n<')
-    .trim()
-}
 
 describe('ManagerView golden', () => {
   afterEach(() => cleanup())

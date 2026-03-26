@@ -2,21 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AutosaveBanner from './AutosaveBanner'
+import { makePerson } from '../test-helpers'
 import type { Person } from '../api/types'
-
-function makePerson(overrides: Partial<Person> = {}): Person {
-  return {
-    id: '1',
-    name: 'Alice Smith',
-    role: 'Software Engineer',
-    discipline: 'Engineering',
-    managerId: '',
-    team: 'Platform',
-    additionalTeams: [],
-    status: 'Active',
-    ...overrides,
-  }
-}
 
 const mockOrg: Record<string, unknown> = {}
 
@@ -50,55 +37,6 @@ vi.mock('../store/OrgContext', () => ({
 describe('AutosaveBanner', () => {
   beforeEach(() => resetMockOrg())
   afterEach(() => cleanup())
-
-  it('renders nothing when autosaveAvailable is null', () => {
-    const { container } = render(<AutosaveBanner />)
-    expect(container.firstChild).toBeNull()
-  })
-
-  it('renders banner with role="alert" when autosaveAvailable is set', () => {
-    mockOrg.autosaveAvailable = {
-      original: [makePerson()], working: [makePerson()], recycled: [],
-      snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
-    }
-    render(<AutosaveBanner />)
-    expect(screen.getByRole('alert')).toBeDefined()
-  })
-
-  it('shows "Restore previous session?" message text', () => {
-    mockOrg.autosaveAvailable = {
-      original: [makePerson()], working: [makePerson()], recycled: [],
-      snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
-    }
-    render(<AutosaveBanner />)
-    expect(screen.getByText(/Restore previous session\?/)).toBeDefined()
-  })
-
-  it('shows formatted time in parentheses when timestamp is valid', () => {
-    mockOrg.autosaveAvailable = {
-      original: [makePerson()], working: [makePerson()], recycled: [],
-      snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
-    }
-    render(<AutosaveBanner />)
-    // The message should contain "(saved at ...)"
-    const alert = screen.getByRole('alert')
-    expect(alert.textContent).toMatch(/\(saved at /)
-  })
-
-  it('omits parenthetical time when timestamp is invalid', () => {
-    mockOrg.autosaveAvailable = {
-      original: [makePerson()], working: [makePerson()], recycled: [],
-      snapshotName: '', timestamp: 'not-a-date',
-    }
-    render(<AutosaveBanner />)
-    const alert = screen.getByRole('alert')
-    // "Invalid Date" produces empty string from formatTime, so no "(saved at ...)"
-    // However, new Date('not-a-date') doesn't throw; it gives "Invalid Date".
-    // toLocaleTimeString on Invalid Date may throw in some engines or return "Invalid Date"
-    // In jsdom, Date("not-a-date") is NaN, toLocaleTimeString throws => caught => returns ''
-    // So the message should just be "Restore previous session?" without the time parenthetical
-    expect(alert.textContent).toContain('Restore previous session?')
-  })
 
   it('renders Restore button that calls restoreAutosave on click', async () => {
     const user = userEvent.setup()

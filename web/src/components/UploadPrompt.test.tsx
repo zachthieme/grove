@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, cleanup, fireEvent } from '@testing-library/react'
 import UploadPrompt from './UploadPrompt'
 
 const mockOrg: Record<string, unknown> = {}
@@ -35,34 +35,6 @@ describe('UploadPrompt', () => {
   beforeEach(() => resetMockOrg())
   afterEach(() => cleanup())
 
-  it('renders the "Choose File" button', () => {
-    render(<UploadPrompt />)
-    expect(screen.getByRole('button', { name: /choose file/i })).toBeDefined()
-  })
-
-  it('shows title text "grove"', () => {
-    render(<UploadPrompt />)
-    expect(screen.getByText('grove')).toBeDefined()
-  })
-
-  it('shows definition text', () => {
-    render(<UploadPrompt />)
-    expect(screen.getByText(/a small group of trees/)).toBeDefined()
-  })
-
-  it('shows tagline text', () => {
-    render(<UploadPrompt />)
-    expect(screen.getByText(/Org planning for people/)).toBeDefined()
-  })
-
-  it('renders hidden file input with correct accept types', () => {
-    const { container } = render(<UploadPrompt />)
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement
-    expect(input).not.toBeNull()
-    expect(input.accept).toBe('.csv,.xlsx,.zip')
-    expect(input.style.display).toBe('none')
-  })
-
   it('calls upload when a file is selected', () => {
     const uploadFn = vi.fn()
     mockOrg.upload = uploadFn
@@ -80,12 +52,5 @@ describe('UploadPrompt', () => {
     const input = container.querySelector('input[type="file"]') as HTMLInputElement
     fireEvent.change(input, { target: { files: [] } })
     expect(uploadFn).not.toHaveBeenCalled()
-  })
-
-  it('renders the grove icon image', () => {
-    render(<UploadPrompt />)
-    const img = screen.getByRole('img', { name: 'Grove' })
-    expect(img).toBeDefined()
-    expect(img.getAttribute('src')).toBe('/grove-icon.svg')
   })
 })

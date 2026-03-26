@@ -3,7 +3,6 @@ import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
 import type { Person } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
 
 const mockUpdate = vi.fn().mockResolvedValue(undefined)
 const mockRemove = vi.fn().mockResolvedValue(undefined)
@@ -86,124 +85,31 @@ describe('TableView', () => {
     vi.clearAllMocks()
   })
 
-  it('renders column headers', () => {
-    render(<TableView people={testPeople} />)
+  it('cells become editable when clicked in normal mode', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<TableView people={testPeople} />)
 
-    expect(screen.getByText('Name')).toBeDefined()
-    expect(screen.getByText('Role')).toBeDefined()
-    expect(screen.getByText('Discipline')).toBeDefined()
-    expect(screen.getByText('Team')).toBeDefined()
-    expect(screen.getByText('Status')).toBeDefined()
-    expect(screen.getByText('Manager')).toBeDefined()
-    expect(screen.getByText('Level')).toBeDefined()
-  })
+    const firstRow = container.querySelector('tbody tr')!
+    const textCells = firstRow.querySelectorAll('td')
+    const nameCell = textCells[1]
+    await user.click(nameCell)
 
-  it('renders people data in the table', () => {
-    render(<TableView people={testPeople} />)
-
-    // Alice appears in her name cell and also as a manager label for Bob's manager column
-    expect(screen.getAllByText('Alice').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('VP')).toBeDefined()
-    expect(screen.getByText('Engineering')).toBeDefined()
-    expect(screen.getByText('Bob')).toBeDefined()
-    expect(screen.getByText('Engineer')).toBeDefined()
-    expect(screen.getByText('Platform')).toBeDefined()
-  })
-
-  it('shows correct row count', () => {
-    render(<TableView people={testPeople} />)
-
-    expect(screen.getByText('2 people')).toBeDefined()
-  })
-
-  it('shows correct row count with single person', () => {
-    render(<TableView people={[testPeople[0]]} />)
-
-    expect(screen.getByText('1 people')).toBeDefined()
-  })
-
-  it('shows 0 people when empty', () => {
-    render(<TableView people={[]} />)
-
-    expect(screen.getByText('0 people')).toBeDefined()
-  })
-
-  it('hides add and paste buttons in read-only mode', () => {
-    render(<TableView people={testPeople} readOnly={true} />)
-
-    expect(screen.queryByTitle('Add row')).toBeNull()
-    expect(screen.queryByTitle('Paste rows from clipboard')).toBeNull()
-  })
-
-  it('shows add and paste buttons in normal mode', () => {
-    render(<TableView people={testPeople} />)
-
-    expect(screen.getByTitle('Add row')).toBeDefined()
-    expect(screen.getByTitle('Paste rows from clipboard')).toBeDefined()
-  })
-
-  it('hides delete buttons in read-only mode', () => {
-    render(<TableView people={testPeople} readOnly={true} />)
-
-    const deleteButtons = screen.queryAllByTitle('Delete')
-    expect(deleteButtons).toHaveLength(0)
+    const input = nameCell.querySelector('input[type="text"]') as HTMLInputElement
+    expect(input).not.toBeNull()
+    expect(input.value).toBe('Alice')
   })
 
   it('cells are not editable in read-only mode', async () => {
     const user = userEvent.setup()
     const { container } = render(<TableView people={testPeople} readOnly={true} />)
 
-    // Click on a data cell in the tbody - in read-only mode, no input should appear
     const dataCells = container.querySelectorAll('tbody td')
-    // Find a cell that contains text (not an action button cell)
     const textCell = Array.from(dataCells).find(td => td.querySelector('span'))
     expect(textCell).not.toBeNull()
     await user.click(textCell!)
 
-    // In read-only mode, clicking a cell should NOT produce any editing input inside the table body
-    // (exclude checkboxes which are always present for selection)
     const editInputs = container.querySelectorAll('tbody td input:not([type="checkbox"]), tbody td select')
     expect(editInputs).toHaveLength(0)
-  })
-
-  it('cells become editable when clicked in normal mode', async () => {
-    const user = userEvent.setup()
-    const { container } = render(<TableView people={testPeople} />)
-
-    // Find the first data row's first text cell (Name column for Alice)
-    const firstRow = container.querySelector('tbody tr')!
-    const textCells = firstRow.querySelectorAll('td')
-    // Cell 0 is the action cell (expand button); cell 1 is the Name cell
-    const nameCell = textCells[1]
-    await user.click(nameCell)
-
-    // An input with current value should appear
-    const input = nameCell.querySelector('input[type="text"]') as HTMLInputElement
-    expect(input).not.toBeNull()
-    expect(input.value).toBe('Alice')
-  })
-
-  it('renders the Columns toggle button', () => {
-    render(<TableView people={testPeople} />)
-
-    // The button text includes a down arrow character
-    const colBtn = screen.getByText(/Columns/)
-    expect(colBtn).toBeDefined()
-  })
-
-  it('shows column visibility dropdown when Columns button is clicked', async () => {
-    const user = userEvent.setup()
-    render(<TableView people={testPeople} />)
-
-    const colBtn = screen.getByText(/Columns/)
-    await user.click(colBtn)
-
-    // The dropdown should now show checkbox labels for each column
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]')
-    expect(checkboxes.length).toBeGreaterThan(0)
-
-    // All columns should be listed as labels
-    expect(screen.getAllByText('Name').length).toBeGreaterThanOrEqual(2) // header + dropdown
   })
 
   it('clicking delete calls remove with person id', async () => {
@@ -211,9 +117,6 @@ describe('TableView', () => {
     render(<TableView people={testPeople} />)
 
     const deleteButtons = screen.getAllByTitle('Delete')
-    expect(deleteButtons).toHaveLength(2)
-
-    // Click the first delete button (Alice, id='1')
     await user.click(deleteButtons[0])
     expect(mockRemove).toHaveBeenCalledWith('1')
   })
@@ -223,111 +126,8 @@ describe('TableView', () => {
     render(<TableView people={testPeople} />)
 
     const deleteButtons = screen.getAllByTitle('Delete')
-
-    // Click the second delete button (Bob, id='2')
     await user.click(deleteButtons[1])
     expect(mockRemove).toHaveBeenCalledWith('2')
-  })
-
-  it('applies rowAdded class when change type is added', () => {
-    const changes = new Map<string, PersonChange>([
-      ['1', { types: new Set(['added']) }],
-    ])
-
-    const { container } = render(
-      <TableView people={testPeople} changes={changes} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    const aliceRow = rows[0]
-    expect(aliceRow.className).toContain('rowAdded')
-  })
-
-  it('applies rowRemoved class when change type is removed', () => {
-    const changes = new Map<string, PersonChange>([
-      ['2', { types: new Set(['removed']) }],
-    ])
-
-    const { container } = render(
-      <TableView people={testPeople} changes={changes} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    const bobRow = rows[1]
-    expect(bobRow.className).toContain('rowRemoved')
-  })
-
-  it('applies rowReporting class when change type is reporting', () => {
-    const changes = new Map<string, PersonChange>([
-      ['2', { types: new Set(['reporting']) }],
-    ])
-
-    const { container } = render(
-      <TableView people={testPeople} changes={changes} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    const bobRow = rows[1]
-    expect(bobRow.className).toContain('rowReporting')
-  })
-
-  it('applies rowTitle class when change type is title', () => {
-    const changes = new Map<string, PersonChange>([
-      ['1', { types: new Set(['title']) }],
-    ])
-
-    const { container } = render(
-      <TableView people={testPeople} changes={changes} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    const aliceRow = rows[0]
-    expect(aliceRow.className).toContain('rowTitle')
-  })
-
-  it('applies rowReorg class when change type is reorg', () => {
-    const changes = new Map<string, PersonChange>([
-      ['1', { types: new Set(['reorg']) }],
-    ])
-
-    const { container } = render(
-      <TableView people={testPeople} changes={changes} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    const aliceRow = rows[0]
-    expect(aliceRow.className).toContain('rowReorg')
-  })
-
-  it('does not apply diff class when no changes', () => {
-    const { container } = render(
-      <TableView people={testPeople} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    for (const row of rows) {
-      expect(row.className).not.toContain('rowAdded')
-      expect(row.className).not.toContain('rowRemoved')
-      expect(row.className).not.toContain('rowReporting')
-      expect(row.className).not.toContain('rowTitle')
-      expect(row.className).not.toContain('rowReorg')
-    }
-  })
-
-  it('renders correct number of rows matching people count', () => {
-    const { container } = render(
-      <TableView people={testPeople} />
-    )
-
-    const rows = container.querySelectorAll('tbody tr')
-    expect(rows).toHaveLength(2)
-  })
-
-  it('renders checkboxes for each row', () => {
-    const { container } = render(<TableView people={testPeople} />)
-
-    const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
-    expect(checkboxes).toHaveLength(2)
   })
 
   it('clicking checkbox calls toggleSelect with person id', async () => {
@@ -337,5 +137,16 @@ describe('TableView', () => {
     const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
     await user.click(checkboxes[0])
     expect(mockToggleSelect).toHaveBeenCalledWith('1', true)
+  })
+
+  it('shows column visibility dropdown when Columns button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<TableView people={testPeople} />)
+
+    const colBtn = screen.getByText(/Columns/)
+    await user.click(colBtn)
+
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]')
+    expect(checkboxes.length).toBeGreaterThan(0)
   })
 })

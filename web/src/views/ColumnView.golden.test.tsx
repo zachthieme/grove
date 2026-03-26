@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import ColumnView from './ColumnView'
-import type { Person } from '../api/types'
+import { normalizeHTML, makePerson } from '../test-helpers'
 
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
@@ -35,28 +35,6 @@ vi.mock('../hooks/useDragDrop', () => ({
 vi.mock('../store/OrgContext', () => ({
   useOrg: () => ({ move: vi.fn(), reparent: vi.fn(), selectedIds: new Set() }),
 }))
-
-function makePerson(overrides: Partial<Person> = {}): Person {
-  return {
-    id: 'default-id',
-    name: 'Default Person',
-    role: 'Engineer',
-    discipline: 'Engineering',
-    managerId: '',
-    team: 'Platform',
-    additionalTeams: [],
-    status: 'Active',
-    ...overrides,
-  }
-}
-
-function normalizeHTML(html: string): string {
-  return html
-    .replace(/\s*style="[^"]*"/g, '')
-    .replace(/\s+/g, ' ')
-    .replace(/> </g, '>\n<')
-    .trim()
-}
 
 describe('ColumnView golden', () => {
   afterEach(() => cleanup())
@@ -120,5 +98,20 @@ describe('ColumnView golden', () => {
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-mixed-statuses.golden')
+  })
+
+  it('renders orphans grouped by team', () => {
+    const carol = makePerson({ id: 'carol-001', name: 'Carol White', team: 'Design', managerId: '' })
+    const dave = makePerson({ id: 'dave-002', name: 'Dave Brown', team: 'Engineering', managerId: '' })
+
+    const { container } = render(
+      <ColumnView
+        people={[carol, dave]}
+        selectedIds={new Set()}
+        onSelect={vi.fn()}
+      />
+    )
+
+    expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-orphans.golden')
   })
 })

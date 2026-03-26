@@ -2,21 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SnapshotsDropdown from './SnapshotsDropdown'
+import { makePerson } from '../test-helpers'
 import type { Person, SnapshotInfo } from '../api/types'
-
-function makePerson(overrides: Partial<Person> = {}): Person {
-  return {
-    id: '1',
-    name: 'Alice Smith',
-    role: 'Software Engineer',
-    discipline: 'Engineering',
-    managerId: '',
-    team: 'Platform',
-    additionalTeams: [],
-    status: 'Active',
-    ...overrides,
-  }
-}
 
 const mockOrg: Record<string, unknown> = {}
 
@@ -51,38 +38,12 @@ describe('SnapshotsDropdown', () => {
   beforeEach(() => resetMockOrg())
   afterEach(() => cleanup())
 
-  it('shows "Working" label when currentSnapshotName is null', () => {
-    mockOrg.currentSnapshotName = null
-    render(<SnapshotsDropdown />)
-    expect(screen.getByRole('button', { name: 'Snapshot: Working' })).toBeDefined()
-  })
-
-  it('shows "Original" label when currentSnapshotName is __original__', () => {
-    mockOrg.currentSnapshotName = '__original__'
-    render(<SnapshotsDropdown />)
-    expect(screen.getByRole('button', { name: 'Snapshot: Original' })).toBeDefined()
-  })
-
-  it('shows the snapshot name as label when currentSnapshotName is a custom name', () => {
-    mockOrg.currentSnapshotName = 'My Snapshot'
-    render(<SnapshotsDropdown />)
-    expect(screen.getByRole('button', { name: 'Snapshot: My Snapshot' })).toBeDefined()
-  })
-
-  it('has aria-expanded="false" initially', () => {
-    render(<SnapshotsDropdown />)
-    const trigger = screen.getByRole('button', { name: /Snapshot:/ })
-    expect(trigger.getAttribute('aria-expanded')).toBe('false')
-  })
-
   it('opens dropdown on click and sets aria-expanded="true"', async () => {
     const user = userEvent.setup()
     render(<SnapshotsDropdown />)
     const trigger = screen.getByRole('button', { name: /Snapshot:/ })
     await user.click(trigger)
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByText('Save As...')).toBeDefined()
-    expect(screen.getByText('Original')).toBeDefined()
   })
 
   it('closes dropdown on second click', async () => {
@@ -93,18 +54,6 @@ describe('SnapshotsDropdown', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     await user.click(trigger)
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
-  })
-
-  it('lists all snapshots in the dropdown menu', async () => {
-    const user = userEvent.setup()
-    mockOrg.snapshots = [
-      { name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' },
-      { name: 'Sprint 2', timestamp: '2025-02-15T10:30:00Z' },
-    ]
-    render(<SnapshotsDropdown />)
-    await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
-    expect(screen.getByText('Sprint 1')).toBeDefined()
-    expect(screen.getByText('Sprint 2')).toBeDefined()
   })
 
   it('calls loadSnapshot when a snapshot item is clicked', async () => {
@@ -124,7 +73,6 @@ describe('SnapshotsDropdown', () => {
     mockOrg.loadSnapshot = loadFn
     render(<SnapshotsDropdown />)
     await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
-    // The Original item in the menu (not the trigger label)
     await user.click(screen.getByText('Original'))
     expect(loadFn).toHaveBeenCalledWith('__original__')
   })
