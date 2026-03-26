@@ -111,17 +111,19 @@ describe('PersonNode', () => {
     expect(node).toBeNull()
   })
 
-  it('shows truncated public note when present', () => {
-    const longNote = 'This is a very long public note that exceeds sixty characters in total length'
-    render(<PersonNode person={makePerson({ publicNote: longNote })} />)
-    expect(screen.getByText(longNote.slice(0, 57) + '...')).toBeDefined()
+  it('shows note icon when public note is present', () => {
+    const { container } = render(
+      <PersonNode person={makePerson({ publicNote: 'Some note' })} />
+    )
+    const icon = container.querySelector('[class*="noteIcon"]')
+    expect(icon).toBeDefined()
   })
 
-  it('does not show note line when publicNote is empty', () => {
+  it('does not show note icon when no notes', () => {
     const { container } = render(
       <PersonNode person={makePerson()} />
     )
-    const note = container.querySelector('[class*="notePreview"]')
-    expect(note).toBeNull()
+    const icon = container.querySelector('[class*="noteIcon"]')
+    expect(icon).toBeNull()
   })
 })

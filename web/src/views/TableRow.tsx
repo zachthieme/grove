@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import type { Person, Pod } from '../api/types'
+import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import type { ColumnDef } from './tableColumns'
 import { getPersonValue } from './tableColumns'
@@ -10,31 +10,27 @@ import styles from './TableView.module.css'
 interface TableRowProps {
   person: Person
   columns: ColumnDef[]
-  pods: Pod[]
   managers: { value: string; label: string }[]
   change?: PersonChange
   readOnly?: boolean
+  selected?: boolean
+  onToggleSelect?: (personId: string) => void
   onUpdate: (personId: string, field: string, value: string) => Promise<void>
   onDelete: (personId: string) => void
-  onExpand: (personId: string) => void
 }
 
-function getDropdownOptions(key: string, person: Person, pods: Pod[], managers: { value: string; label: string }[]): { value: string; label: string }[] | undefined {
+function getDropdownOptions(key: string, managers: { value: string; label: string }[]): { value: string; label: string }[] | undefined {
   switch (key) {
     case 'status':
       return STATUSES.map(s => ({ value: s, label: s }))
     case 'managerId':
       return managers
-    case 'pod':
-      return pods
-        .filter(p => p.managerId === person.managerId)
-        .map(p => ({ value: p.name, label: p.name }))
     default:
       return undefined
   }
 }
 
-export default function TableRow({ person, columns, pods, managers, change, readOnly, onUpdate, onDelete, onExpand }: TableRowProps) {
+export default function TableRow({ person, columns, managers, change, readOnly, selected, onToggleSelect, onUpdate, onDelete }: TableRowProps) {
   const cellRefs = useRef<(HTMLTableCellElement | null)[]>([])
 
   const handleTab = useCallback((colIdx: number, shift: boolean) => {
@@ -55,9 +51,14 @@ export default function TableRow({ person, columns, pods, managers, change, read
     : ''
 
   return (
-    <tr className={`${styles.row} ${diffClass}`}>
+    <tr className={`${styles.row} ${diffClass} ${selected ? styles.rowSelected : ''}`}>
       <td className={styles.actionCell}>
-        <button className={styles.expandBtn} onClick={() => onExpand(person.id)} title="Open in sidebar">&#x2922;</button>
+        <input
+          type="checkbox"
+          className={styles.selectCheckbox}
+          checked={!!selected}
+          onChange={() => onToggleSelect?.(person.id)}
+        />
       </td>
       {columns.map((col, i) => (
         <TableCell
@@ -65,7 +66,7 @@ export default function TableRow({ person, columns, pods, managers, change, read
           value={getPersonValue(person, col.key)}
           cellType={col.cellType}
           readOnly={readOnly}
-          options={getDropdownOptions(col.key, person, pods, managers)}
+          options={getDropdownOptions(col.key, managers)}
           onSave={async (v) => onUpdate(person.id, col.key, v)}
           onTab={(shift) => handleTab(i, shift)}
           cellRef={(el) => { cellRefs.current[i] = el }}

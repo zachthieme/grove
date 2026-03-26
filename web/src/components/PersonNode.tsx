@@ -39,6 +39,8 @@ interface Props {
 
 export default function PersonNode({ person, selected, ghost, changes, showTeam, isManager, onAdd, onDelete, onInfo, onFocus, onClick }: Props) {
   const [hovered, setHovered] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
+  const hasNotes = !!person.publicNote
   const isRecruiting = person.status === 'Open' || person.status === 'Backfill'
   const isFuture = person.status === 'Pending Open' || person.status === 'Planned'
   const isTransfer = person.status === 'Transfer In' || person.status === 'Transfer Out'
@@ -98,14 +100,21 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
           {person.role || 'TBD'}
           {empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}
         </div>
-        {person.publicNote && (
-          <div className={styles.notePreview}>
-            {person.publicNote.length > 60
-              ? person.publicNote.slice(0, 57) + '...'
-              : person.publicNote}
-          </div>
-        )}
       </div>
+      {hasNotes && (
+        <button
+          className={`${styles.noteIcon} ${noteOpen ? styles.noteIconActive : ''}`}
+          onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
+          title="Toggle notes"
+        >
+          {'\u{1F4CB}'}
+        </button>
+      )}
+      {noteOpen && hasNotes && (
+        <div className={styles.notePanel}>
+          <div className={styles.notePanelText}>{person.publicNote}</div>
+        </div>
+      )}
     </div>
   )
 }

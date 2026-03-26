@@ -86,7 +86,7 @@ describe('TableView', () => {
   })
 
   it('renders column headers', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     expect(screen.getByText('Name')).toBeDefined()
     expect(screen.getByText('Role')).toBeDefined()
@@ -98,7 +98,7 @@ describe('TableView', () => {
   })
 
   it('renders people data in the table', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     // Alice appears in her name cell and also as a manager label for Bob's manager column
     expect(screen.getAllByText('Alice').length).toBeGreaterThanOrEqual(1)
@@ -110,46 +110,46 @@ describe('TableView', () => {
   })
 
   it('shows correct row count', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     expect(screen.getByText('2 people')).toBeDefined()
   })
 
   it('shows correct row count with single person', () => {
-    render(<TableView people={[testPeople[0]]} pods={[]} />)
+    render(<TableView people={[testPeople[0]]} />)
 
     expect(screen.getByText('1 people')).toBeDefined()
   })
 
   it('shows 0 people when empty', () => {
-    render(<TableView people={[]} pods={[]} />)
+    render(<TableView people={[]} />)
 
     expect(screen.getByText('0 people')).toBeDefined()
   })
 
   it('hides add and paste buttons in read-only mode', () => {
-    render(<TableView people={testPeople} pods={[]} readOnly={true} />)
+    render(<TableView people={testPeople} readOnly={true} />)
 
     expect(screen.queryByTitle('Add row')).toBeNull()
     expect(screen.queryByTitle('Paste rows from clipboard')).toBeNull()
   })
 
   it('shows add and paste buttons in normal mode', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     expect(screen.getByTitle('Add row')).toBeDefined()
     expect(screen.getByTitle('Paste rows from clipboard')).toBeDefined()
   })
 
   it('hides delete buttons in read-only mode', () => {
-    render(<TableView people={testPeople} pods={[]} readOnly={true} />)
+    render(<TableView people={testPeople} readOnly={true} />)
 
     const deleteButtons = screen.queryAllByTitle('Delete')
     expect(deleteButtons).toHaveLength(0)
   })
 
   it('cells are not editable in read-only mode', () => {
-    const { container } = render(<TableView people={testPeople} pods={[]} readOnly={true} />)
+    const { container } = render(<TableView people={testPeople} readOnly={true} />)
 
     // Click on a data cell in the tbody - in read-only mode, no input should appear
     const dataCells = container.querySelectorAll('tbody td')
@@ -159,12 +159,13 @@ describe('TableView', () => {
     fireEvent.click(textCell!)
 
     // In read-only mode, clicking a cell should NOT produce any editing input inside the table body
-    const editInputs = container.querySelectorAll('tbody td input, tbody td select')
+    // (exclude checkboxes which are always present for selection)
+    const editInputs = container.querySelectorAll('tbody td input:not([type="checkbox"]), tbody td select')
     expect(editInputs).toHaveLength(0)
   })
 
   it('cells become editable when clicked in normal mode', () => {
-    const { container } = render(<TableView people={testPeople} pods={[]} />)
+    const { container } = render(<TableView people={testPeople} />)
 
     // Find the first data row's first text cell (Name column for Alice)
     const firstRow = container.querySelector('tbody tr')!
@@ -180,7 +181,7 @@ describe('TableView', () => {
   })
 
   it('renders the Columns toggle button', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     // The button text includes a down arrow character
     const colBtn = screen.getByText(/Columns/)
@@ -188,7 +189,7 @@ describe('TableView', () => {
   })
 
   it('shows column visibility dropdown when Columns button is clicked', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     const colBtn = screen.getByText(/Columns/)
     fireEvent.click(colBtn)
@@ -202,7 +203,7 @@ describe('TableView', () => {
   })
 
   it('clicking delete calls remove with person id', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     const deleteButtons = screen.getAllByTitle('Delete')
     expect(deleteButtons).toHaveLength(2)
@@ -213,7 +214,7 @@ describe('TableView', () => {
   })
 
   it('clicking second delete calls remove with correct id', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+    render(<TableView people={testPeople} />)
 
     const deleteButtons = screen.getAllByTitle('Delete')
 
@@ -228,7 +229,7 @@ describe('TableView', () => {
     ])
 
     const { container } = render(
-      <TableView people={testPeople} pods={[]} changes={changes} />
+      <TableView people={testPeople} changes={changes} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
@@ -242,7 +243,7 @@ describe('TableView', () => {
     ])
 
     const { container } = render(
-      <TableView people={testPeople} pods={[]} changes={changes} />
+      <TableView people={testPeople} changes={changes} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
@@ -256,7 +257,7 @@ describe('TableView', () => {
     ])
 
     const { container } = render(
-      <TableView people={testPeople} pods={[]} changes={changes} />
+      <TableView people={testPeople} changes={changes} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
@@ -270,7 +271,7 @@ describe('TableView', () => {
     ])
 
     const { container } = render(
-      <TableView people={testPeople} pods={[]} changes={changes} />
+      <TableView people={testPeople} changes={changes} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
@@ -284,7 +285,7 @@ describe('TableView', () => {
     ])
 
     const { container } = render(
-      <TableView people={testPeople} pods={[]} changes={changes} />
+      <TableView people={testPeople} changes={changes} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
@@ -294,7 +295,7 @@ describe('TableView', () => {
 
   it('does not apply diff class when no changes', () => {
     const { container } = render(
-      <TableView people={testPeople} pods={[]} />
+      <TableView people={testPeople} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
@@ -309,25 +310,25 @@ describe('TableView', () => {
 
   it('renders correct number of rows matching people count', () => {
     const { container } = render(
-      <TableView people={testPeople} pods={[]} />
+      <TableView people={testPeople} />
     )
 
     const rows = container.querySelectorAll('tbody tr')
     expect(rows).toHaveLength(2)
   })
 
-  it('renders expand buttons for each row', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+  it('renders checkboxes for each row', () => {
+    const { container } = render(<TableView people={testPeople} />)
 
-    const expandBtns = screen.getAllByTitle('Open in sidebar')
-    expect(expandBtns).toHaveLength(2)
+    const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
+    expect(checkboxes).toHaveLength(2)
   })
 
-  it('clicking expand calls toggleSelect with person id', () => {
-    render(<TableView people={testPeople} pods={[]} />)
+  it('clicking checkbox calls toggleSelect with person id', () => {
+    const { container } = render(<TableView people={testPeople} />)
 
-    const expandBtns = screen.getAllByTitle('Open in sidebar')
-    fireEvent.click(expandBtns[0])
-    expect(mockToggleSelect).toHaveBeenCalledWith('1', false)
+    const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
+    fireEvent.click(checkboxes[0])
+    expect(mockToggleSelect).toHaveBeenCalledWith('1', true)
   })
 })

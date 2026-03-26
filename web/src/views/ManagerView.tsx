@@ -104,30 +104,33 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
-  // Group ICs by team (pod key) for separate summary cards
-  const icPodGroups = useMemo(() => {
-    if (ics.length === 0) return []
-    const teamOrder: string[] = []
-    const teamMap = new Map<string, Person[]>()
+  // Group ICs: podded ones into named groups, unpodded as a flat group
+  const { unpoddedICs, icPodGroups } = useMemo(() => {
+    if (ics.length === 0) return { unpoddedICs: [] as Person[], icPodGroups: [] as { team: string; people: Person[]; pod: Pod | undefined }[] }
+    const unpodded: Person[] = []
+    const podOrder: string[] = []
+    const podMap = new Map<string, Person[]>()
     for (const ic of ics) {
-      const team = ic.person.team || ''
-      if (!teamMap.has(team)) {
-        teamOrder.push(team)
-        teamMap.set(team, [])
+      const podName = ic.person.pod
+      if (!podName) {
+        unpodded.push(ic.person)
+        continue
       }
-      teamMap.get(team)!.push(ic.person)
+      if (!podMap.has(podName)) {
+        podOrder.push(podName)
+        podMap.set(podName, [])
+      }
+      podMap.get(podName)!.push(ic.person)
     }
-    // Sort alphabetically by pod name
-    teamOrder.sort((a, b) => {
-      const podA = pods?.find((p) => p.managerId === node.person.id && p.team === a)
-      const podB = pods?.find((p) => p.managerId === node.person.id && p.team === b)
-      return (podA?.name ?? a).localeCompare(podB?.name ?? b)
-    })
-    return teamOrder.map((team) => ({
-      team,
-      people: teamMap.get(team)!,
-      pod: pods?.find((p) => p.managerId === node.person.id && p.team === team),
-    }))
+    podOrder.sort((a, b) => a.localeCompare(b))
+    return {
+      unpoddedICs: unpodded,
+      icPodGroups: podOrder.map((podName) => ({
+        team: podName,
+        people: podMap.get(podName)!,
+        pod: pods?.find((p) => p.managerId === node.person.id && p.name === podName),
+      })),
+    }
   }, [ics, pods, node.person.id])
 
   return (
@@ -168,20 +171,25 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
               onPodSelect={onPodSelect}
             />
           ))}
-          {/* ICs summarized — one card per pod group */}
-          {icPodGroups.length === 1 && !icPodGroups[0].pod ? (
-            <SummaryCard people={icPodGroups[0].people} />
+          {/* ICs summarized — unpodded as flat, podded as named groups */}
+          {unpoddedICs.length > 0 && icPodGroups.length === 0 ? (
+            <SummaryCard people={unpoddedICs} />
           ) : (
-            icPodGroups.map((group) => (
-              <SummaryCard
-                key={group.team}
-                people={group.people}
-                podName={group.pod?.name}
-                publicNote={group.pod?.publicNote}
-                podId={group.pod?.id}
-                onPodClick={onPodSelect}
-              />
-            ))
+            <>
+              {unpoddedICs.length > 0 && (
+                <SummaryCard people={unpoddedICs} />
+              )}
+              {icPodGroups.map((group) => (
+                <SummaryCard
+                  key={group.team}
+                  people={group.people}
+                  podName={group.pod?.name}
+                  publicNote={group.pod?.publicNote}
+                  podId={group.pod?.id}
+                  onPodClick={onPodSelect}
+                />
+              ))}
+            </>
           )}
         </div>
       )}

@@ -20,24 +20,26 @@ interface ColumnViewProps {
   managerSet?: Set<string>
   pods?: Pod[]
   onAddReport?: (id: string) => void
-  onAddToTeam?: (parentId: string, team: string) => void
+  onAddToTeam?: (parentId: string, team: string, podName?: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
   onPodSelect?: (podId: string) => void
 }
 
-function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick }: {
+function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef }: {
   podName: string
   memberCount: number
   publicNote?: string
   onAdd?: () => void
   onClick?: () => void
+  nodeRef?: (el: HTMLDivElement | null) => void
 }) {
   const [hovered, setHovered] = useState(false)
 
   return (
     <div
+      ref={nodeRef}
       className={styles.teamHeaderWrapper}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -46,9 +48,10 @@ function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick }: {
         <NodeActions
           showAdd={true}
           showInfo={false}
+          showDelete={false}
           onAdd={(e) => { e.stopPropagation(); onAdd() }}
           onDelete={(e) => { e.stopPropagation() }}
-          onEdit={(e) => { e.stopPropagation() }}
+          onEdit={(e) => { e.stopPropagation(); onClick?.() }}
           onInfo={(e) => { e.stopPropagation() }}
         />
       )}
@@ -77,7 +80,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   managerSet?: Set<string>
   pods?: Pod[]
   onAddReport?: (id: string) => void
-  onAddToTeam?: (parentId: string, team: string) => void
+  onAddToTeam?: (parentId: string, team: string, podName?: string) => void
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
@@ -91,19 +94,21 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   // Check if all render items are ICs (no managers) — use vertical stack
   const allICs = managers.length === 0
 
-  // Look up pod by (managerId, team) pair
-  const findPod = (managerId: string, team: string): Pod | undefined =>
-    pods?.find((p) => p.managerId === managerId && p.team === team)
+  // Look up pod by (managerId, podName)
+  const findPod = (managerId: string, podName: string): Pod | undefined =>
+    pods?.find((p) => p.managerId === managerId && p.name === podName)
 
-  const renderPodHeader = (managerId: string, team: string, memberCount: number) => {
-    const pod = findPod(managerId, team)
+  const renderPodHeader = (managerId: string, podName: string, memberCount: number) => {
+    const pod = findPod(managerId, podName)
+    const podNodeId = `pod:${managerId}:${podName}`
     return (
       <PodHeaderNode
-        podName={pod?.name ?? team}
+        podName={podName}
         memberCount={memberCount}
         publicNote={pod?.publicNote}
-        onAdd={onAddToTeam ? () => onAddToTeam(managerId, team) : undefined}
+        onAdd={onAddToTeam ? () => onAddToTeam(managerId, pod?.team ?? podName, podName) : undefined}
         onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
+        nodeRef={setNodeRef(podNodeId)}
       />
     )
   }
@@ -147,43 +152,55 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
         <div className={styles.children}>
           {allICs ? (
             (() => {
-              // Group ICs by team — if multiple teams, each gets its own column
-              const teamOrder: string[] = []
-              const teamMap = new Map<string, OrgNode[]>()
+              // Split ICs into podded (grouped under pod headers) and unpodded (flat list)
+              const unpodded: OrgNode[] = []
+              const podOrder: string[] = []
+              const podMap = new Map<string, OrgNode[]>()
               for (const ic of ics) {
-                if (!teamMap.has(ic.person.team)) {
-                  teamOrder.push(ic.person.team)
-                  teamMap.set(ic.person.team, [])
+                const podName = ic.person.pod
+                if (!podName) {
+                  unpodded.push(ic)
+                  continue
                 }
-                teamMap.get(ic.person.team)!.push(ic)
+                if (!podMap.has(podName)) {
+                  podOrder.push(podName)
+                  podMap.set(podName, [])
+                }
+                podMap.get(podName)!.push(ic)
               }
-              // Sort teams alphabetically by pod name
-              teamOrder.sort((a, b) => {
-                const podA = findPod(node.person.id, a)
-                const podB = findPod(node.person.id, b)
-                return (podA?.name ?? a).localeCompare(podB?.name ?? b)
-              })
-              if (teamOrder.length > 1) {
-                return teamOrder.map((team) => {
-                  const members = teamMap.get(team)!
-                  return (
-                    <div key={team} className={styles.subtree}>
-                      <div className={styles.nodeSlot}>
-                        {renderPodHeader(node.person.id, team, members.length)}
-                      </div>
-                      <div className={styles.children}>
-                        <div className={styles.icStack}>
-                          {members.map((child) => renderIC(child))}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })
+              podOrder.sort((a, b) => a.localeCompare(b))
+              const hasPods = podOrder.length > 0
+              if (!hasPods) {
+                // No pods at all — simple flat list
+                return (
+                  <div className={styles.icStack}>
+                    {ics.map((child) => renderIC(child))}
+                  </div>
+                )
               }
               return (
-                <div className={styles.icStack}>
-                  {ics.map((child) => renderIC(child))}
-                </div>
+                <>
+                  {unpodded.length > 0 && (
+                    <div className={styles.icStack}>
+                      {unpodded.map((child) => renderIC(child))}
+                    </div>
+                  )}
+                  {podOrder.map((podName) => {
+                    const members = podMap.get(podName)!
+                    return (
+                      <div key={podName} className={styles.subtree}>
+                        <div className={styles.nodeSlot}>
+                          {renderPodHeader(node.person.id, podName, members.length)}
+                        </div>
+                        <div className={styles.children}>
+                          <div className={styles.icStack}>
+                            {members.map((child) => renderIC(child))}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
               )
             })()
           ) : (

@@ -22,7 +22,7 @@ export const TABLE_COLUMNS: ColumnDef[] = [
   { key: 'role', label: 'Role', cellType: 'text', width: '140px' },
   { key: 'discipline', label: 'Discipline', cellType: 'text', width: '120px' },
   { key: 'team', label: 'Team', cellType: 'text', width: '120px' },
-  { key: 'pod', label: 'Pod', cellType: 'dropdown', width: '120px' },
+  { key: 'pod', label: 'Pod', cellType: 'text', width: '120px' },
   { key: 'managerId', label: 'Manager', cellType: 'dropdown', width: '150px' },
   { key: 'status', label: 'Status', cellType: 'dropdown', width: '120px' },
   { key: 'employmentType', label: 'Emp Type', cellType: 'text', width: '90px' },
