@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import LogPanel from './LogPanel'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -34,11 +35,12 @@ describe('LogPanel', () => {
   })
 
   it('renders close button', async () => {
+    const user = userEvent.setup()
     await act(async () => {
       render(<LogPanel onClose={onClose} />)
     })
     const closeBtn = screen.getAllByLabelText('Close')[0]
-    fireEvent.click(closeBtn)
+    await user.click(closeBtn)
     expect(onClose).toHaveBeenCalled()
   })
 

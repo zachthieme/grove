@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"time"
 )
@@ -34,9 +35,7 @@ func (s *OrgService) SaveSnapshot(name string) error {
 	}
 	// Copy snapshot data for persistence outside the lock
 	snapCopy := make(map[string]snapshotData, len(s.snapshots))
-	for k, v := range s.snapshots {
-		snapCopy[k] = v
-	}
+	maps.Copy(snapCopy, s.snapshots)
 	s.mu.Unlock()
 	if err := s.snapshotStore.Write(snapCopy); err != nil {
 		return fmt.Errorf("persisting snapshot: %w", err)
@@ -87,9 +86,7 @@ func (s *OrgService) DeleteSnapshot(name string) error {
 	s.mu.Lock()
 	delete(s.snapshots, name)
 	snapCopy := make(map[string]snapshotData, len(s.snapshots))
-	for k, v := range s.snapshots {
-		snapCopy[k] = v
-	}
+	maps.Copy(snapCopy, s.snapshots)
 	s.mu.Unlock()
 	if err := s.snapshotStore.Write(snapCopy); err != nil {
 		return fmt.Errorf("persisting snapshot deletion: %w", err)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -167,9 +168,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 		}
 
 		snapCopy := make(map[string]snapshotData, len(s.snapshots))
-		for k, v := range s.snapshots {
-			snapCopy[k] = v
-		}
+		maps.Copy(snapCopy, s.snapshots)
 		s.pendingFile = nil
 		s.pendingFilename = ""
 		s.pendingIsZip = false
@@ -426,9 +425,7 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 		return nil, err
 	}
 	// Re-add for switch processing
-	for k, v := range noteFields {
-		fields[k] = v
-	}
+	maps.Copy(fields, noteFields)
 	_, p := s.findWorking(personId)
 	if p == nil {
 		return nil, fmt.Errorf("person %s not found", personId)

@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all cover
+.PHONY: frontend build dev clean e2e test test-all cover bench mutate
 
 frontend:
 	cd web && npm run build
@@ -28,3 +28,9 @@ cover:
 	go test -race -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out | tail -1
 	cd web && npm test -- --coverage
+
+bench:
+	go test -bench=. -benchmem ./internal/api/ -count=3
+
+mutate:
+	cd web && npx stryker run

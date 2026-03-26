@@ -7,6 +7,7 @@ import (
 )
 
 func TestConvertOrg_AssignsIDs(t *testing.T) {
+	t.Parallel()
 	people := []model.Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "Bob", Role: "Engineer", Discipline: "Eng", Manager: "Alice", Team: "Platform", Status: "Active"},
@@ -46,6 +47,7 @@ func TestConvertOrg_AssignsIDs(t *testing.T) {
 }
 
 func TestConvertOrg_PreservesFields(t *testing.T) {
+	t.Parallel()
 	people := []model.Person{
 		{Name: "Eve", Role: "TPM", Discipline: "TPM", Manager: "", Team: "Platform",
 			AdditionalTeams: []string{"Search", "Infra"}, Status: "Active",

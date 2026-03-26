@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
@@ -148,7 +149,8 @@ describe('TableView', () => {
     expect(deleteButtons).toHaveLength(0)
   })
 
-  it('cells are not editable in read-only mode', () => {
+  it('cells are not editable in read-only mode', async () => {
+    const user = userEvent.setup()
     const { container } = render(<TableView people={testPeople} readOnly={true} />)
 
     // Click on a data cell in the tbody - in read-only mode, no input should appear
@@ -156,7 +158,7 @@ describe('TableView', () => {
     // Find a cell that contains text (not an action button cell)
     const textCell = Array.from(dataCells).find(td => td.querySelector('span'))
     expect(textCell).not.toBeNull()
-    fireEvent.click(textCell!)
+    await user.click(textCell!)
 
     // In read-only mode, clicking a cell should NOT produce any editing input inside the table body
     // (exclude checkboxes which are always present for selection)
@@ -164,7 +166,8 @@ describe('TableView', () => {
     expect(editInputs).toHaveLength(0)
   })
 
-  it('cells become editable when clicked in normal mode', () => {
+  it('cells become editable when clicked in normal mode', async () => {
+    const user = userEvent.setup()
     const { container } = render(<TableView people={testPeople} />)
 
     // Find the first data row's first text cell (Name column for Alice)
@@ -172,7 +175,7 @@ describe('TableView', () => {
     const textCells = firstRow.querySelectorAll('td')
     // Cell 0 is the action cell (expand button); cell 1 is the Name cell
     const nameCell = textCells[1]
-    fireEvent.click(nameCell)
+    await user.click(nameCell)
 
     // An input with current value should appear
     const input = nameCell.querySelector('input[type="text"]') as HTMLInputElement
@@ -188,11 +191,12 @@ describe('TableView', () => {
     expect(colBtn).toBeDefined()
   })
 
-  it('shows column visibility dropdown when Columns button is clicked', () => {
+  it('shows column visibility dropdown when Columns button is clicked', async () => {
+    const user = userEvent.setup()
     render(<TableView people={testPeople} />)
 
     const colBtn = screen.getByText(/Columns/)
-    fireEvent.click(colBtn)
+    await user.click(colBtn)
 
     // The dropdown should now show checkbox labels for each column
     const checkboxes = document.querySelectorAll('input[type="checkbox"]')
@@ -202,24 +206,26 @@ describe('TableView', () => {
     expect(screen.getAllByText('Name').length).toBeGreaterThanOrEqual(2) // header + dropdown
   })
 
-  it('clicking delete calls remove with person id', () => {
+  it('clicking delete calls remove with person id', async () => {
+    const user = userEvent.setup()
     render(<TableView people={testPeople} />)
 
     const deleteButtons = screen.getAllByTitle('Delete')
     expect(deleteButtons).toHaveLength(2)
 
     // Click the first delete button (Alice, id='1')
-    fireEvent.click(deleteButtons[0])
+    await user.click(deleteButtons[0])
     expect(mockRemove).toHaveBeenCalledWith('1')
   })
 
-  it('clicking second delete calls remove with correct id', () => {
+  it('clicking second delete calls remove with correct id', async () => {
+    const user = userEvent.setup()
     render(<TableView people={testPeople} />)
 
     const deleteButtons = screen.getAllByTitle('Delete')
 
     // Click the second delete button (Bob, id='2')
-    fireEvent.click(deleteButtons[1])
+    await user.click(deleteButtons[1])
     expect(mockRemove).toHaveBeenCalledWith('2')
   })
 
@@ -324,11 +330,12 @@ describe('TableView', () => {
     expect(checkboxes).toHaveLength(2)
   })
 
-  it('clicking checkbox calls toggleSelect with person id', () => {
+  it('clicking checkbox calls toggleSelect with person id', async () => {
+    const user = userEvent.setup()
     const { container } = render(<TableView people={testPeople} />)
 
     const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
-    fireEvent.click(checkboxes[0])
+    await user.click(checkboxes[0])
     expect(mockToggleSelect).toHaveBeenCalledWith('1', true)
   })
 })

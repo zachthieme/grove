@@ -1,6 +1,9 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+	"maps"
+)
 
 // SnapshotStore abstracts persistence for snapshot data.
 type SnapshotStore interface {
@@ -50,9 +53,7 @@ func (m *MemorySnapshotStore) Read() (map[string]snapshotData, error) {
 		return nil, nil
 	}
 	cp := make(map[string]snapshotData, len(m.data))
-	for k, v := range m.data {
-		cp[k] = v
-	}
+	maps.Copy(cp, m.data)
 	return cp, nil
 }
 
@@ -61,9 +62,7 @@ func (m *MemorySnapshotStore) Write(s map[string]snapshotData) error {
 		return m.writeErr
 	}
 	m.data = make(map[string]snapshotData, len(s))
-	for k, v := range s {
-		m.data[k] = v
-	}
+	maps.Copy(m.data, s)
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 )
 
 func TestInferMapping_ExactMatch(t *testing.T) {
+	t.Parallel()
 	headers := []string{"Name", "Role", "Discipline", "Manager", "Team", "Status", "Additional Teams", "New Role", "New Team"}
 	m := InferMapping(headers)
 
@@ -39,6 +40,7 @@ func TestInferMapping_ExactMatch(t *testing.T) {
 }
 
 func TestInferMapping_CaseInsensitive(t *testing.T) {
+	t.Parallel()
 	headers := []string{"NAME", "rOlE", "  discipline  ", "MANAGER", "team"}
 	m := InferMapping(headers)
 
@@ -70,6 +72,7 @@ func TestInferMapping_CaseInsensitive(t *testing.T) {
 }
 
 func TestInferMapping_SynonymMatch(t *testing.T) {
+	t.Parallel()
 	headers := []string{"Full Name", "Job Title", "Job Family", "Reports To", "Department", "Employment Status", "Other Teams", "Future Role", "Future Team"}
 	m := InferMapping(headers)
 
@@ -101,6 +104,7 @@ func TestInferMapping_SynonymMatch(t *testing.T) {
 }
 
 func TestInferMapping_FuzzyMatch(t *testing.T) {
+	t.Parallel()
 	headers := []string{"Employee Name Field", "Current Role Info", "Primary Discipline Area", "Team Assignment", "Current Status"}
 	m := InferMapping(headers)
 
@@ -132,6 +136,7 @@ func TestInferMapping_FuzzyMatch(t *testing.T) {
 }
 
 func TestInferMapping_UnmatchedHeaders(t *testing.T) {
+	t.Parallel()
 	headers := []string{"Name", "Favorite Color", "Shoe Size"}
 	m := InferMapping(headers)
 
@@ -151,6 +156,7 @@ func TestInferMapping_UnmatchedHeaders(t *testing.T) {
 }
 
 func TestInferMapping_FirstMatchWins(t *testing.T) {
+	t.Parallel()
 	// "Name" is an exact match (tier 1) and "Person" is a synonym (tier 2).
 	// Tier 1 runs first across all headers, so "Name" wins even though "Person"
 	// appears earlier in the header list.
@@ -167,6 +173,7 @@ func TestInferMapping_FirstMatchWins(t *testing.T) {
 }
 
 func TestInferMapping_FirstMatchWins_SameTier(t *testing.T) {
+	t.Parallel()
 	// Two synonyms for the same field — first header in order wins within a tier.
 	headers := []string{"Supervisor", "Reports To"}
 	m := InferMapping(headers)
@@ -181,6 +188,7 @@ func TestInferMapping_FirstMatchWins_SameTier(t *testing.T) {
 }
 
 func TestInferMapping_FuzzyLongerKeywordsFirst(t *testing.T) {
+	t.Parallel()
 	// "discipline" contains "name" as a substring but "discipline" keyword is longer
 	// and should be checked first, so it should map to discipline not name
 	headers := []string{"discipline info"}
@@ -200,6 +208,7 @@ func TestInferMapping_FuzzyLongerKeywordsFirst(t *testing.T) {
 }
 
 func TestInferMapping_PodAndNotes(t *testing.T) {
+	t.Parallel()
 	// Exact matches
 	headers := []string{"Name", "Pod", "Public Note", "Private Note"}
 	m := InferMapping(headers)
@@ -256,6 +265,7 @@ func TestInferMapping_PodAndNotes(t *testing.T) {
 }
 
 func TestAllRequiredHigh_True(t *testing.T) {
+	t.Parallel()
 	m := map[string]MappedColumn{
 		"name":       {Column: "Name", Confidence: "high"},
 		"role":       {Column: "Role", Confidence: "high"},
@@ -269,6 +279,7 @@ func TestAllRequiredHigh_True(t *testing.T) {
 }
 
 func TestAllRequiredHigh_MissingName(t *testing.T) {
+	t.Parallel()
 	m := map[string]MappedColumn{
 		"role":       {Column: "Role", Confidence: "high"},
 		"discipline": {Column: "Discipline", Confidence: "high"},
@@ -281,6 +292,7 @@ func TestAllRequiredHigh_MissingName(t *testing.T) {
 }
 
 func TestAllRequiredHigh_NameMediumConfidence(t *testing.T) {
+	t.Parallel()
 	m := map[string]MappedColumn{
 		"name": {Column: "Name", Confidence: "medium"},
 	}
@@ -290,6 +302,7 @@ func TestAllRequiredHigh_NameMediumConfidence(t *testing.T) {
 }
 
 func TestAllRequiredHigh_OnlyNameRequired(t *testing.T) {
+	t.Parallel()
 	m := map[string]MappedColumn{
 		"name": {Column: "Name", Confidence: "high"},
 	}
@@ -299,6 +312,7 @@ func TestAllRequiredHigh_OnlyNameRequired(t *testing.T) {
 }
 
 func TestInferMapping_Level(t *testing.T) {
+	t.Parallel()
 	headers := []string{"Name", "Team", "Level"}
 	m := InferMapping(headers)
 	if mc, ok := m["level"]; !ok || mc.Column != "Level" {

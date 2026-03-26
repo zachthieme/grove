@@ -5,6 +5,7 @@ import (
 )
 
 func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
+	t.Parallel()
 	// People without Pod field → no pods created
 	people := []Person{
 		{Id: "mgr1", Name: "Alice", ManagerId: "", Team: "Platform"},
@@ -23,6 +24,7 @@ func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 }
 
 func TestSeedPods_GroupsByPodName(t *testing.T) {
+	t.Parallel()
 	// People with explicit Pod fields get grouped
 	people := []Person{
 		{Id: "mgr1", Name: "Alice", ManagerId: "", Team: "Platform"},
@@ -56,6 +58,7 @@ func TestSeedPods_GroupsByPodName(t *testing.T) {
 }
 
 func TestSeedPods_RootNodesSkipped(t *testing.T) {
+	t.Parallel()
 	// Root-only person → 0 pods, Pod field stays empty
 	people := []Person{
 		{Id: "root1", Name: "CEO", ManagerId: "", Team: "Exec"},
@@ -72,6 +75,7 @@ func TestSeedPods_RootNodesSkipped(t *testing.T) {
 }
 
 func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
+	t.Parallel()
 	// Bob has Pod="Alpha Pod", Carol has no pod → only one pod created
 	people := []Person{
 		{Id: "mgr1", Name: "Alice", ManagerId: "", Team: "Platform"},
@@ -97,6 +101,7 @@ func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 }
 
 func TestCleanupEmptyPods(t *testing.T) {
+	t.Parallel()
 	// 2 pods, only 1 has members → cleanup returns 1 pod
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
@@ -117,6 +122,7 @@ func TestCleanupEmptyPods(t *testing.T) {
 }
 
 func TestFindPod(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
@@ -137,6 +143,7 @@ func TestFindPod(t *testing.T) {
 }
 
 func TestFindPodByID(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
@@ -157,6 +164,7 @@ func TestFindPodByID(t *testing.T) {
 }
 
 func TestRenamePod(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{
 		{Id: "pod1", Name: "OldName", Team: "Platform", ManagerId: "mgr1"},
 	}
@@ -186,6 +194,7 @@ func TestRenamePod(t *testing.T) {
 }
 
 func TestRenamePod_NotFound(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{}
 	people := []Person{}
 
@@ -196,6 +205,7 @@ func TestRenamePod_NotFound(t *testing.T) {
 }
 
 func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
+	t.Parallel()
 	person := Person{Id: "p1", Name: "Root", ManagerId: "", Pod: "SomePod"}
 	pods := []Pod{{Id: "pod1", Name: "SomePod", Team: "T", ManagerId: "mgr1"}}
 
@@ -210,6 +220,7 @@ func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 }
 
 func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
@@ -226,6 +237,7 @@ func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 }
 
 func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
@@ -243,6 +255,7 @@ func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 }
 
 func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
+	t.Parallel()
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
@@ -260,6 +273,7 @@ func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 }
 
 func TestCopyPods(t *testing.T) {
+	t.Parallel()
 	src := []Pod{
 		{Id: "pod1", Name: "A", Team: "T1", ManagerId: "m1"},
 		{Id: "pod2", Name: "B", Team: "T2", ManagerId: "m2"},
@@ -277,6 +291,7 @@ func TestCopyPods(t *testing.T) {
 }
 
 func TestCopyPods_Nil(t *testing.T) {
+	t.Parallel()
 	result := CopyPods(nil)
 	if result != nil {
 		t.Errorf("expected nil for nil input, got %v", result)
@@ -284,6 +299,7 @@ func TestCopyPods_Nil(t *testing.T) {
 }
 
 func TestValidateNoteLen(t *testing.T) {
+	t.Parallel()
 	// Within limit
 	if err := validateNoteLen("short note"); err != nil {
 		t.Errorf("unexpected error for short note: %v", err)

@@ -47,6 +47,7 @@ func makeCSV(rows [][]string) []byte {
 }
 
 func TestAdversarial_BOMMarker(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
@@ -100,6 +101,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 }
 
 func TestAdversarial_MixedLineEndings(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Build CSV manually with mixed line endings
 	raw := "Name,Role,Manager,Team,Status\r\n" +
@@ -121,6 +123,7 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 }
 
 func TestAdversarial_UnicodeNames(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	names := []string{
 		"\U0001F469\u200D\U0001F4BB",  // 👩‍💻 (woman technologist, with ZWJ)
@@ -158,6 +161,7 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 }
 
 func TestAdversarial_XSSInFields(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
@@ -185,6 +189,7 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 }
 
 func TestAdversarial_SQLInjectionStrings(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	payload := "Robert'; DROP TABLE people;--"
 	csvData := makeCSV([][]string{
@@ -206,6 +211,7 @@ func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 }
 
 func TestAdversarial_OversizedFields(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 	org := svc.GetOrg()
 	bob := findByName(org.Working, "Bob")
@@ -233,6 +239,7 @@ func TestAdversarial_OversizedFields(t *testing.T) {
 }
 
 func TestAdversarial_OversizedNote(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 	org := svc.GetOrg()
 	bob := findByName(org.Working, "Bob")
@@ -260,6 +267,7 @@ func TestAdversarial_OversizedNote(t *testing.T) {
 }
 
 func TestAdversarial_CircularManagerChain(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 	org := svc.GetOrg()
 	alice := findByName(org.Working, "Alice")
@@ -286,6 +294,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 }
 
 func TestAdversarial_EmptyCSV(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	_, err := svc.Upload("empty.csv", []byte{})
 	if err == nil {
@@ -294,6 +303,7 @@ func TestAdversarial_EmptyCSV(t *testing.T) {
 }
 
 func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
@@ -308,6 +318,7 @@ func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 }
 
 func TestAdversarial_MassivePeopleCount(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	const count = 5000
 	rows := [][]string{{"Name", "Role", "Manager", "Team", "Status"}}
@@ -337,6 +348,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 }
 
 func TestAdversarial_DuplicateHeaders(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Duplicate "Name" header — InferMapping maps to the first "Name" column,
 	// but BuildPeopleWithMapping's headerIndex map overwrites with the last
@@ -364,6 +376,7 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 }
 
 func TestAdversarial_CommasInQuotedFields(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
@@ -384,6 +397,7 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 }
 
 func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Build CSV manually to include a literal newline inside a quoted field.
 	// csv.Writer will handle quoting automatically.
@@ -406,6 +420,7 @@ func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 }
 
 func TestAdversarial_InvalidStatus(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 	org := svc.GetOrg()
 	bob := findByName(org.Working, "Bob")
@@ -420,6 +435,7 @@ func TestAdversarial_InvalidStatus(t *testing.T) {
 }
 
 func TestAdversarial_MoveToNonexistentManager(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 	org := svc.GetOrg()
 	bob := findByName(org.Working, "Bob")
@@ -434,6 +450,7 @@ func TestAdversarial_MoveToNonexistentManager(t *testing.T) {
 }
 
 func TestAdversarial_DeleteNonexistentPerson(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 
 	_, err := svc.Delete("nonexistent-uuid-5678")
@@ -446,6 +463,7 @@ func TestAdversarial_DeleteNonexistentPerson(t *testing.T) {
 }
 
 func TestAdversarial_RestoreFromEmptyBin(t *testing.T) {
+	t.Parallel()
 	svc := setupService(t)
 
 	// Bin starts empty — try to restore a random ID

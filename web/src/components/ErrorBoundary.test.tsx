@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import ErrorBoundary from './ErrorBoundary'
 
 afterEach(cleanup)
@@ -39,7 +40,8 @@ describe('ErrorBoundary', () => {
     consoleSpy.mockRestore()
   })
 
-  it('recovery button resets error state and re-renders children', () => {
+  it('recovery button resets error state and re-renders children', async () => {
+    const user = userEvent.setup()
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     let shouldThrow = true
@@ -64,7 +66,7 @@ describe('ErrorBoundary', () => {
     shouldThrow = false
 
     // Click Try Again
-    fireEvent.click(screen.getByText('Try Again'))
+    await user.click(screen.getByText('Try Again'))
 
     // Children should render again
     expect(screen.getByText('Recovered')).toBeTruthy()

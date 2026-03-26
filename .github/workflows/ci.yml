@@ -26,6 +26,17 @@ jobs:
         run: go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
       - name: Go coverage summary
         run: go tool cover -func=coverage.out | tail -1
+      - name: Go benchmarks
+        run: |
+          go test -bench=. -benchmem ./internal/api/ -count=5 -benchtime=100ms | tee bench-current.txt
+      - name: Compare benchmarks to baseline
+        run: |
+          if [ -f bench-baseline.txt ]; then
+            go install golang.org/x/perf/cmd/benchstat@latest
+            benchstat bench-baseline.txt bench-current.txt || true
+          else
+            echo "No baseline found — skipping comparison. To create one, commit bench-baseline.txt."
+          fi
       - name: Frontend tests
         run: cd web && npm test -- --coverage
 
@@ -42,7 +53,7 @@ jobs:
       - name: Install dependencies
         run: cd web && npm ci
       - name: Install Playwright browsers
-        run: cd web && npx playwright install chromium --with-deps
+        run: cd web && npx playwright install --with-deps
       - name: Build and run E2E tests
         run: make e2e
 

@@ -8,6 +8,7 @@ import (
 )
 
 func TestExportCSV_RoundTrip(t *testing.T) {
+	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -59,6 +60,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 }
 
 func TestExportCSV_IncludesNewFields(t *testing.T) {
+	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
 
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -112,6 +114,7 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 }
 
 func TestExportPodsSidecarCSV(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Id: "m1", Name: "Alice", Team: "Eng"},
 		{Id: "p1", Name: "Bob", ManagerId: "m1", Team: "Platform"},
@@ -140,6 +143,7 @@ func TestExportPodsSidecarCSV(t *testing.T) {
 }
 
 func TestExportCSV_IncludesLevel(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7},
 	}

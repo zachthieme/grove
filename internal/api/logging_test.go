@@ -11,6 +11,7 @@ import (
 )
 
 func TestLogBuffer_Add_and_Entries(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(10)
 	buf.Add(LogEntry{Source: "api", Method: "GET", Path: "/api/org"})
 	buf.Add(LogEntry{Source: "web", Method: "POST", Path: "/api/update"})
@@ -31,6 +32,7 @@ func TestLogBuffer_Add_and_Entries(t *testing.T) {
 }
 
 func TestLogBuffer_Eviction(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(3)
 	buf.Add(LogEntry{Path: "/first"})
 	buf.Add(LogEntry{Path: "/second"})
@@ -49,6 +51,7 @@ func TestLogBuffer_Eviction(t *testing.T) {
 }
 
 func TestLogBuffer_Clear(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(10)
 	buf.Add(LogEntry{Path: "/a"})
 	buf.Add(LogEntry{Path: "/b"})
@@ -61,6 +64,7 @@ func TestLogBuffer_Clear(t *testing.T) {
 }
 
 func TestLogBuffer_FilterByCorrelationID(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(10)
 	buf.Add(LogEntry{CorrelationID: "abc", Path: "/a"})
 	buf.Add(LogEntry{CorrelationID: "def", Path: "/b"})
@@ -73,6 +77,7 @@ func TestLogBuffer_FilterByCorrelationID(t *testing.T) {
 }
 
 func TestLogBuffer_FilterBySource(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(10)
 	buf.Add(LogEntry{Source: "api", Path: "/a"})
 	buf.Add(LogEntry{Source: "web", Path: "/b"})
@@ -87,6 +92,7 @@ func TestLogBuffer_FilterBySource(t *testing.T) {
 }
 
 func TestLogBuffer_FilterBySince(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(10)
 	buf.Add(LogEntry{Path: "/old"})
 	cutoff := time.Now()
@@ -103,8 +109,9 @@ func TestLogBuffer_FilterBySince(t *testing.T) {
 }
 
 func TestLogBuffer_FilterByLimit(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(10)
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		buf.Add(LogEntry{Path: "/x"})
 	}
 
@@ -115,6 +122,7 @@ func TestLogBuffer_FilterByLimit(t *testing.T) {
 }
 
 func TestLogBuffer_Size(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	if buf.Size() != 100 {
 		t.Errorf("expected size 100, got %d", buf.Size())
@@ -122,6 +130,7 @@ func TestLogBuffer_Size(t *testing.T) {
 }
 
 func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
@@ -171,6 +180,7 @@ func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
 }
 
 func TestLoggingMiddleware_ExcludesLogEndpoints(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -193,6 +203,7 @@ func TestLoggingMiddleware_ExcludesLogEndpoints(t *testing.T) {
 }
 
 func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.ReadAll(r.Body)
@@ -214,6 +225,7 @@ func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
 }
 
 func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("binary data"))
@@ -234,6 +246,7 @@ func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
 }
 
 func TestLogEndpoints_GET(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	buf.Add(LogEntry{Source: "api", Method: "GET", Path: "/api/org", CorrelationID: "c1"})
 	buf.Add(LogEntry{Source: "web", Method: "POST", Path: "/api/update", CorrelationID: "c2"})
@@ -280,6 +293,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 }
 
 func TestLogEndpoints_POST(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), buf, NewMemoryAutosaveStore())
 
@@ -302,6 +316,7 @@ func TestLogEndpoints_POST(t *testing.T) {
 }
 
 func TestLogEndpoints_DELETE(t *testing.T) {
+	t.Parallel()
 	buf := NewLogBuffer(100)
 	buf.Add(LogEntry{Path: "/a"})
 	buf.Add(LogEntry{Path: "/b"})
@@ -320,6 +335,7 @@ func TestLogEndpoints_DELETE(t *testing.T) {
 }
 
 func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
+	t.Parallel()
 	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), nil, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("GET", "/api/logs", nil)
@@ -332,6 +348,7 @@ func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
 }
 
 func TestConfigEndpoint(t *testing.T) {
+	t.Parallel()
 	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), NewLogBuffer(10), NewMemoryAutosaveStore())
 	req := httptest.NewRequest("GET", "/api/config", nil)
 	rr := httptest.NewRecorder()

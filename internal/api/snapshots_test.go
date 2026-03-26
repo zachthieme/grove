@@ -6,6 +6,7 @@ import (
 )
 
 func TestSnapshot_SaveAndList(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	if err := svc.SaveSnapshot("v1"); err != nil {
@@ -33,6 +34,7 @@ func TestSnapshot_SaveAndList(t *testing.T) {
 }
 
 func TestSnapshot_Load(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	// Save snapshot, then mutate working data.
@@ -66,6 +68,7 @@ func TestSnapshot_Load(t *testing.T) {
 }
 
 func TestSnapshot_Overwrite(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	if err := svc.SaveSnapshot("v1"); err != nil {
@@ -82,6 +85,7 @@ func TestSnapshot_Overwrite(t *testing.T) {
 }
 
 func TestSnapshot_Delete(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	if err := svc.SaveSnapshot("v1"); err != nil {
@@ -96,6 +100,7 @@ func TestSnapshot_Delete(t *testing.T) {
 }
 
 func TestSnapshot_LoadNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	_, err := svc.LoadSnapshot("nonexistent")
@@ -105,6 +110,7 @@ func TestSnapshot_LoadNotFound(t *testing.T) {
 }
 
 func TestSnapshot_LoadClearsRecycled(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	if err := svc.SaveSnapshot("clean"); err != nil {

@@ -11,6 +11,7 @@ import (
 // --- Snapshot store error path tests ---
 
 func TestSaveSnapshot_PersistenceError(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
@@ -29,6 +30,7 @@ func TestSaveSnapshot_PersistenceError(t *testing.T) {
 }
 
 func TestDeleteSnapshot_PersistenceError(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
@@ -51,6 +53,7 @@ func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 }
 
 func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
@@ -75,6 +78,7 @@ func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 }
 
 func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	store.SetReadErr("corrupted file")
 	svc := NewOrgService(store)
@@ -87,6 +91,7 @@ func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 }
 
 func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	// Pre-populate the store
 	_ = store.Write(map[string]snapshotData{
@@ -106,6 +111,7 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 // --- Autosave store error path tests ---
 
 func TestAutosaveHandler_WriteError(t *testing.T) {
+	t.Parallel()
 	store := NewMemoryAutosaveStore()
 	store.SetWriteErr("disk full")
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -130,6 +136,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 }
 
 func TestAutosaveHandler_ReadError(t *testing.T) {
+	t.Parallel()
 	store := NewMemoryAutosaveStore()
 	store.SetReadErr("corrupted file")
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -145,6 +152,7 @@ func TestAutosaveHandler_ReadError(t *testing.T) {
 }
 
 func TestAutosaveHandler_DeleteError(t *testing.T) {
+	t.Parallel()
 	store := NewMemoryAutosaveStore()
 	store.SetDeleteErr("permission denied")
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -160,6 +168,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 }
 
 func TestAutosaveHandler_RoundTrip(t *testing.T) {
+	t.Parallel()
 	store := NewMemoryAutosaveStore()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(svc, nil, store)
@@ -209,6 +218,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 // --- Snapshot handler error path tests ---
 
 func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	handler := NewRouter(svc, nil, NewMemoryAutosaveStore())
@@ -231,6 +241,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 }
 
 func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	handler := NewRouter(svc, nil, NewMemoryAutosaveStore())
@@ -264,16 +275,19 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 // --- Memory store interface compliance ---
 
 func TestMemorySnapshotStore_Implements_Interface(t *testing.T) {
+	t.Parallel()
 	var _ SnapshotStore = NewMemorySnapshotStore()
 	var _ SnapshotStore = FileSnapshotStore{}
 }
 
 func TestMemoryAutosaveStore_Implements_Interface(t *testing.T) {
+	t.Parallel()
 	var _ AutosaveStore = NewMemoryAutosaveStore()
 	var _ AutosaveStore = FileAutosaveStore{}
 }
 
 func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
+	t.Parallel()
 	store := NewMemorySnapshotStore()
 
 	// Read empty
@@ -319,6 +333,7 @@ func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
 }
 
 func TestMemoryAutosaveStore_BasicOperations(t *testing.T) {
+	t.Parallel()
 	store := NewMemoryAutosaveStore()
 
 	// Read empty

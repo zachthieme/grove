@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import NodeActions from './NodeActions'
 
 afterEach(cleanup)
@@ -83,7 +84,8 @@ describe('NodeActions', () => {
     expect(screen.queryByLabelText('Focus on subtree')).toBeNull()
   })
 
-  it('click handlers fire correctly', () => {
+  it('click handlers fire correctly', async () => {
+    const user = userEvent.setup()
     const onAdd = vi.fn()
     const onDelete = vi.fn()
     const onEdit = vi.fn()
@@ -105,19 +107,19 @@ describe('NodeActions', () => {
       />
     )
 
-    fireEvent.click(screen.getByLabelText('Add direct report'))
+    await user.click(screen.getByLabelText('Add direct report'))
     expect(onAdd).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByLabelText('Delete'))
+    await user.click(screen.getByLabelText('Delete'))
     expect(onDelete).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByLabelText('Edit'))
+    await user.click(screen.getByLabelText('Edit'))
     expect(onEdit).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByLabelText('Org metrics'))
+    await user.click(screen.getByLabelText('Org metrics'))
     expect(onInfo).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByLabelText('Focus on subtree'))
+    await user.click(screen.getByLabelText('Focus on subtree'))
     expect(onFocus).toHaveBeenCalledTimes(1)
   })
 })

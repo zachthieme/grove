@@ -14,6 +14,7 @@ import (
 )
 
 func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
+	t.Parallel()
 	svc := api.NewOrgService(api.NewMemorySnapshotStore())
 	handler := api.NewRouter(svc, nil, api.NewMemoryAutosaveStore())
 

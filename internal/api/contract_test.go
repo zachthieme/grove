@@ -36,6 +36,7 @@ func collectJSONFields(t reflect.Type) []string {
 }
 
 func TestContractPersonFields(t *testing.T) {
+	t.Parallel()
 	// TypeScript Person interface fields
 	expected := []string{
 		"additionalTeams",
@@ -63,6 +64,7 @@ func TestContractPersonFields(t *testing.T) {
 }
 
 func TestContractPodFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"id",
 		"managerId",
@@ -78,6 +80,7 @@ func TestContractPodFields(t *testing.T) {
 }
 
 func TestContractPodInfoFields(t *testing.T) {
+	t.Parallel()
 	// PodInfo extends Pod with memberCount
 	expected := []string{
 		"id",
@@ -95,6 +98,7 @@ func TestContractPodInfoFields(t *testing.T) {
 }
 
 func TestContractOrgDataFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"original",
 		"persistenceWarning",
@@ -109,6 +113,7 @@ func TestContractOrgDataFields(t *testing.T) {
 }
 
 func TestContractAutosaveDataFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"original",
 		"originalPods",
@@ -126,6 +131,7 @@ func TestContractAutosaveDataFields(t *testing.T) {
 }
 
 func TestContractSnapshotInfoFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"name",
 		"timestamp",
@@ -137,6 +143,7 @@ func TestContractSnapshotInfoFields(t *testing.T) {
 }
 
 func TestContractMappedColumnFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"column",
 		"confidence",
@@ -148,6 +155,7 @@ func TestContractMappedColumnFields(t *testing.T) {
 }
 
 func TestContractUploadResponseFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"headers",
 		"mapping",
@@ -164,6 +172,7 @@ func TestContractUploadResponseFields(t *testing.T) {
 }
 
 func TestContractSettingsFields(t *testing.T) {
+	t.Parallel()
 	expected := []string{
 		"disciplineOrder",
 	}
@@ -174,6 +183,7 @@ func TestContractSettingsFields(t *testing.T) {
 }
 
 func TestContractPersonJSONRoundTrip(t *testing.T) {
+	t.Parallel()
 	original := Person{
 		Id:              "uuid-123",
 		Name:            "Jane Doe",

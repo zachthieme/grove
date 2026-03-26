@@ -1,0 +1,32 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/zachthieme/grove/internal/api
+cpu: Apple M4 Pro
+BenchmarkUpload_50-14           	    2932	     44108 ns/op	  112472 B/op	     260 allocs/op
+BenchmarkUpload_50-14           	    2748	     44414 ns/op	  112472 B/op	     260 allocs/op
+BenchmarkUpload_50-14           	    2649	     42866 ns/op	  112472 B/op	     260 allocs/op
+BenchmarkUpload_50-14           	    3172	     38580 ns/op	  112473 B/op	     260 allocs/op
+BenchmarkUpload_50-14           	    3111	     39214 ns/op	  112473 B/op	     260 allocs/op
+BenchmarkUpload_200-14          	     782	    151142 ns/op	  448318 B/op	     869 allocs/op
+BenchmarkUpload_200-14          	     811	    148527 ns/op	  448322 B/op	     869 allocs/op
+BenchmarkUpload_200-14          	     814	    158429 ns/op	  448315 B/op	     869 allocs/op
+BenchmarkUpload_200-14          	     726	    165614 ns/op	  448316 B/op	     869 allocs/op
+BenchmarkUpload_200-14          	     736	    156207 ns/op	  448317 B/op	     869 allocs/op
+BenchmarkUpload_500-14          	     291	    415824 ns/op	 1057025 B/op	    2075 allocs/op
+BenchmarkUpload_500-14          	     273	    436810 ns/op	 1057024 B/op	    2075 allocs/op
+BenchmarkUpload_500-14          	     271	    439548 ns/op	 1057026 B/op	    2075 allocs/op
+BenchmarkUpload_500-14          	     270	    443834 ns/op	 1057024 B/op	    2075 allocs/op
+BenchmarkUpload_500-14          	     271	    443689 ns/op	 1057023 B/op	    2075 allocs/op
+BenchmarkMove-14                	   13840	      8809 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkMove-14                	   13303	      9055 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkMove-14                	   13242	      9100 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkMove-14                	   13177	      9050 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkMove-14                	   13329	      9057 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkUpdate-14              	   12874	      9333 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkUpdate-14              	   13168	      9059 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkUpdate-14              	   13579	      8861 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkUpdate-14              	   13641	      8798 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkUpdate-14              	   13545	      8866 ns/op	   57392 B/op	       2 allocs/op
+BenchmarkExportCSV-14           	    2906	     38360 ns/op	   87128 B/op	     208 allocs/op
+BenchmarkExportCSV-14           	    3009	     42304 ns/op	   87128 B/op	     208 allocs/op
+BenchmarkExportCSV-14           	

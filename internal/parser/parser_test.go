@@ -5,6 +5,7 @@ import (
 )
 
 func TestBuildPeopleWithMapping(t *testing.T) {
+	t.Parallel()
 	header := []string{"Full Name", "Job Title", "Dept", "Supervisor", "Function", "State"}
 	rows := [][]string{
 		{"Alice", "VP", "Engineering", "", "Eng", "Active"},
@@ -34,6 +35,7 @@ func TestBuildPeopleWithMapping(t *testing.T) {
 }
 
 func TestBuildPeopleWithMapping_MissingName(t *testing.T) {
+	t.Parallel()
 	header := []string{"Job Title", "Dept"}
 	rows := [][]string{{"VP", "Eng"}}
 	mapping := map[string]string{"role": "Job Title", "team": "Dept"}
@@ -45,6 +47,7 @@ func TestBuildPeopleWithMapping_MissingName(t *testing.T) {
 }
 
 func TestBuildPeopleWithMapping_OnlyNameMapped(t *testing.T) {
+	t.Parallel()
 	header := []string{"Full Name"}
 	rows := [][]string{{"Alice"}, {"Bob"}}
 	mapping := map[string]string{"name": "Full Name"}

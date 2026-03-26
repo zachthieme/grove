@@ -19,6 +19,7 @@ func newTestService(t *testing.T) *OrgService {
 }
 
 func TestOrgService_Upload(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	if data == nil {
@@ -36,6 +37,7 @@ func TestOrgService_Upload(t *testing.T) {
 }
 
 func TestOrgService_Move(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	carol := findByName(data.Working, "Carol")
@@ -60,6 +62,7 @@ func TestOrgService_Move(t *testing.T) {
 }
 
 func TestOrgService_Update(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -78,6 +81,7 @@ func TestOrgService_Update(t *testing.T) {
 }
 
 func TestOrgService_Add(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
@@ -101,6 +105,7 @@ func TestOrgService_Add(t *testing.T) {
 }
 
 func TestOrgService_Delete(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -131,6 +136,7 @@ func TestOrgService_Delete(t *testing.T) {
 }
 
 func TestOrgService_SoftDelete(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bobId := findByName(data.Working, "Bob").Id
@@ -159,6 +165,7 @@ func TestOrgService_SoftDelete(t *testing.T) {
 }
 
 func TestOrgService_Restore(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bobId := findByName(data.Working, "Bob").Id
@@ -182,6 +189,7 @@ func TestOrgService_Restore(t *testing.T) {
 }
 
 func TestOrgService_Restore_ManagerGone(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	carolId := findByName(data.Working, "Carol").Id
@@ -205,6 +213,7 @@ func TestOrgService_Restore_ManagerGone(t *testing.T) {
 }
 
 func TestOrgService_EmptyBin(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bobId := findByName(data.Working, "Bob").Id
@@ -228,6 +237,7 @@ func TestOrgService_EmptyBin(t *testing.T) {
 }
 
 func TestOrgService_Upload_AutoProceed(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	resp, err := svc.Upload("test.csv", csv)
@@ -246,6 +256,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 }
 
 func TestOrgService_Upload_NeedsMapping(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Use headers that won't all map to high confidence.
 	// "Nombre" and "Nivel" are unrecognizable, so name/role won't be high.
@@ -272,6 +283,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 }
 
 func TestOrgService_ConfirmMapping(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Use unrecognizable headers so InferMapping won't auto-proceed.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
@@ -305,6 +317,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 }
 
 func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	_, err := svc.ConfirmMapping(map[string]string{"name": "Name"})
 	if err == nil {
@@ -313,6 +326,7 @@ func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 }
 
 func TestOrgService_Reorder(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
@@ -341,6 +355,7 @@ func TestOrgService_Reorder(t *testing.T) {
 }
 
 func TestOrgService_Reorder_PartialIds(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -358,6 +373,7 @@ func TestOrgService_Reorder_PartialIds(t *testing.T) {
 }
 
 func TestOrgService_ResetToOriginal(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -416,6 +432,7 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 // --- Additional Update field coverage ---
 
 func TestOrgService_Update_AllFields(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -469,6 +486,7 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 }
 
 func TestOrgService_Update_InvalidStatus(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -480,6 +498,7 @@ func TestOrgService_Update_InvalidStatus(t *testing.T) {
 }
 
 func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -501,6 +520,7 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 }
 
 func TestOrgService_Update_UnknownField(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -512,6 +532,7 @@ func TestOrgService_Update_UnknownField(t *testing.T) {
 }
 
 func TestOrgService_Update_PersonNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, err := svc.Update("nonexistent", map[string]string{"role": "VP"})
 	if err == nil {
@@ -520,6 +541,7 @@ func TestOrgService_Update_PersonNotFound(t *testing.T) {
 }
 
 func TestOrgService_Move_PersonNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, err := svc.Move("nonexistent", "", "Eng")
 	if err == nil {
@@ -528,6 +550,7 @@ func TestOrgService_Move_PersonNotFound(t *testing.T) {
 }
 
 func TestOrgService_Move_ManagerNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -539,6 +562,7 @@ func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 }
 
 func TestOrgService_Move_NoTeamChange(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	carol := findByName(data.Working, "Carol")
@@ -559,6 +583,7 @@ func TestOrgService_Move_NoTeamChange(t *testing.T) {
 }
 
 func TestOrgService_Move_SelfAsManager(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -570,6 +595,7 @@ func TestOrgService_Move_SelfAsManager(t *testing.T) {
 }
 
 func TestOrgService_Move_CycleDetection(t *testing.T) {
+	t.Parallel()
 	// Alice -> Bob -> Carol
 	// Moving Alice under Carol would create Alice -> Carol -> ... -> Alice
 	svc := newTestService(t)
@@ -584,6 +610,7 @@ func TestOrgService_Move_CycleDetection(t *testing.T) {
 }
 
 func TestOrgService_Update_CycleDetection(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
@@ -597,6 +624,7 @@ func TestOrgService_Update_CycleDetection(t *testing.T) {
 }
 
 func TestOrgService_Delete_PersonNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, err := svc.Delete("nonexistent")
 	if err == nil {
@@ -605,6 +633,7 @@ func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 }
 
 func TestOrgService_Restore_PersonNotFound(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, err := svc.Restore("nonexistent")
 	if err == nil {
@@ -613,6 +642,7 @@ func TestOrgService_Restore_PersonNotFound(t *testing.T) {
 }
 
 func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -645,6 +675,7 @@ func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 }
 
 func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -669,6 +700,7 @@ func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 }
 
 func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	_, err := svc.Upload("test.txt", []byte("hello"))
 	if err == nil {
@@ -677,6 +709,7 @@ func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 }
 
 func TestOrgService_Upload_InvalidCSV(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Only header, no data row
 	_, err := svc.Upload("test.csv", []byte("Name,Role\n"))
@@ -686,6 +719,7 @@ func TestOrgService_Upload_InvalidCSV(t *testing.T) {
 }
 
 func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	bob := findByName(data.Working, "Bob")
@@ -710,6 +744,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 }
 
 func TestOrgService_GetOrg_NoData(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := svc.GetOrg()
 	if data != nil {
@@ -718,6 +753,7 @@ func TestOrgService_GetOrg_NoData(t *testing.T) {
 }
 
 func TestOrgService_FieldLengthValidation(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
@@ -750,6 +786,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 }
 
 func TestOrgService_ValidateManagerChange(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	alice := findByName(data.Working, "Alice")
@@ -787,12 +824,14 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 }
 
 func TestOrgService_ExportSnapshot(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	if err := svc.SaveSnapshot("snap1"); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 
 	t.Run("returns working for __working__", func(t *testing.T) {
+		t.Parallel()
 		people, err := svc.ExportSnapshot("__working__")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -803,6 +842,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 	})
 
 	t.Run("returns original for __original__", func(t *testing.T) {
+		t.Parallel()
 		people, err := svc.ExportSnapshot("__original__")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -813,6 +853,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 	})
 
 	t.Run("returns named snapshot", func(t *testing.T) {
+		t.Parallel()
 		people, err := svc.ExportSnapshot("snap1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -823,6 +864,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 	})
 
 	t.Run("errors on missing snapshot", func(t *testing.T) {
+		t.Parallel()
 		_, err := svc.ExportSnapshot("nonexistent")
 		if err == nil {
 			t.Error("expected error for missing snapshot")
@@ -830,6 +872,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 	})
 
 	t.Run("returns deep copy", func(t *testing.T) {
+		t.Parallel()
 		people, _ := svc.ExportSnapshot("snap1")
 		people[0].Name = "MUTATED"
 		original, _ := svc.ExportSnapshot("snap1")
@@ -840,10 +883,12 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 }
 
 func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 
 	for _, name := range []string{"__working__", "__original__"} {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			err := svc.SaveSnapshot(name)
 			if err == nil {
 				t.Errorf("expected error for reserved name %q", name)
@@ -853,6 +898,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 }
 
 func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, _, _, err := svc.Add(Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
 	if err == nil {
@@ -861,6 +907,7 @@ func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 }
 
 func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	_, _, _, err := svc.Add(Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
 	if err == nil {
@@ -869,6 +916,7 @@ func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 }
 
 func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	if err := svc.SaveSnapshot("important"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
@@ -888,6 +936,7 @@ func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 }
 
 func TestUpload_SeedsPods(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status,Pod\nAlice,VP,Eng,,Eng,Active,\nBob,Engineer,Eng,Alice,Platform,Active,Platform\nCarol,Engineer,Eng,Alice,Infra,Active,Infra\n"
 	resp, err := svc.Upload("test.csv", []byte(csv))
@@ -903,6 +952,7 @@ func TestUpload_SeedsPods(t *testing.T) {
 }
 
 func TestUpload_DerivesSettings(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Product,,Eng,Active\nBob,Engineer,Engineering,Alice,Platform,Active\n"
 	resp, err := svc.Upload("test.csv", []byte(csv))
@@ -924,6 +974,7 @@ func TestUpload_DerivesSettings(t *testing.T) {
 // --- RestoreState tests ---
 
 func TestOrgService_RestoreState_FullState(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	settings := &Settings{DisciplineOrder: []string{"Eng", "Product"}}
 	data := AutosaveData{
@@ -974,6 +1025,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 }
 
 func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
 		Original: []Person{
@@ -1018,6 +1070,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 }
 
 func TestOrgService_RestoreState_NilSettings(t *testing.T) {
+	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
 		Original: []Person{
@@ -1050,6 +1103,7 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 // --- isFrontlineManager tests ---
 
 func TestOrgService_IsFrontlineManager(t *testing.T) {
+	t.Parallel()
 	// Build a hierarchy: Alice -> Bob -> Carol, Alice -> Dave (IC)
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Alice,Eng,Active\n")
@@ -1067,6 +1121,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	dave := findByName(data.Working, "Dave")
 
 	t.Run("person with ICs but no sub-managers is frontline", func(t *testing.T) {
+		t.Parallel()
 		// Bob has Carol (IC only) -> frontline manager
 		svc.mu.RLock()
 		result := svc.isFrontlineManager(bob.Id)
@@ -1077,6 +1132,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	})
 
 	t.Run("person with sub-managers is not frontline", func(t *testing.T) {
+		t.Parallel()
 		// Alice has Bob (who has reports) and Dave -> not frontline
 		svc.mu.RLock()
 		result := svc.isFrontlineManager(alice.Id)
@@ -1087,6 +1143,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	})
 
 	t.Run("person with no reports is not frontline", func(t *testing.T) {
+		t.Parallel()
 		// Carol has no reports -> not frontline
 		svc.mu.RLock()
 		result := svc.isFrontlineManager(carol.Id)
@@ -1097,6 +1154,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	})
 
 	t.Run("IC with no reports is not frontline", func(t *testing.T) {
+		t.Parallel()
 		svc.mu.RLock()
 		result := svc.isFrontlineManager(dave.Id)
 		svc.mu.RUnlock()
@@ -1109,6 +1167,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 // --- Team cascade on Update tests ---
 
 func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
+	t.Parallel()
 	// Bob is a frontline manager with ICs Carol and Dave.
 	// Changing Bob's team should cascade to Carol and Dave.
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1145,6 +1204,7 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 }
 
 func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
+	t.Parallel()
 	// Alice -> Bob -> Carol. Alice is NOT a frontline manager (Bob has reports).
 	// Changing Alice's team should NOT cascade to Bob or Carol.
 	svc := newTestService(t) // Alice -> Bob -> Carol
@@ -1175,6 +1235,7 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 // --- Pod auto-create on Update tests ---
 
 func TestOrgService_Update_PodAutoCreate(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t) // Alice -> Bob -> Carol
 	data := svc.GetOrg()
 	carol := findByName(data.Working, "Carol")
@@ -1203,6 +1264,7 @@ func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 }
 
 func TestOrgService_Update_PodReusesExisting(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	carol := findByName(data.Working, "Carol")
@@ -1241,6 +1303,7 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 }
 
 func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
+	t.Parallel()
 	svc := newTestService(t)
 	data := svc.GetOrg()
 	carol := findByName(data.Working, "Carol")

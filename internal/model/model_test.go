@@ -3,6 +3,7 @@ package model
 import "testing"
 
 func TestNewOrg_ValidPeople(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Engineering", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "Bob", Role: "Engineer", Discipline: "Engineering", Manager: "Alice", Team: "Platform", Status: "Active"},
@@ -20,6 +21,7 @@ func TestNewOrg_ValidPeople(t *testing.T) {
 }
 
 func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "Alice", Role: "PM", Discipline: "PM", Manager: "", Team: "PM", Status: "Active"},
@@ -34,6 +36,7 @@ func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
 }
 
 func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Bob", Role: "Eng", Discipline: "Eng", Manager: "Nobody", Team: "Eng", Status: "Active"},
 	}
@@ -47,6 +50,7 @@ func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
 }
 
 func TestNewOrg_AnyOrderAllowed(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Bob", Role: "Engineer", Discipline: "Eng", Manager: "Alice", Team: "Platform", Status: "Active"},
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
@@ -61,6 +65,7 @@ func TestNewOrg_AnyOrderAllowed(t *testing.T) {
 }
 
 func TestNewOrg_InvalidStatusWarns(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "TBD"},
 	}
@@ -77,6 +82,7 @@ func TestNewOrg_InvalidStatusWarns(t *testing.T) {
 }
 
 func TestNewOrg_MissingFieldWarns(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Alice", Role: "", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 	}
@@ -90,6 +96,7 @@ func TestNewOrg_MissingFieldWarns(t *testing.T) {
 }
 
 func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "Incoming", Role: "", Discipline: "", Manager: "Alice", Team: "Eng", Status: "Transfer In"},
@@ -104,6 +111,7 @@ func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
 }
 
 func TestNewOrg_NewStatuses(t *testing.T) {
+	t.Parallel()
 	allStatuses := []string{
 		StatusActive, StatusOpen, StatusPendingOpen,
 		StatusTransferIn, StatusTransferOut,
@@ -128,6 +136,7 @@ func TestNewOrg_NewStatuses(t *testing.T) {
 }
 
 func TestNewOrg_OldStatusesWarn(t *testing.T) {
+	t.Parallel()
 	oldStatuses := []string{"Hiring", "Transfer"}
 	for _, s := range oldStatuses {
 		people := []Person{
@@ -145,6 +154,7 @@ func TestNewOrg_OldStatusesWarn(t *testing.T) {
 }
 
 func TestNewOrg_MultipleWarnings(t *testing.T) {
+	t.Parallel()
 	// A single row missing name, team, and with invalid status should get all issues in one warning.
 	people := []Person{
 		{Name: "", Role: "Eng", Discipline: "Eng", Manager: "", Team: "", Status: "Bogus"},
@@ -169,6 +179,7 @@ func TestNewOrg_MultipleWarnings(t *testing.T) {
 }
 
 func TestNewOrg_WarningDoesNotBlockOtherRows(t *testing.T) {
+	t.Parallel()
 	people := []Person{
 		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 		{Name: "", Role: "", Discipline: "", Manager: "", Team: "", Status: "Bogus"}, // bad row
@@ -212,6 +223,7 @@ func containsSubstr(s, sub string) bool {
 }
 
 func TestNewOrg_Empty(t *testing.T) {
+	t.Parallel()
 	_, err := NewOrg([]Person{})
 	if err == nil {
 		t.Error("expected error for empty data")
