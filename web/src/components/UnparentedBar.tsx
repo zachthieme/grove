@@ -4,7 +4,7 @@ import styles from './UnparentedBar.module.css'
 
 export default function UnparentedBar() {
   const { working, toggleSelect } = useOrg()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
 
   // People with direct reports are tree roots, not orphans
   const hasReports = new Set<string>()

@@ -90,10 +90,14 @@ export function useLassoSelect({ containerRef, nodeRefs, onSelect, enabled = tru
   }, [containerRef, nodeRefs, onSelect])
 
   const handleMouseUp = useCallback(() => {
+    if (startRef.current && !activeRef.current) {
+      // Simple click on empty space (no drag) — clear selection
+      onSelect(new Set())
+    }
     startRef.current = null
     activeRef.current = false
     setLassoRect(null)
-  }, [])
+  }, [onSelect])
 
   useEffect(() => {
     const container = containerRef.current

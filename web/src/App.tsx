@@ -27,7 +27,7 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, toggleSelect, batchSelect, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
+  const { loaded, viewMode, dataView, selectedIds, toggleSelect, batchSelect, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
@@ -51,6 +51,7 @@ function AppContent() {
   const sortedPeople = useSortedPeople(people, settings.disciplineOrder)
   const clearHead = useCallback(() => setHead(null), [setHead])
   useEscapeKey(clearHead, !!headPersonId)
+  useEscapeKey(clearSelection, selectedIds.size > 0)
 
   const handleSelect = useCallback((id: string, event?: React.MouseEvent) => {
     const multi = !!(event && (event.shiftKey || event.metaKey || event.ctrlKey))
