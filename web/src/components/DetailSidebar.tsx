@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useOrg } from '../store/OrgContext'
+import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { Person } from '../api/types'
 import styles from './DetailSidebar.module.css'
 import { STATUSES, STATUS_DESCRIPTIONS, MIXED_VALUE } from '../constants'
@@ -90,9 +91,7 @@ export default function DetailSidebar() {
   const [form, setForm] = useState<FormFields>(blankForm)
   const [batchDirty, setBatchDirty] = useState<Set<string>>(new Set())
   const [showStatusInfo, setShowStatusInfo] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const saveTimerRef = useRef<number>(undefined)
+  const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
 
   const managers = useMemo(() => {
     const managerIds = new Set(working.filter((p) => p.managerId).map((p) => p.managerId))
@@ -115,17 +114,6 @@ export default function DetailSidebar() {
     }
   }, [isBatch ? selectedIds.size : personDataKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
-  }, [])
-
-  const markSaved = () => {
-    setSaveStatus('saved')
-    setSaveError(null)
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = window.setTimeout(() => setSaveStatus('idle'), 1500)
-  }
-
   const handleChange = (field: keyof FormFields, value: string) => {
     if (field === 'managerId') {
       const newManager = working.find((p) => p.id === value)
@@ -140,8 +128,7 @@ export default function DetailSidebar() {
   }
 
   const handleSave = async () => {
-    setSaveStatus('saving')
-    setSaveError(null)
+    markSaving()
     const corrId = generateCorrelationId()
 
     if (isBatch) {
@@ -166,8 +153,7 @@ export default function DetailSidebar() {
         }
       }
       if (failedCount > 0) {
-        setSaveStatus('error')
-        setSaveError(`${failedCount} of ${selectedPeople.length} updates failed`)
+        markError(`${failedCount} of ${selectedPeople.length} updates failed`)
       } else {
         markSaved()
       }
@@ -188,8 +174,7 @@ export default function DetailSidebar() {
         await update(person.id, fields, corrId)
         markSaved()
       } catch {
-        setSaveStatus('error')
-        setSaveError('Save failed')
+        markError('Save failed')
       }
     }
   }

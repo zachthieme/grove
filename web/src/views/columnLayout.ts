@@ -136,7 +136,8 @@ export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderI
       }
       groupMap.get(key)!.members.push(ic)
     }
-    const hasPodGroups = [...groupMap.values()].some((g) => g.podName)
+    let hasPodGroups = false
+    for (const g of groupMap.values()) { if (g.podName) { hasPodGroups = true; break } }
     if (groupOrder.length > 1 || hasPodGroups) {
       for (const key of groupOrder) {
         const { members, podName } = groupMap.get(key)!

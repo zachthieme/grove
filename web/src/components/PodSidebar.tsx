@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useOrg } from '../store/OrgContext'
+import { useSaveStatus } from '../hooks/useSaveStatus'
 import styles from './DetailSidebar.module.css'
 
 export default function PodSidebar() {
@@ -7,8 +8,7 @@ export default function PodSidebar() {
   const pod = pods.find(p => p.id === selectedPodId)
 
   const [form, setForm] = useState({ name: '', publicNote: '', privateNote: '' })
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const { saveStatus, saveError, markSaving, markSaved, markError, reset } = useSaveStatus()
 
   useEffect(() => {
     if (pod) {
@@ -17,14 +17,16 @@ export default function PodSidebar() {
         publicNote: pod.publicNote ?? '',
         privateNote: pod.privateNote ?? '',
       })
-      setSaveStatus('idle')
-      setSaveError(null)
+      reset()
     }
-  }, [pod])
+  }, [pod, reset])
 
   if (!pod) return null
 
-  const memberCount = working.filter(p => p.managerId === pod.managerId && p.pod === pod.name).length
+  const memberCount = useMemo(
+    () => working.filter(p => p.managerId === pod.managerId && p.pod === pod.name).length,
+    [working, pod.managerId, pod.name],
+  )
 
   const isDirty =
     form.name !== pod.name ||
@@ -37,15 +39,12 @@ export default function PodSidebar() {
     if (form.publicNote !== (pod.publicNote ?? '')) fields.publicNote = form.publicNote
     if (form.privateNote !== (pod.privateNote ?? '')) fields.privateNote = form.privateNote
     if (Object.keys(fields).length === 0) return
-    setSaveStatus('saving')
-    setSaveError(null)
+    markSaving()
     try {
       await updatePod(pod.id, fields)
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus((s) => s === 'saved' ? 'idle' : s), 1500)
+      markSaved()
     } catch (err) {
-      setSaveStatus('error')
-      setSaveError(err instanceof Error ? err.message : 'Save failed')
+      markError(err instanceof Error ? err.message : 'Save failed')
     }
   }
 
