@@ -24,7 +24,8 @@
   transform: translateY(-1px);
 }
 
-.selected {
+.node.selected,
+.node.selected:hover {
   border-color: var(--grove-green);
   border-left-color: var(--grove-green);
   box-shadow: var(--shadow-focus);
