@@ -104,6 +104,14 @@
 .expandBtn:hover { color: var(--accent, #3b82f6); }
 .deleteBtn:hover { color: var(--danger, #ef4444); }
 
+.rowSelected { background: rgba(74, 156, 63, 0.1); }
+.rowSelected:hover { background: rgba(74, 156, 63, 0.15); }
+
+.selectCheckbox {
+  cursor: pointer;
+  accent-color: var(--grove-green, #4a9c3f);
+}
+
 .rowAdded { background: rgba(34, 197, 94, 0.08); }
 .rowRemoved { background: rgba(239, 68, 68, 0.08); text-decoration: line-through; }
 .rowReporting { background: rgba(59, 130, 246, 0.08); }
@@ -142,6 +150,10 @@
   color: var(--accent, #3b82f6);
 }
 
+.colToggleWrapper {
+  position: relative;
+}
+
 .colToggleBtn {
   font-size: 0.8rem;
   padding: 4px 8px;
@@ -153,12 +165,16 @@
 
 .colToggleDropdown {
   position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
   background: var(--bg-primary, #fff);
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 4px;
   padding: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   z-index: 10;
+  white-space: nowrap;
 }
 
 .colToggleItem {
@@ -171,17 +187,16 @@
 }
 
 .filterDropdown {
-  position: absolute;
-  top: 40px;
-  left: 16px;
+  position: fixed;
   background: var(--bg-primary, #fff);
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 4px;
   padding: 8px;
   min-width: 180px;
   max-height: 300px;
+  overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 20;
+  z-index: 100;
 }
 
 .filterSearch {

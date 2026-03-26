@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './TableView.module.css'
 
 interface TableFilterDropdownProps {
@@ -7,11 +8,24 @@ interface TableFilterDropdownProps {
   selected: Set<string>
   onSelectionChange: (columnKey: string, selected: Set<string>) => void
   onClose: () => void
+  anchorRef: React.RefObject<HTMLButtonElement | null>
 }
 
-export default function TableFilterDropdown({ columnKey, values, selected, onSelectionChange, onClose }: TableFilterDropdownProps) {
+export default function TableFilterDropdown({ columnKey, values, selected, onSelectionChange, onClose, anchorRef }: TableFilterDropdownProps) {
   const [search, setSearch] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+
+  const updatePos = useCallback(() => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect()
+      setPos({ top: rect.bottom + 4, left: rect.left })
+    }
+  }, [anchorRef])
+
+  useEffect(() => {
+    updatePos()
+  }, [updatePos])
 
   const uniqueValues = useMemo(() =>
     Array.from(new Set(values)).sort((a, b) => a.localeCompare(b)),
@@ -49,8 +63,10 @@ export default function TableFilterDropdown({ columnKey, values, selected, onSel
     onSelectionChange(columnKey, next)
   }
 
-  return (
-    <div ref={ref} className={styles.filterDropdown}>
+  if (!pos) return null
+
+  return createPortal(
+    <div ref={ref} className={styles.filterDropdown} style={{ top: pos.top, left: pos.left }}>
       <input
         className={styles.filterSearch}
         type="text"
@@ -71,6 +87,7 @@ export default function TableFilterDropdown({ columnKey, values, selected, onSel
           </label>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

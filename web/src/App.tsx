@@ -71,7 +71,7 @@ function AppContent() {
     })
   }, [working, add])
 
-  const handleAddToTeam = useCallback(async (parentId: string, team: string) => {
+  const handleAddToTeam = useCallback(async (parentId: string, team: string, podName?: string) => {
     await add({
       name: 'New Person',
       role: '',
@@ -80,6 +80,7 @@ function AppContent() {
       managerId: parentId,
       status: 'Active',
       additionalTeams: [],
+      pod: podName,
     })
   }, [add])
 
@@ -138,7 +139,7 @@ function AppContent() {
           <span className={styles.warnText}>Server autosave unavailable — data saved locally only</span>
         </div>
       )}
-      <UnparentedBar />
+      {viewMode !== 'table' && <UnparentedBar />}
       <Breadcrumbs />
       <AutosaveBanner />
       <div className={styles.body}>
@@ -148,7 +149,6 @@ function AppContent() {
           ) : viewMode === 'table' ? (
             <TableView
               people={sortedPeople}
-              pods={pods}
               changes={showChanges ? changes : undefined}
               readOnly={dataView === 'original'}
             />

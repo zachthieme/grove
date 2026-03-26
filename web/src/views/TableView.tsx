@@ -1,12 +1,12 @@
-import { useState, useMemo, useCallback } from 'react'
-import type { Person, Pod } from '../api/types'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useOrg } from '../store/OrgContext'
+import type { ColumnDef } from './tableColumns'
 import { TABLE_COLUMNS, getPersonValue } from './tableColumns'
 import { STATUSES } from '../constants'
 import TableRow from './TableRow'
 import TableHeader from './TableHeader'
-import TableFilterDropdown from './TableFilterDropdown'
 import styles from './TableView.module.css'
 
 interface DraftRow {
@@ -33,13 +33,12 @@ function draftToPerson(values: Record<string, string>): Omit<Person, 'id'> {
 
 interface TableViewProps {
   people: Person[]
-  pods: Pod[]
   changes?: Map<string, PersonChange>
   readOnly?: boolean
 }
 
-export default function TableView({ people, pods, changes, readOnly }: TableViewProps) {
-  const { update, remove, toggleSelect, working, add } = useOrg()
+export default function TableView({ people, changes, readOnly }: TableViewProps) {
+  const { update, remove, toggleSelect, selectedIds, clearSelection, working, add } = useOrg()
 
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc' | null>(null)
@@ -48,6 +47,7 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
   const [columnFilters, setColumnFilters] = useState<Map<string, Set<string>>>(new Map())
   const [openFilter, setOpenFilter] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<DraftRow[]>([])
+  const newestDraftRef = useRef<HTMLTableRowElement>(null)
 
   const contextDefaults = useMemo(() => {
     const defaults: Record<string, string> = {}
@@ -75,10 +75,6 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
     await remove(personId)
   }, [remove])
 
-  const handleExpand = useCallback((personId: string) => {
-    toggleSelect(personId, false)
-  }, [toggleSelect])
-
   const handleSort = useCallback((key: string) => {
     if (sortKey === key) {
       if (sortDir === 'asc') setSortDir('desc')
@@ -98,6 +94,8 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
     setOpenFilter(key)
   }, [openFilter, columnFilters, people])
 
+  const [pendingFocusDraft, setPendingFocusDraft] = useState(false)
+
   const addDraftRow = useCallback(() => {
     const id = `draft-${Date.now()}`
     const values: Record<string, string> = {
@@ -107,7 +105,17 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
       ...contextDefaults,
     }
     setDrafts(prev => [...prev, { id, values }])
+    setPendingFocusDraft(true)
   }, [contextDefaults])
+
+  useEffect(() => {
+    if (pendingFocusDraft && newestDraftRef.current) {
+      newestDraftRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      const firstInput = newestDraftRef.current.querySelector('input:not([type="checkbox"])') as HTMLInputElement | null
+      firstInput?.focus()
+      setPendingFocusDraft(false)
+    }
+  }, [pendingFocusDraft, drafts])
 
   const saveDraft = useCallback(async (draftId: string) => {
     const draft = drafts.find(d => d.id === draftId)
@@ -138,10 +146,28 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
       const lines = text.split('\n').filter(l => l.trim())
       if (lines.length === 0) return
 
-      const cols = visibleColumns
+      // Auto-detect delimiter: tab (from spreadsheets) or comma
+      const delimiter = lines[0].includes('\t') ? '\t' : ','
+
+      // Detect header row: if first row's cells match known column labels/keys, skip it
+      const headerLabels = new Set(TABLE_COLUMNS.flatMap(c => [c.key.toLowerCase(), c.label.toLowerCase()]))
+      const firstCells = lines[0].split(delimiter).map(c => c.trim().toLowerCase())
+      const isHeader = firstCells.length > 1 && firstCells.every(c => headerLabels.has(c))
+      const dataLines = isHeader ? lines.slice(1) : lines
+
+      // If header present, map columns by header names; otherwise use visible column order
+      let colMapping: ColumnDef[]
+      if (isHeader) {
+        colMapping = firstCells.map(cell => {
+          return TABLE_COLUMNS.find(c => c.key.toLowerCase() === cell || c.label.toLowerCase() === cell)!
+        }).filter(Boolean)
+      } else {
+        colMapping = visibleColumns
+      }
+
       let savedCount = 0
-      for (const line of lines) {
-        const cells = line.split('\t')
+      for (const line of dataLines) {
+        const cells = line.split(delimiter)
         const values: Record<string, string> = {
           name: '', role: '', discipline: '', team: '', pod: '',
           managerId: '', status: 'Active', employmentType: 'FTE',
@@ -149,8 +175,8 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
           ...contextDefaults,
         }
         cells.forEach((cell, j) => {
-          if (j < cols.length) {
-            values[cols[j].key] = cell.trim()
+          if (j < colMapping.length) {
+            values[colMapping[j].key] = cell.trim()
           }
         })
         if (values.name) {
@@ -200,6 +226,23 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
     })
   }, [sortedPeople, columnFilters])
 
+  const allSelected = filteredPeople.length > 0 && filteredPeople.every(p => selectedIds.has(p.id))
+  const someSelected = !allSelected && filteredPeople.some(p => selectedIds.has(p.id))
+
+  const handleToggleAll = useCallback(() => {
+    if (allSelected) {
+      clearSelection()
+    } else {
+      filteredPeople.forEach(p => {
+        if (!selectedIds.has(p.id)) toggleSelect(p.id, true)
+      })
+    }
+  }, [allSelected, filteredPeople, selectedIds, toggleSelect, clearSelection])
+
+  const handleRowSelect = useCallback((personId: string) => {
+    toggleSelect(personId, true)
+  }, [toggleSelect])
+
   return (
     <div className={styles.container}>
       <div className={styles.tableToolbar}>
@@ -210,27 +253,29 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
             <button className={styles.addBtn} onClick={handlePaste} title="Paste rows from clipboard">Paste</button>
           </>
         )}
-        <button className={styles.colToggleBtn} onClick={() => setShowColToggle(v => !v)}>
-          Columns &#x25BE;
-        </button>
-        {showColToggle && (
-          <div className={styles.colToggleDropdown}>
-            {TABLE_COLUMNS.map(col => (
-              <label key={col.key} className={styles.colToggleItem}>
-                <input
-                  type="checkbox"
-                  checked={!hiddenCols.has(col.key)}
-                  onChange={() => setHiddenCols(prev => {
-                    const next = new Set(prev)
-                    next.has(col.key) ? next.delete(col.key) : next.add(col.key)
-                    return next
-                  })}
-                />
-                {col.label}
-              </label>
-            ))}
-          </div>
-        )}
+        <div className={styles.colToggleWrapper}>
+          <button className={styles.colToggleBtn} onClick={() => setShowColToggle(v => !v)}>
+            Columns &#x25BE;
+          </button>
+          {showColToggle && (
+            <div className={styles.colToggleDropdown}>
+              {TABLE_COLUMNS.map(col => (
+                <label key={col.key} className={styles.colToggleItem}>
+                  <input
+                    type="checkbox"
+                    checked={!hiddenCols.has(col.key)}
+                    onChange={() => setHiddenCols(prev => {
+                      const next = new Set(prev)
+                      next.has(col.key) ? next.delete(col.key) : next.add(col.key)
+                      return next
+                    })}
+                  />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
@@ -242,6 +287,14 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
               onSort={handleSort}
               filterActive={filterActive}
               onFilterClick={handleFilterClick}
+              openFilter={openFilter}
+              people={people}
+              columnFilters={columnFilters}
+              onFilterSelectionChange={(key, sel) => setColumnFilters(prev => new Map(prev).set(key, sel))}
+              onFilterClose={() => setOpenFilter(null)}
+              allSelected={allSelected}
+              someSelected={someSelected}
+              onToggleAll={handleToggleAll}
             />
           </thead>
           <tbody>
@@ -250,17 +303,17 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
                 key={person.id}
                 person={person}
                 columns={visibleColumns}
-                pods={pods}
                 managers={managers}
                 change={changes?.get(person.id)}
                 readOnly={readOnly}
+                selected={selectedIds.has(person.id)}
+                onToggleSelect={handleRowSelect}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
-                onExpand={handleExpand}
               />
             ))}
-            {drafts.map(draft => (
-              <tr key={draft.id} className={styles.rowDraft}>
+            {drafts.map((draft, draftIdx) => (
+              <tr key={draft.id} className={styles.rowDraft} ref={draftIdx === drafts.length - 1 ? newestDraftRef : undefined}>
                 <td className={styles.actionCell} />
                 {visibleColumns.map(col => (
                   <td key={col.key} className={`${styles.cell} ${styles.cellEditing}`}>
@@ -276,8 +329,6 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
                           ? STATUSES.map(s => <option key={s} value={s}>{s}</option>)
                           : col.key === 'managerId'
                           ? managers.map(m => <option key={m.value} value={m.value}>{m.label}</option>)
-                          : col.key === 'pod'
-                          ? pods.filter(p => p.managerId === draft.values.managerId).map(p => <option key={p.id} value={p.name}>{p.name}</option>)
                           : null
                         }
                       </select>
@@ -301,15 +352,6 @@ export default function TableView({ people, pods, changes, readOnly }: TableView
           </tbody>
         </table>
       </div>
-      {openFilter && (
-        <TableFilterDropdown
-          columnKey={openFilter}
-          values={people.map(p => getPersonValue(p, openFilter))}
-          selected={columnFilters.get(openFilter) ?? new Set()}
-          onSelectionChange={(key, sel) => setColumnFilters(prev => new Map(prev).set(key, sel))}
-          onClose={() => setOpenFilter(null)}
-        />
-      )}
     </div>
   )
 }
