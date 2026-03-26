@@ -889,7 +889,7 @@ func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 
 func TestUpload_SeedsPods(t *testing.T) {
 	svc := NewOrgService()
-	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Engineer,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Alice,Infra,Active\n"
+	csv := "Name,Role,Discipline,Manager,Team,Status,Pod\nAlice,VP,Eng,,Eng,Active,\nBob,Engineer,Eng,Alice,Platform,Active,Platform\nCarol,Engineer,Eng,Alice,Infra,Active,Infra\n"
 	resp, err := svc.Upload("test.csv", []byte(csv))
 	if err != nil {
 		t.Fatal(err)

@@ -4,13 +4,31 @@ import (
 	"testing"
 )
 
-func TestSeedPods_GroupsByManagerAndTeam(t *testing.T) {
-	// 1 manager (Alice) with 2 ICs on Platform (Bob, Carol) and 1 on Infra (Dave) → 2 pods
+func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
+	// People without Pod field → no pods created
 	people := []Person{
 		{Id: "mgr1", Name: "Alice", ManagerId: "", Team: "Platform"},
 		{Id: "ic1", Name: "Bob", ManagerId: "mgr1", Team: "Platform"},
 		{Id: "ic2", Name: "Carol", ManagerId: "mgr1", Team: "Platform"},
-		{Id: "ic3", Name: "Dave", ManagerId: "mgr1", Team: "Infra"},
+	}
+
+	pods := SeedPods(people)
+	if len(pods) != 0 {
+		t.Fatalf("expected 0 pods for people without Pod field, got %d", len(pods))
+	}
+	// Pod fields should remain empty
+	if people[1].Pod != "" {
+		t.Errorf("expected Bob.Pod = empty, got %q", people[1].Pod)
+	}
+}
+
+func TestSeedPods_GroupsByPodName(t *testing.T) {
+	// People with explicit Pod fields get grouped
+	people := []Person{
+		{Id: "mgr1", Name: "Alice", ManagerId: "", Team: "Platform"},
+		{Id: "ic1", Name: "Bob", ManagerId: "mgr1", Team: "Platform", Pod: "Platform"},
+		{Id: "ic2", Name: "Carol", ManagerId: "mgr1", Team: "Platform", Pod: "Platform"},
+		{Id: "ic3", Name: "Dave", ManagerId: "mgr1", Team: "Infra", Pod: "Infra"},
 	}
 
 	pods := SeedPods(people)
@@ -19,36 +37,15 @@ func TestSeedPods_GroupsByManagerAndTeam(t *testing.T) {
 		t.Fatalf("expected 2 pods, got %d", len(pods))
 	}
 
-	// Verify Bob and Carol have Pod == "Platform"
-	bob := people[1]
-	if bob.Pod != "Platform" {
-		t.Errorf("expected Bob.Pod = %q, got %q", "Platform", bob.Pod)
-	}
-	carol := people[2]
-	if carol.Pod != "Platform" {
-		t.Errorf("expected Carol.Pod = %q, got %q", "Platform", carol.Pod)
-	}
-
-	// Verify Dave has Pod == "Infra"
-	dave := people[3]
-	if dave.Pod != "Infra" {
-		t.Errorf("expected Dave.Pod = %q, got %q", "Infra", dave.Pod)
-	}
-
-	// Verify pod IDs are non-empty UUIDs
+	podNames := map[string]bool{}
 	for _, pod := range pods {
+		podNames[pod.Name] = true
 		if pod.Id == "" {
 			t.Errorf("pod %q has empty Id", pod.Name)
 		}
 		if pod.ManagerId != "mgr1" {
 			t.Errorf("expected pod.ManagerId = %q, got %q", "mgr1", pod.ManagerId)
 		}
-	}
-
-	// Verify pod names match team names
-	podNames := map[string]bool{}
-	for _, pod := range pods {
-		podNames[pod.Name] = true
 	}
 	if !podNames["Platform"] {
 		t.Error("expected a pod named 'Platform'")
@@ -75,7 +72,7 @@ func TestSeedPods_RootNodesSkipped(t *testing.T) {
 }
 
 func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
-	// People with pre-set Pod field "Alpha Pod" → pod uses that name instead of team name
+	// Bob has Pod="Alpha Pod", Carol has no pod → only one pod created
 	people := []Person{
 		{Id: "mgr1", Name: "Alice", ManagerId: "", Team: "Platform"},
 		{Id: "ic1", Name: "Bob", ManagerId: "mgr1", Team: "Platform", Pod: "Alpha Pod"},
@@ -90,12 +87,12 @@ func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 	if pods[0].Name != "Alpha Pod" {
 		t.Errorf("expected pod name %q, got %q", "Alpha Pod", pods[0].Name)
 	}
-	// All members should have the pod name set
 	if people[1].Pod != "Alpha Pod" {
 		t.Errorf("expected Bob.Pod = %q, got %q", "Alpha Pod", people[1].Pod)
 	}
-	if people[2].Pod != "Alpha Pod" {
-		t.Errorf("expected Carol.Pod = %q, got %q", "Alpha Pod", people[2].Pod)
+	// Carol should still have no pod
+	if people[2].Pod != "" {
+		t.Errorf("expected Carol.Pod = empty, got %q", people[2].Pod)
 	}
 }
 
@@ -212,11 +209,11 @@ func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 	}
 }
 
-func TestReassignPersonPod_FindsExisting(t *testing.T) {
+func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	person := Person{Id: "p1", Name: "Bob", ManagerId: "mgr1", Team: "Platform"}
+	person := Person{Id: "p1", Name: "Bob", ManagerId: "mgr1", Team: "Platform", Pod: "Platform"}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -228,26 +225,37 @@ func TestReassignPersonPod_FindsExisting(t *testing.T) {
 	}
 }
 
-func TestReassignPersonPod_CreatesNewPod(t *testing.T) {
+func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	person := Person{Id: "p1", Name: "Bob", ManagerId: "mgr2", Team: "Infra"}
+	// Person has a pod but under a different manager — pod is invalid
+	person := Person{Id: "p1", Name: "Bob", ManagerId: "mgr2", Team: "Infra", Pod: "OldPod"}
 
 	result := ReassignPersonPod(pods, &person)
 
-	if len(result) != 2 {
-		t.Fatalf("expected 2 pods after auto-create, got %d", len(result))
+	if person.Pod != "" {
+		t.Errorf("expected Pod cleared for invalid pod, got %q", person.Pod)
 	}
-	if person.Pod != "Infra" {
-		t.Errorf("expected Pod = %q, got %q", "Infra", person.Pod)
+	if len(result) != 1 {
+		t.Errorf("expected no new pods created")
 	}
-	newPod := result[1]
-	if newPod.Team != "Infra" || newPod.ManagerId != "mgr2" {
-		t.Errorf("new pod has wrong team/manager: %+v", newPod)
+}
+
+func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
+	pods := []Pod{
+		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	if newPod.Id == "" {
-		t.Error("new pod should have a UUID")
+	// Person has no pod — should stay without one
+	person := Person{Id: "p1", Name: "Bob", ManagerId: "mgr1", Team: "Platform"}
+
+	result := ReassignPersonPod(pods, &person)
+
+	if person.Pod != "" {
+		t.Errorf("expected Pod to remain empty, got %q", person.Pod)
+	}
+	if len(result) != 1 {
+		t.Errorf("expected no new pods created")
 	}
 }
 

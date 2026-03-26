@@ -36,13 +36,24 @@ export function computeEdges(people: Person[]): EdgeDef[] {
     for (const c of managerChildren) {
       result.push({ fromId: managerId, toId: c.id })
     }
-    // For ICs, group by team — draw one line to the first IC in each team
-    const icTeams = new Map<string, Person>()
+    // For ICs, group by pod (or team if no pod).
+    // If a group has a pod, draw: parent → pod header, pod header → first IC.
+    // If no pod, draw: parent → first IC.
+    const icGroups = new Map<string, { firstIc: Person; hasPod: boolean }>()
     for (const c of icChildren) {
-      if (!icTeams.has(c.team)) icTeams.set(c.team, c)
+      const key = c.pod || c.team
+      if (!icGroups.has(key)) {
+        icGroups.set(key, { firstIc: c, hasPod: !!c.pod })
+      }
     }
-    for (const firstIc of icTeams.values()) {
-      result.push({ fromId: managerId, toId: firstIc.id })
+    for (const [groupKey, { firstIc, hasPod }] of icGroups) {
+      if (hasPod) {
+        const podNodeId = `pod:${managerId}:${groupKey}`
+        result.push({ fromId: managerId, toId: podNodeId })
+        result.push({ fromId: podNodeId, toId: firstIc.id })
+      } else {
+        result.push({ fromId: managerId, toId: firstIc.id })
+      }
     }
   }
 

@@ -253,9 +253,11 @@ func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 
 func TestUploadZip_SeedsPods(t *testing.T) {
 	svc := NewOrgService()
+	// CSV with explicit Pod values to verify seeding
+	csvWithPods := "Name,Role,Discipline,Manager,Team,Additional Teams,Status,Pod\nAlice,VP,Eng,,Eng,,Active,\nBob,Engineer,Eng,Alice,Platform,,Active,Platform\n"
 	data := buildTestZip(t, []zipFile{
-		{"0-original.csv", testCSVContent},
-		{"1-working.csv", testCSVContent2},
+		{"0-original.csv", csvWithPods},
+		{"1-working.csv", csvWithPods},
 	})
 	resp, err := svc.UploadZip(data)
 	if err != nil {
@@ -266,12 +268,30 @@ func TestUploadZip_SeedsPods(t *testing.T) {
 	}
 }
 
-func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
+func TestUploadZip_NoPodFieldNoPods(t *testing.T) {
 	svc := NewOrgService()
-	podsCsv := "Pod Name,Manager,Team,Public Note,Private Note\nPlatform,Alice,Platform,pod note,secret note\n"
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},
+	})
+	resp, err := svc.UploadZip(data)
+	if err != nil {
+		t.Fatalf("UploadZip failed: %v", err)
+	}
+	if len(resp.OrgData.Pods) != 0 {
+		t.Errorf("expected 0 pods for CSV without Pod field, got %d", len(resp.OrgData.Pods))
+	}
+}
+
+func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
+	svc := NewOrgService()
+	// CSV with Pod column so SeedPods creates a "Platform" pod
+	csvWithPod := "Name,Role,Discipline,Manager,Team,Additional Teams,Status,Pod\nAlice,VP,Eng,,Eng,,Active,\nBob,Engineer,Eng,Alice,Platform,,Active,Platform\n"
+	csvWithPod2 := "Name,Role,Discipline,Manager,Team,Additional Teams,Status,Pod\nAlice,VP,Eng,,Eng,,Active,\nBob,Senior Engineer,Eng,Alice,Platform,,Active,Platform\n"
+	podsCsv := "Pod Name,Manager,Team,Public Note,Private Note\nPlatform,Alice,Platform,pod note,secret note\n"
+	data := buildTestZip(t, []zipFile{
+		{"0-original.csv", csvWithPod},
+		{"1-working.csv", csvWithPod2},
 		{"pods.csv", podsCsv},
 	})
 	resp, err := svc.UploadZip(data)

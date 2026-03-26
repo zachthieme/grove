@@ -8,56 +8,39 @@ import (
 
 const maxNoteLen = 2000
 
-// SeedPods groups people by (ManagerId, Team) and creates a Pod for each group.
-// Root nodes (empty ManagerId) are skipped. Each member's Pod field is set to
-// the pod name. If any member already has a non-empty Pod field, that value is
-// used as the pod name instead of the team name. Modifies people in-place.
+// SeedPods creates Pod objects for people who have an explicit Pod field set.
+// People without a Pod field are left unchanged. Root nodes (empty ManagerId)
+// are skipped. Does not modify people's Pod fields.
 func SeedPods(people []Person) []Pod {
 	type groupKey struct {
 		ManagerId string
-		Team      string
+		PodName   string
 	}
 
-	// Collect indices by group key, preserving order.
 	orderKeys := []groupKey{}
 	groups := map[groupKey][]int{}
+	teamForGroup := map[groupKey]string{}
 	for i := range people {
-		if people[i].ManagerId == "" {
+		if people[i].ManagerId == "" || people[i].Pod == "" {
 			continue
 		}
-		key := groupKey{ManagerId: people[i].ManagerId, Team: people[i].Team}
+		key := groupKey{ManagerId: people[i].ManagerId, PodName: people[i].Pod}
 		if _, exists := groups[key]; !exists {
 			orderKeys = append(orderKeys, key)
+			teamForGroup[key] = people[i].Team
 		}
 		groups[key] = append(groups[key], i)
 	}
 
 	var pods []Pod
 	for _, key := range orderKeys {
-		indices := groups[key]
-
-		// Determine pod name: use first non-empty Pod field from members,
-		// falling back to the team name.
-		podName := key.Team
-		for _, idx := range indices {
-			if people[idx].Pod != "" {
-				podName = people[idx].Pod
-				break
-			}
-		}
-
 		pod := Pod{
 			Id:        uuid.NewString(),
-			Name:      podName,
-			Team:      key.Team,
+			Name:      key.PodName,
+			Team:      teamForGroup[key],
 			ManagerId: key.ManagerId,
 		}
 		pods = append(pods, pod)
-
-		// Set each member's Pod field to the pod name.
-		for _, idx := range indices {
-			people[idx].Pod = podName
-		}
 	}
 
 	return pods
@@ -125,41 +108,21 @@ func RenamePod(pods []Pod, people []Person, podID, newName string) error {
 	return nil
 }
 
-// ReassignPersonPod assigns a person to the correct pod based on their
-// ManagerId and Team. If the person has no ManagerId, their Pod field is
-// cleared. If a matching pod exists, the person is assigned to it. Otherwise,
-// a new pod is auto-created and appended. Returns the (possibly grown) pods slice.
+// ReassignPersonPod clears a person's pod if it's no longer valid (e.g. after
+// a manager or team change). Pods are optional — if a person has no pod, none
+// is assigned. Never auto-creates pods.
 func ReassignPersonPod(pods []Pod, person *Person) []Pod {
-	if person.ManagerId == "" {
+	if person.ManagerId == "" || person.Pod == "" {
 		person.Pod = ""
 		return pods
 	}
-
-	existing := FindPod(pods, person.Team, person.ManagerId)
-	if existing == nil {
-		// Also check by (ManagerId, Team) where any pod matches
-		for i := range pods {
-			if pods[i].ManagerId == person.ManagerId && pods[i].Team == person.Team {
-				existing = &pods[i]
-				break
-			}
-		}
-	}
-
-	if existing != nil {
-		person.Pod = existing.Name
+	// Check if the person's current pod still exists under their manager
+	if FindPod(pods, person.Pod, person.ManagerId) != nil {
 		return pods
 	}
-
-	// Auto-create a new pod
-	newPod := Pod{
-		Id:        uuid.NewString(),
-		Name:      person.Team,
-		Team:      person.Team,
-		ManagerId: person.ManagerId,
-	}
-	person.Pod = newPod.Name
-	return append(pods, newPod)
+	// Pod no longer valid — clear it
+	person.Pod = ""
+	return pods
 }
 
 // CopyPods returns a shallow copy of the pods slice. Returns nil if src is nil.
