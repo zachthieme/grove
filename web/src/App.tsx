@@ -27,7 +27,7 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, toggleSelect, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
+  const { loaded, viewMode, dataView, selectedIds, toggleSelect, batchSelect, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
@@ -166,6 +166,7 @@ function AppContent() {
               onInfo={handleShowInfo}
               onFocus={handleFocus}
               onPodSelect={selectPod}
+              onBatchSelect={batchSelect}
             />
           ) : viewMode === 'detail' ? (
             <ColumnView
@@ -173,6 +174,7 @@ function AppContent() {
               people={sortedPeople}
               selectedIds={selectedIds}
               onSelect={handleSelect}
+              onBatchSelect={batchSelect}
               changes={showChanges ? changes : undefined}
               ghostPeople={ghostPeople}
               managerSet={managerSet}

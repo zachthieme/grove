@@ -61,6 +61,7 @@ export interface OrgActions {
   setHead: (id: string | null) => void
   clearError: () => void
   selectPod: (id: string | null) => void
+  batchSelect: (ids: Set<string>) => void
   updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
   createPod: (managerId: string, name: string, team: string) => Promise<void>
   updateSettings: (settings: Settings) => Promise<void>
@@ -83,6 +84,7 @@ export interface SelectionContextValue {
   toggleSelect: (id: string, multi: boolean) => void
   clearSelection: () => void
   selectPod: (id: string | null) => void
+  batchSelect: (ids: Set<string>) => void
 }
 
 export interface UIContextValue {

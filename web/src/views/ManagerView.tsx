@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useChartLayout } from '../hooks/useChartLayout'
+import { useLassoSelect } from '../hooks/useLassoSelect'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
 import { OrphanGroup } from './OrphanGroup'
 import PersonNode from '../components/PersonNode'
@@ -20,6 +21,7 @@ interface ManagerViewProps {
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
   onPodSelect?: (podId: string) => void
+  onBatchSelect?: (ids: Set<string>) => void
 }
 
 function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
@@ -197,7 +199,7 @@ function ManagerSubtree({ node, selectedIds, onSelect, changes, setNodeRef, mana
   )
 }
 
-export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, pods, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect }: ManagerViewProps) {
+export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, pods, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect, onBatchSelect }: ManagerViewProps) {
   const roots = useMemo(() => buildOrgTree(people), [people])
 
   // Edges only between rendered manager nodes (not ICs, since they are summarized)
@@ -237,7 +239,18 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
     return result
   }, [roots])
 
-  const { containerRef, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
+  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
+
+  const handleLassoSelect = useCallback((ids: Set<string>) => {
+    onBatchSelect?.(ids)
+  }, [onBatchSelect])
+
+  const { lassoRect } = useLassoSelect({
+    containerRef,
+    nodeRefs,
+    onSelect: handleLassoSelect,
+    enabled: !!onBatchSelect,
+  })
 
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
@@ -248,7 +261,19 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={styles.container} ref={containerRef} data-role="chart-container">
-        <svg className={styles.svgOverlay}>
+        <svg className={styles.svgOverlay} style={lassoRect ? { pointerEvents: 'none', zIndex: 10 } : undefined}>
+          {lassoRect && (
+            <rect
+              x={lassoRect.x}
+              y={lassoRect.y}
+              width={lassoRect.width}
+              height={lassoRect.height}
+              fill="rgba(74, 156, 63, 0.08)"
+              stroke="var(--grove-green, #4a9c3f)"
+              strokeWidth={1}
+              strokeDasharray="4 2"
+            />
+          )}
           {lines.map((l, i) => (
             <path
               key={i}

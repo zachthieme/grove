@@ -52,6 +52,11 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     setSelectedIds(new Set())
   }, [])
 
+  const batchSelect = useCallback((ids: Set<string>) => {
+    setSelectedPodId(null)
+    setSelectedIds(ids)
+  }, [])
+
   const value: SelectionContextValue = useMemo(() => ({
     selectedIds,
     selectedId,
@@ -60,7 +65,8 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     toggleSelect,
     clearSelection,
     selectPod,
-  }), [selectedIds, selectedId, selectedPodId, setSelectedId, toggleSelect, clearSelection, selectPod])
+    batchSelect,
+  }), [selectedIds, selectedId, selectedPodId, setSelectedId, toggleSelect, clearSelection, selectPod, batchSelect])
 
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>
 }

@@ -81,5 +81,5 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
     setLines(computed)
   }, [edges, resizeKey, layoutDeps])
 
-  return { containerRef, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd }
+  return { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd }
 }

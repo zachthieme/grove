@@ -94,5 +94,6 @@ export function useOrg(): OrgContextValue {
     toggleSelect: selection.toggleSelect,
     clearSelection: selection.clearSelection,
     selectPod: selection.selectPod,
+    batchSelect: selection.batchSelect,
   }), [data, ui, selection, setBinOpen])
 }

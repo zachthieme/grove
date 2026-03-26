@@ -70,6 +70,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
         ref={setDragRef}
         {...listeners}
         {...attributes}
+        data-dnd-draggable
         style={{
           opacity: isDragging ? 0.3 : 1,
           transition: 'opacity 0.15s',
