@@ -269,6 +269,23 @@ func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 	return rows[0], rows[1:], nil
 }
 
+// RestoreState loads full state from an autosave payload into the service,
+// syncing the backend with a frontend that restored from autosave.
+func (s *OrgService) RestoreState(data AutosaveData) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.original = deepCopyPeople(data.Original)
+	s.working = deepCopyPeople(data.Working)
+	s.recycled = deepCopyPeople(data.Recycled)
+	s.pods = CopyPods(data.Pods)
+	s.originalPods = CopyPods(data.OriginalPods)
+	if data.Settings != nil {
+		s.settings = *data.Settings
+	} else {
+		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
+	}
+}
+
 func (s *OrgService) GetOrg() *OrgData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -421,6 +438,12 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 				if err := s.validateManagerChange(personId, v); err != nil {
 					return nil, err
 				}
+				// Update team to match new manager unless team is also being set explicitly
+				if _, hasTeam := fields["team"]; !hasTeam {
+					if _, mgr := s.findWorking(v); mgr != nil {
+						p.Team = mgr.Team
+					}
+				}
 			}
 			p.ManagerId = v
 			s.pods = ReassignPersonPod(s.pods, p)
@@ -462,14 +485,21 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 			p.Level = n
 		case "pod":
 			if v == "" {
-				s.pods = ReassignPersonPod(s.pods, p)
+				p.Pod = ""
+				s.pods = CleanupEmptyPods(s.pods, s.working)
 			} else {
 				pod := FindPod(s.pods, v, p.ManagerId)
 				if pod == nil {
-					return nil, fmt.Errorf("pod %q not found under this manager", v)
+					// Auto-create the pod under this manager
+					newPod := Pod{
+						Id:        uuid.NewString(),
+						Name:      v,
+						Team:      p.Team,
+						ManagerId: p.ManagerId,
+					}
+					s.pods = append(s.pods, newPod)
 				}
 				p.Pod = v
-				p.Team = pod.Team
 			}
 		default:
 			return nil, fmt.Errorf("unknown field: %s", k)

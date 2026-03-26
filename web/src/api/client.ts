@@ -274,6 +274,16 @@ export async function deleteSnapshot(name: string, correlationId?: string): Prom
   })
 }
 
+export async function restoreState(data: AutosaveData): Promise<void> {
+  const resp = await fetchWithTimeout(`${BASE}/restore-state`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!resp.ok) {
+    throw new Error(`Restore state failed: ${resp.status}`)
+  }
+}
+
 export async function writeAutosave(data: AutosaveData): Promise<void> {
   const resp = await fetchWithTimeout(`${BASE}/autosave`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

@@ -292,22 +292,25 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   }, [handleError])
 
   const restoreAutosave = useCallback(() => {
-    setState((s) => {
-      if (!s.autosaveAvailable) return s
-      const ad = s.autosaveAvailable
-      return {
-        ...s,
-        original: ad.original,
-        working: ad.working,
-        recycled: ad.recycled,
-        pods: ad.pods ?? [],
-        originalPods: ad.originalPods ?? [],
-        settings: ad.settings ?? { disciplineOrder: [] },
-        currentSnapshotName: ad.snapshotName || null,
-        loaded: true,
-        autosaveAvailable: null,
-      }
+    const ad = stateRef.current.autosaveAvailable
+    if (!ad) return
+    // Sync restored state to backend so mutations work
+    api.restoreState(ad).catch(() => {
+      // If backend sync fails, data is still shown but mutations may fail
+      console.warn('Failed to sync restored state to backend')
     })
+    setState((s) => ({
+      ...s,
+      original: ad.original,
+      working: ad.working,
+      recycled: ad.recycled,
+      pods: ad.pods ?? [],
+      originalPods: ad.originalPods ?? [],
+      settings: ad.settings ?? { disciplineOrder: [] },
+      currentSnapshotName: ad.snapshotName || null,
+      loaded: true,
+      autosaveAvailable: null,
+    }))
   }, [])
 
   const dismissAutosave = useCallback(async () => {

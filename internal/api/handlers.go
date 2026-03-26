@@ -46,6 +46,7 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
 	mux.HandleFunc("POST /api/settings", handleUpdateSettings(svc))
 	mux.HandleFunc("GET /api/export/settings-sidecar", handleExportSettingsSidecar(svc))
 
+	mux.HandleFunc("POST /api/restore-state", handleRestoreState(svc))
 	mux.HandleFunc("POST /api/autosave", handleWriteAutosave())
 	mux.HandleFunc("GET /api/autosave", handleReadAutosave())
 	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave())
@@ -144,6 +145,19 @@ func handleGetOrg(svc *OrgService) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, data)
+	}
+}
+
+func handleRestoreState(svc *OrgService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
+		var data AutosaveData
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		svc.RestoreState(data)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }
 
