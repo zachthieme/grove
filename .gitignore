@@ -3,6 +3,8 @@ orgchart
 grove
 org-*.md
 web/dist/
+web/test-results/
+web/playwright-report/
 web/node_modules/
 web/tsconfig.tsbuildinfo
 # Screenshots

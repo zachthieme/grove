@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean
+.PHONY: frontend build dev clean e2e
 
 frontend:
 	cd web && npm run build
@@ -14,3 +14,6 @@ dev:
 
 clean:
 	rm -rf web/dist grove
+
+e2e: build
+	cd web && npx playwright test
