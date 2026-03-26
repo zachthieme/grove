@@ -9,7 +9,7 @@ export async function uploadCSV(page: Page, csvPath: string) {
   const absPath = path.resolve(__dirname, '../../testdata', csvPath)
   const fileInput = page.getByRole('main').locator('input[type="file"]')
   await fileInput.setInputFiles(absPath)
-  await page.locator('[aria-selected], tbody tr').first().waitFor({ timeout: 10000 })
+  await page.locator('[data-selected], tbody tr').first().waitFor({ timeout: 10000 })
 }
 
 export async function switchView(page: Page, view: 'Detail' | 'Manager' | 'Table') {
@@ -17,15 +17,15 @@ export async function switchView(page: Page, view: 'Detail' | 'Manager' | 'Table
 }
 
 export async function clickPerson(page: Page, name: string) {
-  await page.locator('[aria-selected]').filter({ hasText: name }).first().click()
+  await page.locator('[data-selected]').filter({ hasText: name }).first().click()
 }
 
 export async function waitForChart(page: Page) {
-  await page.locator('[aria-selected]').first().waitFor({ timeout: 10000 })
+  await page.locator('[data-selected]').first().waitFor({ timeout: 10000 })
 }
 
 export async function dragPersonTo(page: Page, sourceName: string, targetName: string) {
-  // [data-dnd-draggable] is an ancestor of [aria-selected], so select drag handles that contain the person name
+  // [data-dnd-draggable] is an ancestor of [data-selected], so select drag handles that contain the person name
   const dragHandle = page.locator('[data-dnd-draggable]').filter({ hasText: sourceName }).first()
   const target = page.locator('[data-dnd-draggable]').filter({ hasText: targetName }).first()
 

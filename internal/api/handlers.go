@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
+func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -47,9 +47,9 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer) http.Handler {
 	mux.HandleFunc("GET /api/export/settings-sidecar", handleExportSettingsSidecar(svc))
 
 	mux.HandleFunc("POST /api/restore-state", handleRestoreState(svc))
-	mux.HandleFunc("POST /api/autosave", handleWriteAutosave())
-	mux.HandleFunc("GET /api/autosave", handleReadAutosave())
-	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave())
+	mux.HandleFunc("POST /api/autosave", handleWriteAutosave(autoStore))
+	mux.HandleFunc("GET /api/autosave", handleReadAutosave(autoStore))
+	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave(autoStore))
 
 	// Config endpoint — always registered
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {

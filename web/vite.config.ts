@@ -18,6 +18,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary'],
       exclude: ['e2e/**', 'node_modules/**', '**/*.test.*', '**/*.spec.*'],
+      thresholds: {
+        statements: 60,
+        branches: 55,
+        functions: 50,
+        lines: 62,
+      },
     },
   },
 })

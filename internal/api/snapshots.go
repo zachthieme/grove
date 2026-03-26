@@ -38,7 +38,7 @@ func (s *OrgService) SaveSnapshot(name string) error {
 		snapCopy[k] = v
 	}
 	s.mu.Unlock()
-	if err := WriteSnapshots(snapCopy); err != nil {
+	if err := s.snapshotStore.Write(snapCopy); err != nil {
 		return fmt.Errorf("persisting snapshot: %w", err)
 	}
 	return nil
@@ -91,7 +91,7 @@ func (s *OrgService) DeleteSnapshot(name string) error {
 		snapCopy[k] = v
 	}
 	s.mu.Unlock()
-	if err := WriteSnapshots(snapCopy); err != nil {
+	if err := s.snapshotStore.Write(snapCopy); err != nil {
 		return fmt.Errorf("persisting snapshot deletion: %w", err)
 	}
 	return nil

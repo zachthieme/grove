@@ -6,7 +6,7 @@ import (
 
 func newTestService(t *testing.T) *OrgService {
 	t.Helper()
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
 	resp, err := svc.Upload("test.csv", csv)
 	if err != nil {
@@ -228,7 +228,7 @@ func TestOrgService_EmptyBin(t *testing.T) {
 }
 
 func TestOrgService_Upload_AutoProceed(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	resp, err := svc.Upload("test.csv", csv)
 	if err != nil {
@@ -246,7 +246,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 }
 
 func TestOrgService_Upload_NeedsMapping(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	// Use headers that won't all map to high confidence.
 	// "Nombre" and "Nivel" are unrecognizable, so name/role won't be high.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
@@ -272,7 +272,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 }
 
 func TestOrgService_ConfirmMapping(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	// Use unrecognizable headers so InferMapping won't auto-proceed.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
 	resp, err := svc.Upload("test.csv", csv)
@@ -305,7 +305,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 }
 
 func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	_, err := svc.ConfirmMapping(map[string]string{"name": "Name"})
 	if err == nil {
 		t.Fatal("expected error when no pending file")
@@ -669,7 +669,7 @@ func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 }
 
 func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	_, err := svc.Upload("test.txt", []byte("hello"))
 	if err == nil {
 		t.Fatal("expected error for unsupported format")
@@ -677,7 +677,7 @@ func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 }
 
 func TestOrgService_Upload_InvalidCSV(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	// Only header, no data row
 	_, err := svc.Upload("test.csv", []byte("Name,Role\n"))
 	if err == nil {
@@ -710,7 +710,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 }
 
 func TestOrgService_GetOrg_NoData(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	data := svc.GetOrg()
 	if data != nil {
 		t.Error("expected nil when no data loaded")
@@ -888,7 +888,7 @@ func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 }
 
 func TestUpload_SeedsPods(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status,Pod\nAlice,VP,Eng,,Eng,Active,\nBob,Engineer,Eng,Alice,Platform,Active,Platform\nCarol,Engineer,Eng,Alice,Infra,Active,Infra\n"
 	resp, err := svc.Upload("test.csv", []byte(csv))
 	if err != nil {
@@ -903,7 +903,7 @@ func TestUpload_SeedsPods(t *testing.T) {
 }
 
 func TestUpload_DerivesSettings(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Product,,Eng,Active\nBob,Engineer,Engineering,Alice,Platform,Active\n"
 	resp, err := svc.Upload("test.csv", []byte(csv))
 	if err != nil {
@@ -924,7 +924,7 @@ func TestUpload_DerivesSettings(t *testing.T) {
 // --- RestoreState tests ---
 
 func TestOrgService_RestoreState_FullState(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	settings := &Settings{DisciplineOrder: []string{"Eng", "Product"}}
 	data := AutosaveData{
 		Original: []Person{
@@ -974,7 +974,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 }
 
 func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
 		Original: []Person{
 			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
@@ -1018,7 +1018,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 }
 
 func TestOrgService_RestoreState_NilSettings(t *testing.T) {
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
 		Original: []Person{
 			{Id: "1", Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"},
@@ -1051,7 +1051,7 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 
 func TestOrgService_IsFrontlineManager(t *testing.T) {
 	// Build a hierarchy: Alice -> Bob -> Carol, Alice -> Dave (IC)
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Alice,Eng,Active\n")
 	resp, err := svc.Upload("test.csv", csv)
 	if err != nil {
@@ -1111,7 +1111,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	// Bob is a frontline manager with ICs Carol and Dave.
 	// Changing Bob's team should cascade to Carol and Dave.
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Bob,Platform,Active\n")
 	resp, err := svc.Upload("test.csv", csv)
 	if err != nil {

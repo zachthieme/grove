@@ -238,7 +238,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 	buf.Add(LogEntry{Source: "api", Method: "GET", Path: "/api/org", CorrelationID: "c1"})
 	buf.Add(LogEntry{Source: "web", Method: "POST", Path: "/api/update", CorrelationID: "c2"})
 
-	router := NewRouter(NewOrgService(), buf)
+	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), buf, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("GET", "/api/logs", nil)
 	rr := httptest.NewRecorder()
@@ -281,7 +281,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 
 func TestLogEndpoints_POST(t *testing.T) {
 	buf := NewLogBuffer(100)
-	router := NewRouter(NewOrgService(), buf)
+	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), buf, NewMemoryAutosaveStore())
 
 	body := `{"source":"web","method":"POST","path":"/api/update","responseStatus":200,"durationMs":15}`
 	req := httptest.NewRequest("POST", "/api/logs", strings.NewReader(body))
@@ -305,7 +305,7 @@ func TestLogEndpoints_DELETE(t *testing.T) {
 	buf := NewLogBuffer(100)
 	buf.Add(LogEntry{Path: "/a"})
 	buf.Add(LogEntry{Path: "/b"})
-	router := NewRouter(NewOrgService(), buf)
+	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), buf, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("DELETE", "/api/logs", nil)
 	rr := httptest.NewRecorder()
@@ -320,7 +320,7 @@ func TestLogEndpoints_DELETE(t *testing.T) {
 }
 
 func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
-	router := NewRouter(NewOrgService(), nil)
+	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), nil, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("GET", "/api/logs", nil)
 	rr := httptest.NewRecorder()
@@ -332,7 +332,7 @@ func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
 }
 
 func TestConfigEndpoint(t *testing.T) {
-	router := NewRouter(NewOrgService(), NewLogBuffer(10))
+	router := NewRouter(NewOrgService(NewMemorySnapshotStore()), NewLogBuffer(10), NewMemoryAutosaveStore())
 	req := httptest.NewRequest("GET", "/api/config", nil)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -343,7 +343,7 @@ func TestConfigEndpoint(t *testing.T) {
 		t.Error("expected logging: true")
 	}
 
-	router = NewRouter(NewOrgService(), nil)
+	router = NewRouter(NewOrgService(NewMemorySnapshotStore()), nil, NewMemoryAutosaveStore())
 	req = httptest.NewRequest("GET", "/api/config", nil)
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

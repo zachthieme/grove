@@ -134,3 +134,57 @@
   background: var(--border-default, #e0d6cc);
   margin: 4px 0;
 }
+
+.hamburgerWrapper {
+  position: relative;
+  margin-left: 4px;
+}
+
+.hamburgerBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  line-height: 1;
+}
+
+.hamburgerBtn:hover {
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+}
+
+.hamburgerMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default, #e0d6cc);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 160px;
+  z-index: 50;
+  padding: 4px 0;
+}
+
+.hamburgerItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.hamburgerItem:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}

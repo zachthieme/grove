@@ -26,14 +26,15 @@ var (
 )
 
 func runServe(cmd *cobra.Command, args []string) error {
-	svc := api.NewOrgService()
+	svc := api.NewOrgService(api.FileSnapshotStore{})
+	autoStore := api.FileAutosaveStore{}
 	mux := http.NewServeMux()
 
 	var logBuf *api.LogBuffer
 	if serveLog {
 		logBuf = api.NewLogBuffer(1000)
 	}
-	apiRouter := api.NewRouter(svc, logBuf)
+	apiRouter := api.NewRouter(svc, logBuf, autoStore)
 	if logBuf != nil {
 		mux.Handle("/api/", api.LoggingMiddleware(logBuf)(apiRouter))
 	} else {

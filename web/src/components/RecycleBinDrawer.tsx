@@ -6,7 +6,7 @@ export default function RecycleBinDrawer() {
   if (!binOpen) return null
 
   return (
-    <div className={styles.drawer} role="complementary" aria-label="Recycle bin">
+    <div className={styles.drawer} role="complementary" aria-label="Recycle bin" data-testid="recycle-bin-drawer">
       <div className={styles.header}>
         <h3>Recycle Bin ({recycled.length})</h3>
         <button className={styles.closeBtn} onClick={() => setBinOpen(false)} aria-label="Close recycle bin">×</button>

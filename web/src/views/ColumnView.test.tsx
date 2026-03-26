@@ -96,7 +96,7 @@ describe('ColumnView', () => {
     expect(screen.getByText('Dave Brown')).toBeDefined()
   })
 
-  it('highlights selected nodes with aria-selected', () => {
+  it('highlights selected nodes with data-selected', () => {
     const alice = makePerson({ id: 'alice', name: 'Alice Smith', managerId: '' })
     const bob = makePerson({ id: 'bob', name: 'Bob Jones', managerId: 'alice' })
 
@@ -108,10 +108,10 @@ describe('ColumnView', () => {
       />
     )
 
-    const selectedNodes = document.querySelectorAll('[aria-selected="true"]')
+    const selectedNodes = document.querySelectorAll('[data-selected="true"]')
     expect(selectedNodes.length).toBeGreaterThan(0)
 
-    const notSelectedNodes = document.querySelectorAll('[aria-selected="false"]')
+    const notSelectedNodes = document.querySelectorAll('[data-selected="false"]')
     expect(notSelectedNodes.length).toBeGreaterThan(0)
   })
 })

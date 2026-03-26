@@ -1,0 +1,48 @@
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import { uploadCSV, switchView } from './helpers'
+
+test.describe('Accessibility', () => {
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+  })
+
+  test('upload prompt has no critical a11y violations', async ({ page }) => {
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    const critical = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')
+    expect(critical).toEqual([])
+  })
+
+  test('detail view has no critical a11y violations', async ({ page }) => {
+    await uploadCSV(page, 'simple.csv')
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    const critical = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')
+    expect(critical).toEqual([])
+  })
+
+  test('table view has no critical a11y violations', async ({ page }) => {
+    await uploadCSV(page, 'simple.csv')
+    await switchView(page, 'Table')
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    const critical = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')
+    expect(critical).toEqual([])
+  })
+
+  test('manager view has no critical a11y violations', async ({ page }) => {
+    await uploadCSV(page, 'simple.csv')
+    await switchView(page, 'Manager')
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    const critical = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')
+    expect(critical).toEqual([])
+  })
+
+})

@@ -32,3 +32,4 @@ screenshots/
 # OS
 Thumbs.db
 Desktop.ini
+coverage.out

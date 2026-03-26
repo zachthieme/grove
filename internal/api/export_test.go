@@ -10,7 +10,7 @@ import (
 func TestExportCSV_RoundTrip(t *testing.T) {
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	if _, err := svc.Upload("test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 func TestExportCSV_IncludesNewFields(t *testing.T) {
 	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
 
-	svc := NewOrgService()
+	svc := NewOrgService(NewMemorySnapshotStore())
 	if _, err := svc.Upload("test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}

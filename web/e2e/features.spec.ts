@@ -19,7 +19,7 @@ test.describe('Feature tests', () => {
     await page.locator('[data-role="chart-container"]').click({ position: { x: 5, y: 5 } })
     await page.waitForTimeout(200)
     await clickPerson(page, 'Carol')
-    await expect(page.locator('h3', { hasText: 'Edit Person' })).toBeVisible()
+    await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     const managerSelect = sidebarField(page, 'manager')
     const selectedText = await managerSelect.locator('option:checked').textContent()
     expect(selectedText).toContain('Alice')
@@ -28,14 +28,14 @@ test.describe('Feature tests', () => {
   test('lasso multi-select', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await lassoSelect(page, 10, 10, 800, 600)
-    const heading = page.locator('h3').filter({ hasText: /Edit \d+ people/ })
+    const heading = page.locator('[data-testid="sidebar-heading"]')
     await expect(heading).toBeVisible({ timeout: 3000 })
   })
 
   test('pod creation via edit', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
-    await expect(page.locator('h3', { hasText: 'Edit Person' })).toBeVisible()
+    await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     const podInput = sidebarField(page, 'pod')
     await podInput.clear()
     await podInput.fill('NewPod')
@@ -71,8 +71,8 @@ test.describe('Feature tests', () => {
     const nameRow = page.locator('span').filter({ hasText: /^Name$/ }).locator('xpath=../select')
     await nameRow.selectOption('Teammate')
     await page.getByRole('button', { name: 'Load', exact: true }).click()
-    await expect(page.locator('[aria-selected]').first()).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Alice' })).toBeVisible()
+    await expect(page.locator('[data-selected]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Alice' })).toBeVisible()
   })
 
   test('diff mode shows changes', async ({ page }) => {
@@ -85,7 +85,7 @@ test.describe('Feature tests', () => {
     await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Diff', exact: true }).click()
-    const bobCard = page.locator('[aria-selected]').filter({ hasText: 'Bob' })
+    const bobCard = page.locator('[data-selected]').filter({ hasText: 'Bob' })
     await expect(bobCard).toBeVisible()
     const cardClass = await bobCard.getAttribute('class')
     expect(cardClass).toBeTruthy()
@@ -93,19 +93,19 @@ test.describe('Feature tests', () => {
 
   test('employment type filter', async ({ page }) => {
     await uploadCSV(page, 'ddp-org.csv')
-    const initialCount = await page.locator('[aria-selected]').count()
+    const initialCount = await page.locator('[data-selected]').count()
     expect(initialCount).toBeGreaterThan(5)
     await page.getByRole('button', { name: 'Employment type filter' }).click()
     await page.getByRole('button', { name: 'Hide All' }).click()
     await page.getByRole('main').click({ position: { x: 50, y: 50 } })
     // Wait for filter to take effect
-    await expect(page.locator('[aria-selected]')).not.toHaveCount(initialCount)
-    const hiddenCount = await page.locator('[aria-selected]').count()
+    await expect(page.locator('[data-selected]')).not.toHaveCount(initialCount)
+    const hiddenCount = await page.locator('[data-selected]').count()
     expect(hiddenCount).toBeLessThan(initialCount)
     await page.getByRole('button', { name: 'Employment type filter' }).click()
     await page.getByRole('button', { name: 'Show All' }).click()
     await page.getByRole('main').click({ position: { x: 50, y: 50 } })
-    await expect(page.locator('[aria-selected]')).toHaveCount(initialCount)
+    await expect(page.locator('[data-selected]')).toHaveCount(initialCount)
   })
 
   test('note icon toggle', async ({ page }) => {
@@ -139,18 +139,18 @@ test.describe('Feature tests', () => {
 
   test('head focus subtree zoom', async ({ page }) => {
     await uploadCSV(page, 'grove.csv')
-    const initialCount = await page.locator('[aria-selected]').count()
+    const initialCount = await page.locator('[data-selected]').count()
     expect(initialCount).toBeGreaterThan(10)
-    const manager = page.locator('[aria-selected]').filter({ hasText: 'Mike Torres' }).first()
+    const manager = page.locator('[data-selected]').filter({ hasText: 'Mike Torres' }).first()
     await manager.hover()
     await page.getByRole('button', { name: 'Focus on subtree', exact: true }).click()
     // Wait for focus to take effect
-    await expect(page.locator('[aria-selected]')).not.toHaveCount(initialCount)
-    const focusedCount = await page.locator('[aria-selected]').count()
+    await expect(page.locator('[data-selected]')).not.toHaveCount(initialCount)
+    const focusedCount = await page.locator('[data-selected]').count()
     expect(focusedCount).toBeLessThan(initialCount)
     expect(focusedCount).toBeGreaterThan(0)
     await page.keyboard.press('Escape')
-    await expect(page.locator('[aria-selected]')).toHaveCount(initialCount)
+    await expect(page.locator('[data-selected]')).toHaveCount(initialCount)
   })
 
   test('table column filter', async ({ page }) => {

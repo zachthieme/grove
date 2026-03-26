@@ -58,6 +58,7 @@ export default function TableRow({ person, columns, managers, change, readOnly, 
           className={styles.selectCheckbox}
           checked={!!selected}
           onChange={() => onToggleSelect?.(person.id)}
+          aria-label={`Select ${person.name}`}
         />
       </td>
       {columns.map((col, i) => (

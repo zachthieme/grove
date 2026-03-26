@@ -30,6 +30,7 @@ type OrgService struct {
 	pendingFile     []byte
 	pendingFilename string
 	pendingIsZip    bool
+	snapshotStore   SnapshotStore
 }
 
 func deriveDisciplineOrder(people []Person) []string {
@@ -52,9 +53,9 @@ type MoveResult struct {
 	Pods    []Pod
 }
 
-func NewOrgService() *OrgService {
-	svc := &OrgService{}
-	if snaps, err := ReadSnapshots(); err == nil && snaps != nil {
+func NewOrgService(snapStore SnapshotStore) *OrgService {
+	svc := &OrgService{snapshotStore: snapStore}
+	if snaps, err := snapStore.Read(); err == nil && snaps != nil {
 		svc.snapshots = snaps
 	}
 	return svc
@@ -85,7 +86,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 		people := ConvertOrg(org)
 		s.snapshots = nil
 		var persistWarn string
-		if err := DeleteSnapshotStore(); err != nil {
+		if err := s.snapshotStore.Delete(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
 		s.original = people
@@ -177,10 +178,10 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 
 		// Disk I/O outside the lock
 		var persistWarn string
-		if err := DeleteSnapshotStore(); err != nil {
+		if err := s.snapshotStore.Delete(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
-		if err := WriteSnapshots(snapCopy); err != nil {
+		if err := s.snapshotStore.Write(snapCopy); err != nil {
 			msg := fmt.Sprintf("snapshot persist error: %v", err)
 			if persistWarn != "" {
 				persistWarn += "; " + msg
@@ -221,7 +222,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 
 	// Disk I/O outside the lock
 	var persistWarn string
-	if err := DeleteSnapshotStore(); err != nil {
+	if err := s.snapshotStore.Delete(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	resp.PersistenceWarning = persistWarn

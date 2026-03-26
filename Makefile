@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all
+.PHONY: frontend build dev clean e2e test test-all cover
 
 frontend:
 	cd web && npm run build
@@ -23,3 +23,8 @@ test:
 
 test-all: test
 	cd web && npm test
+
+cover:
+	go test -race -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | tail -1
+	cd web && npm test -- --coverage

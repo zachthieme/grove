@@ -90,7 +90,7 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
       {person.warning && person.warning.length > 0 && (
         <div className={styles.warningDot} title={person.warning}>{'\u26A0'}</div>
       )}
-      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} aria-selected={selected || false}>
+      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} data-selected={selected || false} data-testid={`person-${person.name}`}>
         <div className={styles.name}>
           {statusLabel && <span className="sr-only">{statusLabel}: </span>}
           {prefix}{person.name}

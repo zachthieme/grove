@@ -14,8 +14,8 @@ import (
 )
 
 func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
-	svc := api.NewOrgService()
-	handler := api.NewRouter(svc, nil)
+	svc := api.NewOrgService(api.NewMemorySnapshotStore())
+	handler := api.NewRouter(svc, nil, api.NewMemoryAutosaveStore())
 
 	csvData, err := os.ReadFile("testdata/simple.csv")
 	if err != nil {

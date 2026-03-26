@@ -216,7 +216,7 @@ export default function DetailSidebar() {
   return (
     <div className={styles.sidebar}>
       <div className={styles.header}>
-        <h3>{isBatch ? `Edit ${selectedIds.size} people` : 'Edit Person'}</h3>
+        <h3 data-testid="sidebar-heading">{isBatch ? `Edit ${selectedIds.size} people` : 'Edit Person'}</h3>
         <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close">
           &times;
         </button>

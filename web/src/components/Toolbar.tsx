@@ -36,7 +36,9 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const handleFileChange = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +51,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
   )
 
   useOutsideClick(dropdownRef, useCallback(() => setExportOpen(false), []), exportOpen)
+  useOutsideClick(menuRef, useCallback(() => setMenuOpen(false), []), menuOpen)
 
   return (
     <header className={styles.toolbar}>
@@ -80,12 +83,6 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             ))}
           </div>
 
-          {viewMode !== 'table' && (
-            <button className={styles.pill} style={{ fontSize: 18, lineHeight: 1 }} onClick={() => reflow()} title="Re-layout" aria-label="Re-layout">
-              ⟳
-            </button>
-          )}
-
           <div className={styles.pillGroup}>
             {dataViews.map((d) => (
               <button
@@ -103,15 +100,6 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           <RecycleBinButton />
 
           <SnapshotsDropdown />
-
-          <button
-            className={styles.pill}
-            style={{ fontSize: 18, lineHeight: 1 }}
-            onClick={() => setSettingsOpen(true)}
-            title="Settings"
-          >
-            &#x2699;&#xFE0F;
-          </button>
 
           <div className={styles.spacer} />
 
@@ -197,6 +185,30 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           Logs
         </button>
       )}
+
+      <div className={styles.hamburgerWrapper} ref={menuRef}>
+        <button
+          className={styles.hamburgerBtn}
+          onClick={() => setMenuOpen(o => !o)}
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+        >
+          &#x2630;
+        </button>
+        {menuOpen && (
+          <div className={styles.hamburgerMenu}>
+            {viewMode !== 'table' && (
+              <button className={styles.hamburgerItem} onClick={() => { reflow(); setMenuOpen(false) }}>
+                Refresh Layout
+              </button>
+            )}
+            <button className={styles.hamburgerItem} onClick={() => { setSettingsOpen(true); setMenuOpen(false) }}>
+              Settings
+            </button>
+          </div>
+        )}
+      </div>
+
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </header>
   )

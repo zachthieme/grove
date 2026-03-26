@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func handleWriteAutosave() http.HandlerFunc {
+func handleWriteAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		var data AutosaveData
@@ -13,7 +13,7 @@ func handleWriteAutosave() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		if err := WriteAutosave(data); err != nil {
+		if err := store.Write(data); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -21,9 +21,9 @@ func handleWriteAutosave() http.HandlerFunc {
 	}
 }
 
-func handleReadAutosave() http.HandlerFunc {
+func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := ReadAutosave()
+		data, err := store.Read()
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -36,9 +36,9 @@ func handleReadAutosave() http.HandlerFunc {
 	}
 }
 
-func handleDeleteAutosave() http.HandlerFunc {
+func handleDeleteAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := DeleteAutosave(); err != nil {
+		if err := store.Delete(); err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

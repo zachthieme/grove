@@ -9,32 +9,32 @@ test.describe('Smoke tests', () => {
 
   test('upload CSV and see org chart', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Alice' })).toBeVisible()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Bob' })).toBeVisible()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Carol' })).toBeVisible()
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Alice' })).toBeVisible()
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Bob' })).toBeVisible()
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
   test('switch between views', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
-    await expect(page.locator('[aria-selected]').first()).toBeVisible()
+    await expect(page.locator('[data-selected]').first()).toBeVisible()
     await switchView(page, 'Manager')
-    await expect(page.locator('[aria-selected]').first()).toBeVisible()
+    await expect(page.locator('[data-selected]').first()).toBeVisible()
     await switchView(page, 'Table')
     await expect(page.locator('tbody tr').first()).toBeVisible()
     await switchView(page, 'Detail')
-    await expect(page.locator('[aria-selected]').first()).toBeVisible()
+    await expect(page.locator('[data-selected]').first()).toBeVisible()
   })
 
   test('edit a person via sidebar', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
-    await expect(page.locator('h3', { hasText: 'Edit Person' })).toBeVisible()
+    await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Staff Engineer' })).toBeVisible()
+    await expect(page.locator('[data-testid="person-Bob"]')).toContainText('Staff Engineer')
   })
 
   test('table inline edit', async ({ page }) => {
@@ -54,14 +54,14 @@ test.describe('Smoke tests', () => {
   test('delete and restore', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
-    await expect(page.locator('h3', { hasText: 'Edit Person' })).toBeVisible()
+    await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     await page.getByRole('button', { name: 'Delete' }).click()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Carol' })).toHaveCount(0)
+    await expect(page.locator('[data-testid="person-Carol"]')).toHaveCount(0)
     await page.getByRole('button', { name: /Recycle bin/ }).click()
-    await expect(page.locator('text=Recycle Bin')).toBeVisible()
+    await expect(page.locator('[data-testid="recycle-bin-drawer"]')).toBeVisible()
     await page.locator('[aria-label="Recycle bin"]').getByRole('button', { name: 'Restore' }).click()
     await page.getByRole('button', { name: 'Close recycle bin' }).click()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Carol' })).toBeVisible()
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
   test('snapshot save and load', async ({ page }) => {
@@ -85,8 +85,8 @@ test.describe('Smoke tests', () => {
     // Load baseline
     await page.locator('button[aria-label*="Snapshot"]').click()
     await page.getByRole('button', { name: 'baseline' }).first().click()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Senior Engineer' })).toBeVisible()
-    await expect(page.locator('[aria-selected]').filter({ hasText: 'Changed Role' })).toHaveCount(0)
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Senior Engineer' })).toBeVisible()
+    await expect(page.locator('[data-selected]').filter({ hasText: 'Changed Role' })).toHaveCount(0)
   })
 
   test('multi-select batch edit', async ({ page }) => {
@@ -95,7 +95,7 @@ test.describe('Smoke tests', () => {
     const checkboxes = page.locator('tbody input[type="checkbox"]')
     await checkboxes.nth(0).check()
     await checkboxes.nth(1).check()
-    await expect(page.locator('h3', { hasText: 'Edit 2 people' })).toBeVisible()
+    await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     const discInput = sidebarField(page, 'discipline')
     await discInput.clear()
     await discInput.fill('Design')
