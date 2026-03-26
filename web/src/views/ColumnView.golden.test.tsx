@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+import { cleanup } from '@testing-library/react'
 import ColumnView from './ColumnView'
-import { normalizeHTML, makePerson } from '../test-helpers'
+import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
 
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
@@ -32,10 +32,6 @@ vi.mock('../hooks/useDragDrop', () => ({
   useDragDrop: () => ({ onDragEnd: vi.fn() }),
 }))
 
-vi.mock('../store/OrgContext', () => ({
-  useOrg: () => ({ move: vi.fn(), reparent: vi.fn(), selectedIds: new Set() }),
-}))
-
 describe('ColumnView golden', () => {
   afterEach(() => cleanup())
 
@@ -45,24 +41,26 @@ describe('ColumnView golden', () => {
     const eng1 = makePerson({ id: 'eng-003', name: 'Engineer Carol', role: 'Senior Engineer', managerId: 'vp-002' })
     const eng2 = makePerson({ id: 'eng-004', name: 'Engineer Dave', role: 'Engineer', managerId: 'vp-002' })
 
-    const { container } = render(
+    const { container } = renderWithOrg(
       <ColumnView
         people={[ceo, vp, eng1, eng2]}
         selectedIds={new Set()}
         onSelect={vi.fn()}
-      />
+      />,
+      { selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-tree.golden')
   })
 
   it('renders empty state', () => {
-    const { container } = render(
+    const { container } = renderWithOrg(
       <ColumnView
         people={[]}
         selectedIds={new Set()}
         onSelect={vi.fn()}
-      />
+      />,
+      { selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-empty.golden')
@@ -72,12 +70,13 @@ describe('ColumnView golden', () => {
     const ceo = makePerson({ id: 'ceo-001', name: 'CEO Alice', role: 'CEO', managerId: '' })
     const vp = makePerson({ id: 'vp-002', name: 'VP Bob', role: 'VP Engineering', managerId: 'ceo-001' })
 
-    const { container } = render(
+    const { container } = renderWithOrg(
       <ColumnView
         people={[ceo, vp]}
         selectedIds={new Set(['vp-002'])}
         onSelect={vi.fn()}
-      />
+      />,
+      { selectedIds: new Set(['vp-002']) },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-selected.golden')
@@ -89,12 +88,13 @@ describe('ColumnView golden', () => {
     const open = makePerson({ id: 'opn-003', name: 'Open Req', role: 'Engineer', status: 'Open', managerId: 'mgr-001' })
     const transfer = makePerson({ id: 'xfr-004', name: 'Transfer Grace', role: 'Designer', status: 'Transfer In', managerId: 'mgr-001' })
 
-    const { container } = render(
+    const { container } = renderWithOrg(
       <ColumnView
         people={[mgr, active, open, transfer]}
         selectedIds={new Set()}
         onSelect={vi.fn()}
-      />
+      />,
+      { selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-mixed-statuses.golden')
@@ -104,12 +104,13 @@ describe('ColumnView golden', () => {
     const carol = makePerson({ id: 'carol-001', name: 'Carol White', team: 'Design', managerId: '' })
     const dave = makePerson({ id: 'dave-002', name: 'Dave Brown', team: 'Engineering', managerId: '' })
 
-    const { container } = render(
+    const { container } = renderWithOrg(
       <ColumnView
         people={[carol, dave]}
         selectedIds={new Set()}
         onSelect={vi.fn()}
-      />
+      />,
+      { selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/column-view-orphans.golden')

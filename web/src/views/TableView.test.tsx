@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
+import { renderWithOrg } from '../test-helpers'
 import type { Person } from '../api/types'
-
-const mockUpdate = vi.fn().mockResolvedValue(undefined)
-const mockRemove = vi.fn().mockResolvedValue(undefined)
-const mockToggleSelect = vi.fn()
-const mockAdd = vi.fn().mockResolvedValue(undefined)
 
 const testPeople: Person[] = [
   {
@@ -20,74 +16,42 @@ const testPeople: Person[] = [
   },
 ]
 
-vi.mock('../store/OrgContext', () => ({
-  useOrg: () => ({
-    update: mockUpdate,
-    remove: mockRemove,
-    toggleSelect: mockToggleSelect,
-    add: mockAdd,
-    working: testPeople,
-    pods: [],
-    settings: { disciplineOrder: [] },
-    original: [],
-    recycled: [],
-    originalPods: [],
-    loaded: true,
-    selectedIds: new Set(),
-    selectedId: null,
-    selectedPodId: null,
-    viewMode: 'table' as const,
-    dataView: 'working' as const,
-    headPersonId: null,
-    hiddenEmploymentTypes: new Set(),
-    binOpen: false,
-    layoutKey: 0,
-    pendingMapping: null,
-    snapshots: [],
-    currentSnapshotName: null,
-    autosaveAvailable: null,
-    error: null,
-    setViewMode: vi.fn(),
-    setDataView: vi.fn(),
-    setSelectedId: vi.fn(),
-    clearSelection: vi.fn(),
-    upload: vi.fn(),
-    move: vi.fn(),
-    reparent: vi.fn(),
-    reorder: vi.fn(),
-    restore: vi.fn(),
-    emptyBin: vi.fn(),
-    setBinOpen: vi.fn(),
-    confirmMapping: vi.fn(),
-    cancelMapping: vi.fn(),
-    reflow: vi.fn(),
-    saveSnapshot: vi.fn(),
-    loadSnapshot: vi.fn(),
-    deleteSnapshot: vi.fn(),
-    restoreAutosave: vi.fn(),
-    dismissAutosave: vi.fn(),
-    toggleEmploymentTypeFilter: vi.fn(),
-    showAllEmploymentTypes: vi.fn(),
-    hideAllEmploymentTypes: vi.fn(),
-    setHead: vi.fn(),
-    clearError: vi.fn(),
-    selectPod: vi.fn(),
-    updatePod: vi.fn(),
-    createPod: vi.fn(),
-    updateSettings: vi.fn(),
-  }),
-  OrgProvider: ({ children }: { children: React.ReactNode }) => children,
-}))
-
 describe('TableView', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
   })
 
+  function renderTable(overrides = {}) {
+    const update = vi.fn().mockResolvedValue(undefined)
+    const remove = vi.fn().mockResolvedValue(undefined)
+    const toggleSelect = vi.fn()
+    const add = vi.fn().mockResolvedValue(undefined)
+    const ctx = {
+      update,
+      remove,
+      toggleSelect,
+      add,
+      working: testPeople,
+      viewMode: 'table' as const,
+      ...overrides,
+    }
+    const result = renderWithOrg(<TableView people={testPeople} />, ctx)
+    return { ...result, update, remove, toggleSelect, add }
+  }
+
+  function renderTableReadOnly(overrides = {}) {
+    const ctx = {
+      working: testPeople,
+      viewMode: 'table' as const,
+      ...overrides,
+    }
+    return renderWithOrg(<TableView people={testPeople} readOnly={true} />, ctx)
+  }
+
   it('cells become editable when clicked in normal mode', async () => {
     const user = userEvent.setup()
-    const { container } = render(<TableView people={testPeople} />)
+    const { container } = renderTable()
 
     const firstRow = container.querySelector('tbody tr')!
     const textCells = firstRow.querySelectorAll('td')
@@ -101,7 +65,7 @@ describe('TableView', () => {
 
   it('cells are not editable in read-only mode', async () => {
     const user = userEvent.setup()
-    const { container } = render(<TableView people={testPeople} readOnly={true} />)
+    const { container } = renderTableReadOnly()
 
     const dataCells = container.querySelectorAll('tbody td')
     const textCell = Array.from(dataCells).find(td => td.querySelector('span'))
@@ -114,34 +78,34 @@ describe('TableView', () => {
 
   it('clicking delete calls remove with person id', async () => {
     const user = userEvent.setup()
-    render(<TableView people={testPeople} />)
+    const { remove } = renderTable()
 
     const deleteButtons = screen.getAllByTitle('Delete')
     await user.click(deleteButtons[0])
-    expect(mockRemove).toHaveBeenCalledWith('1')
+    expect(remove).toHaveBeenCalledWith('1')
   })
 
   it('clicking second delete calls remove with correct id', async () => {
     const user = userEvent.setup()
-    render(<TableView people={testPeople} />)
+    const { remove } = renderTable()
 
     const deleteButtons = screen.getAllByTitle('Delete')
     await user.click(deleteButtons[1])
-    expect(mockRemove).toHaveBeenCalledWith('2')
+    expect(remove).toHaveBeenCalledWith('2')
   })
 
   it('clicking checkbox calls toggleSelect with person id', async () => {
     const user = userEvent.setup()
-    const { container } = render(<TableView people={testPeople} />)
+    const { container, toggleSelect } = renderTable()
 
     const checkboxes = container.querySelectorAll('tbody input[type="checkbox"]')
     await user.click(checkboxes[0])
-    expect(mockToggleSelect).toHaveBeenCalledWith('1', true)
+    expect(toggleSelect).toHaveBeenCalledWith('1', true)
   })
 
   it('shows column visibility dropdown when Columns button is clicked', async () => {
     const user = userEvent.setup()
-    render(<TableView people={testPeople} />)
+    renderTable()
 
     const colBtn = screen.getByText(/Columns/)
     await user.click(colBtn)

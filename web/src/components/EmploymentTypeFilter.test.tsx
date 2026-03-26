@@ -1,50 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
-import { makePerson } from '../test-helpers'
-import type { Person } from '../api/types'
-
-const mockOrg: Record<string, unknown> = {}
-
-function resetMockOrg() {
-  Object.assign(mockOrg, {
-    loaded: true, working: [] as Person[], original: [] as Person[], recycled: [] as Person[],
-    pods: [], originalPods: [], settings: { disciplineOrder: [] },
-    viewMode: 'detail', dataView: 'working', selectedIds: new Set(),
-    selectedId: null, selectedPodId: null, binOpen: false,
-    hiddenEmploymentTypes: new Set<string>(),
-    headPersonId: null, layoutKey: 0, error: null, pendingMapping: null,
-    snapshots: [], currentSnapshotName: null, autosaveAvailable: null,
-    setViewMode: vi.fn(), setDataView: vi.fn(), toggleSelect: vi.fn(),
-    setSelectedId: vi.fn(), clearSelection: vi.fn(),
-    upload: vi.fn(), move: vi.fn(), reparent: vi.fn(), reorder: vi.fn(),
-    update: vi.fn(), add: vi.fn(), remove: vi.fn(), restore: vi.fn(),
-    emptyBin: vi.fn(), setBinOpen: vi.fn(), confirmMapping: vi.fn(),
-    cancelMapping: vi.fn(), reflow: vi.fn(), saveSnapshot: vi.fn(),
-    loadSnapshot: vi.fn(), deleteSnapshot: vi.fn(), restoreAutosave: vi.fn(),
-    dismissAutosave: vi.fn(), toggleEmploymentTypeFilter: vi.fn(),
-    showAllEmploymentTypes: vi.fn(), hideAllEmploymentTypes: vi.fn(),
-    setHead: vi.fn(), clearError: vi.fn(), setError: vi.fn(),
-    selectPod: vi.fn(), batchSelect: vi.fn(), updatePod: vi.fn(),
-    createPod: vi.fn(), updateSettings: vi.fn(),
-  })
-}
-
-vi.mock('../store/OrgContext', () => ({
-  useOrg: () => mockOrg,
-}))
+import { makePerson, renderWithOrg } from '../test-helpers'
 
 describe('EmploymentTypeFilter', () => {
-  beforeEach(() => resetMockOrg())
   afterEach(() => cleanup())
 
   it('calls toggleEmploymentTypeFilter when a checkbox item is clicked', async () => {
     const user = userEvent.setup()
     const toggleFn = vi.fn()
-    mockOrg.toggleEmploymentTypeFilter = toggleFn
-    mockOrg.working = [makePerson({ id: '1', employmentType: 'FTE' })]
-    render(<EmploymentTypeFilter />)
+    renderWithOrg(<EmploymentTypeFilter />, {
+      toggleEmploymentTypeFilter: toggleFn,
+      working: [makePerson({ id: '1', employmentType: 'FTE' })],
+    })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
     await user.click(screen.getByRole('menuitemcheckbox'))
     expect(toggleFn).toHaveBeenCalledWith('FTE')
@@ -53,9 +22,10 @@ describe('EmploymentTypeFilter', () => {
   it('calls showAllEmploymentTypes when Show All is clicked', async () => {
     const user = userEvent.setup()
     const showAllFn = vi.fn()
-    mockOrg.showAllEmploymentTypes = showAllFn
-    mockOrg.working = [makePerson({ id: '1', employmentType: 'FTE' })]
-    render(<EmploymentTypeFilter />)
+    renderWithOrg(<EmploymentTypeFilter />, {
+      showAllEmploymentTypes: showAllFn,
+      working: [makePerson({ id: '1', employmentType: 'FTE' })],
+    })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
     await user.click(screen.getByText('Show All'))
     expect(showAllFn).toHaveBeenCalledTimes(1)
@@ -64,12 +34,13 @@ describe('EmploymentTypeFilter', () => {
   it('calls hideAllEmploymentTypes with all types when Hide All is clicked', async () => {
     const user = userEvent.setup()
     const hideAllFn = vi.fn()
-    mockOrg.hideAllEmploymentTypes = hideAllFn
-    mockOrg.working = [
-      makePerson({ id: '1', employmentType: 'FTE' }),
-      makePerson({ id: '2', employmentType: 'CW' }),
-    ]
-    render(<EmploymentTypeFilter />)
+    renderWithOrg(<EmploymentTypeFilter />, {
+      hideAllEmploymentTypes: hideAllFn,
+      working: [
+        makePerson({ id: '1', employmentType: 'FTE' }),
+        makePerson({ id: '2', employmentType: 'CW' }),
+      ],
+    })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
     await user.click(screen.getByText('Hide All'))
     expect(hideAllFn).toHaveBeenCalledWith(['CW', 'FTE'])

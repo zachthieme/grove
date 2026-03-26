@@ -1,8 +1,15 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
 import { OrgDataProvider, useOrgData } from './OrgDataContext'
 import { UIProvider, useUI } from './UIContext'
 import { SelectionProvider, useSelection } from './SelectionContext'
 import type { OrgContextValue } from './orgTypes'
+
+const OrgOverrideContext = createContext<OrgContextValue | null>(null)
+
+/** Test-only provider: bypasses real sub-contexts, supplies OrgContextValue directly. */
+export function OrgOverrideProvider({ value, children }: { value: OrgContextValue; children: ReactNode }) {
+  return <OrgOverrideContext.Provider value={value}>{children}</OrgOverrideContext.Provider>
+}
 
 export function OrgProvider({ children }: { children: ReactNode }) {
   return (
@@ -17,6 +24,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 }
 
 export function useOrg(): OrgContextValue {
+  const override = useContext(OrgOverrideContext)
+  if (override) return override
+
   const data = useOrgData()
   const ui = useUI()
   const selection = useSelection()
