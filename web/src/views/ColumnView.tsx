@@ -38,6 +38,7 @@ function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeR
   nodeRef?: (el: HTMLDivElement | null) => void
 }) {
   const [hovered, setHovered] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
 
   return (
     <div
@@ -63,13 +64,22 @@ function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeR
         onClick={onClick}
       >
         <div className={styles.teamHeaderName}>{podName}</div>
-        {publicNote && (
-          <div className={styles.podNote}>
-            {publicNote.length > 50 ? publicNote.slice(0, 47) + '...' : publicNote}
-          </div>
-        )}
         <div className={styles.teamHeaderCount}>{memberCount} {memberCount === 1 ? 'person' : 'people'}</div>
       </div>
+      {publicNote && (
+        <button
+          className={`${styles.podNoteIcon} ${noteOpen ? styles.podNoteIconActive : ''}`}
+          onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
+          title="Toggle notes"
+        >
+          {'\u{1F4CB}'}
+        </button>
+      )}
+      {noteOpen && publicNote && (
+        <div className={styles.podNotePanel}>
+          <div className={styles.podNoteText}>{publicNote}</div>
+        </div>
+      )}
     </div>
   )
 }

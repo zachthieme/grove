@@ -18,7 +18,9 @@
   border-radius: var(--radius-lg);
   padding: 18px 22px;
   box-shadow: var(--shadow-lg);
-  width: 280px;
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
   font-size: 13px;
 }
 
@@ -80,4 +82,20 @@
   margin-bottom: 5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.subRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0 2px 14px;
+}
+
+.subLabel {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.subValue {
+  color: var(--text-secondary);
+  font-size: 12px;
 }

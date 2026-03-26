@@ -49,9 +49,14 @@ describe('computeOrgMetrics', () => {
     expect(metrics.byDiscipline.get('Design')).toBe(1)
   })
 
-  it('computes team breakdown', () => {
+  it('computes team/pod breakdown with discipline sub-counts', () => {
     const metrics = computeOrgMetrics('1', all)
-    expect(metrics.byTeam.get('Eng')).toBeGreaterThan(0)
-    expect(metrics.byTeam.get('Design')).toBe(1)
+    const engGroup = metrics.byTeamPod.find(g => g.name === 'Eng')
+    const designGroup = metrics.byTeamPod.find(g => g.name === 'Design')
+    expect(engGroup).toBeDefined()
+    expect(engGroup!.count).toBeGreaterThan(0)
+    expect(designGroup).toBeDefined()
+    expect(designGroup!.count).toBe(1)
+    expect(designGroup!.byDiscipline.get('Design')).toBe(1)
   })
 })

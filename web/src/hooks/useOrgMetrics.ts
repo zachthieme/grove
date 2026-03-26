@@ -1,5 +1,11 @@
 import type { Person } from '../api/types'
 
+export interface TeamPodGroup {
+  name: string
+  count: number
+  byDiscipline: Map<string, number>
+}
+
 export interface OrgMetrics {
   spanOfControl: number
   totalHeadcount: number
@@ -7,7 +13,7 @@ export interface OrgMetrics {
   planned: number
   transfers: number
   byDiscipline: Map<string, number>
-  byTeam: Map<string, number>
+  byTeamPod: TeamPodGroup[]
 }
 
 export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMetrics {
@@ -20,26 +26,36 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
     }
   }
 
-  const directReports = childrenMap.get(personId) || []
   const metrics: OrgMetrics = {
-    spanOfControl: directReports.length,
+    spanOfControl: (childrenMap.get(personId) || []).length,
     totalHeadcount: 0,
     recruiting: 0,
     planned: 0,
     transfers: 0,
     byDiscipline: new Map(),
-    byTeam: new Map(),
+    byTeamPod: [],
   }
+
+  // Collect all people in subtree, grouped by pod/team with discipline sub-counts
+  const groupMap = new Map<string, Map<string, number>>()
+  const groupCounts = new Map<string, number>()
 
   function walk(pid: string) {
     const reports = childrenMap.get(pid) || []
     for (const r of reports) {
       metrics.totalHeadcount++
-      metrics.byTeam.set(r.team, (metrics.byTeam.get(r.team) || 0) + 1)
+
+      // Group key: use pod if set, otherwise team
+      const groupKey = r.pod || r.team || 'Unassigned'
+
+      groupCounts.set(groupKey, (groupCounts.get(groupKey) || 0) + 1)
+      if (!groupMap.has(groupKey)) groupMap.set(groupKey, new Map())
 
       if (r.status === 'Active') {
         const d = r.discipline || 'Unknown'
         metrics.byDiscipline.set(d, (metrics.byDiscipline.get(d) || 0) + 1)
+        const discMap = groupMap.get(groupKey)!
+        discMap.set(d, (discMap.get(d) || 0) + 1)
       } else if (r.status === 'Open' || r.status === 'Backfill') {
         metrics.recruiting++
       } else if (r.status === 'Pending Open' || r.status === 'Planned') {
@@ -53,5 +69,15 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
   }
 
   walk(personId)
+
+  // Build sorted team/pod groups
+  metrics.byTeamPod = [...groupCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => ({
+      name,
+      count,
+      byDiscipline: groupMap.get(name) || new Map(),
+    }))
+
   return metrics
 }
