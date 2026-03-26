@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
-import { OrgDataProvider, useOrgData } from './OrgDataContext'
-import { UIProvider, useUI } from './UIContext'
-import { SelectionProvider, useSelection } from './SelectionContext'
-import type { OrgContextValue } from './orgTypes'
+import { OrgDataProvider, OrgDataContext, useOrgData as useOrgDataDirect } from './OrgDataContext'
+import { UIProvider, UIContext, useUI as useUIDirect } from './UIContext'
+import { SelectionProvider, SelectionContext, useSelection as useSelectionDirect } from './SelectionContext'
+import type { OrgContextValue, OrgDataContextValue, UIContextValue, SelectionContextValue } from './orgTypes'
 
 const OrgOverrideContext = createContext<OrgContextValue | null>(null)
 
@@ -23,13 +23,49 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * Granular hook: OrgData state and actions.
+ * Falls back to OrgOverrideContext (test provider) when no OrgDataProvider is present.
+ */
+export function useOrgData(): OrgDataContextValue {
+  const override = useContext(OrgOverrideContext)
+  const real = useContext(OrgDataContext)
+  if (real) return real
+  if (override) return override as unknown as OrgDataContextValue
+  throw new Error('useOrgData must be used within an OrgDataProvider or OrgOverrideProvider')
+}
+
+/**
+ * Granular hook: UI state and actions.
+ * Falls back to OrgOverrideContext (test provider) when no UIProvider is present.
+ */
+export function useUI(): UIContextValue {
+  const override = useContext(OrgOverrideContext)
+  const real = useContext(UIContext)
+  if (real) return real
+  if (override) return override as unknown as UIContextValue
+  throw new Error('useUI must be used within a UIProvider or OrgOverrideProvider')
+}
+
+/**
+ * Granular hook: Selection state and actions.
+ * Falls back to OrgOverrideContext (test provider) when no SelectionProvider is present.
+ */
+export function useSelection(): SelectionContextValue {
+  const override = useContext(OrgOverrideContext)
+  const real = useContext(SelectionContext)
+  if (real) return real
+  if (override) return override as unknown as SelectionContextValue
+  throw new Error('useSelection must be used within a SelectionProvider or OrgOverrideProvider')
+}
+
 export function useOrg(): OrgContextValue {
   const override = useContext(OrgOverrideContext)
   if (override) return override
 
-  const data = useOrgData()
-  const ui = useUI()
-  const selection = useSelection()
+  const data = useOrgDataDirect()
+  const ui = useUIDirect()
+  const selection = useSelectionDirect()
 
   // Cross-context concern: opening the bin clears selection
   const setBinOpen = useCallback((open: boolean) => {

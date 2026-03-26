@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData, useSelection } from '../store/OrgContext'
 import styles from './UnparentedBar.module.css'
 
 export default function UnparentedBar() {
-  const { working, toggleSelect } = useOrg()
+  const { working } = useOrgData()
+  const { toggleSelect } = useSelection()
   const [collapsed, setCollapsed] = useState(true)
 
   // People with direct reports are tree roots, not orphans

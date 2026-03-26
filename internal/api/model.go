@@ -67,6 +67,12 @@ type MappedColumn struct {
 	Confidence string `json:"confidence"` // "high", "medium", "none"
 }
 
+type PendingUpload struct {
+	File     []byte
+	Filename string
+	IsZip    bool
+}
+
 type UploadResponse struct {
 	Status             string                  `json:"status"` // "ready" or "needs_mapping"
 	OrgData            *OrgData                `json:"orgData,omitempty"`

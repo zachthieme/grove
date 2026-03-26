@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import type { UIContextValue, ViewMode, DataView } from './orgTypes'
 
-const UIContext = createContext<UIContextValue | null>(null)
+export const UIContext = createContext<UIContextValue | null>(null)
 
 export function useUI(): UIContextValue {
   const ctx = useContext(UIContext)

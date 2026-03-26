@@ -1,9 +1,9 @@
 import { useCallback, useRef, type ChangeEvent } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData } from '../store/OrgContext'
 import styles from './UploadPrompt.module.css'
 
 export default function UploadPrompt() {
-  const { upload } = useOrg()
+  const { upload } = useOrgData()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleChange = useCallback(

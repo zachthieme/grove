@@ -1,8 +1,19 @@
-import { useOrg } from '../store/OrgContext'
+import { useCallback } from 'react'
+import { useOrgData, useUI, useSelection } from '../store/OrgContext'
 import styles from './RecycleBinButton.module.css'
 
 export default function RecycleBinButton() {
-  const { recycled, binOpen, setBinOpen } = useOrg()
+  const { recycled } = useOrgData()
+  const { binOpen, setBinOpen: rawSetBinOpen } = useUI()
+  const { clearSelection } = useSelection()
+
+  // Preserve cross-context behavior: opening bin clears selection
+  const setBinOpen = useCallback((open: boolean) => {
+    rawSetBinOpen(open)
+    if (open) {
+      clearSelection()
+    }
+  }, [rawSetBinOpen, clearSelection])
   return (
     <button
       onClick={() => setBinOpen(!binOpen)}

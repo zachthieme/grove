@@ -273,9 +273,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 		}
 
 		// All parsing succeeded — now commit state atomically
-		s.pendingFile = nil
-		s.pendingFilename = ""
-		s.pendingIsZip = false
+		s.pending = nil
 		s.original = orig
 		s.working = deepCopyPeople(work)
 		s.recycled = nil
@@ -333,9 +331,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 	// Needs mapping — store as pending.
 	// Don't clear snapshots yet — user may cancel the mapping dialog.
 	// Snapshots are cleared when the mapping is confirmed in ConfirmMapping.
-	s.pendingFile = data
-	s.pendingFilename = "upload.zip"
-	s.pendingIsZip = true
+	s.pending = &PendingUpload{File: data, Filename: "upload.zip", IsZip: true}
 	s.mu.Unlock()
 
 	preview := [][]string{header}

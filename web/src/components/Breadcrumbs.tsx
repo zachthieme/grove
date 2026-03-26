@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData, useUI } from '../store/OrgContext'
 import styles from './Breadcrumbs.module.css'
 
 export default function Breadcrumbs() {
-  const { headPersonId, working, setHead } = useOrg()
+  const { working } = useOrgData()
+  const { headPersonId, setHead } = useUI()
 
   const breadcrumbs = useMemo(() => {
     if (!headPersonId) return []

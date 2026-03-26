@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import type { Person } from '../api/types'
+import type { Person, PersonUpdatePayload } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useOrg } from '../store/OrgContext'
 import type { ColumnDef } from './tableColumns'
@@ -68,7 +68,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
   }, [working])
 
   const handleUpdate = useCallback(async (personId: string, field: string, value: string) => {
-    await update(personId, { [field]: value })
+    await update(personId, { [field]: value } as PersonUpdatePayload)
   }, [update])
 
   const handleDelete = useCallback(async (personId: string) => {
@@ -266,7 +266,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
                     checked={!hiddenCols.has(col.key)}
                     onChange={() => setHiddenCols(prev => {
                       const next = new Set(prev)
-                      next.has(col.key) ? next.delete(col.key) : next.add(col.key)
+                      if (next.has(col.key)) { next.delete(col.key) } else { next.add(col.key) }
                       return next
                     })}
                   />

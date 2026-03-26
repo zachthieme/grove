@@ -1,4 +1,4 @@
-import { useOrg } from '../store/OrgContext'
+import { useOrgData } from '../store/OrgContext'
 import styles from './AutosaveBanner.module.css'
 
 function formatTime(iso: string): string {
@@ -11,7 +11,7 @@ function formatTime(iso: string): string {
 }
 
 export default function AutosaveBanner() {
-  const { autosaveAvailable, restoreAutosave, dismissAutosave } = useOrg()
+  const { autosaveAvailable, restoreAutosave, dismissAutosave } = useOrgData()
 
   if (!autosaveAvailable) return null
 

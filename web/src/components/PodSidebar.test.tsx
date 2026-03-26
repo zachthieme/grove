@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, fireEvent, cleanup } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import PodSidebar from './PodSidebar'
 import { makePerson, renderWithOrg } from '../test-helpers'
 import type { Pod } from '../api/types'
@@ -21,8 +20,29 @@ const alphaPod: Pod = {
 describe('PodSidebar', () => {
   afterEach(() => cleanup())
 
-  it('calls updatePod on blur when name has changed', async () => {
-    const user = userEvent.setup()
+  it('save button is disabled when nothing changed', () => {
+    renderWithOrg(<PodSidebar />, {
+      pods: [alphaPod],
+      working: [manager, member1, member2],
+      selectedPodId: 'pod-1',
+    })
+    const saveBtn = screen.getByRole('button', { name: /save/i })
+    expect((saveBtn as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('save button is enabled when name changes', () => {
+    renderWithOrg(<PodSidebar />, {
+      pods: [alphaPod],
+      working: [manager, member1, member2],
+      selectedPodId: 'pod-1',
+    })
+    const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
+    fireEvent.change(nameInput, { target: { value: 'Alpha Renamed' } })
+    const saveBtn = screen.getByRole('button', { name: /save/i })
+    expect((saveBtn as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('calls updatePod when save button clicked after name change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
@@ -31,28 +51,13 @@ describe('PodSidebar', () => {
       updatePod: updatePodFn,
     })
     const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
-    await user.clear(nameInput)
-    await user.type(nameInput, 'Alpha Renamed')
-    await user.tab()
+    fireEvent.change(nameInput, { target: { value: 'Alpha Renamed' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
     expect(updatePodFn).toHaveBeenCalledTimes(1)
     expect(updatePodFn).toHaveBeenCalledWith('pod-1', { name: 'Alpha Renamed' })
   })
 
-  it('does not call updatePod on blur when nothing changed', () => {
-    const updatePodFn = vi.fn().mockResolvedValue(undefined)
-    renderWithOrg(<PodSidebar />, {
-      pods: [alphaPod],
-      working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
-      updatePod: updatePodFn,
-    })
-    const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
-    fireEvent.blur(nameInput)
-    expect(updatePodFn).not.toHaveBeenCalled()
-  })
-
-  it('calls updatePod on blur when public note changed', async () => {
-    const user = userEvent.setup()
+  it('calls updatePod when save clicked after public note change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
@@ -61,15 +66,13 @@ describe('PodSidebar', () => {
       updatePod: updatePodFn,
     })
     const textarea = screen.getByDisplayValue('Public info') as HTMLTextAreaElement
-    await user.clear(textarea)
-    await user.type(textarea, 'Updated public')
-    await user.tab()
+    fireEvent.change(textarea, { target: { value: 'Updated public' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
     expect(updatePodFn).toHaveBeenCalledTimes(1)
     expect(updatePodFn).toHaveBeenCalledWith('pod-1', { publicNote: 'Updated public' })
   })
 
-  it('calls updatePod on blur when private note changed', async () => {
-    const user = userEvent.setup()
+  it('calls updatePod when save clicked after private note change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
@@ -78,9 +81,8 @@ describe('PodSidebar', () => {
       updatePod: updatePodFn,
     })
     const textarea = screen.getByDisplayValue('Private info') as HTMLTextAreaElement
-    await user.clear(textarea)
-    await user.type(textarea, 'Updated private')
-    await user.tab()
+    fireEvent.change(textarea, { target: { value: 'Updated private' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
     expect(updatePodFn).toHaveBeenCalledTimes(1)
     expect(updatePodFn).toHaveBeenCalledWith('pod-1', { privateNote: 'Updated private' })
   })

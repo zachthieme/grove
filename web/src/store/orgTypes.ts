@@ -1,4 +1,4 @@
-import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings } from '../api/types'
+import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings, PersonUpdatePayload, PodUpdatePayload } from '../api/types'
 
 export type ViewMode = 'detail' | 'manager' | 'table'
 export type DataView = 'original' | 'working' | 'diff'
@@ -40,7 +40,7 @@ export interface OrgActions {
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
-  update: (personId: string, fields: Record<string, string>, correlationId?: string) => Promise<void>
+  update: (personId: string, fields: PersonUpdatePayload, correlationId?: string) => Promise<void>
   add: (person: Omit<Person, 'id'>) => Promise<void>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>
@@ -62,7 +62,7 @@ export interface OrgActions {
   clearError: () => void
   selectPod: (id: string | null) => void
   batchSelect: (ids: Set<string>) => void
-  updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
+  updatePod: (podId: string, fields: PodUpdatePayload) => Promise<void>
   createPod: (managerId: string, name: string, team: string) => Promise<void>
   updateSettings: (settings: Settings) => Promise<void>
 }
@@ -123,7 +123,7 @@ export interface OrgDataContextValue {
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
-  update: (personId: string, fields: Record<string, string>, correlationId?: string) => Promise<void>
+  update: (personId: string, fields: PersonUpdatePayload, correlationId?: string) => Promise<void>
   add: (person: Omit<Person, 'id'>) => Promise<void>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>
@@ -135,7 +135,7 @@ export interface OrgDataContextValue {
   deleteSnapshot: (name: string) => Promise<void>
   restoreAutosave: () => void
   dismissAutosave: () => Promise<void>
-  updatePod: (podId: string, fields: Record<string, string>) => Promise<void>
+  updatePod: (podId: string, fields: PodUpdatePayload) => Promise<void>
   createPod: (managerId: string, name: string, team: string) => Promise<void>
   updateSettings: (settings: Settings) => Promise<void>
 }

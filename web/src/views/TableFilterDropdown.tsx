@@ -59,7 +59,7 @@ export default function TableFilterDropdown({ columnKey, values, selected, onSel
 
   const toggleOne = (value: string) => {
     const next = new Set(selected)
-    next.has(value) ? next.delete(value) : next.add(value)
+    if (next.has(value)) { next.delete(value) } else { next.add(value) }
     onSelectionChange(columnKey, next)
   }
 

@@ -51,9 +51,32 @@ export interface MovePayload {
   newPod?: string
 }
 
+export interface PersonUpdatePayload {
+  name?: string
+  role?: string
+  discipline?: string
+  team?: string
+  managerId?: string
+  status?: string
+  employmentType?: string
+  additionalTeams?: string
+  newRole?: string
+  newTeam?: string
+  level?: string
+  pod?: string
+  publicNote?: string
+  privateNote?: string
+}
+
+export interface PodUpdatePayload {
+  name?: string
+  publicNote?: string
+  privateNote?: string
+}
+
 export interface UpdatePayload {
   personId: string
-  fields: Record<string, string>
+  fields: PersonUpdatePayload
 }
 
 export interface DeletePayload {

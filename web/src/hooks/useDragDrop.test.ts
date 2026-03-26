@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
+import React, { createElement } from 'react'
 import { useDragDrop } from './useDragDrop'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { TEAM_DROP_PREFIX, POD_DROP_PREFIX } from '../constants'
+import { OrgOverrideProvider } from '../store/OrgContext'
+import { makeOrgContext } from '../test-helpers'
 
 const mockMove = vi.fn().mockResolvedValue(undefined)
 const mockReparent = vi.fn().mockResolvedValue(undefined)
@@ -12,14 +15,17 @@ const mockPods = [
   { id: 'pod-2', name: 'Beta', team: 'Infra', managerId: 'mgr-2', publicNote: '' },
 ]
 
-vi.mock('../store/OrgContext', () => ({
-  useOrg: () => ({
+function renderDragDrop(selectedIds?: Set<string>) {
+  const ctx = makeOrgContext({
     move: mockMove,
     reparent: mockReparent,
-    selectedIds: mockSelectedIds,
+    selectedIds: selectedIds ?? mockSelectedIds,
     pods: mockPods,
-  }),
-}))
+  })
+  return renderHook(() => useDragDrop(), {
+    wrapper: ({ children }: { children: React.ReactNode }) => createElement(OrgOverrideProvider, { value: ctx, children }),
+  })
+}
 
 function makeDragEndEvent(activeId: string, overId: string | null): DragEndEvent {
   return {
@@ -38,7 +44,7 @@ describe('useDragDrop', () => {
   })
 
   it('calls reparent when dropping a person onto another person', async () => {
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop()
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-2'))
 
@@ -48,7 +54,7 @@ describe('useDragDrop', () => {
   })
 
   it('calls move with team name when dropping onto a team drop target', async () => {
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop()
     const teamTarget = `${TEAM_DROP_PREFIX}Engineering`
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', teamTarget))
@@ -59,8 +65,7 @@ describe('useDragDrop', () => {
   })
 
   it('moves all selected people when dragged person is in selectedIds', async () => {
-    mockSelectedIds = new Set(['person-1', 'person-2', 'person-3'])
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop(new Set(['person-1', 'person-2', 'person-3']))
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-4'))
 
@@ -71,8 +76,7 @@ describe('useDragDrop', () => {
   })
 
   it('excludes the drop target from multi-selection moves', async () => {
-    mockSelectedIds = new Set(['person-1', 'person-2', 'person-3'])
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop(new Set(['person-1', 'person-2', 'person-3']))
 
     // Drop onto person-2 who is also in the selection
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-2'))
@@ -86,8 +90,7 @@ describe('useDragDrop', () => {
   })
 
   it('moves all selected people to team drop target', async () => {
-    mockSelectedIds = new Set(['person-1', 'person-2'])
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop(new Set(['person-1', 'person-2']))
     const teamTarget = `${TEAM_DROP_PREFIX}Platform`
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', teamTarget))
@@ -98,7 +101,7 @@ describe('useDragDrop', () => {
   })
 
   it('does nothing when there is no drop target', async () => {
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop()
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', null))
 
@@ -107,7 +110,7 @@ describe('useDragDrop', () => {
   })
 
   it('does nothing when dropping onto self', async () => {
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop()
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-1'))
 
@@ -116,8 +119,7 @@ describe('useDragDrop', () => {
   })
 
   it('moves only the dragged person when not in selectedIds', async () => {
-    mockSelectedIds = new Set(['person-2', 'person-3'])
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop(new Set(['person-2', 'person-3']))
 
     // person-1 is not in the selection
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-4'))
@@ -127,7 +129,7 @@ describe('useDragDrop', () => {
   })
 
   it('calls move with pod manager and team when dropping onto a pod target', async () => {
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop()
     const podTarget = `${POD_DROP_PREFIX}mgr-1:Alpha`
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', podTarget))
@@ -138,8 +140,7 @@ describe('useDragDrop', () => {
   })
 
   it('moves all selected people to pod target', async () => {
-    mockSelectedIds = new Set(['person-1', 'person-2'])
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop(new Set(['person-1', 'person-2']))
     const podTarget = `${POD_DROP_PREFIX}mgr-2:Beta`
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', podTarget))
@@ -150,7 +151,7 @@ describe('useDragDrop', () => {
   })
 
   it('falls back to pod name as team when pod is not found', async () => {
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop()
     const podTarget = `${POD_DROP_PREFIX}mgr-99:UnknownPod`
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', podTarget))
@@ -160,8 +161,7 @@ describe('useDragDrop', () => {
   })
 
   it('moves only dragged person when selectedIds has size 1', async () => {
-    mockSelectedIds = new Set(['person-1'])
-    const { result } = renderHook(() => useDragDrop())
+    const { result } = renderDragDrop(new Set(['person-1']))
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-2'))
 

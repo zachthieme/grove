@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
+import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings, type PersonUpdatePayload, type PodUpdatePayload } from '../api/types'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
 import type { OrgDataContextValue } from './orgTypes'
@@ -24,7 +24,7 @@ interface OrgDataState {
   autosaveAvailable: AutosaveData | null
 }
 
-const OrgDataContext = createContext<OrgDataContextValue | null>(null)
+export const OrgDataContext = createContext<OrgDataContextValue | null>(null)
 
 export function useOrgData(): OrgDataContextValue {
   const ctx = useContext(OrgDataContext)
@@ -213,7 +213,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     } catch (err) { handleError(err) }
   }, [handleError])
 
-  const update = useCallback(async (personId: string, fields: Record<string, string>, correlationId?: string) => {
+  const update = useCallback(async (personId: string, fields: PersonUpdatePayload, correlationId?: string) => {
     try {
       const resp = await api.updatePerson({ personId, fields }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
@@ -332,7 +332,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
-  const updatePod = useCallback(async (podId: string, fields: Record<string, string>) => {
+  const updatePod = useCallback(async (podId: string, fields: PodUpdatePayload) => {
     try {
       const resp = await api.updatePod(podId, fields)
       setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))

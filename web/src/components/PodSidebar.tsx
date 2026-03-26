@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useOrg } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
+import type { PodUpdatePayload } from '../api/types'
 import styles from './DetailSidebar.module.css'
 
 export default function PodSidebar() {
@@ -34,7 +35,7 @@ export default function PodSidebar() {
     form.privateNote !== (pod.privateNote ?? '')
 
   const handleSave = async () => {
-    const fields: Record<string, string> = {}
+    const fields: PodUpdatePayload = {}
     if (form.name !== pod.name) fields.name = form.name
     if (form.publicNote !== (pod.publicNote ?? '')) fields.publicNote = form.publicNote
     if (form.privateNote !== (pod.privateNote ?? '')) fields.privateNote = form.privateNote

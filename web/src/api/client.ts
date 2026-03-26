@@ -1,4 +1,4 @@
-import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings } from './types'
+import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings, PodUpdatePayload } from './types'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -326,7 +326,7 @@ export async function listPods(): Promise<PodInfo[]> {
   return json<PodInfo[]>(await fetchWithTimeout(`${BASE}/pods`))
 }
 
-export async function updatePod(podId: string, fields: Record<string, string>): Promise<MutationResponse> {
+export async function updatePod(podId: string, fields: PodUpdatePayload): Promise<MutationResponse> {
   const resp = await fetchWithTimeout(`${BASE}/pods/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

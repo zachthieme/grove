@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useOrg } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
-import type { Person } from '../api/types'
+import type { Person, PersonUpdatePayload } from '../api/types'
 import styles from './DetailSidebar.module.css'
 import { STATUSES, STATUS_DESCRIPTIONS, MIXED_VALUE } from '../constants'
 import PodSidebar from './PodSidebar'
@@ -112,7 +112,7 @@ export default function DetailSidebar() {
     } else if (person) {
       setForm(formFromPerson(person))
     }
-  }, [isBatch ? selectedIds.size : personDataKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isBatch ? selectedIds.size : personDataKey])
 
   const handleChange = (field: keyof FormFields, value: string) => {
     if (field === 'managerId') {
@@ -134,12 +134,12 @@ export default function DetailSidebar() {
     if (isBatch) {
       if (batchDirty.size === 0) return
       const managerChanged = batchDirty.has('managerId') && form.managerId !== MIXED_VALUE
-      const fields: Record<string, string> = {}
+      const fields: PersonUpdatePayload = {}
       for (const key of batchDirty) {
         if (managerChanged && (key === 'managerId' || key === 'team')) continue
         const apiKey = key === 'otherTeams' ? 'additionalTeams' : key
         const val = form[key as keyof FormFields]
-        if (val !== MIXED_VALUE) fields[apiKey] = val
+        if (val !== MIXED_VALUE) (fields as Record<string, string>)[apiKey] = val
       }
       let failedCount = 0
       if (managerChanged) {
@@ -162,7 +162,7 @@ export default function DetailSidebar() {
       try {
         const managerChanged = form.managerId !== person.managerId
         if (managerChanged) await reparent(person.id, form.managerId, corrId)
-        const fields: Record<string, string> = {
+        const fields: PersonUpdatePayload = {
           name: form.name, role: form.role, discipline: form.discipline,
           status: form.status, employmentType: form.employmentType, additionalTeams: form.otherTeams,
         }

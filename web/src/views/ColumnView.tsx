@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, type ReactNode } from 'react'
 import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
@@ -159,6 +159,131 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
     </div>
   )
 
+  // Compute IC pod list elements (when all children are ICs — no managers)
+  const icPodListElements = useMemo((): ReactNode => {
+    if (!allICs) return null
+    // Split ICs into podded (grouped under pod headers) and unpodded (flat list)
+    const unpodded: OrgNode[] = []
+    const podOrder: string[] = []
+    const podMap = new Map<string, OrgNode[]>()
+    for (const ic of ics) {
+      const podName = ic.person.pod
+      if (!podName) {
+        unpodded.push(ic)
+        continue
+      }
+      if (!podMap.has(podName)) {
+        podOrder.push(podName)
+        podMap.set(podName, [])
+      }
+      podMap.get(podName)!.push(ic)
+    }
+    podOrder.sort((a, b) => a.localeCompare(b))
+    const hasPods = podOrder.length > 0
+    if (!hasPods) {
+      // No pods at all — simple flat list
+      return (
+        <div className={styles.icStack}>
+          {ics.map((child) => renderIC(child))}
+        </div>
+      )
+    }
+    return (
+      <>
+        {unpodded.length > 0 && (
+          <div className={styles.icStack}>
+            {unpodded.map((child) => renderIC(child))}
+          </div>
+        )}
+        {podOrder.map((podName) => {
+          const members = podMap.get(podName)!
+          return (
+            <div key={podName} className={styles.subtree}>
+              <div className={styles.nodeSlot}>
+                {renderPodHeader(node.person.id, podName, members.length)}
+              </div>
+              <div className={styles.children}>
+                <div className={styles.icStack}>
+                  {members.map((child) => renderIC(child))}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </>
+    )
+  }, [allICs, ics, node.person.id, renderPodHeader, renderIC])
+
+  // Compute mixed children elements (managers + ICs interleaved via renderItems)
+  const mixedChildrenElements = useMemo((): ReactNode[] => {
+    if (allICs) return []
+    // ICs with additionalTeams are cross-team connectors — render individually (horizontal).
+    // ICs on a single team — batch into vertical stacks.
+    const elements: ReactNode[] = []
+    let icBatch: OrgNode[] = []
+
+    const flushIcBatch = () => {
+      if (icBatch.length === 0) return
+      elements.push(
+        <div key={`ic-stack-${icBatch[0].person.id}`} className={styles.icStack}>
+          {icBatch.map((child) => renderIC(child))}
+        </div>
+      )
+      icBatch = []
+    }
+
+    const isCrossTeam = (n: OrgNode) =>
+      (n.person.additionalTeams?.length ?? 0) > 0
+
+    for (const item of renderItems) {
+      if (item.type === 'ic') {
+        if (isCrossTeam(item.node)) {
+          flushIcBatch()
+          elements.push(renderIC(item.node))
+        } else {
+          icBatch.push(item.node)
+        }
+      } else {
+        flushIcBatch()
+        if (item.type === 'manager') {
+          elements.push(
+            <SubtreeNode
+              key={item.node.person.id}
+              node={item.node}
+              selectedIds={selectedIds}
+              onSelect={onSelect}
+              changes={changes}
+              setNodeRef={setNodeRef}
+              managerSet={managerSet}
+              pods={pods}
+              onAddReport={onAddReport}
+              onAddToTeam={onAddToTeam}
+              onDeletePerson={onDeletePerson}
+              onInfo={onInfo}
+              onFocus={onFocus}
+              onPodSelect={onPodSelect}
+            />
+          )
+        } else if (item.type === 'icGroup') {
+          elements.push(
+            <div key={`group-${item.podName ? 'pod' : 'team'}-${item.team}`} className={styles.subtree}>
+              <div className={styles.nodeSlot}>
+                {renderPodHeader(node.person.id, item.podName ?? item.team, item.members.length)}
+              </div>
+              <div className={styles.children}>
+                <div className={styles.icStack}>
+                  {item.members.map((child) => renderIC(child))}
+                </div>
+              </div>
+            </div>
+          )
+        }
+      }
+    }
+    flushIcBatch()
+    return elements
+  }, [allICs, renderItems, renderIC, renderPodHeader, node.person.id, selectedIds, onSelect, changes, setNodeRef, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect])
+
   return (
     <div className={styles.subtree}>
       <div className={styles.nodeSlot}>
@@ -179,128 +304,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
 
       {node.children.length > 0 && (
         <div className={styles.children}>
-          {allICs ? (
-            (() => {
-              // Split ICs into podded (grouped under pod headers) and unpodded (flat list)
-              const unpodded: OrgNode[] = []
-              const podOrder: string[] = []
-              const podMap = new Map<string, OrgNode[]>()
-              for (const ic of ics) {
-                const podName = ic.person.pod
-                if (!podName) {
-                  unpodded.push(ic)
-                  continue
-                }
-                if (!podMap.has(podName)) {
-                  podOrder.push(podName)
-                  podMap.set(podName, [])
-                }
-                podMap.get(podName)!.push(ic)
-              }
-              podOrder.sort((a, b) => a.localeCompare(b))
-              const hasPods = podOrder.length > 0
-              if (!hasPods) {
-                // No pods at all — simple flat list
-                return (
-                  <div className={styles.icStack}>
-                    {ics.map((child) => renderIC(child))}
-                  </div>
-                )
-              }
-              return (
-                <>
-                  {unpodded.length > 0 && (
-                    <div className={styles.icStack}>
-                      {unpodded.map((child) => renderIC(child))}
-                    </div>
-                  )}
-                  {podOrder.map((podName) => {
-                    const members = podMap.get(podName)!
-                    return (
-                      <div key={podName} className={styles.subtree}>
-                        <div className={styles.nodeSlot}>
-                          {renderPodHeader(node.person.id, podName, members.length)}
-                        </div>
-                        <div className={styles.children}>
-                          <div className={styles.icStack}>
-                            {members.map((child) => renderIC(child))}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </>
-              )
-            })()
-          ) : (
-            (() => {
-              // ICs with additionalTeams are cross-team connectors — render individually (horizontal).
-              // ICs on a single team — batch into vertical stacks.
-              const elements: React.ReactNode[] = []
-              let icBatch: OrgNode[] = []
-
-              const flushIcBatch = () => {
-                if (icBatch.length === 0) return
-                elements.push(
-                  <div key={`ic-stack-${icBatch[0].person.id}`} className={styles.icStack}>
-                    {icBatch.map((child) => renderIC(child))}
-                  </div>
-                )
-                icBatch = []
-              }
-
-              const isCrossTeam = (n: OrgNode) =>
-                (n.person.additionalTeams?.length ?? 0) > 0
-
-              for (const item of renderItems) {
-                if (item.type === 'ic') {
-                  if (isCrossTeam(item.node)) {
-                    flushIcBatch()
-                    elements.push(renderIC(item.node))
-                  } else {
-                    icBatch.push(item.node)
-                  }
-                } else {
-                  flushIcBatch()
-                  if (item.type === 'manager') {
-                    elements.push(
-                      <SubtreeNode
-                        key={item.node.person.id}
-                        node={item.node}
-                        selectedIds={selectedIds}
-                        onSelect={onSelect}
-                        changes={changes}
-                        setNodeRef={setNodeRef}
-                        managerSet={managerSet}
-                        pods={pods}
-                        onAddReport={onAddReport}
-                        onAddToTeam={onAddToTeam}
-                        onDeletePerson={onDeletePerson}
-                        onInfo={onInfo}
-                        onFocus={onFocus}
-                        onPodSelect={onPodSelect}
-                      />
-                    )
-                  } else if (item.type === 'icGroup') {
-                    elements.push(
-                      <div key={`group-${item.podName ? 'pod' : 'team'}-${item.team}`} className={styles.subtree}>
-                        <div className={styles.nodeSlot}>
-                          {renderPodHeader(node.person.id, item.podName ?? item.team, item.members.length)}
-                        </div>
-                        <div className={styles.children}>
-                          <div className={styles.icStack}>
-                            {item.members.map((child) => renderIC(child))}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-                }
-              }
-              flushIcBatch()
-              return elements
-            })()
-          )}
+          {allICs ? icPodListElements : mixedChildrenElements}
         </div>
       )}
     </div>

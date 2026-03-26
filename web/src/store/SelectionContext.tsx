@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import type { SelectionContextValue } from './orgTypes'
 
-const SelectionContext = createContext<SelectionContextValue | null>(null)
+export const SelectionContext = createContext<SelectionContextValue | null>(null)
 
 export function useSelection(): SelectionContextValue {
   const ctx = useContext(SelectionContext)
