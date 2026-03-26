@@ -4,6 +4,7 @@ interface Props {
   showAdd: boolean
   showInfo: boolean
   showFocus?: boolean
+  showEdit?: boolean
   showDelete?: boolean
   onAdd: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
@@ -12,7 +13,7 @@ interface Props {
   onFocus?: (e: React.MouseEvent) => void
 }
 
-export default function NodeActions({ showAdd, showInfo, showFocus, showDelete = true, onAdd, onDelete, onEdit, onInfo, onFocus }: Props) {
+export default function NodeActions({ showAdd, showInfo, showFocus, showEdit = true, showDelete = true, onAdd, onDelete, onEdit, onInfo, onFocus }: Props) {
   return (
     <div className={styles.actions}>
       {showFocus && onFocus && (
@@ -24,7 +25,9 @@ export default function NodeActions({ showAdd, showInfo, showFocus, showDelete =
       {showInfo && (
         <button className={styles.btn} onClick={onInfo} title="Org metrics" aria-label="Org metrics">{'\u2139'}</button>
       )}
-      <button className={styles.btn} onClick={onEdit} title="Edit" aria-label="Edit">{'\u270E'}</button>
+      {showEdit && (
+        <button className={styles.btn} onClick={onEdit} title="Edit" aria-label="Edit">{'\u270E'}</button>
+      )}
       {showDelete && (
         <button className={`${styles.btn} ${styles.danger}`} onClick={onDelete} title="Delete" aria-label="Delete">{'\u00D7'}</button>
       )}

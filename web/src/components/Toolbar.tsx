@@ -81,8 +81,8 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           </div>
 
           {viewMode !== 'table' && (
-            <button className={styles.pill} onClick={() => reflow()} title="Re-layout" aria-label="Re-layout">
-              ↻
+            <button className={styles.pill} style={{ fontSize: 18, lineHeight: 1 }} onClick={() => reflow()} title="Re-layout" aria-label="Re-layout">
+              ⟳
             </button>
           )}
 
@@ -106,10 +106,11 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
 
           <button
             className={styles.pill}
+            style={{ fontSize: 18, lineHeight: 1 }}
             onClick={() => setSettingsOpen(true)}
             title="Settings"
           >
-            &#x2699;
+            &#x2699;&#xFE0F;
           </button>
 
           <div className={styles.spacer} />

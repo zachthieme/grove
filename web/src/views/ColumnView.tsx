@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { DndContext, DragOverlay } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useChartLayout } from '../hooks/useChartLayout'
+import { useLassoSelect } from '../hooks/useLassoSelect'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
 import { OrphanGroup } from './OrphanGroup'
 import { computeEdges } from './columnEdges'
@@ -15,6 +16,7 @@ interface ColumnViewProps {
   people: Person[]
   selectedIds: Set<string>
   onSelect: (id: string, event?: React.MouseEvent) => void
+  onBatchSelect?: (ids: Set<string>) => void
   changes?: Map<string, PersonChange>
   ghostPeople?: Person[]
   managerSet?: Set<string>
@@ -47,12 +49,13 @@ function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeR
       {hovered && onAdd && (
         <NodeActions
           showAdd={true}
-          showInfo={false}
+          showInfo={true}
+          showEdit={false}
           showDelete={false}
           onAdd={(e) => { e.stopPropagation(); onAdd() }}
           onDelete={(e) => { e.stopPropagation() }}
-          onEdit={(e) => { e.stopPropagation(); onClick?.() }}
-          onInfo={(e) => { e.stopPropagation() }}
+          onEdit={(e) => { e.stopPropagation() }}
+          onInfo={(e) => { e.stopPropagation(); onClick?.() }}
         />
       )}
       <div
@@ -278,11 +281,22 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   )
 }
 
-export default function ColumnView({ people, selectedIds, onSelect, changes, ghostPeople = [], managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect }: ColumnViewProps) {
+export default function ColumnView({ people, selectedIds, onSelect, onBatchSelect, changes, ghostPeople = [], managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect }: ColumnViewProps) {
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people), [people])
 
-  const { containerRef, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
+  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
+
+  const handleLassoSelect = useCallback((ids: Set<string>) => {
+    onBatchSelect?.(ids)
+  }, [onBatchSelect])
+
+  const { lassoRect } = useLassoSelect({
+    containerRef,
+    nodeRefs,
+    onSelect: handleLassoSelect,
+    enabled: !!onBatchSelect,
+  })
 
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
@@ -293,7 +307,19 @@ export default function ColumnView({ people, selectedIds, onSelect, changes, gho
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={styles.container} ref={containerRef} data-role="chart-container">
-        <svg className={styles.svgOverlay}>
+        <svg className={styles.svgOverlay} style={lassoRect ? { pointerEvents: 'none', zIndex: 10 } : undefined}>
+          {lassoRect && (
+            <rect
+              x={lassoRect.x}
+              y={lassoRect.y}
+              width={lassoRect.width}
+              height={lassoRect.height}
+              fill="rgba(74, 156, 63, 0.08)"
+              stroke="var(--grove-green, #4a9c3f)"
+              strokeWidth={1}
+              strokeDasharray="4 2"
+            />
+          )}
           {lines.map((l, i) => {
             if (l.dashed) {
               const lowerY = Math.max(l.y1, l.y2)
