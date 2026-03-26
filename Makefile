@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e
+.PHONY: frontend build dev clean e2e test test-all
 
 frontend:
 	cd web && npm run build
@@ -17,3 +17,9 @@ clean:
 
 e2e: build
 	cd web && npx playwright test
+
+test:
+	go test -race -cover ./...
+
+test-all: test
+	cd web && npm test

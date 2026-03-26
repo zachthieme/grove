@@ -225,24 +225,24 @@ export default function DetailSidebar() {
         {!isBatch && (
           <div className={styles.field}>
             <label>Name</label>
-            <input value={form.name} onChange={(e) => handleChange('name', e.target.value)} />
+            <input data-testid="field-name" value={form.name} onChange={(e) => handleChange('name', e.target.value)} />
           </div>
         )}
         <div className={styles.field}>
           <label>Role</label>
-          <input value={val('role')} placeholder={ph('role')} onChange={(e) => handleChange('role', e.target.value)} />
+          <input data-testid="field-role" value={val('role')} placeholder={ph('role')} onChange={(e) => handleChange('role', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Discipline</label>
-          <input value={val('discipline')} placeholder={ph('discipline')} onChange={(e) => handleChange('discipline', e.target.value)} />
+          <input data-testid="field-discipline" value={val('discipline')} placeholder={ph('discipline')} onChange={(e) => handleChange('discipline', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Team</label>
-          <input value={val('team')} placeholder={ph('team')} onChange={(e) => handleChange('team', e.target.value)} />
+          <input data-testid="field-team" value={val('team')} placeholder={ph('team')} onChange={(e) => handleChange('team', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Manager</label>
-          <select value={val('managerId')} onChange={(e) => handleChange('managerId', e.target.value)}>
+          <select data-testid="field-manager" value={val('managerId')} onChange={(e) => handleChange('managerId', e.target.value)}>
             {mixed('managerId') && <option value="">Mixed</option>}
             <option value="">(No manager)</option>
             {managers.map((m) => (
@@ -252,7 +252,7 @@ export default function DetailSidebar() {
         </div>
         <div className={styles.field}>
           <label>Pod</label>
-          <input value={val('pod')} placeholder={ph('pod')} onChange={(e) => handleChange('pod', e.target.value)} />
+          <input data-testid="field-pod" value={val('pod')} placeholder={ph('pod')} onChange={(e) => handleChange('pod', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>
@@ -276,30 +276,30 @@ export default function DetailSidebar() {
               </div>
             </div>
           )}
-          <select value={val('status')} onChange={(e) => handleChange('status', e.target.value)}>
+          <select data-testid="field-status" value={val('status')} onChange={(e) => handleChange('status', e.target.value)}>
             {mixed('status') && <option value="">Mixed</option>}
             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className={styles.field}>
           <label>Employment Type</label>
-          <input value={val('employmentType')} placeholder={ph('employmentType', 'FTE')} onChange={(e) => handleChange('employmentType', e.target.value)} />
+          <input data-testid="field-employmentType" value={val('employmentType')} placeholder={ph('employmentType', 'FTE')} onChange={(e) => handleChange('employmentType', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Level</label>
-          <input type="number" min="0" value={val('level')} placeholder={ph('level')} onChange={(e) => handleChange('level', e.target.value)} />
+          <input data-testid="field-level" type="number" min="0" value={val('level')} placeholder={ph('level')} onChange={(e) => handleChange('level', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Other Teams</label>
-          <input value={val('otherTeams')} placeholder={ph('otherTeams', 'Comma-separated')} onChange={(e) => handleChange('otherTeams', e.target.value)} />
+          <input data-testid="field-otherTeams" value={val('otherTeams')} placeholder={ph('otherTeams', 'Comma-separated')} onChange={(e) => handleChange('otherTeams', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Public Note</label>
-          <textarea value={val('publicNote')} placeholder={ph('publicNote', 'Visible on the org chart')} onChange={(e) => handleChange('publicNote', e.target.value)} rows={3} />
+          <textarea data-testid="field-publicNote" value={val('publicNote')} placeholder={ph('publicNote', 'Visible on the org chart')} onChange={(e) => handleChange('publicNote', e.target.value)} rows={3} />
         </div>
         <div className={styles.field}>
           <label>Private Note</label>
-          <textarea value={val('privateNote')} placeholder={ph('privateNote', 'Only visible in this panel')} onChange={(e) => handleChange('privateNote', e.target.value)} rows={3} />
+          <textarea data-testid="field-privateNote" value={val('privateNote')} placeholder={ph('privateNote', 'Only visible in this panel')} onChange={(e) => handleChange('privateNote', e.target.value)} rows={3} />
         </div>
         {saveError && <div className={styles.saveError}>{saveError}</div>}
         <div className={styles.actions}>

@@ -921,6 +921,347 @@ func TestUpload_DerivesSettings(t *testing.T) {
 	}
 }
 
+// --- RestoreState tests ---
+
+func TestOrgService_RestoreState_FullState(t *testing.T) {
+	svc := NewOrgService()
+	settings := &Settings{DisciplineOrder: []string{"Eng", "Product"}}
+	data := AutosaveData{
+		Original: []Person{
+			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+		},
+		Working: []Person{
+			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Role: "Senior Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+		},
+		Recycled: []Person{
+			{Id: "3", Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"},
+		},
+		Pods:         []Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
+		OriginalPods: []Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
+		Settings:     settings,
+	}
+
+	svc.RestoreState(data)
+
+	org := svc.GetOrg()
+	if org == nil {
+		t.Fatal("expected org data after RestoreState")
+	}
+	if len(org.Original) != 2 {
+		t.Errorf("expected 2 original, got %d", len(org.Original))
+	}
+	if len(org.Working) != 2 {
+		t.Errorf("expected 2 working, got %d", len(org.Working))
+	}
+	recycled := svc.GetRecycled()
+	if len(recycled) != 1 {
+		t.Errorf("expected 1 recycled, got %d", len(recycled))
+	}
+	if len(org.Pods) != 1 {
+		t.Errorf("expected 1 pod, got %d", len(org.Pods))
+	}
+	if org.Settings == nil {
+		t.Fatal("expected settings")
+	}
+	if len(org.Settings.DisciplineOrder) != 2 {
+		t.Errorf("expected 2 discipline order entries, got %d", len(org.Settings.DisciplineOrder))
+	}
+	if org.Settings.DisciplineOrder[0] != "Eng" || org.Settings.DisciplineOrder[1] != "Product" {
+		t.Errorf("unexpected discipline order: %v", org.Settings.DisciplineOrder)
+	}
+}
+
+func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
+	svc := NewOrgService()
+	data := AutosaveData{
+		Original: []Person{
+			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{Id: "3", Name: "Carol", Role: "Engineer", Team: "Platform", ManagerId: "2", Status: "Active"},
+		},
+		Working: []Person{
+			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{Id: "3", Name: "Carol", Role: "Engineer", Team: "Platform", ManagerId: "2", Status: "Active"},
+		},
+		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
+	}
+
+	svc.RestoreState(data)
+
+	// Delete should work on restored data
+	result, err := svc.Delete("3")
+	if err != nil {
+		t.Fatalf("delete after restore failed: %v", err)
+	}
+	if len(result.Working) != 2 {
+		t.Errorf("expected 2 working after delete, got %d", len(result.Working))
+	}
+	if len(result.Recycled) != 1 {
+		t.Errorf("expected 1 recycled after delete, got %d", len(result.Recycled))
+	}
+
+	// Update should work on restored data
+	updateResult, err := svc.Update("2", map[string]string{"role": "Staff Engineer"})
+	if err != nil {
+		t.Fatalf("update after restore failed: %v", err)
+	}
+	bob := findById(updateResult.Working, "2")
+	if bob == nil {
+		t.Fatal("expected Bob in working")
+	}
+	if bob.Role != "Staff Engineer" {
+		t.Errorf("expected role 'Staff Engineer', got '%s'", bob.Role)
+	}
+}
+
+func TestOrgService_RestoreState_NilSettings(t *testing.T) {
+	svc := NewOrgService()
+	data := AutosaveData{
+		Original: []Person{
+			{Id: "1", Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Discipline: "Engineering", Team: "Platform", ManagerId: "1", Status: "Active"},
+		},
+		Working: []Person{
+			{Id: "1", Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Discipline: "Engineering", Team: "Platform", ManagerId: "1", Status: "Active"},
+		},
+		Settings: nil, // nil settings should derive defaults
+	}
+
+	svc.RestoreState(data)
+
+	org := svc.GetOrg()
+	if org.Settings == nil {
+		t.Fatal("expected settings to be derived")
+	}
+	// Should derive from original people's disciplines, sorted alphabetically
+	order := org.Settings.DisciplineOrder
+	if len(order) != 2 {
+		t.Fatalf("expected 2 disciplines, got %d", len(order))
+	}
+	if order[0] != "Engineering" || order[1] != "Product" {
+		t.Errorf("expected [Engineering Product], got %v", order)
+	}
+}
+
+// --- isFrontlineManager tests ---
+
+func TestOrgService_IsFrontlineManager(t *testing.T) {
+	// Build a hierarchy: Alice -> Bob -> Carol, Alice -> Dave (IC)
+	svc := NewOrgService()
+	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Alice,Eng,Active\n")
+	resp, err := svc.Upload("test.csv", csv)
+	if err != nil {
+		t.Fatalf("upload failed: %v", err)
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("expected ready, got %s", resp.Status)
+	}
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+	dave := findByName(data.Working, "Dave")
+
+	t.Run("person with ICs but no sub-managers is frontline", func(t *testing.T) {
+		// Bob has Carol (IC only) -> frontline manager
+		svc.mu.RLock()
+		result := svc.isFrontlineManager(bob.Id)
+		svc.mu.RUnlock()
+		if !result {
+			t.Error("expected Bob to be a frontline manager")
+		}
+	})
+
+	t.Run("person with sub-managers is not frontline", func(t *testing.T) {
+		// Alice has Bob (who has reports) and Dave -> not frontline
+		svc.mu.RLock()
+		result := svc.isFrontlineManager(alice.Id)
+		svc.mu.RUnlock()
+		if result {
+			t.Error("expected Alice to NOT be a frontline manager")
+		}
+	})
+
+	t.Run("person with no reports is not frontline", func(t *testing.T) {
+		// Carol has no reports -> not frontline
+		svc.mu.RLock()
+		result := svc.isFrontlineManager(carol.Id)
+		svc.mu.RUnlock()
+		if result {
+			t.Error("expected Carol to NOT be a frontline manager")
+		}
+	})
+
+	t.Run("IC with no reports is not frontline", func(t *testing.T) {
+		svc.mu.RLock()
+		result := svc.isFrontlineManager(dave.Id)
+		svc.mu.RUnlock()
+		if result {
+			t.Error("expected Dave to NOT be a frontline manager")
+		}
+	})
+}
+
+// --- Team cascade on Update tests ---
+
+func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
+	// Bob is a frontline manager with ICs Carol and Dave.
+	// Changing Bob's team should cascade to Carol and Dave.
+	svc := NewOrgService()
+	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Bob,Platform,Active\n")
+	resp, err := svc.Upload("test.csv", csv)
+	if err != nil {
+		t.Fatalf("upload failed: %v", err)
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("expected ready, got %s", resp.Status)
+	}
+	data := svc.GetOrg()
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+	dave := findByName(data.Working, "Dave")
+
+	result, err := svc.Update(bob.Id, map[string]string{"team": "Infra"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+
+	updatedBob := findById(result.Working, bob.Id)
+	if updatedBob.Team != "Infra" {
+		t.Errorf("expected Bob's team 'Infra', got '%s'", updatedBob.Team)
+	}
+	updatedCarol := findById(result.Working, carol.Id)
+	if updatedCarol.Team != "Infra" {
+		t.Errorf("expected Carol's team to cascade to 'Infra', got '%s'", updatedCarol.Team)
+	}
+	updatedDave := findById(result.Working, dave.Id)
+	if updatedDave.Team != "Infra" {
+		t.Errorf("expected Dave's team to cascade to 'Infra', got '%s'", updatedDave.Team)
+	}
+}
+
+func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
+	// Alice -> Bob -> Carol. Alice is NOT a frontline manager (Bob has reports).
+	// Changing Alice's team should NOT cascade to Bob or Carol.
+	svc := newTestService(t) // Alice -> Bob -> Carol
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+
+	result, err := svc.Update(alice.Id, map[string]string{"team": "NewTeam"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+
+	updatedAlice := findById(result.Working, alice.Id)
+	if updatedAlice.Team != "NewTeam" {
+		t.Errorf("expected Alice's team 'NewTeam', got '%s'", updatedAlice.Team)
+	}
+	updatedBob := findById(result.Working, bob.Id)
+	if updatedBob.Team != "Platform" {
+		t.Errorf("expected Bob's team to remain 'Platform', got '%s'", updatedBob.Team)
+	}
+	updatedCarol := findById(result.Working, carol.Id)
+	if updatedCarol.Team != "Platform" {
+		t.Errorf("expected Carol's team to remain 'Platform', got '%s'", updatedCarol.Team)
+	}
+}
+
+// --- Pod auto-create on Update tests ---
+
+func TestOrgService_Update_PodAutoCreate(t *testing.T) {
+	svc := newTestService(t) // Alice -> Bob -> Carol
+	data := svc.GetOrg()
+	carol := findByName(data.Working, "Carol")
+	bob := findByName(data.Working, "Bob")
+
+	// Setting a new pod name should auto-create the pod
+	result, err := svc.Update(carol.Id, map[string]string{"pod": "Alpha"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updatedCarol := findById(result.Working, carol.Id)
+	if updatedCarol.Pod != "Alpha" {
+		t.Errorf("expected Carol's pod 'Alpha', got '%s'", updatedCarol.Pod)
+	}
+	// Verify the pod was created
+	found := false
+	for _, pod := range result.Pods {
+		if pod.Name == "Alpha" && pod.ManagerId == bob.Id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected pod 'Alpha' to be auto-created under Bob")
+	}
+}
+
+func TestOrgService_Update_PodReusesExisting(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	carol := findByName(data.Working, "Carol")
+	bob := findByName(data.Working, "Bob")
+
+	// Create pod "Alpha" first by setting it on Carol
+	_, err := svc.Update(carol.Id, map[string]string{"pod": "Alpha"})
+	if err != nil {
+		t.Fatalf("first pod update failed: %v", err)
+	}
+
+	// Add a new person under Bob and assign same pod "Alpha"
+	added, _, _, err := svc.Add(Person{
+		Name: "Eve", Role: "Engineer", Discipline: "Eng",
+		ManagerId: bob.Id, Team: "Platform", Status: "Active",
+	})
+	if err != nil {
+		t.Fatalf("add failed: %v", err)
+	}
+
+	result, err := svc.Update(added.Id, map[string]string{"pod": "Alpha"})
+	if err != nil {
+		t.Fatalf("second pod update failed: %v", err)
+	}
+
+	// Count pods named "Alpha" under Bob — should be exactly 1
+	count := 0
+	for _, pod := range result.Pods {
+		if pod.Name == "Alpha" && pod.ManagerId == bob.Id {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("expected exactly 1 pod named 'Alpha' under Bob, got %d", count)
+	}
+}
+
+func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	carol := findByName(data.Working, "Carol")
+
+	// Set pod first
+	_, err := svc.Update(carol.Id, map[string]string{"pod": "Alpha"})
+	if err != nil {
+		t.Fatalf("set pod failed: %v", err)
+	}
+
+	// Clear pod
+	result, err := svc.Update(carol.Id, map[string]string{"pod": ""})
+	if err != nil {
+		t.Fatalf("clear pod failed: %v", err)
+	}
+	updatedCarol := findById(result.Working, carol.Id)
+	if updatedCarol.Pod != "" {
+		t.Errorf("expected Carol's pod to be empty, got '%s'", updatedCarol.Pod)
+	}
+}
+
 func findById(people []Person, id string) *Person {
 	for i := range people {
 		if people[i].Id == id {

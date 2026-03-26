@@ -1349,3 +1349,113 @@ func TestSettingsHandler_GetAndPost(t *testing.T) {
 	}
 }
 
+// --- RestoreState handler tests ---
+
+func TestRestoreStateHandler_Valid(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc, nil)
+
+	data := AutosaveData{
+		Original: []Person{
+			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+		},
+		Working: []Person{
+			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
+			{Id: "2", Name: "Bob", Role: "Senior Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+		},
+		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
+	}
+	body, _ := json.Marshal(data)
+	req := httptest.NewRequest("POST", "/api/restore-state", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if resp["status"] != "ok" {
+		t.Errorf("expected status 'ok', got '%s'", resp["status"])
+	}
+
+	// Verify state was loaded by fetching org
+	req = httptest.NewRequest("GET", "/api/org", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 from /api/org, got %d", rec.Code)
+	}
+	var orgData OrgData
+	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
+		t.Fatalf("decoding org: %v", err)
+	}
+	if len(orgData.Original) != 2 {
+		t.Errorf("expected 2 original, got %d", len(orgData.Original))
+	}
+	if len(orgData.Working) != 2 {
+		t.Errorf("expected 2 working, got %d", len(orgData.Working))
+	}
+	bob := findByName(orgData.Working, "Bob")
+	if bob == nil {
+		t.Fatal("expected Bob in working")
+	}
+	if bob.Role != "Senior Engineer" {
+		t.Errorf("expected Bob's role 'Senior Engineer', got '%s'", bob.Role)
+	}
+}
+
+func TestRestoreStateHandler_InvalidJSON(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc, nil)
+
+	req := httptest.NewRequest("POST", "/api/restore-state", bytes.NewReader([]byte("not json")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	var errResp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
+		t.Fatalf("decoding error response: %v", err)
+	}
+	if errResp["error"] == "" {
+		t.Error("expected error message")
+	}
+}
+
+// --- Body size limit test ---
+
+func TestBodySizeLimit(t *testing.T) {
+	svc := NewOrgService()
+	handler := NewRouter(svc, nil)
+	uploadCSV(t, handler)
+
+	// Create a body larger than 1 MB (the limitBody threshold)
+	bigBody := make([]byte, (1<<20)+1024) // 1 MB + 1 KB
+	// Fill with valid-looking JSON prefix to ensure the limit is hit during read
+	copy(bigBody, []byte(`{"personId":"x","fields":{"name":"`))
+	for i := len(`{"personId":"x","fields":{"name":"`); i < len(bigBody)-3; i++ {
+		bigBody[i] = 'A'
+	}
+	copy(bigBody[len(bigBody)-3:], []byte(`"}}`))
+
+	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(bigBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	// The request should be rejected — either 400 or 413
+	if rec.Code == http.StatusOK {
+		t.Error("expected request to be rejected for body exceeding 1MB limit, but got 200")
+	}
+}
+

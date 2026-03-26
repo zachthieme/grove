@@ -48,6 +48,16 @@ export async function dragPersonTo(page: Page, sourceName: string, targetName: s
   await page.mouse.up()
 }
 
+/**
+ * Get a sidebar form field by its data-testid.
+ * Fields: field-name, field-role, field-discipline, field-team, field-manager,
+ * field-pod, field-status, field-employmentType, field-level, field-otherTeams,
+ * field-publicNote, field-privateNote
+ */
+export function sidebarField(page: Page, field: string) {
+  return page.locator(`[data-testid="field-${field}"]`)
+}
+
 export async function lassoSelect(page: Page, startX: number, startY: number, endX: number, endY: number) {
   const container = page.locator('[data-role="chart-container"]')
   const box = await container.boundingBox()
