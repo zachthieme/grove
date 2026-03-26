@@ -3,7 +3,7 @@ import type { OrgNode } from './shared'
 export type RenderItem =
   | { type: 'manager'; node: OrgNode }
   | { type: 'ic'; node: OrgNode }
-  | { type: 'icGroup'; team: string; members: OrgNode[] }
+  | { type: 'icGroup'; team: string; members: OrgNode[]; podName?: string }
 
 /**
  * Reorder managers so that teams connected by cross-team ICs are adjacent.
@@ -123,20 +123,24 @@ export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderI
     }
   }
 
-  // Unaffiliated ICs: grouped by team if multiple teams
+  // Unaffiliated ICs: grouped by pod (if available) or team
   if (unaffiliated.length > 0) {
-    const teamOrder: string[] = []
-    const teamMap = new Map<string, OrgNode[]>()
+    const groupOrder: string[] = []
+    const groupMap = new Map<string, { members: OrgNode[]; podName?: string }>()
     for (const ic of unaffiliated) {
-      if (!teamMap.has(ic.person.team)) {
-        teamOrder.push(ic.person.team)
-        teamMap.set(ic.person.team, [])
+      const hasPod = !!ic.person.pod
+      const key = hasPod ? `pod:${ic.person.pod}` : `team:${ic.person.team}`
+      if (!groupMap.has(key)) {
+        groupOrder.push(key)
+        groupMap.set(key, { members: [], podName: hasPod ? ic.person.pod! : undefined })
       }
-      teamMap.get(ic.person.team)!.push(ic)
+      groupMap.get(key)!.members.push(ic)
     }
-    if (teamOrder.length > 1) {
-      for (const team of teamOrder) {
-        items.push({ type: 'icGroup', team, members: teamMap.get(team)! })
+    const hasPodGroups = [...groupMap.values()].some((g) => g.podName)
+    if (groupOrder.length > 1 || hasPodGroups) {
+      for (const key of groupOrder) {
+        const { members, podName } = groupMap.get(key)!
+        items.push({ type: 'icGroup', team: podName ?? members[0].person.team, members, podName })
       }
     } else {
       for (const ic of unaffiliated) {

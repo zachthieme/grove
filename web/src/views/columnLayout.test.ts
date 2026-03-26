@@ -117,4 +117,45 @@ describe('computeRenderItems', () => {
     expect(items[0].type).toBe('icGroup')
     expect(items[1].type).toBe('icGroup')
   })
+
+  it('groups unaffiliated ICs by pod when pod is set, even if same team', () => {
+    const managers = [makeNode({ id: '1', name: 'Saransh', team: 'SEC' })]
+    const ics = [
+      makeNode({ id: '2', name: 'Chandani', team: 'SEC & IOT', pod: 'MachineQ' }),
+      makeNode({ id: '3', name: 'Poonam', team: 'SEC & IOT', pod: 'MachineQ' }),
+      makeNode({ id: '4', name: 'TBH', team: 'SEC-2' }),
+    ]
+    const items = computeRenderItems(managers, ics)
+    const groups = items.filter((i) => i.type === 'icGroup')
+    expect(groups).toHaveLength(2)
+    // Pod group should use the pod name, not the team name
+    const machineQ = groups.find((g) => g.type === 'icGroup' && g.team === 'MachineQ')
+    expect(machineQ).toBeTruthy()
+    if (machineQ && machineQ.type === 'icGroup') {
+      expect(machineQ.podName).toBe('MachineQ')
+      expect(machineQ.members).toHaveLength(2)
+    }
+    // Team group should use team name, no podName
+    const sec2 = groups.find((g) => g.type === 'icGroup' && g.team === 'SEC-2')
+    expect(sec2).toBeTruthy()
+    if (sec2 && sec2.type === 'icGroup') {
+      expect(sec2.podName).toBeUndefined()
+    }
+  })
+
+  it('creates icGroup for single pod even when only one group exists', () => {
+    const managers = [makeNode({ id: '1', name: 'Boss', team: 'Eng' })]
+    const ics = [
+      makeNode({ id: '2', name: 'Alice', team: 'Support', pod: 'PodA' }),
+      makeNode({ id: '3', name: 'Bob', team: 'Support', pod: 'PodA' }),
+    ]
+    const items = computeRenderItems(managers, ics)
+    // Even though there's only one group, it should be an icGroup because pod edges need the header node
+    const groups = items.filter((i) => i.type === 'icGroup')
+    expect(groups).toHaveLength(1)
+    if (groups[0].type === 'icGroup') {
+      expect(groups[0].podName).toBe('PodA')
+      expect(groups[0].team).toBe('PodA')
+    }
+  })
 })

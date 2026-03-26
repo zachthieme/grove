@@ -283,9 +283,9 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
                     )
                   } else if (item.type === 'icGroup') {
                     elements.push(
-                      <div key={`group-${item.team}`} className={styles.subtree}>
+                      <div key={`group-${item.podName ? 'pod' : 'team'}-${item.team}`} className={styles.subtree}>
                         <div className={styles.nodeSlot}>
-                          {renderPodHeader(node.person.id, item.team, item.members.length)}
+                          {renderPodHeader(node.person.id, item.podName ?? item.team, item.members.length)}
                         </div>
                         <div className={styles.children}>
                           <div className={styles.icStack}>
