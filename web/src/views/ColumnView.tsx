@@ -126,7 +126,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
 
-  const renderPodHeader = (managerId: string, podName: string, memberCount: number) => {
+  const renderPodHeader = useCallback((managerId: string, podName: string, memberCount: number) => {
     const pod = findPod(managerId, podName)
     const podNodeId = `pod:${managerId}:${podName}`
     return (
@@ -140,9 +140,9 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
         podNodeId={podNodeId}
       />
     )
-  }
+  }, [pods, onAddToTeam, onPodSelect, setNodeRef])
 
-  const renderIC = (child: OrgNode) => (
+  const renderIC = useCallback((child: OrgNode) => (
     <div key={child.person.id} className={styles.nodeSlot}>
       <DraggableNode
         person={child.person}
@@ -157,7 +157,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
         nodeRef={setNodeRef(child.person.id)}
       />
     </div>
-  )
+  ), [selectedIds, changes, managerSet, onAddReport, onDeletePerson, onInfo, onFocus, onSelect, setNodeRef])
 
   // Compute IC pod list elements (when all children are ICs — no managers)
   const icPodListElements = useMemo((): ReactNode => {

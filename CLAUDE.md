@@ -45,8 +45,12 @@ Single Go binary serving a React SPA via `go:embed`.
 
 ### Go Backend (`internal/`)
 
-- `internal/api/model.go` — API types: `Person` (with UUID `Id`, `ManagerId`), `OrgData`, `UploadResponse` (with optional `Snapshots`), `SnapshotInfo`, `AutosaveData`, `MappedColumn`
-- `internal/api/service.go` — `OrgService`: holds original/working/recycled state in memory. Methods: `Upload`, `UploadZip`, `ConfirmMapping`, `Move`, `Update`, `Add`, `Delete` (soft-delete to recycled), `Restore`, `EmptyBin`, `ResetToOriginal`, `Reorder`
+- `internal/api/model.go` — API types: `Person` (with UUID `Id`, `ManagerId`), `OrgData`, `UploadResponse` (with optional `Snapshots`), `SnapshotInfo`, `AutosaveData`, `MappedColumn`, `PendingUpload`
+- `internal/api/service.go` — `OrgService` struct definition, constructor, state queries (`GetOrg`, `GetWorking`, `GetRecycled`, `ResetToOriginal`, `RestoreState`), and shared helpers
+- `internal/api/service_import.go` — Upload/import methods: `Upload`, `ConfirmMapping`
+- `internal/api/service_people.go` — People mutation methods: `Move`, `Update`, `Add`, `Delete`, `Restore`, `EmptyBin`, `Reorder`
+- `internal/api/service_pods.go` — Pod methods: `ListPods`, `UpdatePod`, `CreatePod`
+- `internal/api/service_settings.go` — Settings methods: `GetSettings`, `UpdateSettings`
 - `internal/api/snapshots.go` — Named snapshot save/load/delete/list/export on OrgService. `ExportSnapshot` is read-only (no state mutation).
 - `internal/api/snapshot_store.go` — File persistence for snapshots to `~/.grove/snapshots.json`
 - `internal/api/zipimport.go` — ZIP upload: `parseZipFileList`, `parseZipEntries`, `UploadZip`. Numeric prefix convention (0=original, 1=working, 2+=snapshots).
@@ -60,8 +64,11 @@ Single Go binary serving a React SPA via `go:embed`.
 
 ### React Frontend (`web/`)
 
-- `web/src/store/OrgContext.tsx` — Central state provider: original/working/recycled people, snapshots, autosave recovery, view mode, data view toggle
-- `web/src/store/orgTypes.ts` — Type definitions: `OrgState`, `OrgActions`, `OrgContextValue`
+- `web/src/store/OrgContext.tsx` — Context aggregator: exports `useOrg()` (mega-context), plus granular hooks `useOrgData()`, `useUI()`, `useSelection()` for focused consumers
+- `web/src/store/OrgDataContext.tsx` — Data state provider: org data, mutations, snapshots, autosave
+- `web/src/store/UIContext.tsx` — UI state provider: view mode, data view, filters, head person
+- `web/src/store/SelectionContext.tsx` — Selection state provider: selected IDs, pod selection
+- `web/src/store/orgTypes.ts` — Type definitions: `OrgContextValue`, `OrgDataContextValue`, `UIContextValue`, `SelectionContextValue`
 - `web/src/store/useDirtyTracking.ts` — beforeunload guard and dirty state tracking
 - `web/src/views/ColumnView.tsx` — Detail view: recursive tree with managers horizontal, ICs stacked vertical
 - `web/src/views/ManagerView.tsx` — Manager-only view: managers as nodes, ICs as summary cards
