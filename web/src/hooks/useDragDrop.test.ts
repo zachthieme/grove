@@ -2,17 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useDragDrop } from './useDragDrop'
 import type { DragEndEvent } from '@dnd-kit/core'
-import { TEAM_DROP_PREFIX } from '../constants'
+import { TEAM_DROP_PREFIX, POD_DROP_PREFIX } from '../constants'
 
 const mockMove = vi.fn().mockResolvedValue(undefined)
 const mockReparent = vi.fn().mockResolvedValue(undefined)
 let mockSelectedIds = new Set<string>()
+const mockPods = [
+  { id: 'pod-1', name: 'Alpha', team: 'Platform', managerId: 'mgr-1', publicNote: '' },
+  { id: 'pod-2', name: 'Beta', team: 'Infra', managerId: 'mgr-2', publicNote: '' },
+]
 
 vi.mock('../store/OrgContext', () => ({
   useOrg: () => ({
     move: mockMove,
     reparent: mockReparent,
     selectedIds: mockSelectedIds,
+    pods: mockPods,
   }),
 }))
 
@@ -119,6 +124,39 @@ describe('useDragDrop', () => {
 
     expect(mockReparent).toHaveBeenCalledTimes(1)
     expect(mockReparent).toHaveBeenCalledWith('person-1', 'person-4')
+  })
+
+  it('calls move with pod manager and team when dropping onto a pod target', async () => {
+    const { result } = renderHook(() => useDragDrop())
+    const podTarget = `${POD_DROP_PREFIX}mgr-1:Alpha`
+
+    await result.current.onDragEnd(makeDragEndEvent('person-1', podTarget))
+
+    expect(mockMove).toHaveBeenCalledTimes(1)
+    expect(mockMove).toHaveBeenCalledWith('person-1', 'mgr-1', 'Platform', undefined, 'Alpha')
+    expect(mockReparent).not.toHaveBeenCalled()
+  })
+
+  it('moves all selected people to pod target', async () => {
+    mockSelectedIds = new Set(['person-1', 'person-2'])
+    const { result } = renderHook(() => useDragDrop())
+    const podTarget = `${POD_DROP_PREFIX}mgr-2:Beta`
+
+    await result.current.onDragEnd(makeDragEndEvent('person-1', podTarget))
+
+    expect(mockMove).toHaveBeenCalledTimes(2)
+    expect(mockMove).toHaveBeenCalledWith('person-1', 'mgr-2', 'Infra', undefined, 'Beta')
+    expect(mockMove).toHaveBeenCalledWith('person-2', 'mgr-2', 'Infra', undefined, 'Beta')
+  })
+
+  it('falls back to pod name as team when pod is not found', async () => {
+    const { result } = renderHook(() => useDragDrop())
+    const podTarget = `${POD_DROP_PREFIX}mgr-99:UnknownPod`
+
+    await result.current.onDragEnd(makeDragEndEvent('person-1', podTarget))
+
+    expect(mockMove).toHaveBeenCalledTimes(1)
+    expect(mockMove).toHaveBeenCalledWith('person-1', 'mgr-99', 'UnknownPod', undefined, 'UnknownPod')
   })
 
   it('moves only dragged person when selectedIds has size 1', async () => {

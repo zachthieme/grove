@@ -369,7 +369,7 @@ func (s *OrgService) validateManagerChange(personId, newManagerId string) error 
 	return nil
 }
 
-func (s *OrgService) Move(personId, newManagerId, newTeam string) (*MoveResult, error) {
+func (s *OrgService) Move(personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, p := s.findWorking(personId)
@@ -384,6 +384,9 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string) (*MoveResult, 
 	p.ManagerId = newManagerId
 	if newTeam != "" {
 		p.Team = newTeam
+	}
+	if len(newPod) > 0 && newPod[0] != "" {
+		p.Pod = newPod[0]
 	}
 	s.pods = ReassignPersonPod(s.pods, p)
 	s.pods = CleanupEmptyPods(s.pods, s.working)

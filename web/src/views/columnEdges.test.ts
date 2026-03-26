@@ -44,14 +44,30 @@ describe('computeEdges', () => {
     expect(edges[0]).toEqual({ fromId: '1', toId: '2' })
   })
 
-  it('draws separate edges for ICs in different teams', () => {
+  it('draws one edge for all unpodded ICs when parent has no manager children', () => {
+    // When all children are ICs, they render as one flat stack regardless of team
     const people = [
       makePerson({ id: '1', name: 'Alice' }),
       makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
       makePerson({ id: '3', name: 'Carol', managerId: '1', team: 'Design' }),
     ]
     const edges = computeEdges(people)
-    expect(edges).toHaveLength(2)
+    expect(edges).toHaveLength(1)
+    expect(edges[0]).toEqual({ fromId: '1', toId: '2' })
+  })
+
+  it('draws separate edges per team when parent has manager children', () => {
+    // When there are both managers and ICs, ICs are grouped by team visually
+    const people = [
+      makePerson({ id: '1', name: 'Alice' }),
+      makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
+      makePerson({ id: '3', name: 'Carol', managerId: '2' }), // makes Bob a manager
+      makePerson({ id: '4', name: 'Dave', managerId: '1', team: 'Eng' }),
+      makePerson({ id: '5', name: 'Eve', managerId: '1', team: 'Design' }),
+    ]
+    const edges = computeEdges(people)
+    // Alice → Bob (manager), Bob → Carol (IC), Alice → Dave (first Eng IC), Alice → Eve (first Design IC)
+    expect(edges).toHaveLength(4)
   })
 
   it('draws individual edges to manager children', () => {

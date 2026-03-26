@@ -178,9 +178,9 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string) => {
+  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => {
     try {
-      const resp = await api.movePerson({ personId, newManagerId, newTeam }, correlationId)
+      const resp = await api.movePerson({ personId, newManagerId, newTeam, newPod }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [handleError])

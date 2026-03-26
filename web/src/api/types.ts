@@ -48,6 +48,7 @@ export interface MovePayload {
   personId: string
   newManagerId: string
   newTeam: string
+  newPod?: string
 }
 
 export interface UpdatePayload {

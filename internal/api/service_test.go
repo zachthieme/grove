@@ -61,6 +61,48 @@ func TestOrgService_Move(t *testing.T) {
 	}
 }
 
+func TestOrgService_Move_SetsPod(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+
+	// Create a pod under Alice
+	_, err := svc.CreatePod(alice.Id, "Alpha", "Eng")
+	if err != nil {
+		t.Fatalf("create pod failed: %v", err)
+	}
+
+	// Move Bob to Alice with pod "Alpha"
+	result, err := svc.Move(bob.Id, alice.Id, "Eng", "Alpha")
+	if err != nil {
+		t.Fatalf("move failed: %v", err)
+	}
+	updated := findById(result.Working, bob.Id)
+	if updated.Pod != "Alpha" {
+		t.Errorf("expected Bob's pod to be Alpha, got %q", updated.Pod)
+	}
+}
+
+func TestOrgService_Move_EmptyPodIgnored(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	alice := findByName(data.Working, "Alice")
+	carol := findByName(data.Working, "Carol")
+
+	// Move with empty pod should not set pod field
+	result, err := svc.Move(carol.Id, alice.Id, "Eng", "")
+	if err != nil {
+		t.Fatalf("move failed: %v", err)
+	}
+	updated := findById(result.Working, carol.Id)
+	if updated.Pod != "" {
+		t.Errorf("expected empty pod, got %q", updated.Pod)
+	}
+}
+
 func TestOrgService_Update(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)

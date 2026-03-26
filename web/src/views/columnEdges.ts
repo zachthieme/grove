@@ -39,11 +39,16 @@ export function computeEdges(people: Person[]): EdgeDef[] {
     // For ICs, group by pod (or team if no pod).
     // If a group has a pod, draw: parent → pod header, pod header → first IC.
     // If no pod, draw: parent → first IC.
+    //
+    // When all children are ICs (no managers), unpodded ICs render as one
+    // flat stack regardless of team, so use a single group for all of them.
+    const allICs = managerChildren.length === 0
     const icGroups = new Map<string, { firstIc: Person; hasPod: boolean }>()
     for (const c of icChildren) {
-      const key = c.pod || c.team
+      const hasPod = !!c.pod
+      const key = hasPod ? c.pod! : (allICs ? '__unpodded__' : c.team)
       if (!icGroups.has(key)) {
-        icGroups.set(key, { firstIc: c, hasPod: !!c.pod })
+        icGroups.set(key, { firstIc: c, hasPod })
       }
     }
     for (const [groupKey, { firstIc, hasPod }] of icGroups) {

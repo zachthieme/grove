@@ -168,12 +168,13 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 			PersonId     string `json:"personId"`
 			NewManagerId string `json:"newManagerId"`
 			NewTeam      string `json:"newTeam"`
+			NewPod       string `json:"newPod"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		result, err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam)
+		result, err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam, req.NewPod)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

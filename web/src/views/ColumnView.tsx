@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
-import { DndContext, DragOverlay } from '@dnd-kit/core'
+import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useChartLayout } from '../hooks/useChartLayout'
@@ -29,23 +29,38 @@ interface ColumnViewProps {
   onPodSelect?: (podId: string) => void
 }
 
-function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef }: {
+function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef, podNodeId }: {
   podName: string
   memberCount: number
   publicNote?: string
   onAdd?: () => void
   onClick?: () => void
   nodeRef?: (el: HTMLDivElement | null) => void
+  podNodeId?: string
 }) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: podNodeId ?? podName,
+    disabled: !podNodeId,
+  })
 
   return (
     <div
-      ref={nodeRef}
+      ref={(node) => {
+        setDropRef(node)
+        nodeRef?.(node)
+      }}
       className={styles.teamHeaderWrapper}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      style={{
+        outline: isOver ? '2px solid var(--grove-green, #3d6b35)' : undefined,
+        outlineOffset: isOver ? 2 : undefined,
+        background: isOver ? 'var(--grove-green-soft, #e8f0e6)' : undefined,
+        borderRadius: 6,
+        transition: 'outline 0.15s, background 0.15s',
+      }}
     >
       {hovered && onAdd && (
         <NodeActions
@@ -122,6 +137,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
         onAdd={onAddToTeam ? () => onAddToTeam(managerId, pod?.team ?? podName, podName) : undefined}
         onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
         nodeRef={setNodeRef(podNodeId)}
+        podNodeId={podNodeId}
       />
     )
   }

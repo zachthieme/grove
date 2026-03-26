@@ -4,6 +4,9 @@ export const ORIGINAL_SNAPSHOT = '__original__'
 /** Drop target prefix for team-based drops */
 export const TEAM_DROP_PREFIX = 'team::'
 
+/** Drop target prefix for pod-based drops */
+export const POD_DROP_PREFIX = 'pod:'
+
 /** Internal snapshot name used during export */
 export const EXPORT_TEMP_SNAPSHOT = '__export_temp__'
 
