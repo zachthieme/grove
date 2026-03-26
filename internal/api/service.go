@@ -326,6 +326,24 @@ func (s *OrgService) findWorking(id string) (int, *Person) {
 	return -1, nil
 }
 
+// isFrontlineManager returns true if personId has direct reports but none of
+// those reports have reports of their own. Must be called with s.mu held.
+func (s *OrgService) isFrontlineManager(personId string) bool {
+	hasReports := false
+	for _, p := range s.working {
+		if p.ManagerId == personId {
+			hasReports = true
+			// Check if this report has any reports of their own
+			for _, q := range s.working {
+				if q.ManagerId == p.Id {
+					return false // has a sub-manager → not front-line
+				}
+			}
+		}
+	}
+	return hasReports
+}
+
 // validateFieldLengths checks that all string values in fields don't exceed maxFieldLen.
 func validateFieldLengths(fields map[string]string) error {
 	for _, v := range fields {
@@ -427,6 +445,16 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 		case "team":
 			p.Team = v
 			s.pods = ReassignPersonPod(s.pods, p)
+			// Cascade to ICs if this person is a front-line manager
+			// (has direct reports, but none of those reports have reports)
+			if s.isFrontlineManager(personId) {
+				for i := range s.working {
+					if s.working[i].ManagerId == personId {
+						s.working[i].Team = v
+						s.pods = ReassignPersonPod(s.pods, &s.working[i])
+					}
+				}
+			}
 			s.pods = CleanupEmptyPods(s.pods, s.working)
 		case "status":
 			if !model.ValidStatuses[v] {
