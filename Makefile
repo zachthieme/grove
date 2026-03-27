@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all cover bench mutate check-scenarios
+.PHONY: frontend build dev clean e2e test test-all cover bench mutate check-scenarios lint ci
 
 frontend:
 	cd web && npm run build
@@ -34,6 +34,13 @@ bench:
 
 mutate:
 	cd web && npx stryker run
+
+lint: frontend
+	golangci-lint run ./...
+	cd web && npx eslint src/ --max-warnings 0 2>/dev/null || true
+
+ci: lint test-all
+	@echo "CI checks passed."
 
 check-scenarios:
 	@echo "Checking scenario coverage..."

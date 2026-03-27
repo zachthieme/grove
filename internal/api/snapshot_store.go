@@ -71,12 +71,7 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 	}
 	result := make(map[string]snapshotData, len(persisted))
 	for name, ps := range persisted {
-		result[name] = snapshotData{
-			People:    ps.People,
-			Pods:      ps.Pods,
-			Settings:  ps.Settings,
-			Timestamp: ps.Timestamp,
-		}
+		result[name] = snapshotData(ps)
 	}
 	return result, nil
 }
