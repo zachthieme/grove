@@ -1,4 +1,4 @@
-![grove](grove-banner.svg)
+![grove](docs/grove-banner.svg)
 
 > **grove** /ɡroʊv/ *n.* — a small group of trees, deliberately planted and carefully tended. Org planning for people who think in structures, not spreadsheets.
 

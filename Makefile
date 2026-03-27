@@ -45,7 +45,7 @@ ci: lint test-all
 check-scenarios:
 	@echo "Checking scenario coverage..."
 	@missing=0; \
-	for f in scenarios/*.md; do \
+	for f in docs/scenarios/*.md; do \
 		ids=$$(grep "^\*\*ID\*\*:" $$f | sed 's/.*: //'); \
 		for id in $$ids; do \
 			if ! grep -rq "$$id" web/e2e/ web/src/ internal/ integration_test.go 2>/dev/null; then \

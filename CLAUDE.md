@@ -41,7 +41,7 @@ Go tests are colocated with their packages (`*_test.go`). Integration tests live
 
 ## Scenario Contract
 
-Scenarios in `scenarios/` are the source of truth for expected product behavior. They are not optional documentation — they are a contract.
+Scenarios in `docs/scenarios/` are the source of truth for expected product behavior. They are not optional documentation — they are a contract.
 
 ### Rules
 1. Before implementing any feature or refactor, read all scenario files in areas touched by the change.
@@ -51,7 +51,7 @@ Scenarios in `scenarios/` are the source of truth for expected product behavior.
 5. Run `make check-scenarios` before considering any feature complete. A scenario without a corresponding test ID reference is a build failure.
 
 ### Adding a scenario
-Copy the schema from an existing scenarios/*.md file. Assign the next available ID in the area. Add the Tests field once the test exists.
+Copy the schema from an existing docs/scenarios/*.md file. Assign the next available ID in the area. Add the Tests field once the test exists.
 
 ## Architecture
 

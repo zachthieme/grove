@@ -31,11 +31,11 @@ jobs:
           go test -bench=. -benchmem ./internal/api/ -count=5 -benchtime=100ms | tee bench-current.txt
       - name: Compare benchmarks to baseline
         run: |
-          if [ -f bench-baseline.txt ]; then
+          if [ -f testdata/bench-baseline.txt ]; then
             go install golang.org/x/perf/cmd/benchstat@latest
-            benchstat bench-baseline.txt bench-current.txt || true
+            benchstat testdata/bench-baseline.txt bench-current.txt || true
           else
-            echo "No baseline found — skipping comparison. To create one, commit bench-baseline.txt."
+            echo "No baseline found — skipping comparison. To create one, commit testdata/bench-baseline.txt."
           fi
       - name: Frontend tests
         run: cd web && npm test -- --coverage
