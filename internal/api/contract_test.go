@@ -51,6 +51,7 @@ func TestContractPersonFields(t *testing.T) {
 		"newRole",
 		"newTeam",
 		"pod",
+		"private",
 		"privateNote",
 		"publicNote",
 		"role",
@@ -204,6 +205,7 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 		PublicNote:      "Transitioning Q3",
 		PrivateNote:     "Promo candidate",
 		Level:           7,
+		Private:         true,
 	}
 
 	data, err := json.Marshal(original)
@@ -230,7 +232,7 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 		"id", "name", "role", "discipline", "managerId", "team",
 		"additionalTeams", "status", "employmentType", "warning",
 		"sortIndex", "newRole", "newTeam", "pod", "publicNote",
-		"privateNote", "level",
+		"privateNote", "level", "private",
 	}
 	for _, key := range expectedKeys {
 		if _, ok := raw[key]; !ok {

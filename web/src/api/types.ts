@@ -16,6 +16,7 @@ export interface Person {
   publicNote?: string
   privateNote?: string
   level?: number
+  private?: boolean
 }
 
 export interface Pod {
@@ -66,6 +67,7 @@ export interface PersonUpdatePayload {
   pod?: string
   publicNote?: string
   privateNote?: string
+  private?: string
 }
 
 export interface PodUpdatePayload {

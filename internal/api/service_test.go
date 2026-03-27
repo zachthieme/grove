@@ -620,6 +620,54 @@ func TestOrgService_Update_UnknownField(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-005
+func TestOrgService_Update_Private(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg()
+	bob := findByName(data.Working, "Bob")
+
+	// Set private to true
+	result, err := svc.Update(bob.Id, map[string]string{"private": "true"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updated := findById(result.Working, bob.Id)
+	if !updated.Private {
+		t.Error("expected Private to be true after setting 'true'")
+	}
+
+	// Set private to false
+	result, err = svc.Update(bob.Id, map[string]string{"private": "false"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updated = findById(result.Working, bob.Id)
+	if updated.Private {
+		t.Error("expected Private to be false after setting 'false'")
+	}
+
+	// Set private via "1"
+	result, err = svc.Update(bob.Id, map[string]string{"private": "1"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updated = findById(result.Working, bob.Id)
+	if !updated.Private {
+		t.Error("expected Private to be true after setting '1'")
+	}
+
+	// Set private via "yes"
+	result, err = svc.Update(bob.Id, map[string]string{"private": "yes"})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updated = findById(result.Working, bob.Id)
+	if !updated.Private {
+		t.Error("expected Private to be true after setting 'yes'")
+	}
+}
+
 // Scenarios: ORG-008
 func TestOrgService_Update_PersonNotFound(t *testing.T) {
 	t.Parallel()

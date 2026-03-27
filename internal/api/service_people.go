@@ -98,6 +98,8 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 				return nil, errValidation("invalid level: %s", v)
 			}
 			p.Level = n
+		case "private":
+			p.Private = v == "true" || v == "1" || v == "yes"
 		case "pod":
 			s.applyPodChange(p, v)
 		default:
