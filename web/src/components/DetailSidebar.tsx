@@ -142,9 +142,10 @@ export default function DetailSidebar() {
       const fields: PersonUpdatePayload = {}
       for (const key of batchDirty) {
         if (managerChanged && (key === 'managerId' || key === 'team')) continue
+        if (key === 'private') continue
         const apiKey = key === 'otherTeams' ? 'additionalTeams' : key
         const val = form[key as keyof FormFields]
-        if (val !== MIXED_VALUE) (fields as Record<string, string>)[apiKey] = val
+        if (val !== MIXED_VALUE) (fields as Record<string, string>)[apiKey] = String(val)
       }
       if (batchDirty.has('private')) { (fields as Record<string, string>).private = form.private ? 'true' : 'false' }
       let failedCount = 0
@@ -202,9 +203,10 @@ export default function DetailSidebar() {
   if (isBatch && selectedPeople.length === 0) return null
   if (!isBatch && !person) return null
 
-  const mixed = (field: keyof FormFields) => form[field] === MIXED_VALUE
-  const val = (field: keyof FormFields) => mixed(field) ? '' : form[field]
-  const ph = (field: keyof FormFields, fallback = '') => mixed(field) ? 'Mixed' : fallback
+  type StringField = { [K in keyof FormFields]: FormFields[K] extends string ? K : never }[keyof FormFields]
+  const mixed = (field: StringField) => form[field] === MIXED_VALUE
+  const val = (field: StringField) => mixed(field) ? '' : form[field]
+  const ph = (field: StringField, fallback = '') => mixed(field) ? 'Mixed' : fallback
 
   return (
     <div className={styles.sidebar}>

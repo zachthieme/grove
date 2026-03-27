@@ -76,3 +76,36 @@ People are sorted within each (managerId, team) group by: FTE tier → disciplin
 
 ## Edge cases
 - Empty discipline order → all alphabetical
+
+---
+
+# Scenario: Private people visibility
+
+**ID**: FILTER-004
+**Area**: filters
+**Tests**:
+- `web/src/hooks/useFilteredPeople.test.ts` → "hides private people when showPrivate is false"
+- `web/src/hooks/useFilteredPeople.test.ts` → "shows private people when showPrivate is true"
+- `web/src/hooks/useFilteredPeople.test.ts` → "injects placeholder for hidden private manager with visible reports"
+- `web/src/hooks/useFilteredPeople.test.ts` → "does not inject placeholder when private manager has no visible reports"
+- `web/src/hooks/useFilteredPeople.test.ts` → "filters private people from ghost people in diff mode"
+
+## Behavior
+User marks people as private via the edit sidebar. Private people are hidden from all views by default. A toolbar toggle (visible only when private people exist) reveals/hides them. Hidden private managers with visible reports are replaced by "TBD Manager" placeholder nodes.
+
+## Invariants
+- Private field defaults to false
+- showPrivate defaults to false (hidden by default)
+- Toolbar toggle only visible when at least one person is private
+- Placeholder managers have stable deterministic IDs based on the real manager ID
+- Placeholders are non-interactive (no edit, no delete, no drag-as-source)
+- Drops onto placeholders resolve to the real hidden manager ID
+- Private people are excluded from ghost people when hidden in diff mode
+- Private people are excluded from recycle bin when hidden
+- Metrics reflect only visible people when private people are hidden
+- Exports always include all people regardless of toggle state
+
+## Edge cases
+- Private manager with no visible reports → no placeholder injected
+- Head person is private and hidden → head filter clears
+- All people private and hidden → empty view

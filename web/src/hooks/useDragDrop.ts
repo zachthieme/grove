@@ -3,6 +3,13 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { useOrg } from '../store/OrgContext'
 import { parseTeamDropId, parsePodDropId } from '../utils/ids'
 
+function resolveManagerId(id: string): string {
+  if (id.startsWith('__placeholder_')) {
+    return id.slice('__placeholder_'.length)
+  }
+  return id
+}
+
 export function useDragDrop() {
   const { move, reparent, selectedIds, pods } = useOrg()
 
@@ -12,10 +19,11 @@ export function useDragDrop() {
 
     const draggedId = active.id as string
     const targetId = over.id as string
+    const resolvedTargetId = resolveManagerId(targetId)
 
     // If the dragged person is part of a multi-selection, move all selected people
     const idsToMove = selectedIds.has(draggedId) && selectedIds.size > 1
-      ? [...selectedIds].filter((id) => id !== targetId)
+      ? [...selectedIds].filter((id) => id !== resolvedTargetId)
       : [draggedId]
 
     const teamName = parseTeamDropId(targetId)
@@ -37,7 +45,7 @@ export function useDragDrop() {
     }
 
     for (const id of idsToMove) {
-      await reparent(id, targetId)
+      await reparent(id, resolvedTargetId)
     }
   }, [move, reparent, selectedIds, pods])
 
