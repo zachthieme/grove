@@ -7,13 +7,13 @@ describe('useSaveStatus', () => {
     vi.useRealTimers()
   })
 
-  it('initial state is idle with no error', () => {
+  it('[UI-002] initial state is idle with no error', () => {
     const { result } = renderHook(() => useSaveStatus())
     expect(result.current.saveStatus).toBe('idle')
     expect(result.current.saveError).toBeNull()
   })
 
-  it('markSaving sets status to saving', () => {
+  it('[UI-002] markSaving sets status to saving', () => {
     const { result } = renderHook(() => useSaveStatus())
 
     act(() => { result.current.markSaving() })
@@ -22,7 +22,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveError).toBeNull()
   })
 
-  it('markSaved sets status to saved, then auto-resets to idle after 1500ms', () => {
+  it('[UI-002] markSaved sets status to saved, then auto-resets to idle after 1500ms', () => {
     vi.useFakeTimers()
     const { result } = renderHook(() => useSaveStatus())
 
@@ -36,7 +36,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveStatus).toBe('idle')
   })
 
-  it('markError sets status to error and stores error message', () => {
+  it('[UI-002] markError sets status to error and stores error message', () => {
     const { result } = renderHook(() => useSaveStatus())
 
     act(() => { result.current.markError('Network failure') })
@@ -45,7 +45,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveError).toBe('Network failure')
   })
 
-  it('markSaving clears a previous error', () => {
+  it('[UI-002] markSaving clears a previous error', () => {
     const { result } = renderHook(() => useSaveStatus())
 
     act(() => { result.current.markError('Something broke') })
@@ -56,7 +56,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveError).toBeNull()
   })
 
-  it('reset returns to idle with no error', () => {
+  it('[UI-002] reset returns to idle with no error', () => {
     const { result } = renderHook(() => useSaveStatus())
 
     act(() => { result.current.markError('fail') })
@@ -67,7 +67,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveError).toBeNull()
   })
 
-  it('markSaved cancels previous timer when called again', () => {
+  it('[UI-002] markSaved cancels previous timer when called again', () => {
     vi.useFakeTimers()
     const { result } = renderHook(() => useSaveStatus())
 
@@ -85,7 +85,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveStatus).toBe('idle')
   })
 
-  it('does not auto-reset to idle if status changed before timer fires', () => {
+  it('[UI-002] does not auto-reset to idle if status changed before timer fires', () => {
     vi.useFakeTimers()
     const { result } = renderHook(() => useSaveStatus())
 
@@ -101,7 +101,7 @@ describe('useSaveStatus', () => {
     expect(result.current.saveStatus).toBe('error')
   })
 
-  it('cleans up timer on unmount without warnings', () => {
+  it('[UI-002] cleans up timer on unmount without warnings', () => {
     vi.useFakeTimers()
     const { result, unmount } = renderHook(() => useSaveStatus())
 

@@ -19,7 +19,7 @@ const carol = makePerson({ id: '3', name: 'Carol', employmentType: 'FTE', manage
 const dave = makePerson({ id: '4', name: 'Dave', employmentType: 'Intern', managerId: '2' })
 
 describe('useFilteredPeople', () => {
-  it('returns all people when no filters are applied', () => {
+  it('[FILTER-001] returns all people when no filters are applied', () => {
     const all = [alice, bob, carol, dave]
     const { result } = renderHook(() =>
       useFilteredPeople(all, all, all, new Set(), null, false),
@@ -28,7 +28,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([])
   })
 
-  it('filters out people matching hidden employment types', () => {
+  it('[FILTER-001] filters out people matching hidden employment types', () => {
     const all = [alice, bob, carol, dave]
     const hidden = new Set(['Contractor'])
     const { result } = renderHook(() =>
@@ -37,7 +37,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.people).toEqual([alice, carol, dave])
   })
 
-  it('filters to only people in the head subtree', () => {
+  it('[FILTER-002] filters to only people in the head subtree', () => {
     const all = [alice, bob, carol, dave]
     const subtree = new Set(['2', '4']) // Bob and Dave
     const { result } = renderHook(() =>
@@ -46,7 +46,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.people).toEqual([bob, dave])
   })
 
-  it('applies both employment type and head subtree filters together', () => {
+  it('[FILTER-001] applies both employment type and head subtree filters together', () => {
     const all = [alice, bob, carol, dave]
     const hidden = new Set(['Contractor'])
     const subtree = new Set(['1', '2', '4']) // Alice, Bob, Dave — but Bob is Contractor
@@ -56,7 +56,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.people).toEqual([alice, dave])
   })
 
-  it('returns empty ghostPeople when showChanges is false', () => {
+  it('[VIEW-004] returns empty ghostPeople when showChanges is false', () => {
     const original = [alice, bob]
     const working = [alice] // Bob removed
     const { result } = renderHook(() =>
@@ -65,7 +65,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([])
   })
 
-  it('computes ghost people in diff mode (removed from working)', () => {
+  it('[VIEW-004] computes ghost people in diff mode (removed from working)', () => {
     const original = [alice, bob, carol]
     const working = [alice] // Bob and Carol removed
     const { result } = renderHook(() =>
@@ -74,7 +74,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([bob, carol])
   })
 
-  it('filters ghost people by hidden employment types', () => {
+  it('[FILTER-001] filters ghost people by hidden employment types', () => {
     const original = [alice, bob, carol]
     const working = [alice] // Bob (Contractor) and Carol (FTE) removed
     const hidden = new Set(['Contractor'])
@@ -85,7 +85,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([carol])
   })
 
-  it('filters ghost people by head subtree', () => {
+  it('[FILTER-002] filters ghost people by head subtree', () => {
     const original = [alice, bob, carol]
     const working = [alice] // Bob and Carol removed
     const subtree = new Set(['1', '2']) // Only Alice and Bob in subtree
@@ -96,7 +96,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([bob])
   })
 
-  it('handles empty arrays', () => {
+  it('[FILTER-001] handles empty arrays', () => {
     const { result } = renderHook(() =>
       useFilteredPeople([], [], [], new Set(), null, false),
     )
@@ -104,7 +104,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([])
   })
 
-  it('handles empty arrays with showChanges true', () => {
+  it('[VIEW-004] handles empty arrays with showChanges true', () => {
     const { result } = renderHook(() =>
       useFilteredPeople([], [], [], new Set(), null, true),
     )
@@ -112,7 +112,7 @@ describe('useFilteredPeople', () => {
     expect(result.current.ghostPeople).toEqual([])
   })
 
-  it('treats people with undefined employmentType correctly when filtering', () => {
+  it('[FILTER-001] treats people with undefined employmentType correctly when filtering', () => {
     const noType = makePerson({ id: '5', name: 'Eve' }) // no employmentType
     const all = [alice, noType]
     // Hiding empty string should filter out people with no employmentType

@@ -39,6 +39,20 @@ Follow TDD: write a failing test first, then implement the feature.
 
 Go tests are colocated with their packages (`*_test.go`). Integration tests live in `integration_test.go` at the repo root. Frontend uses vitest with jsdom — tests in `*.test.ts` / `*.test.tsx` files colocated with source.
 
+## Scenario Contract
+
+Scenarios in `scenarios/` are the source of truth for expected product behavior. They are not optional documentation — they are a contract.
+
+### Rules
+1. Before implementing any feature or refactor, read all scenario files in areas touched by the change.
+2. Do not silently change behavior described in an existing scenario. If a scenario must change, update it explicitly and explain why.
+3. When adding a new feature, write the scenario entry first, then implement.
+4. All e2e test names and significant Go test names must be prefixed with their scenario ID: `[AREA-NNN] test name`.
+5. Run `make check-scenarios` before considering any feature complete. A scenario without a corresponding test ID reference is a build failure.
+
+### Adding a scenario
+Copy the schema from an existing scenarios/*.md file. Assign the next available ID in the area. Add the Tests field once the test exists.
+
 ## Architecture
 
 Single Go binary serving a React SPA via `go:embed`.

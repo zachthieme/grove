@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// Scenarios: EXPORT-001
 func TestExportCSV_RoundTrip(t *testing.T) {
 	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
@@ -59,6 +60,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-001
 func TestExportCSV_IncludesNewFields(t *testing.T) {
 	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
@@ -113,6 +115,7 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-004
 func TestExportPodsSidecarCSV(t *testing.T) {
 	t.Parallel()
 	people := []Person{
@@ -142,6 +145,7 @@ func TestExportPodsSidecarCSV(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-001
 func TestExportCSV_IncludesLevel(t *testing.T) {
 	t.Parallel()
 	people := []Person{

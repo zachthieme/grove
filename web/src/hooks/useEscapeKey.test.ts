@@ -4,7 +4,7 @@ import { fireEvent } from '@testing-library/dom'
 import { useEscapeKey } from './useEscapeKey'
 
 describe('useEscapeKey', () => {
-  it('calls callback on Escape press when enabled', () => {
+  it('[SELECT-002] calls callback on Escape press when enabled', () => {
     const callback = vi.fn()
     renderHook(() => useEscapeKey(callback, true))
 
@@ -12,7 +12,7 @@ describe('useEscapeKey', () => {
     expect(callback).toHaveBeenCalledTimes(1)
   })
 
-  it('does not call callback on non-Escape key press', () => {
+  it('[SELECT-002] does not call callback on non-Escape key press', () => {
     const callback = vi.fn()
     renderHook(() => useEscapeKey(callback, true))
 
@@ -20,7 +20,7 @@ describe('useEscapeKey', () => {
     expect(callback).not.toHaveBeenCalled()
   })
 
-  it('does not call callback when disabled', () => {
+  it('[SELECT-002] does not call callback when disabled', () => {
     const callback = vi.fn()
     renderHook(() => useEscapeKey(callback, false))
 
@@ -28,7 +28,7 @@ describe('useEscapeKey', () => {
     expect(callback).not.toHaveBeenCalled()
   })
 
-  it('does not call callback when focus is in an INPUT', () => {
+  it('[SELECT-002] does not call callback when focus is in an INPUT', () => {
     const callback = vi.fn()
     renderHook(() => useEscapeKey(callback, true))
 
@@ -39,7 +39,7 @@ describe('useEscapeKey', () => {
     document.body.removeChild(input)
   })
 
-  it('does not call callback when focus is in a SELECT', () => {
+  it('[SELECT-002] does not call callback when focus is in a SELECT', () => {
     const callback = vi.fn()
     renderHook(() => useEscapeKey(callback, true))
 
@@ -50,7 +50,7 @@ describe('useEscapeKey', () => {
     document.body.removeChild(select)
   })
 
-  it('does not call callback when focus is in a TEXTAREA', () => {
+  it('[SELECT-002] does not call callback when focus is in a TEXTAREA', () => {
     const callback = vi.fn()
     renderHook(() => useEscapeKey(callback, true))
 
@@ -65,7 +65,7 @@ describe('useEscapeKey', () => {
   // contentEditable guard test. The hook correctly checks el.isContentEditable
   // in real browsers.
 
-  it('stops listening when unmounted', () => {
+  it('[SELECT-002] stops listening when unmounted', () => {
     const callback = vi.fn()
     const { unmount } = renderHook(() => useEscapeKey(callback, true))
 

@@ -34,7 +34,7 @@ function renderModal(overrides: Partial<Parameters<typeof ColumnMappingModal>[0]
 }
 
 describe('ColumnMappingModal', () => {
-  it('calls onConfirm with the current mapping when Load is clicked', () => {
+  it('[UI-010] calls onConfirm with the current mapping when Load is clicked', () => {
     const { onConfirm } = renderModal()
     fireEvent.click(screen.getByRole('button', { name: 'Load' }))
     expect(onConfirm).toHaveBeenCalledTimes(1)
@@ -43,13 +43,13 @@ describe('ColumnMappingModal', () => {
     expect(arg.role).toBe('Job Title')
   })
 
-  it('calls onCancel when Cancel is clicked', () => {
+  it('[UI-010] calls onCancel when Cancel is clicked', () => {
     const { onCancel } = renderModal()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 
-  it('changing a dropdown updates the mapping', () => {
+  it('[UI-010] changing a dropdown updates the mapping', () => {
     const { onConfirm } = renderModal()
     const selects = screen.getAllByRole('combobox') as HTMLSelectElement[]
     // Change discipline (index 2) to 'Department'
@@ -61,7 +61,7 @@ describe('ColumnMappingModal', () => {
     expect(arg.discipline).toBe('Department')
   })
 
-  it('Load becomes enabled after mapping name via dropdown', () => {
+  it('[UI-010] Load becomes enabled after mapping name via dropdown', () => {
     renderModal({ mapping: emptyMapping })
     const loadBtn = screen.getByRole('button', { name: 'Load' }) as HTMLButtonElement
     expect(loadBtn.disabled).toBe(true)
@@ -71,7 +71,7 @@ describe('ColumnMappingModal', () => {
     expect(loadBtn.disabled).toBe(false)
   })
 
-  it('Load becomes disabled after unmapping name', () => {
+  it('[UI-010] Load becomes disabled after unmapping name', () => {
     renderModal()
     const loadBtn = screen.getByRole('button', { name: 'Load' }) as HTMLButtonElement
     expect(loadBtn.disabled).toBe(false)

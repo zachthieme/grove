@@ -12,7 +12,7 @@ test.describe('Feature tests', () => {
     await page.goto('/')
   })
 
-  test('drag-and-drop reparent', async ({ page }) => {
+  test('[ORG-001] drag-and-drop reparent', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await dragPersonTo(page, 'Carol', 'Alice')
     // Wait for reparent to take effect
@@ -25,14 +25,14 @@ test.describe('Feature tests', () => {
     expect(selectedText).toContain('Alice')
   })
 
-  test('lasso multi-select', async ({ page }) => {
+  test('[VIEW-006] lasso multi-select', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await lassoSelect(page, 10, 10, 800, 600)
     const heading = page.locator('[data-testid="sidebar-heading"]')
     await expect(heading).toBeVisible({ timeout: 3000 })
   })
 
-  test('pod creation via edit', async ({ page }) => {
+  test('[ORG-018] pod creation via edit', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
@@ -45,7 +45,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('text=NewPod')).toBeVisible()
   })
 
-  test('pod sidebar via info button', async ({ page }) => {
+  test('[UI-003] pod sidebar via info button', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
     const podInput = sidebarField(page, 'pod')
@@ -63,7 +63,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('h3', { hasText: 'Pod Details' })).toBeVisible()
   })
 
-  test('column mapping modal', async ({ page }) => {
+  test('[UPLOAD-002] column mapping modal', async ({ page }) => {
     const absPath = path.resolve(__dirname, '../../testdata', 'unmapped.csv')
     const fileInput = page.getByRole('main').locator('input[type="file"]')
     await fileInput.setInputFiles(absPath)
@@ -75,7 +75,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Alice' })).toBeVisible()
   })
 
-  test('diff mode shows changes', async ({ page }) => {
+  test('[VIEW-004] diff mode shows changes', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     const roleInput = sidebarField(page, 'role')
@@ -91,7 +91,7 @@ test.describe('Feature tests', () => {
     expect(cardClass).toBeTruthy()
   })
 
-  test('employment type filter', async ({ page }) => {
+  test('[FILTER-001] employment type filter', async ({ page }) => {
     await uploadCSV(page, 'ddp-org.csv')
     const initialCount = await page.locator('[data-selected]').count()
     expect(initialCount).toBeGreaterThan(5)
@@ -108,7 +108,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('[data-selected]')).toHaveCount(initialCount)
   })
 
-  test('note icon toggle', async ({ page }) => {
+  test('[SELECT-006] note icon toggle', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     const noteField = sidebarField(page, 'publicNote')
@@ -124,7 +124,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('text=This is a test note')).toHaveCount(0)
   })
 
-  test('table paste', async ({ page }) => {
+  test('[VIEW-003] table paste', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await switchView(page, 'Table')
     const initialRows = await page.locator('tbody tr').count()
@@ -137,7 +137,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('tbody tr').filter({ hasText: 'NewPerson' })).toBeVisible()
   })
 
-  test('head focus subtree zoom', async ({ page }) => {
+  test('[FILTER-002] head focus subtree zoom', async ({ page }) => {
     await uploadCSV(page, 'grove.csv')
     const initialCount = await page.locator('[data-selected]').count()
     expect(initialCount).toBeGreaterThan(10)
@@ -153,7 +153,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('[data-selected]')).toHaveCount(initialCount)
   })
 
-  test('table column filter', async ({ page }) => {
+  test('[VIEW-003] table column filter', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await switchView(page, 'Table')
     await expect(page.locator('tbody tr')).toHaveCount(3)
@@ -167,7 +167,7 @@ test.describe('Feature tests', () => {
     await expect(page.locator('tbody tr')).toHaveCount(3)
   })
 
-  test('team cascade for front-line manager', async ({ page }) => {
+  test('[ORG-017] team cascade for front-line manager', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     const teamInput = sidebarField(page, 'team')

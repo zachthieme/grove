@@ -53,7 +53,7 @@ describe('useAutosave', () => {
     vi.useRealTimers()
   })
 
-  it('saves to localStorage and calls writeAutosave after debounce', async () => {
+  it('[AUTO-001] saves to localStorage and calls writeAutosave after debounce', async () => {
     renderHook(() => useAutosave(makeState()))
 
     // Advance past the 2000ms debounce
@@ -75,7 +75,7 @@ describe('useAutosave', () => {
     expect(callArg.timestamp).toBeDefined()
   })
 
-  it('debounces multiple rapid changes into a single save', async () => {
+  it('[AUTO-001] debounces multiple rapid changes into a single save', async () => {
     const state1 = makeState({ working: [makePerson({ name: 'Alice' })] })
     const state2 = makeState({ working: [makePerson({ name: 'Bob' })] })
     const state3 = makeState({ working: [makePerson({ name: 'Charlie' })] })
@@ -107,7 +107,7 @@ describe('useAutosave', () => {
     expect(saved.working[0].name).toBe('Charlie')
   })
 
-  it('does not save when loaded is false', async () => {
+  it('[AUTO-001] does not save when loaded is false', async () => {
     renderHook(() => useAutosave(makeState({ loaded: false })))
 
     await act(async () => {
@@ -118,7 +118,7 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave).not.toHaveBeenCalled()
   })
 
-  it('does not save when working array is empty', async () => {
+  it('[AUTO-001] does not save when working array is empty', async () => {
     renderHook(() => useAutosave(makeState({ working: [] })))
 
     await act(async () => {
@@ -129,7 +129,7 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave).not.toHaveBeenCalled()
   })
 
-  it('does not save when suppressAutosaveRef is true', async () => {
+  it('[AUTO-001] does not save when suppressAutosaveRef is true', async () => {
     const suppressRef = { current: true }
     renderHook(() =>
       useAutosave(makeState({ suppressAutosaveRef: suppressRef })),
@@ -143,7 +143,7 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave).not.toHaveBeenCalled()
   })
 
-  it('sets serverSaveError to true when writeAutosave rejects', async () => {
+  it('[AUTO-002] sets serverSaveError to true when writeAutosave rejects', async () => {
     mockedWriteAutosave.mockRejectedValueOnce(new Error('network error'))
 
     const { result } = renderHook(() => useAutosave(makeState()))
@@ -158,7 +158,7 @@ describe('useAutosave', () => {
     expect(result.current.serverSaveError).toBe(true)
   })
 
-  it('clears serverSaveError on a subsequent successful save', async () => {
+  it('[AUTO-002] clears serverSaveError on a subsequent successful save', async () => {
     mockedWriteAutosave.mockRejectedValueOnce(new Error('network error'))
 
     const state1 = makeState({ working: [makePerson({ name: 'Alice' })] })
@@ -189,7 +189,7 @@ describe('useAutosave', () => {
     expect(result.current.serverSaveError).toBe(false)
   })
 
-  it('triggers a new save when working data changes', async () => {
+  it('[AUTO-001] triggers a new save when working data changes', async () => {
     const state1 = makeState({ working: [makePerson({ name: 'Alice' })] })
     const { rerender } = renderHook(
       (props: Parameters<typeof useAutosave>[0]) => useAutosave(props),
@@ -216,7 +216,7 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave.mock.calls[1][0].working[0].name).toBe('Bob')
   })
 
-  it('stores the currentSnapshotName in autosave data', async () => {
+  it('[AUTO-001] stores the currentSnapshotName in autosave data', async () => {
     renderHook(() =>
       useAutosave(makeState({ currentSnapshotName: 'My Snapshot' })),
     )
@@ -229,7 +229,7 @@ describe('useAutosave', () => {
     expect(saved.snapshotName).toBe('My Snapshot')
   })
 
-  it('uses empty string for snapshotName when currentSnapshotName is null', async () => {
+  it('[AUTO-001] uses empty string for snapshotName when currentSnapshotName is null', async () => {
     renderHook(() =>
       useAutosave(makeState({ currentSnapshotName: null })),
     )
@@ -242,7 +242,7 @@ describe('useAutosave', () => {
     expect(saved.snapshotName).toBe('')
   })
 
-  it('includes pods and settings in the autosave data', async () => {
+  it('[AUTO-001] includes pods and settings in the autosave data', async () => {
     const pods: Pod[] = [{ id: 'p1', name: 'Pod A', team: 'Platform', managerId: '1' }]
     const settings: Settings = { disciplineOrder: ['Engineering', 'Design'] }
 
@@ -259,7 +259,7 @@ describe('useAutosave', () => {
     expect(saved.settings).toEqual(settings)
   })
 
-  it('cleans up the timer on unmount', async () => {
+  it('[AUTO-001] cleans up the timer on unmount', async () => {
     const { unmount } = renderHook(() => useAutosave(makeState()))
 
     unmount()

@@ -23,7 +23,7 @@ afterEach(() => {
 })
 
 describe('SelectionContext', () => {
-  it('toggleSelect(id, false) single select — selects one, replaces previous', () => {
+  it('[SELECT-001] toggleSelect(id, false) single select — selects one, replaces previous', () => {
     renderWithProvider()
 
     act(() => { captured!.toggleSelect('a1', false) })
@@ -38,7 +38,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedId).toBe('b2')
   })
 
-  it('toggleSelect(id, true) multi select — adds to existing selection', () => {
+  it('[SELECT-001] toggleSelect(id, true) multi select — adds to existing selection', () => {
     renderWithProvider()
 
     act(() => { captured!.toggleSelect('a1', false) })
@@ -49,7 +49,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedIds.has('b2')).toBe(true)
   })
 
-  it('toggleSelect same id twice with multi=true deselects', () => {
+  it('[SELECT-001] toggleSelect same id twice with multi=true deselects', () => {
     renderWithProvider()
 
     act(() => { captured!.toggleSelect('a1', true) })
@@ -60,7 +60,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedIds.size).toBe(0)
   })
 
-  it('clearSelection empties selectedIds', () => {
+  it('[SELECT-001] clearSelection empties selectedIds', () => {
     renderWithProvider()
 
     act(() => { captured!.toggleSelect('a1', false) })
@@ -72,7 +72,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedId).toBeNull()
   })
 
-  it('selectPod sets pod id and clears person selection', () => {
+  it('[SELECT-001] selectPod sets pod id and clears person selection', () => {
     renderWithProvider()
 
     // Select a person first
@@ -86,7 +86,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedId).toBeNull()
   })
 
-  it('batchSelect sets exact set of IDs', () => {
+  it('[SELECT-001] batchSelect sets exact set of IDs', () => {
     renderWithProvider()
 
     act(() => { captured!.batchSelect(new Set(['a1', 'b2', 'c3'])) })
@@ -98,7 +98,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedPodId).toBeNull()
   })
 
-  it('batchSelect clears previous pod selection', () => {
+  it('[SELECT-001] batchSelect clears previous pod selection', () => {
     renderWithProvider()
 
     act(() => { captured!.selectPod('pod-1') })
@@ -109,7 +109,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedIds.has('a1')).toBe(true)
   })
 
-  it('selectedId returns the single ID when exactly one selected, null otherwise', () => {
+  it('[SELECT-001] selectedId returns the single ID when exactly one selected, null otherwise', () => {
     renderWithProvider()
 
     // No selection
@@ -128,7 +128,7 @@ describe('SelectionContext', () => {
     expect(captured!.selectedId).toBe('b2')
   })
 
-  it('useSelection throws when used outside provider', () => {
+  it('[SELECT-001] useSelection throws when used outside provider', () => {
     function BadComponent() {
       useSelection()
       return null

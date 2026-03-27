@@ -7,7 +7,7 @@ import { makePerson, renderWithOrg } from '../test-helpers'
 describe('RecycleBinDrawer', () => {
   afterEach(() => cleanup())
 
-  it('calls restore with person id when Restore button is clicked', async () => {
+  it('[UI-004] calls restore with person id when Restore button is clicked', async () => {
     const user = userEvent.setup()
     const restoreFn = vi.fn()
     renderWithOrg(<RecycleBinDrawer />, {
@@ -19,7 +19,7 @@ describe('RecycleBinDrawer', () => {
     expect(restoreFn).toHaveBeenCalledWith('r1')
   })
 
-  it('calls setBinOpen(false) when close button is clicked', async () => {
+  it('[UI-004] calls setBinOpen(false) when close button is clicked', async () => {
     const user = userEvent.setup()
     const setBinOpenFn = vi.fn()
     renderWithOrg(<RecycleBinDrawer />, {
@@ -30,7 +30,7 @@ describe('RecycleBinDrawer', () => {
     expect(setBinOpenFn).toHaveBeenCalledWith(false)
   })
 
-  it('calls emptyBin when Empty Bin button is clicked', async () => {
+  it('[UI-004] calls emptyBin when Empty Bin button is clicked', async () => {
     const user = userEvent.setup()
     const emptyBinFn = vi.fn()
     renderWithOrg(<RecycleBinDrawer />, {

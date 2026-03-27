@@ -1,5 +1,7 @@
 package parser
 
+// Scenarios: CONTRACT-009 — all tests in this file
+
 import (
 	"testing"
 )

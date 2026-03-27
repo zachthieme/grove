@@ -7,14 +7,14 @@ test.describe('Smoke tests', () => {
     await page.goto('/')
   })
 
-  test('upload CSV and see org chart', async ({ page }) => {
+  test('[UPLOAD-001] upload CSV and see org chart', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await expect(page.locator('[data-selected]').filter({ hasText: 'Alice' })).toBeVisible()
     await expect(page.locator('[data-selected]').filter({ hasText: 'Bob' })).toBeVisible()
     await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
-  test('switch between views', async ({ page }) => {
+  test('[VIEW-001] switch between views', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await expect(page.locator('[data-selected]').first()).toBeVisible()
     await switchView(page, 'Manager')
@@ -25,7 +25,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-selected]').first()).toBeVisible()
   })
 
-  test('edit a person via sidebar', async ({ page }) => {
+  test('[UI-002] edit a person via sidebar', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
@@ -37,7 +37,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-testid="person-Bob"]')).toContainText('Staff Engineer')
   })
 
-  test('table inline edit', async ({ page }) => {
+  test('[VIEW-003] table inline edit', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await switchView(page, 'Table')
     const aliceRow = page.locator('tbody tr').filter({ hasText: 'Alice' })
@@ -51,7 +51,7 @@ test.describe('Smoke tests', () => {
     await expect(roleCell).toContainText('CTO')
   })
 
-  test('delete and restore', async ({ page }) => {
+  test('[ORG-012] delete and restore', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
@@ -64,7 +64,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
-  test('snapshot save and load', async ({ page }) => {
+  test('[SNAP-001] snapshot save and load', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     page.on('dialog', async (dialog) => {
       if (dialog.type() === 'prompt') {
@@ -89,7 +89,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Changed Role' })).toHaveCount(0)
   })
 
-  test('multi-select batch edit', async ({ page }) => {
+  test('[VIEW-007] multi-select batch edit', async ({ page }) => {
     await uploadCSV(page, 'grove.csv')
     await switchView(page, 'Table')
     const checkboxes = page.locator('tbody input[type="checkbox"]')

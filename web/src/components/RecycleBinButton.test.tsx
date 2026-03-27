@@ -7,7 +7,7 @@ import { renderWithOrg } from '../test-helpers'
 describe('RecycleBinButton', () => {
   afterEach(() => cleanup())
 
-  it('calls setBinOpen with toggled value on click', async () => {
+  it('[UI-004] calls setBinOpen with toggled value on click', async () => {
     const user = userEvent.setup()
     const setBinOpenFn = vi.fn()
     renderWithOrg(<RecycleBinButton />, {
@@ -18,7 +18,7 @@ describe('RecycleBinButton', () => {
     expect(setBinOpenFn).toHaveBeenCalledWith(true)
   })
 
-  it('calls setBinOpen(false) when binOpen is true and button is clicked', async () => {
+  it('[UI-004] calls setBinOpen(false) when binOpen is true and button is clicked', async () => {
     const user = userEvent.setup()
     const setBinOpenFn = vi.fn()
     renderWithOrg(<RecycleBinButton />, {

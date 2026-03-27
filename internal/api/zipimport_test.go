@@ -34,6 +34,7 @@ const testCSVContent = "Name,Role,Discipline,Manager,Team,Additional Teams,Statu
 const testCSVContent2 = "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Senior Engineer,Eng,Alice,Platform,,Active\n"
 const testCSVContent3 = "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,Director,Eng,,Eng,,Active\nBob,Senior Engineer,Eng,Alice,Platform,,Active\nCarol,Intern,Eng,Bob,Platform,,Active\n"
 
+// Scenarios: UPLOAD-006
 func TestUploadZip_ThreeFiles(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -67,6 +68,7 @@ func TestUploadZip_ThreeFiles(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-006
 func TestUploadZip_SingleFile(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -89,6 +91,7 @@ func TestUploadZip_SingleFile(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-007
 func TestUploadZip_NoCSVFiles(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -102,6 +105,7 @@ func TestUploadZip_NoCSVFiles(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-006
 func TestUploadZip_UnprefixedFiles(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -119,6 +123,7 @@ func TestUploadZip_UnprefixedFiles(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-008
 func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -150,6 +155,7 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-006
 func TestUploadZip_SharedIDsAcrossFiles(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -202,6 +208,7 @@ func TestUploadZip_SharedIDsAcrossFiles(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-006
 func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -238,6 +245,7 @@ func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-009
 func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -259,6 +267,7 @@ func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-009
 func TestUploadZip_SeedsPods(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -277,6 +286,7 @@ func TestUploadZip_SeedsPods(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-009
 func TestUploadZip_NoPodFieldNoPods(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -293,6 +303,7 @@ func TestUploadZip_NoPodFieldNoPods(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-009
 func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -326,6 +337,7 @@ func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-015
 func TestUploadZip_RestoresSettingsFromSidecar(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -348,6 +360,7 @@ func TestUploadZip_RestoresSettingsFromSidecar(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-007
 func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())

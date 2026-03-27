@@ -7,7 +7,7 @@ import { makePerson, renderWithOrg } from '../test-helpers'
 describe('AutosaveBanner', () => {
   afterEach(() => cleanup())
 
-  it('renders Restore button that calls restoreAutosave on click', async () => {
+  it('[AUTO-003] renders Restore button that calls restoreAutosave on click', async () => {
     const user = userEvent.setup()
     const restoreFn = vi.fn()
     renderWithOrg(<AutosaveBanner />, {
@@ -22,7 +22,7 @@ describe('AutosaveBanner', () => {
     expect(restoreFn).toHaveBeenCalledTimes(1)
   })
 
-  it('renders Dismiss button that calls dismissAutosave on click', async () => {
+  it('[AUTO-003] renders Dismiss button that calls dismissAutosave on click', async () => {
     const user = userEvent.setup()
     const dismissFn = vi.fn()
     renderWithOrg(<AutosaveBanner />, {

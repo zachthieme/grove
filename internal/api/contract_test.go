@@ -1,5 +1,7 @@
 package api
 
+// Scenarios: CONTRACT-001 — all tests in this file
+
 import (
 	"encoding/json"
 	"reflect"

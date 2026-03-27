@@ -7,7 +7,7 @@ test.describe('Negative scenarios', () => {
     await page.goto('/')
   })
 
-  test('uploading an invalid file shows error or mapping modal', async ({ page }) => {
+  test('[UPLOAD-011] uploading an invalid file shows error or mapping modal', async ({ page }) => {
     // Upload a CSV buffer with no "name" column — should show error or mapping modal, not crash
     const csvContent = 'foo,bar,baz\n1,2,3\n4,5,6'
     const fileInput = page.getByRole('main').locator('input[type="file"]')
@@ -31,7 +31,7 @@ test.describe('Negative scenarios', () => {
     await expect(page.locator('body')).toBeVisible()
   })
 
-  test('server error during update shows error state', async ({ page }) => {
+  test('[CONTRACT-010] server error during update shows error state', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
@@ -59,7 +59,7 @@ test.describe('Negative scenarios', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
-  test('server error during delete keeps person visible', async ({ page }) => {
+  test('[CONTRACT-010] server error during delete keeps person visible', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
@@ -83,7 +83,7 @@ test.describe('Negative scenarios', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible({ timeout: 5000 })
   })
 
-  test('server error during move keeps org intact', async ({ page }) => {
+  test('[CONTRACT-010] server error during move keeps org intact', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
 
     // Intercept the move API to return a 500
@@ -106,7 +106,7 @@ test.describe('Negative scenarios', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
-  test('uploading empty file does not crash', async ({ page }) => {
+  test('[UPLOAD-001] uploading empty file does not crash', async ({ page }) => {
     // Upload a completely empty buffer as a CSV
     const fileInput = page.getByRole('main').locator('input[type="file"]')
     await fileInput.setInputFiles({
@@ -127,7 +127,7 @@ test.describe('Negative scenarios', () => {
     await expect(page.locator('body')).toBeVisible()
   })
 
-  test('network timeout on upload shows error', async ({ page }) => {
+  test('[CONTRACT-010] network timeout on upload shows error', async ({ page }) => {
     // Intercept the upload API and abort with a timeout error
     await page.route('**/api/upload', async (route) => {
       await route.abort('timedout')
@@ -153,7 +153,7 @@ test.describe('Negative scenarios', () => {
     await expect(page.locator('[data-selected]')).toHaveCount(0)
   })
 
-  test('snapshot save with server error does not lose data', async ({ page }) => {
+  test('[SNAP-001] snapshot save with server error does not lose data', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
 
     // Intercept snapshot save API to return a 500

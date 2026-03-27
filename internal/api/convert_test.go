@@ -6,6 +6,7 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
+// Scenarios: EXPORT-005
 func TestConvertOrg_AssignsIDs(t *testing.T) {
 	t.Parallel()
 	people := []model.Person{
@@ -46,6 +47,7 @@ func TestConvertOrg_AssignsIDs(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-005
 func TestConvertOrg_PreservesFields(t *testing.T) {
 	t.Parallel()
 	people := []model.Person{

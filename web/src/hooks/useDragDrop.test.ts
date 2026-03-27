@@ -43,7 +43,7 @@ describe('useDragDrop', () => {
     mockSelectedIds = new Set<string>()
   })
 
-  it('calls reparent when dropping a person onto another person', async () => {
+  it('[SELECT-004] calls reparent when dropping a person onto another person', async () => {
     const { result } = renderDragDrop()
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-2'))
@@ -53,7 +53,7 @@ describe('useDragDrop', () => {
     expect(mockMove).not.toHaveBeenCalled()
   })
 
-  it('calls move with team name when dropping onto a team drop target', async () => {
+  it('[SELECT-004] calls move with team name when dropping onto a team drop target', async () => {
     const { result } = renderDragDrop()
     const teamTarget = `${TEAM_DROP_PREFIX}Engineering`
 
@@ -64,7 +64,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).not.toHaveBeenCalled()
   })
 
-  it('moves all selected people when dragged person is in selectedIds', async () => {
+  it('[SELECT-004] moves all selected people when dragged person is in selectedIds', async () => {
     const { result } = renderDragDrop(new Set(['person-1', 'person-2', 'person-3']))
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-4'))
@@ -75,7 +75,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).toHaveBeenCalledWith('person-3', 'person-4')
   })
 
-  it('excludes the drop target from multi-selection moves', async () => {
+  it('[SELECT-004] excludes the drop target from multi-selection moves', async () => {
     const { result } = renderDragDrop(new Set(['person-1', 'person-2', 'person-3']))
 
     // Drop onto person-2 who is also in the selection
@@ -89,7 +89,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).toHaveBeenCalledTimes(2)
   })
 
-  it('moves all selected people to team drop target', async () => {
+  it('[SELECT-004] moves all selected people to team drop target', async () => {
     const { result } = renderDragDrop(new Set(['person-1', 'person-2']))
     const teamTarget = `${TEAM_DROP_PREFIX}Platform`
 
@@ -100,7 +100,7 @@ describe('useDragDrop', () => {
     expect(mockMove).toHaveBeenCalledWith('person-2', '', 'Platform')
   })
 
-  it('does nothing when there is no drop target', async () => {
+  it('[SELECT-004] does nothing when there is no drop target', async () => {
     const { result } = renderDragDrop()
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', null))
@@ -109,7 +109,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).not.toHaveBeenCalled()
   })
 
-  it('does nothing when dropping onto self', async () => {
+  it('[SELECT-004] does nothing when dropping onto self', async () => {
     const { result } = renderDragDrop()
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-1'))
@@ -118,7 +118,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).not.toHaveBeenCalled()
   })
 
-  it('moves only the dragged person when not in selectedIds', async () => {
+  it('[SELECT-004] moves only the dragged person when not in selectedIds', async () => {
     const { result } = renderDragDrop(new Set(['person-2', 'person-3']))
 
     // person-1 is not in the selection
@@ -128,7 +128,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).toHaveBeenCalledWith('person-1', 'person-4')
   })
 
-  it('calls move with pod manager and team when dropping onto a pod target', async () => {
+  it('[SELECT-004] calls move with pod manager and team when dropping onto a pod target', async () => {
     const { result } = renderDragDrop()
     const podTarget = `${POD_DROP_PREFIX}mgr-1:Alpha`
 
@@ -139,7 +139,7 @@ describe('useDragDrop', () => {
     expect(mockReparent).not.toHaveBeenCalled()
   })
 
-  it('moves all selected people to pod target', async () => {
+  it('[SELECT-004] moves all selected people to pod target', async () => {
     const { result } = renderDragDrop(new Set(['person-1', 'person-2']))
     const podTarget = `${POD_DROP_PREFIX}mgr-2:Beta`
 
@@ -150,7 +150,7 @@ describe('useDragDrop', () => {
     expect(mockMove).toHaveBeenCalledWith('person-2', 'mgr-2', 'Infra', undefined, 'Beta')
   })
 
-  it('falls back to pod name as team when pod is not found', async () => {
+  it('[SELECT-004] falls back to pod name as team when pod is not found', async () => {
     const { result } = renderDragDrop()
     const podTarget = `${POD_DROP_PREFIX}mgr-99:UnknownPod`
 
@@ -160,7 +160,7 @@ describe('useDragDrop', () => {
     expect(mockMove).toHaveBeenCalledWith('person-1', 'mgr-99', 'UnknownPod', undefined, 'UnknownPod')
   })
 
-  it('moves only dragged person when selectedIds has size 1', async () => {
+  it('[SELECT-004] moves only dragged person when selectedIds has size 1', async () => {
     const { result } = renderDragDrop(new Set(['person-1']))
 
     await result.current.onDragEnd(makeDragEndEvent('person-1', 'person-2'))

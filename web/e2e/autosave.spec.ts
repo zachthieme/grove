@@ -10,7 +10,7 @@ test.describe('Autosave recovery', () => {
     await page.request.delete('/api/autosave')
   })
 
-  test('autosave is triggered after editing a person', async ({ page }) => {
+  test('[AUTO-001] autosave is triggered after editing a person', async ({ page }) => {
     await page.goto('/')
     await uploadCSV(page, 'simple.csv')
 
@@ -42,7 +42,7 @@ test.describe('Autosave recovery', () => {
     expect(bob.role).toBe('Staff Engineer')
   })
 
-  test('recovery banner appears and restores state on Restore click', async ({ page }) => {
+  test('[AUTO-003] recovery banner appears and restores state on Restore click', async ({ page }) => {
     // Step 1: Upload and edit to create autosave data
     await page.goto('/')
     await uploadCSV(page, 'simple.csv')
@@ -81,7 +81,7 @@ test.describe('Autosave recovery', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Principal Engineer' })).toBeVisible()
   })
 
-  test('recovery banner appears from server autosave when localStorage is cleared', async ({ page }) => {
+  test('[AUTO-003] recovery banner appears from server autosave when localStorage is cleared', async ({ page }) => {
     // Step 1: Upload and edit to create autosave data on the server
     await page.goto('/')
     await uploadCSV(page, 'simple.csv')
@@ -118,7 +118,7 @@ test.describe('Autosave recovery', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Distinguished Engineer' })).toBeVisible()
   })
 
-  test('dismiss button clears autosave and shows clean upload state', async ({ page }) => {
+  test('[AUTO-004] dismiss button clears autosave and shows clean upload state', async ({ page }) => {
     // Step 1: Upload and edit to create autosave data
     await page.goto('/')
     await uploadCSV(page, 'simple.csv')
@@ -162,7 +162,7 @@ test.describe('Autosave recovery', () => {
     await expect(page.getByRole('alert')).not.toBeVisible({ timeout: 3000 })
   })
 
-  test('dismiss clears server-side autosave via DELETE endpoint', async ({ page }) => {
+  test('[AUTO-004] dismiss clears server-side autosave via DELETE endpoint', async ({ page }) => {
     // Upload and edit
     await page.goto('/')
     await uploadCSV(page, 'simple.csv')

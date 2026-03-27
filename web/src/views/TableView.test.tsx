@@ -49,7 +49,7 @@ describe('TableView', () => {
     return renderWithOrg(<TableView people={testPeople} readOnly={true} />, ctx)
   }
 
-  it('cells become editable when clicked in normal mode', async () => {
+  it('[VIEW-003] cells become editable when clicked in normal mode', async () => {
     const user = userEvent.setup()
     const { container } = renderTable()
 
@@ -63,7 +63,7 @@ describe('TableView', () => {
     expect(input.value).toBe('Alice')
   })
 
-  it('cells are not editable in read-only mode', async () => {
+  it('[VIEW-003] cells are not editable in read-only mode', async () => {
     const user = userEvent.setup()
     const { container } = renderTableReadOnly()
 
@@ -76,7 +76,7 @@ describe('TableView', () => {
     expect(editInputs).toHaveLength(0)
   })
 
-  it('clicking delete calls remove with person id', async () => {
+  it('[VIEW-003] clicking delete calls remove with person id', async () => {
     const user = userEvent.setup()
     const { remove } = renderTable()
 
@@ -85,7 +85,7 @@ describe('TableView', () => {
     expect(remove).toHaveBeenCalledWith('1')
   })
 
-  it('clicking second delete calls remove with correct id', async () => {
+  it('[VIEW-003] clicking second delete calls remove with correct id', async () => {
     const user = userEvent.setup()
     const { remove } = renderTable()
 
@@ -94,7 +94,7 @@ describe('TableView', () => {
     expect(remove).toHaveBeenCalledWith('2')
   })
 
-  it('clicking checkbox calls toggleSelect with person id', async () => {
+  it('[VIEW-003] clicking checkbox calls toggleSelect with person id', async () => {
     const user = userEvent.setup()
     const { container, toggleSelect } = renderTable()
 
@@ -103,7 +103,7 @@ describe('TableView', () => {
     expect(toggleSelect).toHaveBeenCalledWith('1', true)
   })
 
-  it('shows column visibility dropdown when Columns button is clicked', async () => {
+  it('[VIEW-003] shows column visibility dropdown when Columns button is clicked', async () => {
     const user = userEvent.setup()
     renderTable()
 

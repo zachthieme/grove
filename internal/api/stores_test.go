@@ -10,6 +10,7 @@ import (
 
 // --- Snapshot store error path tests ---
 
+// Scenarios: SNAP-006
 func TestSaveSnapshot_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -29,6 +30,7 @@ func TestSaveSnapshot_PersistenceError(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-006
 func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -52,6 +54,7 @@ func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-006
 func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -77,6 +80,7 @@ func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-008
 func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -90,6 +94,7 @@ func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-008
 func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -110,6 +115,7 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 
 // --- Autosave store error path tests ---
 
+// Scenarios: AUTO-006
 func TestAutosaveHandler_WriteError(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryAutosaveStore()
@@ -135,6 +141,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-006
 func TestAutosaveHandler_ReadError(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryAutosaveStore()
@@ -151,6 +158,7 @@ func TestAutosaveHandler_ReadError(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-006
 func TestAutosaveHandler_DeleteError(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryAutosaveStore()
@@ -167,6 +175,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-006
 func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryAutosaveStore()
@@ -217,6 +226,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 
 // --- Snapshot handler error path tests ---
 
+// Scenarios: SNAP-006
 func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -240,6 +250,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-006
 func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -274,18 +285,21 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 
 // --- Memory store interface compliance ---
 
+// Scenarios: CONTRACT-008
 func TestMemorySnapshotStore_Implements_Interface(t *testing.T) {
 	t.Parallel()
 	var _ SnapshotStore = NewMemorySnapshotStore()
 	var _ SnapshotStore = FileSnapshotStore{}
 }
 
+// Scenarios: CONTRACT-008
 func TestMemoryAutosaveStore_Implements_Interface(t *testing.T) {
 	t.Parallel()
 	var _ AutosaveStore = NewMemoryAutosaveStore()
 	var _ AutosaveStore = FileAutosaveStore{}
 }
 
+// Scenarios: CONTRACT-008
 func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
@@ -332,6 +346,7 @@ func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-008
 func TestMemoryAutosaveStore_BasicOperations(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryAutosaveStore()

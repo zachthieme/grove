@@ -13,16 +13,16 @@ const makePerson = (overrides: Partial<Person> & { id: string; name: string }): 
 })
 
 describe('computeEdges', () => {
-  it('returns empty for empty input', () => {
+  it('[VIEW-001] returns empty for empty input', () => {
     expect(computeEdges([])).toEqual([])
   })
 
-  it('returns empty for single person', () => {
+  it('[VIEW-001] returns empty for single person', () => {
     const people = [makePerson({ id: '1', name: 'Alice' })]
     expect(computeEdges(people)).toEqual([])
   })
 
-  it('draws edge from manager to report', () => {
+  it('[VIEW-001] draws edge from manager to report', () => {
     const people = [
       makePerson({ id: '1', name: 'Alice' }),
       makePerson({ id: '2', name: 'Bob', managerId: '1' }),
@@ -32,7 +32,7 @@ describe('computeEdges', () => {
     expect(edges[0]).toEqual({ fromId: '1', toId: '2' })
   })
 
-  it('draws one edge per IC team, not per IC', () => {
+  it('[VIEW-001] draws one edge per IC team, not per IC', () => {
     const people = [
       makePerson({ id: '1', name: 'Alice' }),
       makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
@@ -44,7 +44,7 @@ describe('computeEdges', () => {
     expect(edges[0]).toEqual({ fromId: '1', toId: '2' })
   })
 
-  it('draws one edge for all unpodded ICs when parent has no manager children', () => {
+  it('[VIEW-001] draws one edge for all unpodded ICs when parent has no manager children', () => {
     // When all children are ICs, they render as one flat stack regardless of team
     const people = [
       makePerson({ id: '1', name: 'Alice' }),
@@ -56,7 +56,7 @@ describe('computeEdges', () => {
     expect(edges[0]).toEqual({ fromId: '1', toId: '2' })
   })
 
-  it('draws separate edges per team when parent has manager children', () => {
+  it('[VIEW-001] draws separate edges per team when parent has manager children', () => {
     // When there are both managers and ICs, ICs are grouped by team visually
     const people = [
       makePerson({ id: '1', name: 'Alice' }),
@@ -70,7 +70,7 @@ describe('computeEdges', () => {
     expect(edges).toHaveLength(4)
   })
 
-  it('draws individual edges to manager children', () => {
+  it('[VIEW-001] draws individual edges to manager children', () => {
     const people = [
       makePerson({ id: '1', name: 'Alice' }),
       makePerson({ id: '2', name: 'Bob', managerId: '1' }),
@@ -83,7 +83,7 @@ describe('computeEdges', () => {
     expect(edges.find((e) => e.fromId === '2' && e.toId === '3')).toBeTruthy()
   })
 
-  it('draws dashed edges for additionalTeams', () => {
+  it('[VIEW-001] draws dashed edges for additionalTeams', () => {
     const people = [
       makePerson({ id: '1', name: 'Alice', team: 'Eng' }),
       makePerson({ id: '2', name: 'Bob', team: 'Design' }),
@@ -96,7 +96,7 @@ describe('computeEdges', () => {
     expect(dashedEdge!.toId).toBe('2')   // Bob (first in Design)
   })
 
-  it('does not draw dashed edge to self', () => {
+  it('[VIEW-001] does not draw dashed edge to self', () => {
     const people = [
       makePerson({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Eng'] }),
     ]
@@ -105,7 +105,7 @@ describe('computeEdges', () => {
     expect(dashedEdge).toBeUndefined()
   })
 
-  it('skips additionalTeam edge when team has no members', () => {
+  it('[VIEW-001] skips additionalTeam edge when team has no members', () => {
     const people = [
       makePerson({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Nonexistent'] }),
     ]
@@ -113,7 +113,7 @@ describe('computeEdges', () => {
     expect(edges.find((e) => e.dashed)).toBeUndefined()
   })
 
-  it('prefers manager as team lead for dashed edges', () => {
+  it('[VIEW-001] prefers manager as team lead for dashed edges', () => {
     const people = [
       makePerson({ id: '1', name: 'Boss' }),
       makePerson({ id: '2', name: 'Lead', team: 'Design' }),

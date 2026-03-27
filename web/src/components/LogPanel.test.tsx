@@ -26,7 +26,7 @@ describe('LogPanel', () => {
     vi.clearAllMocks()
   })
 
-  it('renders log entries', async () => {
+  it('[CONTRACT-005] renders log entries', async () => {
     await act(async () => {
       render(<LogPanel onClose={onClose} />)
     })
@@ -34,7 +34,7 @@ describe('LogPanel', () => {
     expect(screen.getByText('2 entries (buffer: 1000)')).toBeDefined()
   })
 
-  it('renders close button', async () => {
+  it('[CONTRACT-005] renders close button', async () => {
     const user = userEvent.setup()
     await act(async () => {
       render(<LogPanel onClose={onClose} />)
@@ -44,7 +44,7 @@ describe('LogPanel', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('shows "No log entries" when empty', async () => {
+  it('[CONTRACT-005] shows "No log entries" when empty', async () => {
     const { getLogs } = await import('../api/client')
     vi.mocked(getLogs).mockResolvedValueOnce({ entries: [], count: 0, bufferSize: 1000 })
 

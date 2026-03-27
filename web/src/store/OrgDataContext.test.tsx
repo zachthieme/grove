@@ -95,7 +95,7 @@ async function renderLoaded() {
 
 describe('OrgDataContext', () => {
   describe('useOrgData outside provider', () => {
-    it('throws when used outside OrgDataProvider', () => {
+    it('[CONTRACT-006] throws when used outside OrgDataProvider', () => {
       // Suppress console.error from React for the expected error
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
       expect(() => {
@@ -106,7 +106,7 @@ describe('OrgDataContext', () => {
   })
 
   describe('upload', () => {
-    it('calls uploadFile API and sets working/original state', async () => {
+    it('[UPLOAD-001] calls uploadFile API and sets working/original state', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadFile).mockResolvedValue(resp)
 
@@ -123,7 +123,7 @@ describe('OrgDataContext', () => {
       expect(result.current.recycled).toEqual([])
     })
 
-    it('calls uploadZipFile for .zip files', async () => {
+    it('[UPLOAD-006] calls uploadZipFile for .zip files', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadZipFile).mockResolvedValue(resp)
 
@@ -136,7 +136,7 @@ describe('OrgDataContext', () => {
       expect(result.current.loaded).toBe(true)
     })
 
-    it('sets snapshots from ZIP upload response', async () => {
+    it('[UPLOAD-006] sets snapshots from ZIP upload response', async () => {
       const snapshots: SnapshotInfo[] = [{ name: 'v1', timestamp: '2026-01-01T00:00:00Z' }]
       const resp: UploadResponse = { status: 'ready', orgData, snapshots }
       vi.mocked(api.uploadZipFile).mockResolvedValue(resp)
@@ -148,7 +148,7 @@ describe('OrgDataContext', () => {
       expect(result.current.snapshots).toEqual(snapshots)
     })
 
-    it('sets error when upload API fails', async () => {
+    it('[UPLOAD-001] sets error when upload API fails', async () => {
       vi.mocked(api.uploadFile).mockRejectedValue(new Error('network fail'))
 
       const { result } = await renderOrgData()
@@ -159,7 +159,7 @@ describe('OrgDataContext', () => {
       expect(result.current.error).toContain('network fail')
     })
 
-    it('handles needs_mapping response without loading data', async () => {
+    it('[UPLOAD-002] handles needs_mapping response without loading data', async () => {
       const resp: UploadResponse = {
         status: 'needs_mapping',
         headers: ['Full Name', 'Title'],
@@ -177,7 +177,7 @@ describe('OrgDataContext', () => {
       expect(result.current.pendingMapping!.headers).toEqual(['Full Name', 'Title'])
     })
 
-    it('surfaces persistenceWarning as error', async () => {
+    it('[SNAP-006] surfaces persistenceWarning as error', async () => {
       const resp: UploadResponse = {
         status: 'ready',
         orgData,
@@ -195,7 +195,7 @@ describe('OrgDataContext', () => {
   })
 
   describe('update', () => {
-    it('calls updatePerson API and updates working state', async () => {
+    it('[ORG-005] calls updatePerson API and updates working state', async () => {
       const updated = [alice, { ...bob, role: 'Senior Engineer' }]
       vi.mocked(api.updatePerson).mockResolvedValue({ working: updated, pods: [] })
 
@@ -211,7 +211,7 @@ describe('OrgDataContext', () => {
       expect(result.current.working[1].role).toBe('Senior Engineer')
     })
 
-    it('sets error when updatePerson API fails', async () => {
+    it('[ORG-005] sets error when updatePerson API fails', async () => {
       vi.mocked(api.updatePerson).mockRejectedValue(new Error('update failed'))
 
       const { result } = await renderLoaded()
@@ -224,7 +224,7 @@ describe('OrgDataContext', () => {
       expect(result.current.working[1].role).toBe('Engineer')
     })
 
-    it('passes correlationId to API', async () => {
+    it('[CONTRACT-004] passes correlationId to API', async () => {
       vi.mocked(api.updatePerson).mockResolvedValue({ working: [alice, bob], pods: [] })
 
       const { result } = await renderLoaded()
@@ -240,7 +240,7 @@ describe('OrgDataContext', () => {
   })
 
   describe('remove', () => {
-    it('calls deletePerson API and updates working and recycled', async () => {
+    it('[ORG-012] calls deletePerson API and updates working and recycled', async () => {
       vi.mocked(api.deletePerson).mockResolvedValue({
         working: [alice],
         recycled: [bob],
@@ -256,7 +256,7 @@ describe('OrgDataContext', () => {
       expect(result.current.recycled[0].id).toBe('b2')
     })
 
-    it('sets error when deletePerson API fails', async () => {
+    it('[ORG-012] sets error when deletePerson API fails', async () => {
       vi.mocked(api.deletePerson).mockRejectedValue(new Error('delete failed'))
 
       const { result } = await renderLoaded()
@@ -268,7 +268,7 @@ describe('OrgDataContext', () => {
   })
 
   describe('restore', () => {
-    it('calls restorePerson API and moves person from recycled back to working', async () => {
+    it('[ORG-012] calls restorePerson API and moves person from recycled back to working', async () => {
       // First delete, then restore
       vi.mocked(api.deletePerson).mockResolvedValue({
         working: [alice], recycled: [bob], pods: [],
@@ -288,7 +288,7 @@ describe('OrgDataContext', () => {
       expect(result.current.recycled).toHaveLength(0)
     })
 
-    it('sets error when restorePerson API fails', async () => {
+    it('[ORG-012] sets error when restorePerson API fails', async () => {
       vi.mocked(api.deletePerson).mockResolvedValue({
         working: [alice], recycled: [bob], pods: [],
       })

@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Scenarios: SNAP-001
 func TestSnapshot_SaveAndList(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -33,6 +34,7 @@ func TestSnapshot_SaveAndList(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-002
 func TestSnapshot_Load(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -67,6 +69,7 @@ func TestSnapshot_Load(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-003
 func TestSnapshot_Overwrite(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -84,6 +87,7 @@ func TestSnapshot_Overwrite(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-007
 func TestSnapshot_Delete(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -99,6 +103,7 @@ func TestSnapshot_Delete(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-004
 func TestSnapshot_LoadNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -109,6 +114,7 @@ func TestSnapshot_LoadNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-002
 func TestSnapshot_LoadClearsRecycled(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)

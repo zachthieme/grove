@@ -8,7 +8,7 @@ test.describe('Accessibility', () => {
     await page.goto('/')
   })
 
-  test('upload prompt has no critical a11y violations', async ({ page }) => {
+  test('[CONTRACT-011] upload prompt has no critical a11y violations', async ({ page }) => {
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
       .analyze()
@@ -16,7 +16,7 @@ test.describe('Accessibility', () => {
     expect(critical).toEqual([])
   })
 
-  test('detail view has no critical a11y violations', async ({ page }) => {
+  test('[CONTRACT-011] detail view has no critical a11y violations', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -25,7 +25,7 @@ test.describe('Accessibility', () => {
     expect(critical).toEqual([])
   })
 
-  test('table view has no critical a11y violations', async ({ page }) => {
+  test('[CONTRACT-011] table view has no critical a11y violations', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await switchView(page, 'Table')
     const results = await new AxeBuilder({ page })
@@ -35,7 +35,7 @@ test.describe('Accessibility', () => {
     expect(critical).toEqual([])
   })
 
-  test('manager view has no critical a11y violations', async ({ page }) => {
+  test('[CONTRACT-011] manager view has no critical a11y violations', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await switchView(page, 'Manager')
     const results = await new AxeBuilder({ page })

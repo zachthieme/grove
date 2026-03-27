@@ -7,7 +7,7 @@ import { makePerson, renderWithOrg } from '../test-helpers'
 describe('EmploymentTypeFilter', () => {
   afterEach(() => cleanup())
 
-  it('calls toggleEmploymentTypeFilter when a checkbox item is clicked', async () => {
+  it('[FILTER-001] calls toggleEmploymentTypeFilter when a checkbox item is clicked', async () => {
     const user = userEvent.setup()
     const toggleFn = vi.fn()
     renderWithOrg(<EmploymentTypeFilter />, {
@@ -19,7 +19,7 @@ describe('EmploymentTypeFilter', () => {
     expect(toggleFn).toHaveBeenCalledWith('FTE')
   })
 
-  it('calls showAllEmploymentTypes when Show All is clicked', async () => {
+  it('[FILTER-001] calls showAllEmploymentTypes when Show All is clicked', async () => {
     const user = userEvent.setup()
     const showAllFn = vi.fn()
     renderWithOrg(<EmploymentTypeFilter />, {
@@ -31,7 +31,7 @@ describe('EmploymentTypeFilter', () => {
     expect(showAllFn).toHaveBeenCalledTimes(1)
   })
 
-  it('calls hideAllEmploymentTypes with all types when Hide All is clicked', async () => {
+  it('[FILTER-001] calls hideAllEmploymentTypes with all types when Hide All is clicked', async () => {
     const user = userEvent.setup()
     const hideAllFn = vi.fn()
     renderWithOrg(<EmploymentTypeFilter />, {

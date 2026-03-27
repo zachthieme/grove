@@ -11,7 +11,7 @@ vi.mock('../api/client', () => ({
 describe('Toolbar', () => {
   afterEach(() => cleanup())
 
-  it('calls setViewMode when a view mode pill is clicked', async () => {
+  it('[UI-001] calls setViewMode when a view mode pill is clicked', async () => {
     const user = userEvent.setup()
     const setViewModeFn = vi.fn()
     renderWithOrg(<Toolbar />, {
@@ -22,7 +22,7 @@ describe('Toolbar', () => {
     expect(setViewModeFn).toHaveBeenCalledWith('manager')
   })
 
-  it('calls setDataView when a data view pill is clicked', async () => {
+  it('[UI-001] calls setDataView when a data view pill is clicked', async () => {
     const user = userEvent.setup()
     const setDataViewFn = vi.fn()
     renderWithOrg(<Toolbar />, {
@@ -33,7 +33,7 @@ describe('Toolbar', () => {
     expect(setDataViewFn).toHaveBeenCalledWith('diff')
   })
 
-  it('calls onExportPng when PNG is clicked', async () => {
+  it('[UI-001] calls onExportPng when PNG is clicked', async () => {
     const user = userEvent.setup()
     const onExportPng = vi.fn()
     renderWithOrg(<Toolbar onExportPng={onExportPng} />, {
@@ -44,7 +44,7 @@ describe('Toolbar', () => {
     expect(onExportPng).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onExportSvg when SVG is clicked', async () => {
+  it('[UI-001] calls onExportSvg when SVG is clicked', async () => {
     const user = userEvent.setup()
     const onExportSvg = vi.fn()
     renderWithOrg(<Toolbar onExportSvg={onExportSvg} />, {
@@ -55,7 +55,7 @@ describe('Toolbar', () => {
     expect(onExportSvg).toHaveBeenCalledTimes(1)
   })
 
-  it('calls reflow when Refresh Layout is clicked', async () => {
+  it('[UI-001] calls reflow when Refresh Layout is clicked', async () => {
     const user = userEvent.setup()
     const reflowFn = vi.fn()
     renderWithOrg(<Toolbar />, {
@@ -68,7 +68,7 @@ describe('Toolbar', () => {
     expect(reflowFn).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onToggleLogs when Logs button is clicked', async () => {
+  it('[UI-001] calls onToggleLogs when Logs button is clicked', async () => {
     const user = userEvent.setup()
     const onToggleLogs = vi.fn()
     renderWithOrg(<Toolbar loggingEnabled onToggleLogs={onToggleLogs} />, {
@@ -78,7 +78,7 @@ describe('Toolbar', () => {
     expect(onToggleLogs).toHaveBeenCalledTimes(1)
   })
 
-  it('sets aria-expanded on hamburger menu button', async () => {
+  it('[UI-001] sets aria-expanded on hamburger menu button', async () => {
     const user = userEvent.setup()
     renderWithOrg(<Toolbar />, {
       working: [makePerson()],
@@ -89,7 +89,7 @@ describe('Toolbar', () => {
     expect(menuBtn.getAttribute('aria-expanded')).toBe('true')
   })
 
-  it('sets aria-expanded on export dropdown button', async () => {
+  it('[UI-001] sets aria-expanded on export dropdown button', async () => {
     const user = userEvent.setup()
     renderWithOrg(<Toolbar />, {
       working: [makePerson()],

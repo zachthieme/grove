@@ -20,7 +20,7 @@ const alphaPod: Pod = {
 describe('PodSidebar', () => {
   afterEach(() => cleanup())
 
-  it('save button is disabled when nothing changed', () => {
+  it('[UI-003] save button is disabled when nothing changed', () => {
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
@@ -30,7 +30,7 @@ describe('PodSidebar', () => {
     expect((saveBtn as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('save button is enabled when name changes', () => {
+  it('[UI-003] save button is enabled when name changes', () => {
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
@@ -42,7 +42,7 @@ describe('PodSidebar', () => {
     expect((saveBtn as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('calls updatePod when save button clicked after name change', async () => {
+  it('[UI-003] calls updatePod when save button clicked after name change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
@@ -57,7 +57,7 @@ describe('PodSidebar', () => {
     expect(updatePodFn).toHaveBeenCalledWith('pod-1', { name: 'Alpha Renamed' })
   })
 
-  it('calls updatePod when save clicked after public note change', async () => {
+  it('[UI-003] calls updatePod when save clicked after public note change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],
@@ -72,7 +72,7 @@ describe('PodSidebar', () => {
     expect(updatePodFn).toHaveBeenCalledWith('pod-1', { publicNote: 'Updated public' })
   })
 
-  it('calls updatePod when save clicked after private note change', async () => {
+  it('[UI-003] calls updatePod when save clicked after private note change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],

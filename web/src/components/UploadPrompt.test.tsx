@@ -6,7 +6,7 @@ import { renderWithOrg } from '../test-helpers'
 describe('UploadPrompt', () => {
   afterEach(() => cleanup())
 
-  it('calls upload when a file is selected', () => {
+  it('[UI-006] calls upload when a file is selected', () => {
     const uploadFn = vi.fn()
     const { container } = renderWithOrg(<UploadPrompt />, {
       loaded: false,
@@ -18,7 +18,7 @@ describe('UploadPrompt', () => {
     expect(uploadFn).toHaveBeenCalledWith(file)
   })
 
-  it('does not call upload when no file is selected', () => {
+  it('[UI-006] does not call upload when no file is selected', () => {
     const uploadFn = vi.fn()
     const { container } = renderWithOrg(<UploadPrompt />, {
       loaded: false,

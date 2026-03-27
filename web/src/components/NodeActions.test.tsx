@@ -22,7 +22,7 @@ function defaultProps(overrides: Partial<Parameters<typeof NodeActions>[0]> = {}
 }
 
 describe('NodeActions', () => {
-  it('click handlers fire correctly', async () => {
+  it('[UI-002] click handlers fire correctly', async () => {
     const user = userEvent.setup()
     const onAdd = vi.fn()
     const onDelete = vi.fn()

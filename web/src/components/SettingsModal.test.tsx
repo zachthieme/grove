@@ -24,7 +24,7 @@ describe('SettingsModal', () => {
     return { ...result, updateSettings }
   }
 
-  it('renders Cancel button that calls onClose', async () => {
+  it('[SETTINGS-001] renders Cancel button that calls onClose', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     renderSettings(onClose)
@@ -32,7 +32,7 @@ describe('SettingsModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('renders Save button that calls updateSettings and onClose', async () => {
+  it('[SETTINGS-001] renders Save button that calls updateSettings and onClose', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     const { updateSettings } = renderSettings(onClose)
@@ -44,7 +44,7 @@ describe('SettingsModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('calls onClose when overlay is clicked', async () => {
+  it('[SETTINGS-001] calls onClose when overlay is clicked', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     const { container } = renderSettings(onClose)
@@ -53,7 +53,7 @@ describe('SettingsModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('does not call onClose when inner modal content is clicked', async () => {
+  it('[SETTINGS-001] does not call onClose when inner modal content is clicked', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     renderSettings(onClose)

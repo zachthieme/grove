@@ -22,7 +22,7 @@ beforeEach(() => {
 })
 
 describe('correlation ID', () => {
-  it('attaches X-Correlation-ID header to API requests', async () => {
+  it('[CONTRACT-004] attaches X-Correlation-ID header to API requests', async () => {
     await api.updatePerson({ personId: 'abc', fields: { name: 'Test' } })
 
     expect(mockFetch).toHaveBeenCalled()
@@ -32,7 +32,7 @@ describe('correlation ID', () => {
     expect(headers['X-Correlation-ID'].length).toBeGreaterThan(0)
   })
 
-  it('uses provided correlationId when given', async () => {
+  it('[CONTRACT-004] uses provided correlationId when given', async () => {
     await api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }, 'my-corr-id')
 
     const [, init] = mockFetch.mock.calls[0]
@@ -40,7 +40,7 @@ describe('correlation ID', () => {
     expect(headers['X-Correlation-ID']).toBe('my-corr-id')
   })
 
-  it('generates unique correlation IDs for separate calls', async () => {
+  it('[CONTRACT-004] generates unique correlation IDs for separate calls', async () => {
     await api.updatePerson({ personId: 'a', fields: {} })
     await api.updatePerson({ personId: 'b', fields: {} })
 

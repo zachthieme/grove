@@ -23,12 +23,12 @@ const frank = makePerson({ id: '6', name: 'Frank', managerId: '4' })
 const everyone = [alice, bob, carol, dave, eve, frank]
 
 describe('useHeadSubtree', () => {
-  it('returns null when headPersonId is null', () => {
+  it('[FILTER-002] returns null when headPersonId is null', () => {
     const { result } = renderHook(() => useHeadSubtree(null, everyone))
     expect(result.current).toBeNull()
   })
 
-  it('returns all descendant IDs including the head for a manager', () => {
+  it('[FILTER-002] returns all descendant IDs including the head for a manager', () => {
     // Bob manages Dave and Eve; Dave manages Frank
     const { result } = renderHook(() => useHeadSubtree('2', everyone))
     expect(result.current).not.toBeNull()
@@ -40,7 +40,7 @@ describe('useHeadSubtree', () => {
     expect(ids.size).toBe(4)
   })
 
-  it('returns just the head ID for a leaf node', () => {
+  it('[FILTER-002] returns just the head ID for a leaf node', () => {
     const { result } = renderHook(() => useHeadSubtree('3', everyone))
     expect(result.current).not.toBeNull()
     const ids = result.current!
@@ -48,7 +48,7 @@ describe('useHeadSubtree', () => {
     expect(ids.size).toBe(1)
   })
 
-  it('returns the full tree when head is the root', () => {
+  it('[FILTER-002] returns the full tree when head is the root', () => {
     const { result } = renderHook(() => useHeadSubtree('1', everyone))
     expect(result.current).not.toBeNull()
     const ids = result.current!
@@ -58,7 +58,7 @@ describe('useHeadSubtree', () => {
     }
   })
 
-  it('handles empty working list with a non-null head', () => {
+  it('[FILTER-002] handles empty working list with a non-null head', () => {
     const { result } = renderHook(() => useHeadSubtree('1', []))
     expect(result.current).not.toBeNull()
     const ids = result.current!

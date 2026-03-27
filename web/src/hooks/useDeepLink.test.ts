@@ -7,7 +7,7 @@ describe('useDeepLink', () => {
     window.history.replaceState({}, '', '/')
   })
 
-  it('reads viewMode from URL on mount', () => {
+  it('[SELECT-005] reads viewMode from URL on mount', () => {
     window.history.replaceState({}, '', '/?view=manager')
     const setViewMode = vi.fn()
     const setSelectedId = vi.fn()
@@ -25,7 +25,7 @@ describe('useDeepLink', () => {
     expect(setViewMode).toHaveBeenCalledWith('manager')
   })
 
-  it('writes viewMode to URL when it changes', () => {
+  it('[SELECT-005] writes viewMode to URL when it changes', () => {
     renderHook(() => useDeepLink({
       viewMode: 'manager',
       selectedId: null,
@@ -39,7 +39,7 @@ describe('useDeepLink', () => {
     expect(params.get('view')).toBe('manager')
   })
 
-  it('omits default values from URL', () => {
+  it('[SELECT-005] omits default values from URL', () => {
     renderHook(() => useDeepLink({
       viewMode: 'detail',
       selectedId: null,
@@ -52,7 +52,7 @@ describe('useDeepLink', () => {
     expect(window.location.search).toBe('')
   })
 
-  it('reads selectedId from URL', () => {
+  it('[SELECT-005] reads selectedId from URL', () => {
     window.history.replaceState({}, '', '/?selected=abc-123')
     const setSelectedId = vi.fn()
 
@@ -68,7 +68,7 @@ describe('useDeepLink', () => {
     expect(setSelectedId).toHaveBeenCalledWith('abc-123')
   })
 
-  it('reads headPersonId from URL', () => {
+  it('[SELECT-005] reads headPersonId from URL', () => {
     window.history.replaceState({}, '', '/?head=xyz-456')
     const setHead = vi.fn()
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 
+// Scenarios: AUTO-005
 /**
  * Tracks whether the org data has been mutated since loading,
  * and warns the user before navigating away with unsaved changes.

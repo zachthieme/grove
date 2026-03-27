@@ -27,7 +27,7 @@ describe('useOutsideClick', () => {
     return { ref, callback, hookResult }
   }
 
-  it('calls callback on mousedown outside the ref element', () => {
+  it('[SELECT-003] calls callback on mousedown outside the ref element', () => {
     const { callback } = setup(true)
 
     // Click on the document body (outside the ref element)
@@ -35,7 +35,7 @@ describe('useOutsideClick', () => {
     expect(callback).toHaveBeenCalledTimes(1)
   })
 
-  it('does not call callback on mousedown inside the ref element', () => {
+  it('[SELECT-003] does not call callback on mousedown inside the ref element', () => {
     const { callback } = setup(true)
 
     // Click inside the container
@@ -43,7 +43,7 @@ describe('useOutsideClick', () => {
     expect(callback).not.toHaveBeenCalled()
   })
 
-  it('does not call callback on mousedown on a child of the ref element', () => {
+  it('[SELECT-003] does not call callback on mousedown on a child of the ref element', () => {
     const { callback } = setup(true)
 
     const child = document.createElement('span')
@@ -53,14 +53,14 @@ describe('useOutsideClick', () => {
     expect(callback).not.toHaveBeenCalled()
   })
 
-  it('does not call callback when not active', () => {
+  it('[SELECT-003] does not call callback when not active', () => {
     const { callback } = setup(false)
 
     fireEvent.mouseDown(document.body)
     expect(callback).not.toHaveBeenCalled()
   })
 
-  it('stops listening when unmounted', () => {
+  it('[SELECT-003] stops listening when unmounted', () => {
     const { callback, hookResult } = setup(true)
 
     hookResult.unmount()

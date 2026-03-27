@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// Scenarios: ORG-018
 func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 	t.Parallel()
 	// People without Pod field → no pods created
@@ -23,6 +24,7 @@ func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestSeedPods_GroupsByPodName(t *testing.T) {
 	t.Parallel()
 	// People with explicit Pod fields get grouped
@@ -57,6 +59,7 @@ func TestSeedPods_GroupsByPodName(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestSeedPods_RootNodesSkipped(t *testing.T) {
 	t.Parallel()
 	// Root-only person → 0 pods, Pod field stays empty
@@ -74,6 +77,7 @@ func TestSeedPods_RootNodesSkipped(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 	t.Parallel()
 	// Bob has Pod="Alpha Pod", Carol has no pod → only one pod created
@@ -100,6 +104,7 @@ func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestCleanupEmptyPods(t *testing.T) {
 	t.Parallel()
 	// 2 pods, only 1 has members → cleanup returns 1 pod
@@ -121,6 +126,7 @@ func TestCleanupEmptyPods(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestFindPod(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{
@@ -142,6 +148,7 @@ func TestFindPod(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestFindPodByID(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{
@@ -163,6 +170,7 @@ func TestFindPodByID(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestRenamePod(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{
@@ -193,6 +201,7 @@ func TestRenamePod(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestRenamePod_NotFound(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{}
@@ -204,6 +213,7 @@ func TestRenamePod_NotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 	t.Parallel()
 	person := Person{Id: "p1", Name: "Root", ManagerId: "", Pod: "SomePod"}
@@ -219,6 +229,7 @@ func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{
@@ -236,6 +247,7 @@ func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{
@@ -254,6 +266,7 @@ func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{
@@ -272,6 +285,7 @@ func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestCopyPods(t *testing.T) {
 	t.Parallel()
 	src := []Pod{
@@ -290,6 +304,7 @@ func TestCopyPods(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestCopyPods_Nil(t *testing.T) {
 	t.Parallel()
 	result := CopyPods(nil)
@@ -298,6 +313,7 @@ func TestCopyPods_Nil(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-009
 func TestValidateNoteLen(t *testing.T) {
 	t.Parallel()
 	// Within limit

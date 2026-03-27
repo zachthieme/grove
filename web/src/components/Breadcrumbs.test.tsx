@@ -7,7 +7,7 @@ import { makePerson, renderWithOrg } from '../test-helpers'
 describe('Breadcrumbs', () => {
   afterEach(() => cleanup())
 
-  it('calls setHead(null) when "All" button is clicked', async () => {
+  it('[UI-009] calls setHead(null) when "All" button is clicked', async () => {
     const user = userEvent.setup()
     const setHeadFn = vi.fn()
     renderWithOrg(<Breadcrumbs />, {
@@ -19,7 +19,7 @@ describe('Breadcrumbs', () => {
     expect(setHeadFn).toHaveBeenCalledWith(null)
   })
 
-  it('calls setHead with ancestor id when ancestor button is clicked', async () => {
+  it('[UI-009] calls setHead with ancestor id when ancestor button is clicked', async () => {
     const user = userEvent.setup()
     const setHeadFn = vi.fn()
     renderWithOrg(<Breadcrumbs />, {

@@ -69,6 +69,7 @@ func setupConcurrentService(t *testing.T) (svc *OrgService, aliceID, bobID, caro
 	return svc, aliceID, bobID, carolID
 }
 
+// Scenarios: CONC-001
 func TestConcurrentMoves(t *testing.T) {
 	svc, aliceID, bobID, carolID := setupConcurrentService(t)
 
@@ -99,6 +100,7 @@ func TestConcurrentMoves(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-001
 func TestConcurrentUpdates(t *testing.T) {
 	svc, _, bobID, _ := setupConcurrentService(t)
 
@@ -138,6 +140,7 @@ func TestConcurrentUpdates(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-001
 func TestConcurrentReadsAndWrites(t *testing.T) {
 	svc, aliceID, bobID, carolID := setupConcurrentService(t)
 
@@ -186,6 +189,7 @@ func TestConcurrentReadsAndWrites(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-001
 func TestConcurrentDeleteRestore(t *testing.T) {
 	svc, _, _, carolID := setupConcurrentService(t)
 
@@ -215,6 +219,7 @@ func TestConcurrentDeleteRestore(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-001
 func TestConcurrentSnapshotOperations(t *testing.T) {
 	svc, _, _, _ := setupConcurrentService(t)
 
@@ -250,6 +255,7 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-001
 func TestConcurrentMixedOperations(t *testing.T) {
 	svc, aliceID, bobID, carolID := setupConcurrentService(t)
 

@@ -18,6 +18,7 @@ func newTestService(t *testing.T) *OrgService {
 	return svc
 }
 
+// Scenarios: UPLOAD-001
 func TestOrgService_Upload(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -36,6 +37,7 @@ func TestOrgService_Upload(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-001
 func TestOrgService_Move(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -61,6 +63,7 @@ func TestOrgService_Move(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-004
 func TestOrgService_Move_SetsPod(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -85,6 +88,7 @@ func TestOrgService_Move_SetsPod(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-004
 func TestOrgService_Move_EmptyPodIgnored(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -103,6 +107,7 @@ func TestOrgService_Move_EmptyPodIgnored(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-005
 func TestOrgService_Update(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -122,6 +127,7 @@ func TestOrgService_Update(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-011
 func TestOrgService_Add(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -146,6 +152,7 @@ func TestOrgService_Add(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestOrgService_Delete(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -177,6 +184,7 @@ func TestOrgService_Delete(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestOrgService_SoftDelete(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -206,6 +214,7 @@ func TestOrgService_SoftDelete(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestOrgService_Restore(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -230,6 +239,7 @@ func TestOrgService_Restore(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestOrgService_Restore_ManagerGone(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -254,6 +264,7 @@ func TestOrgService_Restore_ManagerGone(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-014
 func TestOrgService_EmptyBin(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -278,6 +289,7 @@ func TestOrgService_EmptyBin(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-001
 func TestOrgService_Upload_AutoProceed(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -297,6 +309,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-002
 func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -324,6 +337,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-002
 func TestOrgService_ConfirmMapping(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -358,6 +372,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-003
 func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -367,6 +382,7 @@ func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-008
 func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -391,6 +407,7 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-015
 func TestOrgService_Reorder(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -420,6 +437,7 @@ func TestOrgService_Reorder(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-015
 func TestOrgService_Reorder_PartialIds(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -438,6 +456,7 @@ func TestOrgService_Reorder_PartialIds(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-016
 func TestOrgService_ResetToOriginal(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -497,6 +516,7 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 
 // --- Additional Update field coverage ---
 
+// Scenarios: ORG-005
 func TestOrgService_Update_AllFields(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -551,6 +571,7 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-006
 func TestOrgService_Update_InvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -563,6 +584,7 @@ func TestOrgService_Update_InvalidStatus(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-005
 func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -585,6 +607,7 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-007
 func TestOrgService_Update_UnknownField(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -597,6 +620,7 @@ func TestOrgService_Update_UnknownField(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-008
 func TestOrgService_Update_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -606,6 +630,7 @@ func TestOrgService_Update_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-003
 func TestOrgService_Move_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -615,6 +640,7 @@ func TestOrgService_Move_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-003
 func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -627,6 +653,7 @@ func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-001
 func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -648,6 +675,7 @@ func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-002
 func TestOrgService_Move_SelfAsManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -660,6 +688,7 @@ func TestOrgService_Move_SelfAsManager(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-002
 func TestOrgService_Move_CycleDetection(t *testing.T) {
 	t.Parallel()
 	// Alice -> Bob -> Carol
@@ -675,6 +704,7 @@ func TestOrgService_Move_CycleDetection(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-002
 func TestOrgService_Update_CycleDetection(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -689,6 +719,7 @@ func TestOrgService_Update_CycleDetection(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-013
 func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -698,6 +729,7 @@ func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-013
 func TestOrgService_Restore_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -707,6 +739,7 @@ func TestOrgService_Restore_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -740,6 +773,7 @@ func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -765,6 +799,7 @@ func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -774,6 +809,7 @@ func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestOrgService_Upload_InvalidCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -784,6 +820,7 @@ func TestOrgService_Upload_InvalidCSV(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-006
 func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -809,6 +846,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-006
 func TestOrgService_GetOrg_NoData(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -818,6 +856,7 @@ func TestOrgService_GetOrg_NoData(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-009
 func TestOrgService_FieldLengthValidation(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -825,14 +864,14 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 	longStr := string(make([]byte, maxFieldLen+1))
 
-	t.Run("Update rejects long field", func(t *testing.T) {
+	t.Run("[ORG-009] Update rejects long field", func(t *testing.T) {
 		_, err := svc.Update(alice.Id, map[string]string{"name": longStr})
 		if err == nil {
 			t.Error("expected error for field too long")
 		}
 	})
 
-	t.Run("Update accepts max-length field", func(t *testing.T) {
+	t.Run("[ORG-009] Update accepts max-length field", func(t *testing.T) {
 		okStr := string(make([]byte, maxFieldLen))
 		_, err := svc.Update(alice.Id, map[string]string{"name": okStr})
 		if err != nil {
@@ -840,7 +879,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("Add rejects long name", func(t *testing.T) {
+	t.Run("[ORG-009] Add rejects long name", func(t *testing.T) {
 		_, _, _, err := svc.Add(Person{
 			Name: longStr, Role: "Eng", Discipline: "Eng",
 			Team: "Eng", Status: "Active",
@@ -851,6 +890,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 	})
 }
 
+// Scenarios: ORG-002
 func TestOrgService_ValidateManagerChange(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -859,21 +899,21 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
-	t.Run("self-reference via Move", func(t *testing.T) {
+	t.Run("[ORG-002] self-reference via Move", func(t *testing.T) {
 		_, err := svc.Move(alice.Id, alice.Id, "")
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
 	})
 
-	t.Run("self-reference via Update", func(t *testing.T) {
+	t.Run("[ORG-002] self-reference via Update", func(t *testing.T) {
 		_, err := svc.Update(bob.Id, map[string]string{"managerId": bob.Id})
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
 	})
 
-	t.Run("cycle via Move", func(t *testing.T) {
+	t.Run("[ORG-002] cycle via Move", func(t *testing.T) {
 		// Alice -> Bob -> Carol. Moving Alice under Carol creates cycle.
 		_, err := svc.Move(alice.Id, carol.Id, "")
 		if err == nil {
@@ -881,7 +921,7 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 		}
 	})
 
-	t.Run("nonexistent manager", func(t *testing.T) {
+	t.Run("[ORG-002] nonexistent manager", func(t *testing.T) {
 		_, err := svc.Move(bob.Id, "nonexistent-id", "")
 		if err == nil {
 			t.Error("expected error for nonexistent manager")
@@ -889,6 +929,7 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 	})
 }
 
+// Scenarios: SNAP-008
 func TestOrgService_ExportSnapshot(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -896,7 +937,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 		t.Fatalf("save: %v", err)
 	}
 
-	t.Run("returns working for __working__", func(t *testing.T) {
+	t.Run("[SNAP-008] returns working for __working__", func(t *testing.T) {
 		t.Parallel()
 		people, err := svc.ExportSnapshot(SnapshotWorking)
 		if err != nil {
@@ -907,7 +948,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 		}
 	})
 
-	t.Run("returns original for __original__", func(t *testing.T) {
+	t.Run("[SNAP-008] returns original for __original__", func(t *testing.T) {
 		t.Parallel()
 		people, err := svc.ExportSnapshot(SnapshotOriginal)
 		if err != nil {
@@ -918,7 +959,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 		}
 	})
 
-	t.Run("returns named snapshot", func(t *testing.T) {
+	t.Run("[SNAP-008] returns named snapshot", func(t *testing.T) {
 		t.Parallel()
 		people, err := svc.ExportSnapshot("snap1")
 		if err != nil {
@@ -929,7 +970,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 		}
 	})
 
-	t.Run("errors on missing snapshot", func(t *testing.T) {
+	t.Run("[SNAP-008] errors on missing snapshot", func(t *testing.T) {
 		t.Parallel()
 		_, err := svc.ExportSnapshot("nonexistent")
 		if err == nil {
@@ -937,7 +978,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 		}
 	})
 
-	t.Run("returns deep copy", func(t *testing.T) {
+	t.Run("[SNAP-008] returns deep copy", func(t *testing.T) {
 		t.Parallel()
 		people, _ := svc.ExportSnapshot("snap1")
 		people[0].Name = "MUTATED"
@@ -948,6 +989,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 	})
 }
 
+// Scenarios: SNAP-005
 func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -963,6 +1005,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-011
 func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -972,6 +1015,7 @@ func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-011
 func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -981,6 +1025,7 @@ func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -1001,6 +1046,7 @@ func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestUpload_SeedsPods(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1017,6 +1063,7 @@ func TestUpload_SeedsPods(t *testing.T) {
 	}
 }
 
+// Scenarios: SETTINGS-002
 func TestUpload_DerivesSettings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1039,6 +1086,7 @@ func TestUpload_DerivesSettings(t *testing.T) {
 
 // --- RestoreState tests ---
 
+// Scenarios: AUTO-007
 func TestOrgService_RestoreState_FullState(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1090,6 +1138,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-007
 func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1135,6 +1184,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-007
 func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1168,6 +1218,7 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 
 // --- isFrontlineManager tests ---
 
+// Scenarios: ORG-017
 func TestOrgService_IsFrontlineManager(t *testing.T) {
 	t.Parallel()
 	// Build a hierarchy: Alice -> Bob -> Carol, Alice -> Dave (IC)
@@ -1186,7 +1237,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 	dave := findByName(data.Working, "Dave")
 
-	t.Run("person with ICs but no sub-managers is frontline", func(t *testing.T) {
+	t.Run("[ORG-017] person with ICs but no sub-managers is frontline", func(t *testing.T) {
 		t.Parallel()
 		// Bob has Carol (IC only) -> frontline manager
 		svc.mu.RLock()
@@ -1197,7 +1248,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 		}
 	})
 
-	t.Run("person with sub-managers is not frontline", func(t *testing.T) {
+	t.Run("[ORG-017] person with sub-managers is not frontline", func(t *testing.T) {
 		t.Parallel()
 		// Alice has Bob (who has reports) and Dave -> not frontline
 		svc.mu.RLock()
@@ -1208,7 +1259,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 		}
 	})
 
-	t.Run("person with no reports is not frontline", func(t *testing.T) {
+	t.Run("[ORG-017] person with no reports is not frontline", func(t *testing.T) {
 		t.Parallel()
 		// Carol has no reports -> not frontline
 		svc.mu.RLock()
@@ -1219,7 +1270,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 		}
 	})
 
-	t.Run("IC with no reports is not frontline", func(t *testing.T) {
+	t.Run("[ORG-017] IC with no reports is not frontline", func(t *testing.T) {
 		t.Parallel()
 		svc.mu.RLock()
 		result := isFrontlineManager(svc.working, dave.Id)
@@ -1232,6 +1283,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 
 // --- Team cascade on Update tests ---
 
+// Scenarios: ORG-017
 func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	t.Parallel()
 	// Bob is a frontline manager with ICs Carol and Dave.
@@ -1269,6 +1321,7 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-017
 func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 	t.Parallel()
 	// Alice -> Bob -> Carol. Alice is NOT a frontline manager (Bob has reports).
@@ -1300,6 +1353,7 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 
 // --- Pod auto-create on Update tests ---
 
+// Scenarios: ORG-018
 func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t) // Alice -> Bob -> Carol
@@ -1329,6 +1383,7 @@ func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -1368,6 +1423,7 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
 func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -1400,11 +1456,12 @@ func findById(people []Person, id string) *Person {
 	return nil
 }
 
+// Scenarios: SETTINGS-001
 func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	t.Run("rejects empty discipline name", func(t *testing.T) {
+	t.Run("[SETTINGS-001] rejects empty discipline name", func(t *testing.T) {
 		_, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "", "Design"}})
 		if err == nil {
 			t.Fatal("expected error for empty discipline name")
@@ -1414,14 +1471,14 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects duplicate discipline names", func(t *testing.T) {
+	t.Run("[SETTINGS-001] rejects duplicate discipline names", func(t *testing.T) {
 		_, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "Design", "Eng"}})
 		if err == nil {
 			t.Fatal("expected error for duplicate discipline")
 		}
 	})
 
-	t.Run("accepts valid settings", func(t *testing.T) {
+	t.Run("[SETTINGS-001] accepts valid settings", func(t *testing.T) {
 		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "Design", "PM"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -1431,7 +1488,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 		}
 	})
 
-	t.Run("accepts empty list (clears order)", func(t *testing.T) {
+	t.Run("[SETTINGS-001] accepts empty list (clears order)", func(t *testing.T) {
 		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -1441,7 +1498,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 		}
 	})
 
-	t.Run("trims whitespace from discipline names", func(t *testing.T) {
+	t.Run("[SETTINGS-001] trims whitespace from discipline names", func(t *testing.T) {
 		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"  Eng  ", " Design"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

@@ -23,37 +23,37 @@ function rectsIntersect(
 describe('rectsIntersect (geometry)', () => {
   const container = { left: 0, top: 0 }
 
-  it('returns true for overlapping rects', () => {
+  it('[VIEW-006] returns true for overlapping rects', () => {
     const lasso: LassoRect = { x: 10, y: 10, width: 50, height: 50 }
     const node = { left: 30, top: 30, width: 40, height: 40 }
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(true)
   })
 
-  it('returns true when lasso fully contains node', () => {
+  it('[VIEW-006] returns true when lasso fully contains node', () => {
     const lasso: LassoRect = { x: 0, y: 0, width: 200, height: 200 }
     const node = { left: 50, top: 50, width: 20, height: 20 }
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(true)
   })
 
-  it('returns true when node fully contains lasso', () => {
+  it('[VIEW-006] returns true when node fully contains lasso', () => {
     const lasso: LassoRect = { x: 50, y: 50, width: 10, height: 10 }
     const node = { left: 0, top: 0, width: 200, height: 200 }
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(true)
   })
 
-  it('returns false when rects are separated horizontally', () => {
+  it('[VIEW-006] returns false when rects are separated horizontally', () => {
     const lasso: LassoRect = { x: 0, y: 0, width: 50, height: 50 }
     const node = { left: 100, top: 0, width: 50, height: 50 }
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(false)
   })
 
-  it('returns false when rects are separated vertically', () => {
+  it('[VIEW-006] returns false when rects are separated vertically', () => {
     const lasso: LassoRect = { x: 0, y: 0, width: 50, height: 50 }
     const node = { left: 0, top: 100, width: 50, height: 50 }
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(false)
   })
 
-  it('returns true when rects share an edge (touching)', () => {
+  it('[VIEW-006] returns true when rects share an edge (touching)', () => {
     const lasso: LassoRect = { x: 0, y: 0, width: 50, height: 50 }
     const node = { left: 50, top: 0, width: 50, height: 50 }
     // a.x + a.width == bx (50 == 50), so !(50 < 50) => !(false) => true for that check
@@ -61,7 +61,7 @@ describe('rectsIntersect (geometry)', () => {
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(true)
   })
 
-  it('accounts for container offset', () => {
+  it('[VIEW-006] accounts for container offset', () => {
     const lasso: LassoRect = { x: 10, y: 10, width: 50, height: 50 }
     const node = { left: 110, top: 110, width: 50, height: 50 }
     const offset = { left: 100, top: 100 }
@@ -69,14 +69,14 @@ describe('rectsIntersect (geometry)', () => {
     expect(rectsIntersect(lasso, node, offset, 0, 0)).toBe(true)
   })
 
-  it('accounts for scroll offset', () => {
+  it('[VIEW-006] accounts for scroll offset', () => {
     const lasso: LassoRect = { x: 500, y: 500, width: 50, height: 50 }
     const node = { left: 10, top: 10, width: 50, height: 50 }
     // node in container coords: bx = 10 - 0 + 500 = 510, by = 10 - 0 + 500 = 510
     expect(rectsIntersect(lasso, node, container, 500, 500)).toBe(true)
   })
 
-  it('returns false when rects are far apart', () => {
+  it('[VIEW-006] returns false when rects are far apart', () => {
     const lasso: LassoRect = { x: 0, y: 0, width: 10, height: 10 }
     const node = { left: 1000, top: 1000, width: 10, height: 10 }
     expect(rectsIntersect(lasso, node, container, 0, 0)).toBe(false)
@@ -133,7 +133,7 @@ describe('useLassoSelect', () => {
     nodeRefs.current!.set(id, el)
   }
 
-  it('clears selection when clicking empty space without dragging', () => {
+  it('[VIEW-006] clears selection when clicking empty space without dragging', () => {
     const { onSelect } = setup()
 
     // mousedown on the container (empty space)
@@ -145,7 +145,7 @@ describe('useLassoSelect', () => {
     expect(onSelect).toHaveBeenCalledWith(new Set())
   })
 
-  it('does not start lasso when movement is under 5px threshold', () => {
+  it('[VIEW-006] does not start lasso when movement is under 5px threshold', () => {
     const { onSelect } = setup()
 
     fireEvent.mouseDown(container, { clientX: 100, clientY: 100, button: 0 })
@@ -161,7 +161,7 @@ describe('useLassoSelect', () => {
     expect(onSelect).toHaveBeenCalledWith(new Set())
   })
 
-  it('starts lasso after 5px movement threshold is exceeded', () => {
+  it('[VIEW-006] starts lasso after 5px movement threshold is exceeded', () => {
     const { nodeRefs, onSelect } = setup()
 
     addNode(nodeRefs, 'node-1', { left: 50, top: 50, width: 100, height: 30 })
@@ -174,7 +174,7 @@ describe('useLassoSelect', () => {
     expect(onSelect).toHaveBeenCalled()
   })
 
-  it('selects nodes that intersect with lasso rect', () => {
+  it('[VIEW-006] selects nodes that intersect with lasso rect', () => {
     const { nodeRefs, onSelect } = setup()
 
     addNode(nodeRefs, 'node-1', { left: 50, top: 50, width: 100, height: 30 })
@@ -190,7 +190,7 @@ describe('useLassoSelect', () => {
     expect(selectedIds.has('node-2')).toBe(false)
   })
 
-  it('skips pod header nodes (id starting with pod:)', () => {
+  it('[VIEW-006] skips pod header nodes (id starting with pod:)', () => {
     const { nodeRefs, onSelect } = setup()
 
     addNode(nodeRefs, 'node-1', { left: 50, top: 50, width: 100, height: 30 })
@@ -205,7 +205,7 @@ describe('useLassoSelect', () => {
     expect(selectedIds.has('pod:header-1')).toBe(false)
   })
 
-  it('does not start lasso on right click', () => {
+  it('[VIEW-006] does not start lasso on right click', () => {
     const { onSelect } = setup()
 
     fireEvent.mouseDown(container, { clientX: 100, clientY: 100, button: 2 })
@@ -215,7 +215,7 @@ describe('useLassoSelect', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('does not start lasso when clicking on a draggable element', () => {
+  it('[VIEW-006] does not start lasso when clicking on a draggable element', () => {
     const { onSelect } = setup()
 
     const draggable = document.createElement('div')
@@ -229,7 +229,7 @@ describe('useLassoSelect', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('does not activate when enabled is false', () => {
+  it('[VIEW-006] does not activate when enabled is false', () => {
     const { onSelect } = setup(false)
 
     fireEvent.mouseDown(container, { clientX: 100, clientY: 100, button: 0 })
@@ -239,7 +239,7 @@ describe('useLassoSelect', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('clears lasso rect on mouseup', () => {
+  it('[VIEW-006] clears lasso rect on mouseup', () => {
     const { hookResult } = setup()
 
     fireEvent.mouseDown(container, { clientX: 0, clientY: 0, button: 0 })
@@ -254,7 +254,7 @@ describe('useLassoSelect', () => {
     expect(hookResult.result.current.lassoRect).toBeNull()
   })
 
-  it('removes event listeners on unmount', () => {
+  it('[VIEW-006] removes event listeners on unmount', () => {
     const { onSelect, hookResult } = setup()
 
     hookResult.unmount()

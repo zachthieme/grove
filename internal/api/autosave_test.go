@@ -1,5 +1,7 @@
 package api
 
+// Scenarios: AUTO-006 — all tests in this file
+
 import "testing"
 
 func TestAutosave_WriteAndRead(t *testing.T) {

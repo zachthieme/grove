@@ -7,7 +7,7 @@ import { makePerson, renderWithOrg } from '../test-helpers'
 describe('SnapshotsDropdown', () => {
   afterEach(() => cleanup())
 
-  it('opens dropdown on click and sets aria-expanded="true"', async () => {
+  it('[UI-005] opens dropdown on click and sets aria-expanded="true"', async () => {
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
       working: [makePerson()],
@@ -17,7 +17,7 @@ describe('SnapshotsDropdown', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
   })
 
-  it('closes dropdown on second click', async () => {
+  it('[UI-005] closes dropdown on second click', async () => {
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
       working: [makePerson()],
@@ -29,7 +29,7 @@ describe('SnapshotsDropdown', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('calls loadSnapshot when a snapshot item is clicked', async () => {
+  it('[UI-005] calls loadSnapshot when a snapshot item is clicked', async () => {
     const user = userEvent.setup()
     const loadFn = vi.fn()
     renderWithOrg(<SnapshotsDropdown />, {
@@ -42,7 +42,7 @@ describe('SnapshotsDropdown', () => {
     expect(loadFn).toHaveBeenCalledWith('Sprint 1')
   })
 
-  it('calls loadSnapshot with __original__ when Original is clicked', async () => {
+  it('[UI-005] calls loadSnapshot with __original__ when Original is clicked', async () => {
     const user = userEvent.setup()
     const loadFn = vi.fn()
     renderWithOrg(<SnapshotsDropdown />, {
@@ -54,7 +54,7 @@ describe('SnapshotsDropdown', () => {
     expect(loadFn).toHaveBeenCalledWith('__original__')
   })
 
-  it('calls deleteSnapshot when delete button is clicked', async () => {
+  it('[UI-005] calls deleteSnapshot when delete button is clicked', async () => {
     const user = userEvent.setup()
     const deleteFn = vi.fn()
     renderWithOrg(<SnapshotsDropdown />, {
@@ -67,7 +67,7 @@ describe('SnapshotsDropdown', () => {
     expect(deleteFn).toHaveBeenCalledWith('Sprint 1')
   })
 
-  it('calls saveSnapshot via prompt when Save As is clicked', async () => {
+  it('[UI-005] calls saveSnapshot via prompt when Save As is clicked', async () => {
     const user = userEvent.setup()
     const saveFn = vi.fn()
     vi.spyOn(window, 'prompt').mockReturnValue('New Name')
@@ -81,7 +81,7 @@ describe('SnapshotsDropdown', () => {
     vi.restoreAllMocks()
   })
 
-  it('does not call saveSnapshot when prompt is cancelled', async () => {
+  it('[UI-005] does not call saveSnapshot when prompt is cancelled', async () => {
     const user = userEvent.setup()
     const saveFn = vi.fn()
     vi.spyOn(window, 'prompt').mockReturnValue(null)

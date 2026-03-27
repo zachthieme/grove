@@ -1,3 +1,4 @@
+// Scenarios: VIEW-002
 import { useMemo, useCallback } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'

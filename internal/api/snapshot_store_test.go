@@ -1,5 +1,7 @@
 package api
 
+// Scenarios: CONTRACT-008 — all tests in this file
+
 import (
 	"testing"
 	"time"

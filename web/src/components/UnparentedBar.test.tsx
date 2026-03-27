@@ -7,7 +7,7 @@ import { makePerson, renderWithOrg } from '../test-helpers'
 afterEach(() => cleanup())
 
 describe('UnparentedBar', () => {
-  it('expands to show orphan names when toggle is clicked', async () => {
+  it('[UI-008] expands to show orphan names when toggle is clicked', async () => {
     const user = userEvent.setup()
     const orphan = makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })
     renderWithOrg(<UnparentedBar />, {
@@ -17,7 +17,7 @@ describe('UnparentedBar', () => {
     expect(screen.getByText('Orphan Alice')).toBeDefined()
   })
 
-  it('collapses again when toggle is clicked twice', async () => {
+  it('[UI-008] collapses again when toggle is clicked twice', async () => {
     const user = userEvent.setup()
     const orphan = makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })
     renderWithOrg(<UnparentedBar />, {
@@ -30,7 +30,7 @@ describe('UnparentedBar', () => {
     expect(screen.queryByText('Orphan Alice')).toBeNull()
   })
 
-  it('calls toggleSelect when an orphan name is clicked', async () => {
+  it('[UI-008] calls toggleSelect when an orphan name is clicked', async () => {
     const user = userEvent.setup()
     const toggleSelect = vi.fn()
     const orphan = makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })

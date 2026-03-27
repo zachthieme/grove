@@ -17,19 +17,19 @@ const makeNode = (overrides: Partial<Person> & { id: string; name: string }): Or
 })
 
 describe('computeRenderItems', () => {
-  it('returns empty for no managers and no ICs', () => {
+  it('[VIEW-001] returns empty for no managers and no ICs', () => {
     const items = computeRenderItems([], [])
     expect(items).toHaveLength(0)
   })
 
-  it('returns managers only when no ICs', () => {
+  it('[VIEW-001] returns managers only when no ICs', () => {
     const managers = [makeNode({ id: '1', name: 'Alice', team: 'Eng' })]
     const items = computeRenderItems(managers, [])
     expect(items).toHaveLength(1)
     expect(items[0].type).toBe('manager')
   })
 
-  it('returns unaffiliated ICs after managers', () => {
+  it('[VIEW-001] returns unaffiliated ICs after managers', () => {
     const managers = [makeNode({ id: '1', name: 'Alice', team: 'Eng' })]
     const ics = [makeNode({ id: '2', name: 'Bob', team: 'Eng' })]
     const items = computeRenderItems(managers, ics)
@@ -38,7 +38,7 @@ describe('computeRenderItems', () => {
     expect(items[1].type).toBe('ic')
   })
 
-  it('places affiliated IC after the highest-indexed connected manager', () => {
+  it('[VIEW-001] places affiliated IC after the highest-indexed connected manager', () => {
     const managers = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
       makeNode({ id: '2', name: 'Bob', team: 'Design' }),
@@ -54,7 +54,7 @@ describe('computeRenderItems', () => {
     }
   })
 
-  it('groups unaffiliated ICs by team when multiple teams exist', () => {
+  it('[VIEW-001] groups unaffiliated ICs by team when multiple teams exist', () => {
     const managers = [makeNode({ id: '1', name: 'Alice', team: 'Eng' })]
     const ics = [
       makeNode({ id: '2', name: 'Bob', team: 'Design' }),
@@ -72,7 +72,7 @@ describe('computeRenderItems', () => {
     }
   })
 
-  it('does not group unaffiliated ICs when only one team', () => {
+  it('[VIEW-001] does not group unaffiliated ICs when only one team', () => {
     const managers = [makeNode({ id: '1', name: 'Alice', team: 'Eng' })]
     const ics = [
       makeNode({ id: '2', name: 'Bob', team: 'Design' }),
@@ -85,7 +85,7 @@ describe('computeRenderItems', () => {
     expect(items[2].type).toBe('ic')
   })
 
-  it('reorders managers so cross-team-connected teams are adjacent', () => {
+  it('[VIEW-001] reorders managers so cross-team-connected teams are adjacent', () => {
     // SEC and SEC-2 are connected by an IC with additionalTeams referencing both
     // IOT should not separate them
     const managers = [
@@ -106,7 +106,7 @@ describe('computeRenderItems', () => {
     expect(Math.abs(secIdx - sec2Idx)).toBe(1)
   })
 
-  it('handles ICs only (no managers)', () => {
+  it('[VIEW-001] handles ICs only (no managers)', () => {
     const ics = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
       makeNode({ id: '2', name: 'Bob', team: 'Design' }),
@@ -118,7 +118,7 @@ describe('computeRenderItems', () => {
     expect(items[1].type).toBe('icGroup')
   })
 
-  it('groups unaffiliated ICs by pod when pod is set, even if same team', () => {
+  it('[VIEW-001] groups unaffiliated ICs by pod when pod is set, even if same team', () => {
     const managers = [makeNode({ id: '1', name: 'Saransh', team: 'SEC' })]
     const ics = [
       makeNode({ id: '2', name: 'Chandani', team: 'SEC & IOT', pod: 'MachineQ' }),
@@ -143,7 +143,7 @@ describe('computeRenderItems', () => {
     }
   })
 
-  it('creates icGroup for single pod even when only one group exists', () => {
+  it('[VIEW-001] creates icGroup for single pod even when only one group exists', () => {
     const managers = [makeNode({ id: '1', name: 'Boss', team: 'Eng' })]
     const ics = [
       makeNode({ id: '2', name: 'Alice', team: 'Support', pod: 'PodA' }),

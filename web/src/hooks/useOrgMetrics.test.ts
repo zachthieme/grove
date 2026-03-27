@@ -18,38 +18,38 @@ describe('computeOrgMetrics', () => {
 
   const all = [alice, bob, carol, open, planned, transfer]
 
-  it('computes span of control (direct reports only)', () => {
+  it('[VIEW-001] computes span of control (direct reports only)', () => {
     const metrics = computeOrgMetrics('1', all)
     expect(metrics.spanOfControl).toBe(4) // bob, carol, open, transfer (planned is under bob)
   })
 
-  it('computes total headcount recursively', () => {
+  it('[VIEW-001] computes total headcount recursively', () => {
     const metrics = computeOrgMetrics('1', all)
     expect(metrics.totalHeadcount).toBe(5) // everyone except alice herself
   })
 
-  it('computes recruiting count', () => {
+  it('[VIEW-001] computes recruiting count', () => {
     const metrics = computeOrgMetrics('1', all)
     expect(metrics.recruiting).toBe(1) // open
   })
 
-  it('computes planned count', () => {
+  it('[VIEW-001] computes planned count', () => {
     const metrics = computeOrgMetrics('1', all)
     expect(metrics.planned).toBe(1) // planned (under bob, which is under alice)
   })
 
-  it('computes transfer count', () => {
+  it('[VIEW-001] computes transfer count', () => {
     const metrics = computeOrgMetrics('1', all)
     expect(metrics.transfers).toBe(1)
   })
 
-  it('computes discipline breakdown for Active people', () => {
+  it('[VIEW-001] computes discipline breakdown for Active people', () => {
     const metrics = computeOrgMetrics('1', all)
     expect(metrics.byDiscipline.get('Engineering')).toBe(1)
     expect(metrics.byDiscipline.get('Design')).toBe(1)
   })
 
-  it('computes team/pod breakdown with discipline sub-counts', () => {
+  it('[VIEW-001] computes team/pod breakdown with discipline sub-counts', () => {
     const metrics = computeOrgMetrics('1', all)
     const engGroup = metrics.byTeamPod.find(g => g.name === 'Eng')
     const designGroup = metrics.byTeamPod.find(g => g.name === 'Design')

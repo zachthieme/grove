@@ -47,6 +47,7 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 	return resp.OrgData
 }
 
+// Scenarios: UPLOAD-001
 func TestUploadHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -68,6 +69,7 @@ func TestUploadHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-006
 func TestGetOrg_NoData(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -82,6 +84,7 @@ func TestGetOrg_NoData(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-006
 func TestGetOrg_WithData(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -105,6 +108,7 @@ func TestGetOrg_WithData(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-001
 func TestMoveHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -151,6 +155,7 @@ func TestMoveHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-005
 func TestUpdateHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -186,6 +191,7 @@ func TestUpdateHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-011
 func TestAddHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -225,6 +231,7 @@ func TestAddHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestDeleteHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -259,6 +266,7 @@ func TestDeleteHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestRecycledHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -295,6 +303,7 @@ func TestRecycledHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-012
 func TestRestoreHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -339,6 +348,7 @@ func TestRestoreHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-014
 func TestEmptyBinHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -377,6 +387,7 @@ func TestEmptyBinHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-001
 func TestExportHandler_CSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -398,6 +409,7 @@ func TestExportHandler_CSV(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-002
 func TestExportHandler_XLSX(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -453,6 +465,7 @@ func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
 	return &resp
 }
 
+// Scenarios: UPLOAD-002
 func TestConfirmMappingHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -499,6 +512,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-015
 func TestReorderHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -544,6 +558,7 @@ func TestReorderHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestReorderHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -568,6 +583,7 @@ func TestReorderHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-016
 func TestResetHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -646,6 +662,7 @@ func TestResetHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-001
 func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -690,6 +707,7 @@ func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-002
 func TestSnapshotHandlers_Load(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -741,6 +759,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-004
 func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -758,6 +777,7 @@ func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-007
 func TestSnapshotHandlers_Delete(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -796,6 +816,7 @@ func TestSnapshotHandlers_Delete(t *testing.T) {
 
 // --- Error path tests for handlers ---
 
+// Scenarios: CONTRACT-002
 func TestMoveHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -819,6 +840,7 @@ func TestMoveHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-003
 func TestMoveHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -839,6 +861,7 @@ func TestMoveHandler_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestUpdateHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -855,6 +878,7 @@ func TestUpdateHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-008
 func TestUpdateHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -875,6 +899,7 @@ func TestUpdateHandler_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestAddHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -891,6 +916,7 @@ func TestAddHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestDeleteHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -907,6 +933,7 @@ func TestDeleteHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-013
 func TestDeleteHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -924,6 +951,7 @@ func TestDeleteHandler_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestRestoreHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -940,6 +968,7 @@ func TestRestoreHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-013
 func TestRestoreHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -957,6 +986,7 @@ func TestRestoreHandler_PersonNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -972,6 +1002,7 @@ func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-003
 func TestConfirmMappingHandler_NoPending(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -988,6 +1019,7 @@ func TestConfirmMappingHandler_NoPending(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-003
 func TestExportHandler_EmptyOrg(t *testing.T) {
 	t.Parallel()
 	// When no data has been uploaded, export should return 400.
@@ -1003,6 +1035,7 @@ func TestExportHandler_EmptyOrg(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-003
 func TestExportHandler_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1025,6 +1058,7 @@ func TestExportHandler_UnsupportedFormat(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1041,6 +1075,7 @@ func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1057,6 +1092,7 @@ func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1073,6 +1109,7 @@ func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestUploadHandler_NoFile(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1088,6 +1125,7 @@ func TestUploadHandler_NoFile(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1118,6 +1156,7 @@ func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 
 // --- Autosave handler tests ---
 
+// Scenarios: AUTO-006
 func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 	dir := t.TempDir()
 	autosaveDir = dir
@@ -1177,6 +1216,7 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 	dir := t.TempDir()
 	autosaveDir = dir
@@ -1195,6 +1235,7 @@ func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-006
 func TestAutosaveHandler_ReadMissing(t *testing.T) {
 	dir := t.TempDir()
 	autosaveDir = dir
@@ -1212,6 +1253,7 @@ func TestAutosaveHandler_ReadMissing(t *testing.T) {
 	}
 }
 
+// Scenarios: AUTO-006
 func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	dir := t.TempDir()
 	autosaveDir = dir
@@ -1229,6 +1271,7 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-008
 func TestExportSnapshotHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1242,7 +1285,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	t.Run("exports working as CSV", func(t *testing.T) {
+	t.Run("[SNAP-008] exports working as CSV", func(t *testing.T) {
 		t.Parallel()
 		req := httptest.NewRequest("GET", "/api/export/snapshot?name=__working__&format=csv", nil)
 		rec := httptest.NewRecorder()
@@ -1255,7 +1298,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("exports named snapshot as CSV", func(t *testing.T) {
+	t.Run("[SNAP-008] exports named snapshot as CSV", func(t *testing.T) {
 		t.Parallel()
 		req := httptest.NewRequest("GET", "/api/export/snapshot?name=snap1&format=csv", nil)
 		rec := httptest.NewRecorder()
@@ -1265,7 +1308,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("404 for missing snapshot", func(t *testing.T) {
+	t.Run("[SNAP-008] 404 for missing snapshot", func(t *testing.T) {
 		t.Parallel()
 		req := httptest.NewRequest("GET", "/api/export/snapshot?name=nope&format=csv", nil)
 		rec := httptest.NewRecorder()
@@ -1275,7 +1318,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("400 for unsupported format", func(t *testing.T) {
+	t.Run("[SNAP-008] 400 for unsupported format", func(t *testing.T) {
 		t.Parallel()
 		req := httptest.NewRequest("GET", "/api/export/snapshot?name=__working__&format=pdf", nil)
 		rec := httptest.NewRecorder()
@@ -1286,6 +1329,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 	})
 }
 
+// Scenarios: CONTRACT-003
 func TestHealthEndpoint(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1307,6 +1351,7 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-006
 func TestUploadZipHandler(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1370,6 +1415,7 @@ func TestUploadZipHandler(t *testing.T) {
 	}
 }
 
+// Scenarios: SETTINGS-001
 func TestSettingsHandler_GetAndPost(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1397,6 +1443,7 @@ func TestSettingsHandler_GetAndPost(t *testing.T) {
 
 // --- RestoreState handler tests ---
 
+// Scenarios: AUTO-007
 func TestRestoreStateHandler_Valid(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1458,6 +1505,7 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-002
 func TestRestoreStateHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -1482,6 +1530,7 @@ func TestRestoreStateHandler_InvalidJSON(t *testing.T) {
 
 // --- Body size limit test ---
 
+// Scenarios: CONTRACT-002
 func TestBodySizeLimit(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())

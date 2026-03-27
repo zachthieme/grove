@@ -23,7 +23,7 @@ afterEach(() => {
 })
 
 describe('UIContext', () => {
-  it('has correct default values', () => {
+  it('[UI-001] has correct default values', () => {
     renderWithProvider()
 
     expect(captured!.viewMode).toBe('detail')
@@ -35,7 +35,7 @@ describe('UIContext', () => {
     expect(captured!.error).toBeNull()
   })
 
-  it('setViewMode changes viewMode', () => {
+  it('[UI-001] setViewMode changes viewMode', () => {
     renderWithProvider()
 
     act(() => { captured!.setViewMode('manager') })
@@ -48,7 +48,7 @@ describe('UIContext', () => {
     expect(captured!.viewMode).toBe('detail')
   })
 
-  it('setDataView changes dataView', () => {
+  it('[UI-001] setDataView changes dataView', () => {
     renderWithProvider()
 
     act(() => { captured!.setDataView('original') })
@@ -61,7 +61,7 @@ describe('UIContext', () => {
     expect(captured!.dataView).toBe('working')
   })
 
-  it('toggleEmploymentTypeFilter adds and removes from hidden set', () => {
+  it('[UI-001] toggleEmploymentTypeFilter adds and removes from hidden set', () => {
     renderWithProvider()
 
     // Add a type
@@ -82,7 +82,7 @@ describe('UIContext', () => {
     expect(captured!.hiddenEmploymentTypes.size).toBe(1)
   })
 
-  it('showAllEmploymentTypes clears hidden set', () => {
+  it('[UI-001] showAllEmploymentTypes clears hidden set', () => {
     renderWithProvider()
 
     act(() => { captured!.toggleEmploymentTypeFilter('Contractor') })
@@ -93,7 +93,7 @@ describe('UIContext', () => {
     expect(captured!.hiddenEmploymentTypes.size).toBe(0)
   })
 
-  it('hideAllEmploymentTypes adds all provided types to hidden set', () => {
+  it('[UI-001] hideAllEmploymentTypes adds all provided types to hidden set', () => {
     renderWithProvider()
 
     const allTypes = ['FTE', 'Contractor', 'Intern', 'Vendor']
@@ -105,7 +105,7 @@ describe('UIContext', () => {
     }
   })
 
-  it('reflow increments layoutKey', () => {
+  it('[UI-001] reflow increments layoutKey', () => {
     renderWithProvider()
 
     expect(captured!.layoutKey).toBe(0)
@@ -117,7 +117,7 @@ describe('UIContext', () => {
     expect(captured!.layoutKey).toBe(2)
   })
 
-  it('setHead sets headPersonId', () => {
+  it('[UI-001] setHead sets headPersonId', () => {
     renderWithProvider()
 
     expect(captured!.headPersonId).toBeNull()
@@ -129,7 +129,7 @@ describe('UIContext', () => {
     expect(captured!.headPersonId).toBeNull()
   })
 
-  it('setError and clearError manage error state', () => {
+  it('[UI-001] setError and clearError manage error state', () => {
     renderWithProvider()
 
     act(() => { captured!.setError('something broke') })
@@ -139,7 +139,7 @@ describe('UIContext', () => {
     expect(captured!.error).toBeNull()
   })
 
-  it('setBinOpen toggles bin state', () => {
+  it('[UI-001] setBinOpen toggles bin state', () => {
     renderWithProvider()
 
     act(() => { captured!.setBinOpen(true) })
@@ -149,7 +149,7 @@ describe('UIContext', () => {
     expect(captured!.binOpen).toBe(false)
   })
 
-  it('useUI throws when used outside provider', () => {
+  it('[UI-001] useUI throws when used outside provider', () => {
     function BadComponent() {
       useUI()
       return null

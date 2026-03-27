@@ -69,7 +69,7 @@ afterEach(cleanup)
 
 describe('OrgContext integration', () => {
   describe('upload flow', () => {
-    it('uploads a CSV file and sets loaded state', async () => {
+    it('[UPLOAD-001] uploads a CSV file and sets loaded state', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadFile).mockResolvedValue(resp)
 
@@ -90,7 +90,7 @@ describe('OrgContext integration', () => {
       expect(captured!.original[0].name).toBe('Alice')
     })
 
-    it('handles needs_mapping response', async () => {
+    it('[UPLOAD-002] handles needs_mapping response', async () => {
       const resp: UploadResponse = {
         status: 'needs_mapping',
         headers: ['Full Name', 'Title'],
@@ -112,7 +112,7 @@ describe('OrgContext integration', () => {
       expect(captured!.pendingMapping!.headers).toEqual(['Full Name', 'Title'])
     })
 
-    it('confirm mapping loads data', async () => {
+    it('[UPLOAD-002] confirm mapping loads data', async () => {
       // First trigger needs_mapping
       const uploadResp: UploadResponse = {
         status: 'needs_mapping',
@@ -141,7 +141,7 @@ describe('OrgContext integration', () => {
       expect(captured!.working).toHaveLength(2)
     })
 
-    it('ZIP upload sets snapshots', async () => {
+    it('[UPLOAD-006] ZIP upload sets snapshots', async () => {
       const snapshots: SnapshotInfo[] = [{ name: 'v1', timestamp: '2026-01-01T00:00:00Z' }]
       const resp: UploadResponse = { status: 'ready', orgData, snapshots }
       vi.mocked(api.uploadZipFile).mockResolvedValue(resp)
@@ -159,7 +159,7 @@ describe('OrgContext integration', () => {
       expect(captured!.snapshots[0].name).toBe('v1')
     })
 
-    it('upload error sets error state', async () => {
+    it('[UPLOAD-001] upload error sets error state', async () => {
       vi.mocked(api.uploadFile).mockRejectedValue(new Error('network fail'))
 
       renderWithProvider()
@@ -185,7 +185,7 @@ describe('OrgContext integration', () => {
       await act(async () => { await captured!.upload(file) })
     }
 
-    it('move updates working state', async () => {
+    it('[ORG-001] move updates working state', async () => {
       const updated = [alice, { ...bob, managerId: '' }]
       vi.mocked(api.movePerson).mockResolvedValue({ working: updated, pods: [] })
 
@@ -197,7 +197,7 @@ describe('OrgContext integration', () => {
       expect(captured!.working[1].managerId).toBe('')
     })
 
-    it('update changes person fields', async () => {
+    it('[ORG-005] update changes person fields', async () => {
       const updated = [alice, { ...bob, role: 'Senior Engineer' }]
       vi.mocked(api.updatePerson).mockResolvedValue({ working: updated, pods: [] })
 
@@ -209,7 +209,7 @@ describe('OrgContext integration', () => {
       expect(captured!.working[1].role).toBe('Senior Engineer')
     })
 
-    it('delete moves person to recycled', async () => {
+    it('[ORG-012] delete moves person to recycled', async () => {
       vi.mocked(api.deletePerson).mockResolvedValue({
         working: [alice],
         recycled: [bob],
@@ -225,7 +225,7 @@ describe('OrgContext integration', () => {
       expect(captured!.recycled).toHaveLength(1)
     })
 
-    it('restore moves person back to working', async () => {
+    it('[ORG-012] restore moves person back to working', async () => {
       vi.mocked(api.deletePerson).mockResolvedValue({ working: [alice], recycled: [bob], pods: [] })
       vi.mocked(api.restorePerson).mockResolvedValue({ working: [alice, bob], recycled: [], pods: [] })
 
@@ -248,7 +248,7 @@ describe('OrgContext integration', () => {
       await act(async () => { await captured!.upload(file) })
     }
 
-    it('save snapshot updates snapshot list', async () => {
+    it('[SNAP-001] save snapshot updates snapshot list', async () => {
       const snaps: SnapshotInfo[] = [{ name: 'v1', timestamp: '2026-01-01T00:00:00Z' }]
       vi.mocked(api.saveSnapshot).mockResolvedValue(snaps)
 
@@ -261,7 +261,7 @@ describe('OrgContext integration', () => {
       expect(captured!.currentSnapshotName).toBe('v1')
     })
 
-    it('load snapshot updates working state', async () => {
+    it('[SNAP-002] load snapshot updates working state', async () => {
       const carol: Person = { ...alice, id: 'c3', name: 'Carol' }
       const newData: OrgData = { original: orgData.original, working: [carol] }
       vi.mocked(api.loadSnapshot).mockResolvedValue(newData)
@@ -276,7 +276,7 @@ describe('OrgContext integration', () => {
       expect(captured!.currentSnapshotName).toBe('v1')
     })
 
-    it('delete snapshot removes from list', async () => {
+    it('[SNAP-007] delete snapshot removes from list', async () => {
       vi.mocked(api.saveSnapshot).mockResolvedValue([{ name: 'v1', timestamp: '2026-01-01T00:00:00Z' }])
       vi.mocked(api.deleteSnapshot).mockResolvedValue([])
 
@@ -290,7 +290,7 @@ describe('OrgContext integration', () => {
   })
 
   describe('selection', () => {
-    it('toggleSelect single selects and deselects', async () => {
+    it('[SELECT-001] toggleSelect single selects and deselects', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadFile).mockResolvedValue(resp)
       renderWithProvider()
@@ -306,7 +306,7 @@ describe('OrgContext integration', () => {
       expect(captured!.selectedId).toBeNull()
     })
 
-    it('multi-select adds to selection', async () => {
+    it('[SELECT-001] multi-select adds to selection', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadFile).mockResolvedValue(resp)
       renderWithProvider()
@@ -319,7 +319,7 @@ describe('OrgContext integration', () => {
       expect(captured!.selectedId).toBeNull() // null when multiple selected
     })
 
-    it('clearSelection clears all', async () => {
+    it('[SELECT-001] clearSelection clears all', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadFile).mockResolvedValue(resp)
       renderWithProvider()

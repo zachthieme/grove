@@ -124,7 +124,7 @@ function makeAcyclicPeopleArb(minSize: number, maxSize: number): fc.Arbitrary<Pe
 }
 
 describe('buildOrgTree property-based tests', () => {
-  test('every person appears exactly once in the tree (acyclic input)', () => {
+  test('[VIEW-005] every person appears exactly once in the tree (acyclic input)', () => {
     fc.assert(
       fc.property(makeAcyclicPeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
@@ -136,7 +136,7 @@ describe('buildOrgTree property-based tests', () => {
     )
   })
 
-  test('output contains exactly the reachable (non-cyclic) people', () => {
+  test('[VIEW-005] output contains exactly the reachable (non-cyclic) people', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
@@ -148,7 +148,7 @@ describe('buildOrgTree property-based tests', () => {
     )
   })
 
-  test('root nodes have no manager or an unresolvable manager', () => {
+  test('[VIEW-005] root nodes have no manager or an unresolvable manager', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
@@ -161,7 +161,7 @@ describe('buildOrgTree property-based tests', () => {
     )
   })
 
-  test('parent-child relationships are correct', () => {
+  test('[VIEW-005] parent-child relationships are correct', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
@@ -178,12 +178,12 @@ describe('buildOrgTree property-based tests', () => {
     )
   })
 
-  test('empty input produces empty output', () => {
+  test('[VIEW-005] empty input produces empty output', () => {
     const result = buildOrgTree([])
     expect(result).toEqual([])
   })
 
-  test('single person is always a root with no children', () => {
+  test('[VIEW-005] single person is always a root with no children', () => {
     fc.assert(
       fc.property(
         fc.record({
@@ -204,7 +204,7 @@ describe('buildOrgTree property-based tests', () => {
     )
   })
 
-  test('children are sorted by sortIndex (non-decreasing)', () => {
+  test('[VIEW-005] children are sorted by sortIndex (non-decreasing)', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
@@ -225,7 +225,7 @@ describe('buildOrgTree property-based tests', () => {
     )
   })
 
-  test('no duplicate IDs in output', () => {
+  test('[VIEW-005] no duplicate IDs in output', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)

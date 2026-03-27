@@ -1,5 +1,7 @@
 package model
 
+// Scenarios: CONTRACT-009 — all tests in this file
+
 import "testing"
 
 func TestNewOrg_ValidPeople(t *testing.T) {

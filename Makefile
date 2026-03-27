@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all cover bench mutate
+.PHONY: frontend build dev clean e2e test test-all cover bench mutate check-scenarios
 
 frontend:
 	cd web && npm run build
@@ -34,3 +34,18 @@ bench:
 
 mutate:
 	cd web && npx stryker run
+
+check-scenarios:
+	@echo "Checking scenario coverage..."
+	@missing=0; \
+	for f in scenarios/*.md; do \
+		ids=$$(grep "^\*\*ID\*\*:" $$f | sed 's/.*: //'); \
+		for id in $$ids; do \
+			if ! grep -rq "$$id" web/e2e/ web/src/ internal/ integration_test.go 2>/dev/null; then \
+				echo "  UNCOVERED: $$id ($$f)"; \
+				missing=$$((missing+1)); \
+			fi; \
+		done; \
+	done; \
+	if [ $$missing -gt 0 ]; then echo "$$missing uncovered scenario(s)"; exit 1; fi; \
+	echo "All scenarios covered."

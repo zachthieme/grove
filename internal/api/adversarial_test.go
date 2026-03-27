@@ -46,6 +46,7 @@ func makeCSV(rows [][]string) []byte {
 	return buf.Bytes()
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_BOMMarker(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -100,6 +101,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_MixedLineEndings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -122,6 +124,7 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_UnicodeNames(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -160,6 +163,7 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_XSSInFields(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -188,6 +192,7 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -210,6 +215,7 @@ func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-009
 func TestAdversarial_OversizedFields(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
@@ -238,6 +244,7 @@ func TestAdversarial_OversizedFields(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-009
 func TestAdversarial_OversizedNote(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
@@ -266,6 +273,7 @@ func TestAdversarial_OversizedNote(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-002
 func TestAdversarial_CircularManagerChain(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
@@ -293,6 +301,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestAdversarial_EmptyCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -302,6 +311,7 @@ func TestAdversarial_EmptyCSV(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-011
 func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -317,6 +327,7 @@ func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-002
 func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -347,6 +358,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -375,6 +387,7 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -396,6 +409,7 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 	}
 }
 
+// Scenarios: UPLOAD-010
 func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -419,6 +433,7 @@ func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-006
 func TestAdversarial_InvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
@@ -434,6 +449,7 @@ func TestAdversarial_InvalidStatus(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-003
 func TestAdversarial_MoveToNonexistentManager(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
@@ -449,6 +465,7 @@ func TestAdversarial_MoveToNonexistentManager(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-013
 func TestAdversarial_DeleteNonexistentPerson(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
@@ -462,6 +479,7 @@ func TestAdversarial_DeleteNonexistentPerson(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-013
 func TestAdversarial_RestoreFromEmptyBin(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)

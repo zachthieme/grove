@@ -13,7 +13,7 @@ function ThrowingComponent({ error }: { error?: Error }) {
 }
 
 describe('ErrorBoundary', () => {
-  it('renders children when no error', () => {
+  it('[UI-007] renders children when no error', () => {
     render(
       <ErrorBoundary>
         <div>Child content</div>
@@ -23,7 +23,7 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Child content')).toBeTruthy()
   })
 
-  it('catches error and shows fallback UI', () => {
+  it('[UI-007] catches error and shows fallback UI', () => {
     // Suppress console.error from React's error boundary logging
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -40,7 +40,7 @@ describe('ErrorBoundary', () => {
     consoleSpy.mockRestore()
   })
 
-  it('recovery button resets error state and re-renders children', async () => {
+  it('[UI-007] recovery button resets error state and re-renders children', async () => {
     const user = userEvent.setup()
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 

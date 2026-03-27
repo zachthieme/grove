@@ -10,7 +10,7 @@ beforeEach(() => {
 })
 
 describe('network error', () => {
-  it('updatePerson rejects with TypeError when network is down', async () => {
+  it('[CONTRACT-004] updatePerson rejects with TypeError when network is down', async () => {
     mockFetch.mockRejectedValue(new TypeError('Failed to fetch'))
 
     await expect(
@@ -18,13 +18,13 @@ describe('network error', () => {
     ).rejects.toThrow('Failed to fetch')
   })
 
-  it('getOrg rejects with TypeError when network is down', async () => {
+  it('[CONTRACT-004] getOrg rejects with TypeError when network is down', async () => {
     mockFetch.mockRejectedValue(new TypeError('Failed to fetch'))
 
     await expect(api.getOrg()).rejects.toThrow(TypeError)
   })
 
-  it('listSnapshots rejects with TypeError when network is down', async () => {
+  it('[CONTRACT-004] listSnapshots rejects with TypeError when network is down', async () => {
     mockFetch.mockRejectedValue(new TypeError('Failed to fetch'))
 
     await expect(api.listSnapshots()).rejects.toThrow('Failed to fetch')
@@ -41,17 +41,17 @@ describe('HTTP 500 response', () => {
     })
   })
 
-  it('updatePerson throws with status and error body', async () => {
+  it('[CONTRACT-004] updatePerson throws with status and error body', async () => {
     await expect(
       api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }),
     ).rejects.toThrow('API 500: Internal Server Error')
   })
 
-  it('getOrg throws with status and error body', async () => {
+  it('[CONTRACT-004] getOrg throws with status and error body', async () => {
     await expect(api.getOrg()).rejects.toThrow('API 500: Internal Server Error')
   })
 
-  it('listSnapshots throws with status and error body', async () => {
+  it('[CONTRACT-004] listSnapshots throws with status and error body', async () => {
     await expect(api.listSnapshots()).rejects.toThrow(
       'API 500: Internal Server Error',
     )
@@ -68,23 +68,23 @@ describe('malformed JSON response', () => {
     })
   })
 
-  it('updatePerson rejects with SyntaxError on malformed JSON', async () => {
+  it('[CONTRACT-004] updatePerson rejects with SyntaxError on malformed JSON', async () => {
     await expect(
       api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }),
     ).rejects.toThrow(SyntaxError)
   })
 
-  it('getOrg rejects with SyntaxError on malformed JSON', async () => {
+  it('[CONTRACT-004] getOrg rejects with SyntaxError on malformed JSON', async () => {
     await expect(api.getOrg()).rejects.toThrow('Unexpected token')
   })
 
-  it('listSnapshots rejects with SyntaxError on malformed JSON', async () => {
+  it('[CONTRACT-004] listSnapshots rejects with SyntaxError on malformed JSON', async () => {
     await expect(api.listSnapshots()).rejects.toThrow(SyntaxError)
   })
 })
 
 describe('request timeout', () => {
-  it('updatePerson rejects with AbortError when request times out', async () => {
+  it('[CONTRACT-004] updatePerson rejects with AbortError when request times out', async () => {
     const abortError = new DOMException('The operation was aborted', 'AbortError')
     mockFetch.mockRejectedValue(abortError)
 
@@ -93,14 +93,14 @@ describe('request timeout', () => {
     ).rejects.toThrow('The operation was aborted')
   })
 
-  it('getOrg rejects with AbortError when request times out', async () => {
+  it('[CONTRACT-004] getOrg rejects with AbortError when request times out', async () => {
     const abortError = new DOMException('The operation was aborted', 'AbortError')
     mockFetch.mockRejectedValue(abortError)
 
     await expect(api.getOrg()).rejects.toThrow(DOMException)
   })
 
-  it('listSnapshots rejects with AbortError when request times out', async () => {
+  it('[CONTRACT-004] listSnapshots rejects with AbortError when request times out', async () => {
     const abortError = new DOMException('The operation was aborted', 'AbortError')
     mockFetch.mockRejectedValue(abortError)
 
@@ -108,7 +108,7 @@ describe('request timeout', () => {
     await expect(result).rejects.toThrow('The operation was aborted')
   })
 
-  it('timeout error has AbortError name', async () => {
+  it('[CONTRACT-004] timeout error has AbortError name', async () => {
     const abortError = new DOMException('Signal timed out', 'AbortError')
     mockFetch.mockRejectedValue(abortError)
 

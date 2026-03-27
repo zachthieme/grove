@@ -13,6 +13,7 @@ import (
 	"github.com/zachthieme/grove/internal/api"
 )
 
+// Scenarios: CONTRACT-007
 func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
 	t.Parallel()
 	svc := api.NewOrgService(api.NewMemorySnapshotStore())

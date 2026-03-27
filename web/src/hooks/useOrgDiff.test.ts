@@ -35,41 +35,41 @@ const base: Person = {
 }
 
 describe('computeDiff', () => {
-  it('returns empty for identical data', () => {
+  it('[VIEW-004] returns empty for identical data', () => {
     const changes = computeDiff([base], [base])
     expect(changes.size).toBe(0)
   })
 
-  it('detects added person', () => {
+  it('[VIEW-004] detects added person', () => {
     const added: Person = { ...base, id: '2', name: 'Bob' }
     const changes = computeDiff([base], [base, added])
     expect(changes.get('2')?.types.has('added')).toBe(true)
   })
 
-  it('detects removed person', () => {
+  it('[VIEW-004] detects removed person', () => {
     const changes = computeDiff([base], [])
     expect(changes.get('1')?.types.has('removed')).toBe(true)
   })
 
-  it('detects reporting change', () => {
+  it('[VIEW-004] detects reporting change', () => {
     const moved = { ...base, managerId: '99' }
     const changes = computeDiff([base], [moved])
     expect(changes.get('1')?.types.has('reporting')).toBe(true)
   })
 
-  it('detects title change', () => {
+  it('[VIEW-004] detects title change', () => {
     const changed = { ...base, role: 'Director' }
     const changes = computeDiff([base], [changed])
     expect(changes.get('1')?.types.has('title')).toBe(true)
   })
 
-  it('detects reorg', () => {
+  it('[VIEW-004] detects reorg', () => {
     const moved = { ...base, team: 'Platform' }
     const changes = computeDiff([base], [moved])
     expect(changes.get('1')?.types.has('reorg')).toBe(true)
   })
 
-  it('detects multiple changes on same person', () => {
+  it('[VIEW-004] detects multiple changes on same person', () => {
     const changed = { ...base, role: 'Director', team: 'Platform' }
     const changes = computeDiff([base], [changed])
     const types = changes.get('1')?.types
@@ -77,12 +77,12 @@ describe('computeDiff', () => {
     expect(types?.has('reorg')).toBe(true)
   })
 
-  it('returns empty map for empty arrays', () => {
+  it('[VIEW-004] returns empty map for empty arrays', () => {
     const changes = computeDiff([], [])
     expect(changes.size).toBe(0)
   })
 
-  it('detects reorg + title change together', () => {
+  it('[VIEW-004] detects reorg + title change together', () => {
     const changed = { ...base, role: 'Director', discipline: 'PM', team: 'Product', managerId: '99' }
     const changes = computeDiff([base], [changed])
     const types = changes.get('1')?.types
@@ -93,7 +93,7 @@ describe('computeDiff', () => {
     expect(types?.size).toBe(3)
   })
 
-  it('does not flag unchanged person', () => {
+  it('[VIEW-004] does not flag unchanged person', () => {
     const other: Person = { ...base, id: '2', name: 'Bob' }
     const changes = computeDiff([base, other], [base, other])
     expect(changes.size).toBe(0)
