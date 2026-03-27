@@ -42,6 +42,7 @@ type Person struct {
 	PublicNote      string
 	PrivateNote     string
 	Level           int
+	Private         bool
 }
 
 type Org struct {
