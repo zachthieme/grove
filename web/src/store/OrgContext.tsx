@@ -125,6 +125,7 @@ export function useOrg(): OrgContextValue {
     headPersonId: ui.headPersonId,
     layoutKey: ui.layoutKey,
     error: ui.error,
+    showPrivate: ui.showPrivate,
 
     // Selection state
     selectedIds: selection.selectedIds,
@@ -162,6 +163,7 @@ export function useOrg(): OrgContextValue {
     setHead: ui.setHead,
     reflow: ui.reflow,
     clearError: ui.clearError,
+    setShowPrivate: ui.setShowPrivate,
 
     // Selection actions
     setSelectedId: selection.setSelectedId,

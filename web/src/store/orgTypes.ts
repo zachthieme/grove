@@ -27,6 +27,7 @@ export interface OrgState {
   currentSnapshotName: string | null
   autosaveAvailable: AutosaveData | null
   error: string | null
+  showPrivate: boolean
 }
 
 export interface OrgActions {
@@ -60,6 +61,7 @@ export interface OrgActions {
   hideAllEmploymentTypes: (types: string[]) => void
   setHead: (id: string | null) => void
   clearError: () => void
+  setShowPrivate: (show: boolean) => void
   selectPod: (id: string | null) => void
   batchSelect: (ids: Set<string>) => void
   updatePod: (podId: string, fields: PodUpdatePayload) => Promise<void>
@@ -95,6 +97,7 @@ export interface UIContextValue {
   headPersonId: string | null
   layoutKey: number
   error: string | null
+  showPrivate: boolean
   setViewMode: (mode: ViewMode) => void
   setDataView: (view: DataView) => void
   setBinOpen: (open: boolean) => void
@@ -105,6 +108,7 @@ export interface UIContextValue {
   reflow: () => void
   setError: (error: string | null) => void
   clearError: () => void
+  setShowPrivate: (show: boolean) => void
 }
 
 export interface OrgDataContextValue {
