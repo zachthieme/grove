@@ -10,6 +10,7 @@ import { useHeadSubtree } from './hooks/useHeadSubtree'
 import { useFilteredPeople } from './hooks/useFilteredPeople'
 import { useSortedPeople } from './hooks/useSortedPeople'
 import { useEscapeKey } from './hooks/useEscapeKey'
+import { useDeepLink } from './hooks/useDeepLink'
 import UploadPrompt from './components/UploadPrompt'
 import Toolbar from './components/Toolbar'
 import DetailSidebar from './components/DetailSidebar'
@@ -27,7 +28,15 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, selectedPodId, toggleSelect, batchSelect, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod } = useOrg()
+  const { loaded, viewMode, dataView, selectedIds, selectedPodId, toggleSelect, batchSelect, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod, setViewMode, setSelectedId } = useOrg()
+  useDeepLink({
+    viewMode,
+    selectedId: selectedIds.size === 1 ? [...selectedIds][0] : null,
+    headPersonId,
+    setViewMode,
+    setSelectedId,
+    setHead,
+  })
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
