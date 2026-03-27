@@ -49,6 +49,8 @@
 - Person ID index for O(1) lookups in OrgService
 - Dead code removal, reduced unnecessary exports
 - ESLint with typescript-eslint for static analysis
+- Tidied project root: moved `grove-banner.svg`, `grove-icon.svg` → `docs/`, `bench-baseline.txt` → `testdata/`, `scenarios/` → `docs/scenarios/`
+- Added `make lint` and `make ci` targets mirroring CI pipeline for local pre-push checks
 
 ### Testing
 - **429 frontend tests** across 61 test files
