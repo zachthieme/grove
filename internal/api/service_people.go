@@ -142,6 +142,7 @@ func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
 	}
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
+	s.rebuildIndex()
 	s.pods = ReassignPersonPod(s.pods, &s.working[len(s.working)-1])
 	return p, deepCopyPeople(s.working), CopyPods(s.pods), nil
 }
@@ -160,6 +161,7 @@ func (s *OrgService) Delete(personId string) (*MutationResult, error) {
 	}
 	s.recycled = append(s.recycled, s.working[idx])
 	s.working = append(s.working[:idx], s.working[idx+1:]...)
+	s.rebuildIndex()
 	s.pods = CleanupEmptyPods(s.pods, s.working)
 	return &MutationResult{
 		Working:  deepCopyPeople(s.working),
@@ -189,6 +191,7 @@ func (s *OrgService) Restore(personId string) (*MutationResult, error) {
 		}
 	}
 	s.working = append(s.working, person)
+	s.rebuildIndex()
 	s.pods = ReassignPersonPod(s.pods, &s.working[len(s.working)-1])
 	return &MutationResult{
 		Working:  deepCopyPeople(s.working),

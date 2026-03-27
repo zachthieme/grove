@@ -41,6 +41,7 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 		return nil, err
 	}
 	s.working = deepCopyPeople(snap.People)
+	s.rebuildIndex()
 	if snap.Pods != nil {
 		s.pods = CopyPods(snap.Pods)
 	} else {

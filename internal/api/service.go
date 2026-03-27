@@ -22,6 +22,7 @@ type OrgService struct {
 	settings     Settings
 	pending      *PendingUpload
 	snaps        *SnapshotManager
+	idIndex      map[string]int
 }
 
 func deriveDisciplineOrder(people []Person) []string {
@@ -96,6 +97,7 @@ func (s *OrgService) RestoreState(data AutosaveData) {
 	defer s.mu.Unlock()
 	s.original = deepCopyPeople(data.Original)
 	s.working = deepCopyPeople(data.Working)
+	s.rebuildIndex()
 	s.recycled = deepCopyPeople(data.Recycled)
 	s.pods = CopyPods(data.Pods)
 	s.originalPods = CopyPods(data.OriginalPods)
@@ -131,6 +133,7 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.working = deepCopyPeople(s.original)
+	s.rebuildIndex()
 	s.recycled = nil
 	s.pods = CopyPods(s.originalPods)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
@@ -142,6 +145,7 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 func (s *OrgService) resetState(original, working []Person, snaps map[string]snapshotData) {
 	s.original = original
 	s.working = deepCopyPeople(working)
+	s.rebuildIndex()
 	s.recycled = nil
 	s.snaps.ReplaceAll(snaps)
 	s.pods = SeedPods(s.working)
@@ -149,9 +153,22 @@ func (s *OrgService) resetState(original, working []Person, snaps map[string]sna
 	_ = SeedPods(s.original)
 }
 
+// rebuildIndex rebuilds the idIndex from the current working slice.
+// Must be called with s.mu held after any operation that changes the
+// working slice's structure (append, remove, replace).
+func (s *OrgService) rebuildIndex() {
+	s.idIndex = make(map[string]int, len(s.working))
+	for i, p := range s.working {
+		s.idIndex[p.Id] = i
+	}
+}
+
 // findWorking finds a person by ID in the working slice. Must be called with s.mu held.
 func (s *OrgService) findWorking(id string) (int, *Person) {
-	return findInSlice(s.working, id)
+	if idx, ok := s.idIndex[id]; ok && idx < len(s.working) && s.working[idx].Id == id {
+		return idx, &s.working[idx]
+	}
+	return -1, nil
 }
 
 // MutationResult holds both working and recycled slices, returned atomically
