@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useOrg } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { Person, PersonUpdatePayload } from '../api/types'
+import { generateCorrelationId } from '../api/client'
 import styles from './DetailSidebar.module.css'
 import { STATUSES, STATUS_DESCRIPTIONS, MIXED_VALUE } from '../constants'
 import PodSidebar from './PodSidebar'
@@ -72,10 +73,6 @@ function formFromBatch(people: Person[]): FormFields {
     publicNote: m(p => (p.publicNote ?? '') === (first.publicNote ?? ''), first.publicNote ?? ''),
     privateNote: m(p => (p.privateNote ?? '') === (first.privateNote ?? ''), first.privateNote ?? ''),
   }
-}
-
-function generateCorrelationId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
 
 export default function DetailSidebar() {

@@ -21,7 +21,7 @@ func (s *OrgService) ListPods() []PodInfo {
 func (s *OrgService) UpdatePod(podID string, fields map[string]string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	pod := FindPodByID(s.pods, podID)
+	pod := findPodByID(s.pods, podID)
 	if pod == nil {
 		return nil, errNotFound("pod %s not found", podID)
 	}

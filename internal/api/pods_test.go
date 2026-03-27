@@ -128,7 +128,7 @@ func TestFindPod(t *testing.T) {
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
 	}
 
-	found := FindPod(pods, "Infra", "mgr1")
+	found := findPod(pods, "Infra", "mgr1")
 	if found == nil {
 		t.Fatal("expected to find pod")
 	}
@@ -136,7 +136,7 @@ func TestFindPod(t *testing.T) {
 		t.Errorf("expected pod2, got %q", found.Id)
 	}
 
-	notFound := FindPod(pods, "NoSuch", "mgr1")
+	notFound := findPod(pods, "NoSuch", "mgr1")
 	if notFound != nil {
 		t.Error("expected nil for non-existent pod")
 	}
@@ -149,7 +149,7 @@ func TestFindPodByID(t *testing.T) {
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
 	}
 
-	found := FindPodByID(pods, "pod2")
+	found := findPodByID(pods, "pod2")
 	if found == nil {
 		t.Fatal("expected to find pod by ID")
 	}
@@ -157,7 +157,7 @@ func TestFindPodByID(t *testing.T) {
 		t.Errorf("expected Infra, got %q", found.Name)
 	}
 
-	notFound := FindPodByID(pods, "nope")
+	notFound := findPodByID(pods, "nope")
 	if notFound != nil {
 		t.Error("expected nil for non-existent pod ID")
 	}

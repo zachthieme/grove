@@ -250,7 +250,7 @@ func (s *OrgService) applyPodChange(p *Person, podName string) {
 		s.pods = CleanupEmptyPods(s.pods, s.working)
 		return
 	}
-	pod := FindPod(s.pods, podName, p.ManagerId)
+	pod := findPod(s.pods, podName, p.ManagerId)
 	if pod == nil {
 		s.pods = append(s.pods, Pod{
 			Id:        uuid.NewString(),

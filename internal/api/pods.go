@@ -64,9 +64,9 @@ func CleanupEmptyPods(pods []Pod, people []Person) []Pod {
 	return result
 }
 
-// FindPod finds a pod by name and managerID. Returns a pointer into the slice,
+// findPod finds a pod by name and managerID. Returns a pointer into the slice,
 // or nil if not found.
-func FindPod(pods []Pod, name, managerID string) *Pod {
+func findPod(pods []Pod, name, managerID string) *Pod {
 	for i := range pods {
 		if pods[i].Name == name && pods[i].ManagerId == managerID {
 			return &pods[i]
@@ -75,9 +75,9 @@ func FindPod(pods []Pod, name, managerID string) *Pod {
 	return nil
 }
 
-// FindPodByID finds a pod by UUID. Returns a pointer into the slice, or nil
+// findPodByID finds a pod by UUID. Returns a pointer into the slice, or nil
 // if not found.
-func FindPodByID(pods []Pod, id string) *Pod {
+func findPodByID(pods []Pod, id string) *Pod {
 	for i := range pods {
 		if pods[i].Id == id {
 			return &pods[i]
@@ -89,7 +89,7 @@ func FindPodByID(pods []Pod, id string) *Pod {
 // RenamePod finds a pod by ID, updates its Name, and updates all members'
 // Pod field from the old name to the new name.
 func RenamePod(pods []Pod, people []Person, podID, newName string) error {
-	pod := FindPodByID(pods, podID)
+	pod := findPodByID(pods, podID)
 	if pod == nil {
 		return fmt.Errorf("pod %s not found", podID)
 	}
@@ -115,7 +115,7 @@ func ReassignPersonPod(pods []Pod, person *Person) []Pod {
 		return pods
 	}
 	// Check if the person's current pod still exists under their manager
-	if FindPod(pods, person.Pod, person.ManagerId) != nil {
+	if findPod(pods, person.Pod, person.ManagerId) != nil {
 		return pods
 	}
 	// Pod no longer valid — clear it

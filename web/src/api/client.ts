@@ -2,7 +2,7 @@ import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, Delete
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
-function generateCorrelationId(): string {
+export function generateCorrelationId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
 
