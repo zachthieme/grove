@@ -440,7 +440,7 @@ func handleGetSettings(svc *OrgService) http.HandlerFunc {
 
 func handleUpdateSettings(svc *OrgService) http.HandlerFunc {
 	return jsonHandler(func(settings Settings) (Settings, error) {
-		return svc.UpdateSettings(settings), nil
+		return svc.UpdateSettings(settings)
 	})
 }
 

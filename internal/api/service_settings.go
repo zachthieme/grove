@@ -6,9 +6,12 @@ func (s *OrgService) GetSettings() Settings {
 	return s.settings
 }
 
-func (s *OrgService) UpdateSettings(settings Settings) Settings {
+func (s *OrgService) UpdateSettings(settings Settings) (Settings, error) {
+	if err := validateSettings(settings); err != nil {
+		return Settings{}, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.settings = settings
-	return s.settings
+	return s.settings, nil
 }

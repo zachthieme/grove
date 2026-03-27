@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Error types for distinguishing HTTP status codes in handlers.
@@ -129,4 +130,27 @@ func wouldCreateCycle(working []Person, personId, newManagerId string) bool {
 		current = p.ManagerId
 	}
 	return false
+}
+
+// validateSettings checks that discipline order entries are non-empty, unique,
+// and don't contain characters that break CSV export (newlines, NUL).
+func validateSettings(s Settings) error {
+	seen := make(map[string]bool, len(s.DisciplineOrder))
+	for _, d := range s.DisciplineOrder {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			return errValidation("discipline name cannot be empty")
+		}
+		if strings.ContainsAny(d, "\n\r\x00") {
+			return errValidation("discipline name contains invalid characters")
+		}
+		if len(d) > maxFieldLen {
+			return errValidation("discipline name too long (max %d characters)", maxFieldLen)
+		}
+		if seen[d] {
+			return errValidation("duplicate discipline name: %s", d)
+		}
+		seen[d] = true
+	}
+	return nil
 }

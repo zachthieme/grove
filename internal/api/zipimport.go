@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"path/filepath"
 	"regexp"
@@ -29,16 +28,17 @@ type zipEntry struct {
 	data     []byte
 }
 
-func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, error) {
+func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("opening zip: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("opening zip: %w", err)
 	}
 
 	var entries []zipEntry
 	var podsSidecarData []byte
 	var settingsSidecarData []byte
 	var totalSize int64
+	var warnings []string
 
 	for _, f := range r.File {
 		base := filepath.Base(f.Name)
@@ -49,18 +49,18 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, error) {
 
 		rc, err := f.Open()
 		if err != nil {
-			log.Printf("skipping zip entry %s: %v", f.Name, err)
+			warnings = append(warnings, fmt.Sprintf("skipped %s: %v", f.Name, err))
 			continue
 		}
 		content, err := io.ReadAll(io.LimitReader(rc, maxDecompressedSize-totalSize+1))
 		_ = rc.Close()
 		if err != nil {
-			log.Printf("skipping zip entry %s: %v", f.Name, err)
+			warnings = append(warnings, fmt.Sprintf("skipped %s: %v", f.Name, err))
 			continue
 		}
 		totalSize += int64(len(content))
 		if totalSize > maxDecompressedSize {
-			return nil, nil, nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
+			return nil, nil, nil, nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
 		}
 
 		nameNoExt := strings.TrimSuffix(base, filepath.Ext(base))
@@ -94,7 +94,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, error) {
 	}
 
 	if len(entries) == 0 {
-		return nil, nil, nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
+		return nil, nil, nil, nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
 	}
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -104,7 +104,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, error) {
 		return entries[i].filename < entries[j].filename
 	})
 
-	return entries, podsSidecarData, settingsSidecarData, nil
+	return entries, podsSidecarData, settingsSidecarData, warnings, nil
 }
 
 type podSidecarEntry struct {
@@ -173,7 +173,7 @@ func applyPodSidecarNotes(pods []Pod, sidecar []podSidecarEntry, idToName map[st
 	}
 }
 
-func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []Person, working []Person, snaps map[string]snapshotData, err error) {
+func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []Person, working []Person, snaps map[string]snapshotData, warnings []string, err error) {
 	snaps = make(map[string]snapshotData)
 
 	// Parse raw orgs from all entries first.
@@ -186,13 +186,13 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	for _, e := range entries {
 		header, dataRows, err := extractRows(e.filename, e.data)
 		if err != nil {
-			log.Printf("skipping zip entry %s: %v", e.filename, err)
+			warnings = append(warnings, fmt.Sprintf("skipped %s: %v", e.filename, err))
 			continue
 		}
 
 		org, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
 		if err != nil {
-			log.Printf("skipping zip entry %s: %v", e.filename, err)
+			warnings = append(warnings, fmt.Sprintf("skipped %s: %v", e.filename, err))
 			continue
 		}
 
@@ -200,12 +200,12 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	}
 
 	if len(parsed) == 0 {
-		return nil, nil, nil, fmt.Errorf("no files in ZIP could be parsed")
+		return nil, nil, nil, nil, fmt.Errorf("no files in ZIP could be parsed")
 	}
 
 	if len(parsed) == 1 {
 		people := ConvertOrg(parsed[0].org)
-		return people, deepCopyPeople(people), nil, nil
+		return people, deepCopyPeople(people), nil, warnings, nil
 	}
 
 	// Find original (prefix 0) and working (prefix 1)
@@ -239,12 +239,12 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 		}
 	}
 
-	return original, working, snaps, nil
+	return original, working, snaps, warnings, nil
 }
 
 func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 	// Parse before acquiring lock — no state mutation if parsing fails
-	entries, podsSidecar, settingsSidecar, err := parseZipFileList(data)
+	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(data)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 			simpleMapping[field] = mc.Column
 		}
 
-		orig, work, snaps, err := parseZipEntries(entries, simpleMapping)
+		orig, work, snaps, parseWarns, err := parseZipEntries(entries, simpleMapping)
 		if err != nil {
 			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing zip: %w", err)
@@ -311,6 +311,15 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 				persistWarn += "; " + msg
 			} else {
 				persistWarn = msg
+			}
+		}
+		allWarns := append(fileWarns, parseWarns...)
+		if len(allWarns) > 0 {
+			warnMsg := strings.Join(allWarns, "; ")
+			if persistWarn != "" {
+				persistWarn += "; " + warnMsg
+			} else {
+				persistWarn = warnMsg
 			}
 		}
 		resp.PersistenceWarning = persistWarn

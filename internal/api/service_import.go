@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/zachthieme/grove/internal/parser"
 )
@@ -109,11 +110,11 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 // confirmMappingZip handles the zip ConfirmMapping path.
 // Called without holding s.mu.
 func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
-	entries, podsSidecar, settingsSidecar, err := parseZipFileList(pending.File)
+	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(pending.File)
 	if err != nil {
 		return nil, fmt.Errorf("parsing pending zip: %w", err)
 	}
-	orig, work, snaps, err := parseZipEntries(entries, mapping)
+	orig, work, snaps, parseWarns, err := parseZipEntries(entries, mapping)
 	if err != nil {
 		return nil, fmt.Errorf("parsing pending zip: %w", err)
 	}
@@ -154,6 +155,15 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 			persistWarn += "; " + msg
 		} else {
 			persistWarn = msg
+		}
+	}
+	allWarns := append(fileWarns, parseWarns...)
+	if len(allWarns) > 0 {
+		warnMsg := strings.Join(allWarns, "; ")
+		if persistWarn != "" {
+			persistWarn += "; " + warnMsg
+		} else {
+			persistWarn = warnMsg
 		}
 	}
 	resp.PersistenceWarning = persistWarn

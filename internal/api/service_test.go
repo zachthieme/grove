@@ -1399,3 +1399,45 @@ func findById(people []Person, id string) *Person {
 	}
 	return nil
 }
+
+func TestOrgService_UpdateSettings_Validation(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+
+	t.Run("rejects empty discipline name", func(t *testing.T) {
+		_, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "", "Design"}})
+		if err == nil {
+			t.Fatal("expected error for empty discipline name")
+		}
+		if !isValidation(err) {
+			t.Errorf("expected ValidationError, got %T: %v", err, err)
+		}
+	})
+
+	t.Run("rejects duplicate discipline names", func(t *testing.T) {
+		_, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "Design", "Eng"}})
+		if err == nil {
+			t.Fatal("expected error for duplicate discipline")
+		}
+	})
+
+	t.Run("accepts valid settings", func(t *testing.T) {
+		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "Design", "PM"}})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.DisciplineOrder) != 3 {
+			t.Errorf("expected 3 disciplines, got %d", len(result.DisciplineOrder))
+		}
+	})
+
+	t.Run("accepts empty list (clears order)", func(t *testing.T) {
+		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{}})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.DisciplineOrder) != 0 {
+			t.Errorf("expected empty, got %d", len(result.DisciplineOrder))
+		}
+	})
+}
