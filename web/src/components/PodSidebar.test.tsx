@@ -20,6 +20,18 @@ const alphaPod: Pod = {
 describe('PodSidebar', () => {
   afterEach(() => cleanup())
 
+  it('[UI-003] close button calls selectPod(null)', () => {
+    const selectPod = vi.fn()
+    renderWithOrg(<PodSidebar />, {
+      pods: [alphaPod],
+      working: [manager, member1, member2],
+      selectedPodId: 'pod-1',
+      selectPod,
+    })
+    fireEvent.click(screen.getByLabelText('Close'))
+    expect(selectPod).toHaveBeenCalledWith(null)
+  })
+
   it('[UI-003] save button is disabled when nothing changed', () => {
     renderWithOrg(<PodSidebar />, {
       pods: [alphaPod],

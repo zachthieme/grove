@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { OrgDataProvider, OrgDataContext, useOrgData as useOrgDataDirect } from './OrgDataContext'
 import { UIProvider, UIContext, useUI as useUIDirect } from './UIContext'
 import { SelectionProvider, SelectionContext, useSelection as useSelectionDirect } from './SelectionContext'
@@ -11,11 +11,39 @@ export function OrgOverrideProvider({ value, children }: { value: OrgContextValu
   return <OrgOverrideContext.Provider value={value}>{children}</OrgOverrideContext.Provider>
 }
 
+/** Prunes selectedIds that no longer exist in working (e.g. after deletion). */
+function SelectionPruner() {
+  const { working } = useOrgDataDirect()
+  const { selectedIds, batchSelect, clearSelection } = useSelectionDirect()
+  const selectedIdsRef = useRef(selectedIds)
+  selectedIdsRef.current = selectedIds
+
+  useEffect(() => {
+    const current = selectedIdsRef.current
+    if (current.size === 0) return
+    const workingIds = new Set(working.map(p => p.id))
+    let needsPrune = false
+    for (const id of current) {
+      if (!workingIds.has(id)) { needsPrune = true; break }
+    }
+    if (!needsPrune) return
+    const pruned = new Set([...current].filter(id => workingIds.has(id)))
+    if (pruned.size === 0) {
+      clearSelection()
+    } else {
+      batchSelect(pruned)
+    }
+  }, [working, batchSelect, clearSelection])
+
+  return null
+}
+
 export function OrgProvider({ children }: { children: ReactNode }) {
   return (
     <UIProvider>
       <SelectionProvider>
         <OrgDataProvider>
+          <SelectionPruner />
           {children}
         </OrgDataProvider>
       </SelectionProvider>

@@ -51,7 +51,7 @@ export default function TableHeader({ columns, sortKey, sortDir, onSort, filterA
         />
       </th>
       {columns.map(col => (
-        <th key={col.key} className={styles.headerCell} style={{ width: col.width, position: 'relative' }}>
+        <th key={col.key} className={styles.headerCell} style={{ width: col.width }}>
           <div className={styles.headerContent}>
             <span className={styles.headerLabel} onClick={() => onSort(col.key)}>
               {col.label}

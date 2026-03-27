@@ -5,7 +5,7 @@ import type { PodUpdatePayload } from '../api/types'
 import styles from './DetailSidebar.module.css'
 
 export default function PodSidebar() {
-  const { pods, working, selectedPodId, updatePod } = useOrg()
+  const { pods, working, selectedPodId, selectPod, updatePod } = useOrg()
   const pod = pods.find(p => p.id === selectedPodId)
 
   const [form, setForm] = useState({ name: '', publicNote: '', privateNote: '' })
@@ -53,6 +53,9 @@ export default function PodSidebar() {
     <div className={styles.sidebar}>
       <div className={styles.header}>
         <h3>Pod Details</h3>
+        <button className={styles.closeBtn} onClick={() => selectPod(null)} aria-label="Close">
+          &times;
+        </button>
       </div>
       <div className={styles.form}>
         <div className={styles.field}>

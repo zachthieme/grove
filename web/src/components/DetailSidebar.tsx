@@ -189,6 +189,7 @@ export default function DetailSidebar() {
     return <PodSidebar />
   }
 
+  if (isBatch && selectedPeople.length === 0) return null
   if (!isBatch && !person) return null
 
   const mixed = (field: keyof FormFields) => form[field] === MIXED_VALUE

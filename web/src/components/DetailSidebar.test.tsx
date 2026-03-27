@@ -177,6 +177,15 @@ describe('DetailSidebar', () => {
       await user.click(clearBtn)
       expect(clearSelection).toHaveBeenCalledTimes(1)
     })
+
+    it('[VIEW-007] renders nothing when all batch-selected people have been deleted', () => {
+      const { container } = renderWithOrg(<DetailSidebar />, {
+        working: [],
+        selectedId: null,
+        selectedIds: new Set(['a1', 'b2', 'c3']),
+      })
+      expect(container.innerHTML).toBe('')
+    })
   })
 
   describe('boundary inputs', () => {

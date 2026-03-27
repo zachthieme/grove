@@ -1,5 +1,70 @@
 # Changelog
 
+## v0.9.0
+
+### Features
+- **Pods**: Full pod system — auto-seeded from team groupings, CRUD endpoints, lifecycle management (auto-create, zero-member cleanup, rename cascading), pod reassignment on move/team/manager changes, pods.csv sidecar for ZIP round-trip
+- **Pod UI**: Pod selection and editing sidebar, clickable pod headers in org chart, note icons with slide-out panels, drag-and-drop onto pods, free-text pod field in table and sidebar
+- **Table view**: Spreadsheet-style third view mode with inline-editable cells, per-column Excel-style filters, column sorting, column visibility toggle, context-aware row add, bulk paste from clipboard, diff mode coloring, read-only mode for original data
+- **Notes**: Public and private note fields on people and pods, note preview icons on person cards, note textareas in detail sidebar
+- **Level field**: Numeric level field on Person at all layers (model, API, TypeScript, parser, export, inference, sidebar)
+- **Settings**: Settings modal with discipline ordering, settings persisted in autosave/snapshots/ZIP sidecar
+- **Lasso multi-select**: Click-drag marquee selection in Detail and Manager chart views for batch editing
+- **Deep linking**: URL query params for view mode, selection, and head person — shareable links to specific states
+- **Team cascade**: Changing a front-line manager's team propagates to all their direct reports
+- **Logging**: Optional HTTP request logging with ring buffer, correlation IDs threaded through API client, log viewer panel in toolbar
+- **Scenario contracts**: `scenarios/` directory as source of truth for expected behavior, `make check-scenarios` enforcement, scenario ID prefixes on all test names
+
+### Bug Fixes
+- **Selection pruning**: Multi-selected people now removed from selection when deleted — sidebar count decrements correctly instead of showing stale "Edit N people" (#26-related)
+- **Pod sidebar close button**: Pod detail sidebar now has a close button matching the person detail sidebar
+- **Lasso z-index**: Split lasso overlay into separate SVGs so "other team" dotted lines no longer render on top of person cards during lasso selection
+- **Sticky table header**: Table view header row (toolbar, column headers) stays fixed while rows scroll — fixed competing scroll containers and inline `position: relative` overriding `position: sticky` (#26)
+- **Sidebar layout**: Save/delete buttons sticky at bottom of sidebar so they're always visible (#19)
+- **Sidebar overlay**: DetailSidebar no longer covers org chart nodes on the right edge (#22, #23)
+- **Auto-scroll on select**: Chart smoothly scrolls to keep selected node visible when sidebar opens (#23)
+- **Pod rendering**: Pod headings and edges now render correctly in mixed-children layout (#24)
+- **Pod save button**: PodSidebar now has explicit Save button with dirty tracking and feedback instead of auto-save on blur (#25)
+- **Selection highlight**: Person node selection highlight persists on hover
+- **Drag onto pods**: Dropping a person onto a pod correctly sets manager, team, and pod fields
+- **Spurious IC edges**: Fixed connecting lines from deeply-nested ICs back to their manager in all-IC stacks
+- **Clear selection**: Clicking empty space or pressing Escape clears multi-selection
+- **Autosave restore**: Restored autosave state now synced to backend so mutations work
+- **Table view fixes**: Filter dropdown portal positioning, column toggle dropdown, auto-scroll/focus new draft rows, hide unparented bar
+- **ZIP diff**: Stable UUIDs shared across ZIP entries so diff works on multi-file imports
+- **Clear manager**: Clearing manager to "no manager" in DetailSidebar now works
+- **ColumnView stability**: Stabilized useMemo deps with useCallback wrappers
+- **Settings validation**: Added validation and aggregated ZIP parse warnings
+- **O(1) reorder**: Pod cleanup, DRY warning merging, background org load, dirty tracking guard
+
+### Refactoring
+- Split OrgService into domain files: `service_import.go`, `service_people.go`, `service_pods.go`, `service_settings.go`
+- Extract `useOrgMutations` hook from OrgDataContext
+- Extract `useSaveStatus` hook for shared save-state logic
+- Add `SelectionPruner` bridge component for cross-context selection cleanup
+- Typed `PersonUpdatePayload` and `PodUpdatePayload` replacing `Record<string, string>` at API boundaries
+- Granular context hooks (`useOrgData`, `useUI`, `useSelection`) and consumer migration
+- `OrgOverrideProvider` test helper replaces `vi.mock` in all 28 test files (mock count 127 → 13)
+- Golden file snapshot tests for 19 components (81 fixtures)
+- Person ID index for O(1) lookups in OrgService
+- Dead code removal, reduced unnecessary exports
+- ESLint with typescript-eslint for static analysis
+
+### Testing
+- **429 frontend tests** across 61 test files
+- **17 integration tests** for OrgContext (upload, mutations, snapshots, selection pruning)
+- **19 Playwright E2E tests** (smoke + feature) across Chromium, Firefox, WebKit
+- **Concurrency tests** (6): parallel moves, updates, reads/writes, delete/restore, snapshots
+- **Large dataset tests** (8): 200–500 person orgs
+- **Adversarial input tests** (18): BOM, Unicode, XSS/SQLi payloads, oversized fields
+- **Go fuzz tests** (5): InferMapping, CSV upload, AllRequiredHigh, Update fields
+- **Frontend property tests** (8): buildOrgTree invariants via fast-check
+- Frontend coverage thresholds raised to 80/75/75/80
+- `t.Parallel()` added to ~230 Go test functions
+- `@testing-library/user-event` migration across 17 test files
+
+---
+
 ## v0.8.0
 
 ### Features

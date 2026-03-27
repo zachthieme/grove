@@ -35,10 +35,19 @@ const bob: Person = {
   id: 'b2', name: 'Bob', role: 'Engineer', discipline: 'Eng',
   managerId: 'a1', team: 'Platform', additionalTeams: [], status: 'Active',
 }
+const carol: Person = {
+  id: 'c3', name: 'Carol', role: 'Designer', discipline: 'Design',
+  managerId: 'a1', team: 'Design', additionalTeams: [], status: 'Active',
+}
 
 const orgData: OrgData = {
   original: [alice, bob],
   working: [alice, bob],
+}
+
+const threePersonOrgData: OrgData = {
+  original: [alice, bob, carol],
+  working: [alice, bob, carol],
 }
 
 // Helper component that exposes context for assertions
@@ -328,6 +337,61 @@ describe('OrgContext integration', () => {
 
       act(() => { captured!.toggleSelect('a1', false) })
       act(() => { captured!.clearSelection() })
+      expect(captured!.selectedIds.size).toBe(0)
+    })
+
+    it('[SELECT-001] prunes stale IDs when a selected person is deleted', async () => {
+      const resp: UploadResponse = { status: 'ready', orgData: threePersonOrgData }
+      vi.mocked(api.uploadFile).mockResolvedValue(resp)
+      renderWithProvider()
+      await act(async () => {})
+      await act(async () => { await captured!.upload(new File([''], 'test.csv')) })
+
+      // Select all three
+      act(() => { captured!.batchSelect(new Set(['a1', 'b2', 'c3'])) })
+      expect(captured!.selectedIds.size).toBe(3)
+
+      // Delete carol — selectedIds should drop to 2
+      vi.mocked(api.deletePerson).mockResolvedValue({
+        working: [alice, bob],
+        recycled: [carol],
+        pods: [],
+      })
+      await act(async () => { await captured!.remove('c3') })
+
+      expect(captured!.selectedIds.size).toBe(2)
+      expect(captured!.selectedIds.has('a1')).toBe(true)
+      expect(captured!.selectedIds.has('b2')).toBe(true)
+      expect(captured!.selectedIds.has('c3')).toBe(false)
+    })
+
+    it('[SELECT-001] clears selection when all selected people are deleted', async () => {
+      const resp: UploadResponse = { status: 'ready', orgData }
+      vi.mocked(api.uploadFile).mockResolvedValue(resp)
+      renderWithProvider()
+      await act(async () => {})
+      await act(async () => { await captured!.upload(new File([''], 'test.csv')) })
+
+      // Select both
+      act(() => { captured!.batchSelect(new Set(['a1', 'b2'])) })
+      expect(captured!.selectedIds.size).toBe(2)
+
+      // Delete both
+      vi.mocked(api.deletePerson).mockResolvedValue({
+        working: [bob],
+        recycled: [alice],
+        pods: [],
+      })
+      await act(async () => { await captured!.remove('a1') })
+      expect(captured!.selectedIds.size).toBe(1)
+      expect(captured!.selectedIds.has('b2')).toBe(true)
+
+      vi.mocked(api.deletePerson).mockResolvedValue({
+        working: [],
+        recycled: [alice, bob],
+        pods: [],
+      })
+      await act(async () => { await captured!.remove('b2') })
       expect(captured!.selectedIds.size).toBe(0)
     })
   })
