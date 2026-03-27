@@ -1427,7 +1427,7 @@ func TestSettingsHandler_GetAndPost(t *testing.T) {
 		t.Fatalf("GET: expected 200, got %d", w.Code)
 	}
 	var settings Settings
-	json.Unmarshal(w.Body.Bytes(), &settings)
+	_ = json.Unmarshal(w.Body.Bytes(), &settings)
 	if len(settings.DisciplineOrder) == 0 {
 		t.Error("expected non-empty discipline order")
 	}

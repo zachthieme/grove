@@ -208,7 +208,7 @@ func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
 	t.Parallel()
 	buf := NewLogBuffer(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.ReadAll(r.Body)
+		_, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
 	})
 	handler := LoggingMiddleware(buf)(inner)
@@ -230,7 +230,7 @@ func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
 	t.Parallel()
 	buf := NewLogBuffer(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("binary data"))
+		_, _ = w.Write([]byte("binary data"))
 	})
 	handler := LoggingMiddleware(buf)(inner)
 
@@ -280,7 +280,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 	req = httptest.NewRequest("GET", "/api/logs?correlationId=c1", nil)
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp.Count != 1 {
 		t.Errorf("expected 1 filtered entry, got %d", resp.Count)
 	}
@@ -288,7 +288,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 	req = httptest.NewRequest("GET", "/api/logs?source=web", nil)
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 	if resp.Count != 1 {
 		t.Errorf("expected 1 web entry, got %d", resp.Count)
 	}
@@ -357,7 +357,7 @@ func TestConfigEndpoint(t *testing.T) {
 	router.ServeHTTP(rr, req)
 
 	var cfg map[string]bool
-	json.NewDecoder(rr.Body).Decode(&cfg)
+	_ = json.NewDecoder(rr.Body).Decode(&cfg)
 	if !cfg["logging"] {
 		t.Error("expected logging: true")
 	}
@@ -367,7 +367,7 @@ func TestConfigEndpoint(t *testing.T) {
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
-	json.NewDecoder(rr.Body).Decode(&cfg)
+	_ = json.NewDecoder(rr.Body).Decode(&cfg)
 	if cfg["logging"] {
 		t.Error("expected logging: false")
 	}

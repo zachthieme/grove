@@ -43,12 +43,7 @@ func WriteSnapshots(snapshots map[string]snapshotData) error {
 	}
 	persisted := make(map[string]persistedSnapshot, len(snapshots))
 	for name, snap := range snapshots {
-		persisted[name] = persistedSnapshot{
-			People:    snap.People,
-			Pods:      snap.Pods,
-			Settings:  snap.Settings,
-			Timestamp: snap.Timestamp,
-		}
+		persisted[name] = persistedSnapshot(snap)
 	}
 	data, err := json.Marshal(persisted)
 	if err != nil {

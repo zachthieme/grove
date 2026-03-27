@@ -197,7 +197,7 @@ func TestServerLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/health: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -281,7 +281,7 @@ func TestServerLifecycle_WithFrontendFS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /index.html: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 for index.html, got %d", resp.StatusCode)
@@ -346,7 +346,7 @@ func TestServerLifecycle_DevModeCORS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /api/health: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "*" {
 		t.Errorf("expected CORS origin * in dev mode, got %q", got)
