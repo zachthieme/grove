@@ -1,15 +1,11 @@
 .sidebar {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
   width: 280px;
+  min-width: 280px;
   border-left: 1px solid var(--border-soft);
   background: var(--surface-toolbar);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  z-index: 10;
 }
 
 .header {
