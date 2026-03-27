@@ -20,6 +20,7 @@ interface FormFields {
   pod: string
   publicNote: string
   privateNote: string
+  private: boolean
 }
 
 const blankForm: FormFields = {
@@ -35,6 +36,7 @@ const blankForm: FormFields = {
   pod: '',
   publicNote: '',
   privateNote: '',
+  private: false,
 }
 
 function formFromPerson(p: Person): FormFields {
@@ -51,6 +53,7 @@ function formFromPerson(p: Person): FormFields {
     pod: p.pod ?? '',
     publicNote: p.publicNote ?? '',
     privateNote: p.privateNote ?? '',
+    private: p.private ?? false,
   }
 }
 
@@ -72,6 +75,7 @@ function formFromBatch(people: Person[]): FormFields {
     pod: m(p => (p.pod ?? '') === (first.pod ?? ''), first.pod ?? ''),
     publicNote: m(p => (p.publicNote ?? '') === (first.publicNote ?? ''), first.publicNote ?? ''),
     privateNote: m(p => (p.privateNote ?? '') === (first.privateNote ?? ''), first.privateNote ?? ''),
+    private: people.every(p => (p.private ?? false) === (first.private ?? false)) ? (first.private ?? false) : false,
   }
 }
 
@@ -99,7 +103,7 @@ export default function DetailSidebar() {
 
   // Sync form when selection changes
   const personDataKey = person
-    ? `${person.id}\0${person.name}\0${person.role}\0${person.discipline}\0${person.team}\0${person.managerId}\0${person.status}\0${person.employmentType ?? ''}\0${(person.additionalTeams ?? []).join(',')}\0${person.pod ?? ''}\0${person.publicNote ?? ''}\0${person.privateNote ?? ''}\0${person.level ?? 0}`
+    ? `${person.id}\0${person.name}\0${person.role}\0${person.discipline}\0${person.team}\0${person.managerId}\0${person.status}\0${person.employmentType ?? ''}\0${(person.additionalTeams ?? []).join(',')}\0${person.pod ?? ''}\0${person.publicNote ?? ''}\0${person.privateNote ?? ''}\0${person.level ?? 0}\0${person.private ?? false}`
     : ''
 
   useEffect(() => {
@@ -138,6 +142,7 @@ export default function DetailSidebar() {
         const val = form[key as keyof FormFields]
         if (val !== MIXED_VALUE) (fields as Record<string, string>)[apiKey] = val
       }
+      if (batchDirty.has('private')) { (fields as Record<string, string>).private = form.private ? 'true' : 'false' }
       let failedCount = 0
       if (managerChanged) {
         for (const p of selectedPeople) {
@@ -168,6 +173,7 @@ export default function DetailSidebar() {
         if (form.pod !== (person.pod ?? '')) fields.pod = form.pod
         if (form.publicNote !== (person.publicNote ?? '')) fields.publicNote = form.publicNote
         if (form.privateNote !== (person.privateNote ?? '')) fields.privateNote = form.privateNote
+        if (form.private !== (person.private ?? false)) fields.private = form.private ? 'true' : 'false'
         await update(person.id, fields, corrId)
         markSaved()
       } catch {
@@ -283,6 +289,21 @@ export default function DetailSidebar() {
         <div className={styles.field}>
           <label>Private Note</label>
           <textarea data-testid="field-privateNote" value={val('privateNote')} placeholder={ph('privateNote', 'Only visible in this panel')} onChange={(e) => handleChange('privateNote', e.target.value)} rows={3} />
+        </div>
+        <div className={styles.field}>
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Private</span>
+            <input
+              type="checkbox"
+              data-testid="field-private"
+              checked={form.private}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, private: e.target.checked }))
+                if (isBatch) setBatchDirty((d) => new Set(d).add('private'))
+              }}
+            />
+          </label>
+          <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Hidden when private toggle is off</span>
         </div>
         {saveError && <div className={styles.saveError}>{saveError}</div>}
         <div className={styles.actions}>
