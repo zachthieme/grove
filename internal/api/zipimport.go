@@ -274,14 +274,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 
 		// All parsing succeeded — now commit state atomically
 		s.pending = nil
-		s.original = orig
-		s.working = deepCopyPeople(work)
-		s.recycled = nil
-		s.snapshots = snaps
-		s.pods = SeedPods(s.working)
-		s.originalPods = CopyPods(s.pods)
-		// Seed original people's pod fields too
-		_ = SeedPods(s.original)
+		s.resetState(orig, work, snaps)
 
 		if podsSidecar != nil {
 			sidecarEntries := parsePodsSidecar(podsSidecar)
@@ -299,10 +292,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 			}
 		}
 
-		snapCopy := make(map[string]snapshotData, len(s.snapshots))
-		for k, v := range s.snapshots {
-			snapCopy[k] = v
-		}
+		snapCopy := s.snaps.CopyAll()
 		resp := &UploadResponse{
 			Status:    "ready",
 			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings},
@@ -312,10 +302,10 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 
 		// Disk I/O outside the lock
 		var persistWarn string
-		if err := DeleteSnapshotStore(); err != nil {
+		if err := s.snaps.DeleteStore(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
-		if err := WriteSnapshots(snapCopy); err != nil {
+		if err := s.snaps.PersistCopy(snapCopy); err != nil {
 			msg := fmt.Sprintf("snapshot persist error: %v", err)
 			if persistWarn != "" {
 				persistWarn += "; " + msg

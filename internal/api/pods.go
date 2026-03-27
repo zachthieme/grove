@@ -6,8 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const maxNoteLen = 2000
-
 // SeedPods creates Pod objects for people who have an explicit Pod field set.
 // People without a Pod field are left unchanged. Root nodes (empty ManagerId)
 // are skipped. Does not modify people's Pod fields.
@@ -135,10 +133,3 @@ func CopyPods(src []Pod) []Pod {
 	return dst
 }
 
-// validateNoteLen returns an error if the note value exceeds maxNoteLen.
-func validateNoteLen(value string) error {
-	if len(value) > maxNoteLen {
-		return fmt.Errorf("note too long (max %d characters)", maxNoteLen)
-	}
-	return nil
-}

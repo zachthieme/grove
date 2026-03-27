@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"maps"
 	"strconv"
 	"strings"
@@ -15,10 +14,10 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string, newPod ...stri
 	defer s.mu.Unlock()
 	_, p := s.findWorking(personId)
 	if p == nil {
-		return nil, fmt.Errorf("person %s not found", personId)
+		return nil, errNotFound("person %s not found", personId)
 	}
 	if newManagerId != "" {
-		if err := s.validateManagerChange(personId, newManagerId); err != nil {
+		if err := validateManagerChange(s.working, personId, newManagerId); err != nil {
 			return nil, err
 		}
 	}
@@ -52,7 +51,7 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 	maps.Copy(fields, noteFields)
 	_, p := s.findWorking(personId)
 	if p == nil {
-		return nil, fmt.Errorf("person %s not found", personId)
+		return nil, errNotFound("person %s not found", personId)
 	}
 	// Clear warning on any edit — the user is actively fixing the data
 	p.Warning = ""
@@ -65,54 +64,20 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 		case "discipline":
 			p.Discipline = v
 		case "team":
-			p.Team = v
-			s.pods = ReassignPersonPod(s.pods, p)
-			// Cascade to ICs if this person is a front-line manager
-			// (has direct reports, but none of those reports have reports)
-			if s.isFrontlineManager(personId) {
-				for i := range s.working {
-					if s.working[i].ManagerId == personId {
-						s.working[i].Team = v
-						s.pods = ReassignPersonPod(s.pods, &s.working[i])
-					}
-				}
-			}
-			s.pods = CleanupEmptyPods(s.pods, s.working)
+			s.applyTeamChange(p, personId, v)
 		case "status":
 			if !model.ValidStatuses[v] {
-				return nil, fmt.Errorf("invalid status '%s'", v)
+				return nil, errValidation("invalid status '%s'", v)
 			}
 			p.Status = v
 		case "managerId":
-			if v != "" {
-				if err := s.validateManagerChange(personId, v); err != nil {
-					return nil, err
-				}
-				// Update team to match new manager unless team is also being set explicitly
-				if _, hasTeam := fields["team"]; !hasTeam {
-					if _, mgr := s.findWorking(v); mgr != nil {
-						p.Team = mgr.Team
-					}
-				}
+			if err := s.applyManagerChange(p, personId, v, fields); err != nil {
+				return nil, err
 			}
-			p.ManagerId = v
-			s.pods = ReassignPersonPod(s.pods, p)
-			s.pods = CleanupEmptyPods(s.pods, s.working)
 		case "employmentType":
 			p.EmploymentType = v
 		case "additionalTeams":
-			if v == "" {
-				p.AdditionalTeams = nil
-			} else {
-				teams := strings.Split(v, ",")
-				p.AdditionalTeams = make([]string, 0, len(teams))
-				for _, t := range teams {
-					t = strings.TrimSpace(t)
-					if t != "" {
-						p.AdditionalTeams = append(p.AdditionalTeams, t)
-					}
-				}
-			}
+			p.AdditionalTeams = parseAdditionalTeams(v)
 		case "newRole":
 			p.NewRole = v
 		case "newTeam":
@@ -130,29 +95,13 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 		case "level":
 			n, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, fmt.Errorf("invalid level: %s", v)
+				return nil, errValidation("invalid level: %s", v)
 			}
 			p.Level = n
 		case "pod":
-			if v == "" {
-				p.Pod = ""
-				s.pods = CleanupEmptyPods(s.pods, s.working)
-			} else {
-				pod := FindPod(s.pods, v, p.ManagerId)
-				if pod == nil {
-					// Auto-create the pod under this manager
-					newPod := Pod{
-						Id:        uuid.NewString(),
-						Name:      v,
-						Team:      p.Team,
-						ManagerId: p.ManagerId,
-					}
-					s.pods = append(s.pods, newPod)
-				}
-				p.Pod = v
-			}
+			s.applyPodChange(p, v)
 		default:
-			return nil, fmt.Errorf("unknown field: %s", k)
+			return nil, errValidation("unknown field: %s", k)
 		}
 	}
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
@@ -184,11 +133,11 @@ func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
 		return Person{}, nil, nil, err
 	}
 	if p.Status != "" && !model.ValidStatuses[p.Status] {
-		return Person{}, nil, nil, fmt.Errorf("invalid status '%s'", p.Status)
+		return Person{}, nil, nil, errValidation("invalid status '%s'", p.Status)
 	}
 	if p.ManagerId != "" {
 		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
-			return Person{}, nil, nil, fmt.Errorf("manager %s not found", p.ManagerId)
+			return Person{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
 		}
 	}
 	p.Id = uuid.NewString()
@@ -202,7 +151,7 @@ func (s *OrgService) Delete(personId string) (*MutationResult, error) {
 	defer s.mu.Unlock()
 	idx, _ := s.findWorking(personId)
 	if idx == -1 {
-		return nil, fmt.Errorf("person %s not found", personId)
+		return nil, errNotFound("person %s not found", personId)
 	}
 	for i := range s.working {
 		if s.working[i].ManagerId == personId {
@@ -230,7 +179,7 @@ func (s *OrgService) Restore(personId string) (*MutationResult, error) {
 		}
 	}
 	if idx == -1 {
-		return nil, fmt.Errorf("person %s not found in recycled", personId)
+		return nil, errNotFound("person %s not found in recycled", personId)
 	}
 	person := s.recycled[idx]
 	s.recycled = append(s.recycled[:idx], s.recycled[idx+1:]...)
@@ -253,4 +202,75 @@ func (s *OrgService) EmptyBin() []Person {
 	defer s.mu.Unlock()
 	s.recycled = nil
 	return deepCopyPeople(s.recycled)
+}
+
+// applyTeamChange updates a person's team and cascades to ICs of front-line managers.
+// Must be called with s.mu held.
+func (s *OrgService) applyTeamChange(p *Person, personId, team string) {
+	p.Team = team
+	s.pods = ReassignPersonPod(s.pods, p)
+	if isFrontlineManager(s.working, personId) {
+		for i := range s.working {
+			if s.working[i].ManagerId == personId {
+				s.working[i].Team = team
+				s.pods = ReassignPersonPod(s.pods, &s.working[i])
+			}
+		}
+	}
+	s.pods = CleanupEmptyPods(s.pods, s.working)
+}
+
+// applyManagerChange validates and applies a manager reassignment.
+// Must be called with s.mu held.
+func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string, fields map[string]string) error {
+	if newManagerId != "" {
+		if err := validateManagerChange(s.working, personId, newManagerId); err != nil {
+			return err
+		}
+		if _, hasTeam := fields["team"]; !hasTeam {
+			if _, mgr := s.findWorking(newManagerId); mgr != nil {
+				p.Team = mgr.Team
+			}
+		}
+	}
+	p.ManagerId = newManagerId
+	s.pods = ReassignPersonPod(s.pods, p)
+	s.pods = CleanupEmptyPods(s.pods, s.working)
+	return nil
+}
+
+// applyPodChange assigns or clears a person's pod, auto-creating if needed.
+// Must be called with s.mu held.
+func (s *OrgService) applyPodChange(p *Person, podName string) {
+	if podName == "" {
+		p.Pod = ""
+		s.pods = CleanupEmptyPods(s.pods, s.working)
+		return
+	}
+	pod := FindPod(s.pods, podName, p.ManagerId)
+	if pod == nil {
+		s.pods = append(s.pods, Pod{
+			Id:        uuid.NewString(),
+			Name:      podName,
+			Team:      p.Team,
+			ManagerId: p.ManagerId,
+		})
+	}
+	p.Pod = podName
+}
+
+// parseAdditionalTeams splits a comma-separated string into trimmed, non-empty team names.
+func parseAdditionalTeams(v string) []string {
+	if v == "" {
+		return nil
+	}
+	teams := strings.Split(v, ",")
+	result := make([]string, 0, len(teams))
+	for _, t := range teams {
+		t = strings.TrimSpace(t)
+		if t != "" {
+			result = append(result, t)
+		}
+	}
+	return result
 }

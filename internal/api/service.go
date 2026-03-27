@@ -12,8 +12,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-const maxFieldLen = 500
-
 type OrgService struct {
 	mu           sync.RWMutex
 	original     []Person
@@ -22,9 +20,8 @@ type OrgService struct {
 	pods         []Pod
 	originalPods []Pod
 	settings     Settings
-	snapshots    map[string]snapshotData
 	pending      *PendingUpload
-	snapshotStore SnapshotStore
+	snaps        *SnapshotManager
 }
 
 func deriveDisciplineOrder(people []Person) []string {
@@ -48,11 +45,7 @@ type MoveResult struct {
 }
 
 func NewOrgService(snapStore SnapshotStore) *OrgService {
-	svc := &OrgService{snapshotStore: snapStore}
-	if snaps, err := snapStore.Read(); err == nil && snaps != nil {
-		svc.snapshots = snaps
-	}
-	return svc
+	return &OrgService{snaps: NewSnapshotManager(snapStore)}
 }
 
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
@@ -144,76 +137,21 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 }
 
+// resetState replaces the full org state after an import. Must be called with s.mu held.
+// Callers are responsible for setting s.settings and s.pending as appropriate.
+func (s *OrgService) resetState(original, working []Person, snaps map[string]snapshotData) {
+	s.original = original
+	s.working = deepCopyPeople(working)
+	s.recycled = nil
+	s.snaps.ReplaceAll(snaps)
+	s.pods = SeedPods(s.working)
+	s.originalPods = CopyPods(s.pods)
+	_ = SeedPods(s.original)
+}
+
+// findWorking finds a person by ID in the working slice. Must be called with s.mu held.
 func (s *OrgService) findWorking(id string) (int, *Person) {
-	for i := range s.working {
-		if s.working[i].Id == id {
-			return i, &s.working[i]
-		}
-	}
-	return -1, nil
-}
-
-// isFrontlineManager returns true if personId has direct reports but none of
-// those reports have reports of their own. Must be called with s.mu held.
-func (s *OrgService) isFrontlineManager(personId string) bool {
-	hasReports := false
-	for _, p := range s.working {
-		if p.ManagerId == personId {
-			hasReports = true
-			// Check if this report has any reports of their own
-			for _, q := range s.working {
-				if q.ManagerId == p.Id {
-					return false // has a sub-manager → not front-line
-				}
-			}
-		}
-	}
-	return hasReports
-}
-
-// validateFieldLengths checks that all string values in fields don't exceed maxFieldLen.
-func validateFieldLengths(fields map[string]string) error {
-	for _, v := range fields {
-		if len(v) > maxFieldLen {
-			return fmt.Errorf("field value too long (max %d characters)", maxFieldLen)
-		}
-	}
-	return nil
-}
-
-// validateManagerChange checks that setting person's manager to newManagerId is valid.
-// Must be called with s.mu held.
-func (s *OrgService) validateManagerChange(personId, newManagerId string) error {
-	if newManagerId == personId {
-		return fmt.Errorf("a person cannot be their own manager")
-	}
-	if _, mgr := s.findWorking(newManagerId); mgr == nil {
-		return fmt.Errorf("manager %s not found", newManagerId)
-	}
-	if s.wouldCreateCycle(personId, newManagerId) {
-		return fmt.Errorf("this move would create a circular reporting chain")
-	}
-	return nil
-}
-
-// wouldCreateCycle checks if setting personId's manager to newManagerId
-// would create a cycle. This happens if newManagerId is a descendant of personId.
-// Must be called with s.mu held.
-func (s *OrgService) wouldCreateCycle(personId, newManagerId string) bool {
-	current := newManagerId
-	visited := map[string]bool{personId: true}
-	for current != "" {
-		if visited[current] {
-			return true
-		}
-		visited[current] = true
-		_, p := s.findWorking(current)
-		if p == nil {
-			return false
-		}
-		current = p.ManagerId
-	}
-	return false
+	return findInSlice(s.working, id)
 }
 
 // MutationResult holds both working and recycled slices, returned atomically
@@ -224,6 +162,13 @@ type MutationResult struct {
 	Pods     []Pod
 }
 
+// deepCopyPeople returns an independent copy of src, including each person's
+// AdditionalTeams slice. This is the concurrency safety boundary: every value
+// returned from OrgService to a handler (or stored internally as a separate
+// generation, e.g. original vs working) MUST go through deepCopyPeople so
+// that in-place mutations on one slice never corrupt another. The struct
+// fields themselves are value types (strings, ints) and are copied by the
+// range loop; only slice fields (AdditionalTeams) need explicit cloning.
 func deepCopyPeople(src []Person) []Person {
 	dst := make([]Person, len(src))
 	for i, p := range src {

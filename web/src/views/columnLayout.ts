@@ -18,7 +18,10 @@ function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode
     teamToIdx.set(managers[i].person.team, i)
   }
 
-  // Build adjacency: two managers are linked if any IC's additionalTeams reference both
+  // Affinity graph construction:
+  // Two managers are "linked" if any IC lists both their teams in additionalTeams.
+  // This means the IC works across both teams, so keeping those managers adjacent
+  // in the layout reduces visual distance for cross-team relationships.
   const adj = new Map<number, Set<number>>()
   for (const ic of ics) {
     const teams = ic.person.additionalTeams || []
@@ -38,7 +41,12 @@ function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode
   // No cross-team links — keep original order
   if (adj.size === 0) return managers
 
-  // Walk in original order; when we hit an unvisited manager, BFS its component
+  // BFS walk: visit managers in their original order. When we reach an unvisited
+  // manager, BFS through its connected component (all managers linked by cross-team
+  // ICs). Sort each component by original index to maintain relative order, then
+  // emit the entire component before moving to the next unvisited manager.
+  // This clusters connected teams together while preserving original ordering
+  // within each cluster.
   const visited = new Set<number>()
   const result: OrgNode[] = []
 

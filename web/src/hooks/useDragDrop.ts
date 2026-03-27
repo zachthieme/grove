@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { useOrg } from '../store/OrgContext'
-import { TEAM_DROP_PREFIX, POD_DROP_PREFIX } from '../constants'
+import { parseTeamDropId, parsePodDropId } from '../utils/ids'
 
 export function useDragDrop() {
   const { move, reparent, selectedIds, pods } = useOrg()
@@ -18,23 +18,20 @@ export function useDragDrop() {
       ? [...selectedIds].filter((id) => id !== targetId)
       : [draggedId]
 
-    if (targetId.startsWith(TEAM_DROP_PREFIX)) {
-      const teamName = targetId.slice(TEAM_DROP_PREFIX.length)
+    const teamName = parseTeamDropId(targetId)
+    if (teamName !== null) {
       for (const id of idsToMove) {
         await move(id, '', teamName)
       }
       return
     }
 
-    if (targetId.startsWith(POD_DROP_PREFIX)) {
-      const rest = targetId.slice(POD_DROP_PREFIX.length)
-      const colonIdx = rest.indexOf(':')
-      const managerId = rest.slice(0, colonIdx)
-      const podName = rest.slice(colonIdx + 1)
-      const pod = pods.find((p) => p.managerId === managerId && p.name === podName)
-      const team = pod?.team ?? podName
+    const podDrop = parsePodDropId(targetId)
+    if (podDrop) {
+      const pod = pods.find((p) => p.managerId === podDrop.managerId && p.name === podDrop.podName)
+      const team = pod?.team ?? podDrop.podName
       for (const id of idsToMove) {
-        await move(id, managerId, team, undefined, podName)
+        await move(id, podDrop.managerId, team, undefined, podDrop.podName)
       }
       return
     }

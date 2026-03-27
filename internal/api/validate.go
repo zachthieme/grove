@@ -1,0 +1,132 @@
+package api
+
+import (
+	"errors"
+	"fmt"
+)
+
+// Error types for distinguishing HTTP status codes in handlers.
+type (
+	// ValidationError indicates invalid input data (422).
+	ValidationError struct{ msg string }
+	// NotFoundError indicates a requested resource doesn't exist (404).
+	NotFoundError struct{ msg string }
+	// ConflictError indicates a duplicate or conflicting state (409).
+	ConflictError struct{ msg string }
+)
+
+func (e *ValidationError) Error() string { return e.msg }
+func (e *NotFoundError) Error() string   { return e.msg }
+func (e *ConflictError) Error() string   { return e.msg }
+
+// Error constructors
+func errValidation(format string, args ...any) error { return &ValidationError{fmt.Sprintf(format, args...)} }
+func errNotFound(format string, args ...any) error   { return &NotFoundError{fmt.Sprintf(format, args...)} }
+func errConflict(format string, args ...any) error    { return &ConflictError{fmt.Sprintf(format, args...)} }
+
+// isNotFound checks if an error is a NotFoundError.
+func isNotFound(err error) bool {
+	var e *NotFoundError
+	return errors.As(err, &e)
+}
+
+// isConflict checks if an error is a ConflictError.
+func isConflict(err error) bool {
+	var e *ConflictError
+	return errors.As(err, &e)
+}
+
+// isValidation checks if an error is a ValidationError.
+func isValidation(err error) bool {
+	var e *ValidationError
+	return errors.As(err, &e)
+}
+
+const (
+	maxFieldLen = 500
+	maxNoteLen  = 2000
+)
+
+// validateFieldLengths checks that all string values in fields don't exceed maxFieldLen.
+func validateFieldLengths(fields map[string]string) error {
+	for _, v := range fields {
+		if len(v) > maxFieldLen {
+			return errValidation("field value too long (max %d characters)", maxFieldLen)
+		}
+	}
+	return nil
+}
+
+// validateNoteLen returns an error if the note value exceeds maxNoteLen.
+func validateNoteLen(value string) error {
+	if len(value) > maxNoteLen {
+		return errValidation("note too long (max %d characters)", maxNoteLen)
+	}
+	return nil
+}
+
+// findInSlice finds a person by ID in a people slice. Returns the index and a
+// pointer into the slice, or (-1, nil) if not found.
+func findInSlice(people []Person, id string) (int, *Person) {
+	for i := range people {
+		if people[i].Id == id {
+			return i, &people[i]
+		}
+	}
+	return -1, nil
+}
+
+// isFrontlineManager returns true if personId has direct reports but none of
+// those reports have reports of their own.
+func isFrontlineManager(working []Person, personId string) bool {
+	// Build set of IDs that have at least one direct report (O(n))
+	hasReports := make(map[string]bool, len(working)/4)
+	for _, p := range working {
+		if p.ManagerId != "" {
+			hasReports[p.ManagerId] = true
+		}
+	}
+	if !hasReports[personId] {
+		return false
+	}
+	// Check if any direct report is also a manager (O(n))
+	for _, p := range working {
+		if p.ManagerId == personId && hasReports[p.Id] {
+			return false // has a sub-manager → not front-line
+		}
+	}
+	return true
+}
+
+// validateManagerChange checks that setting person's manager to newManagerId is valid.
+func validateManagerChange(working []Person, personId, newManagerId string) error {
+	if newManagerId == personId {
+		return errValidation("a person cannot be their own manager")
+	}
+	if _, mgr := findInSlice(working, newManagerId); mgr == nil {
+		return errNotFound("manager %s not found", newManagerId)
+	}
+	if wouldCreateCycle(working, personId, newManagerId) {
+		return errValidation("this move would create a circular reporting chain")
+	}
+	return nil
+}
+
+// wouldCreateCycle checks if setting personId's manager to newManagerId
+// would create a cycle. This happens if newManagerId is a descendant of personId.
+func wouldCreateCycle(working []Person, personId, newManagerId string) bool {
+	current := newManagerId
+	visited := map[string]bool{personId: true}
+	for current != "" {
+		if visited[current] {
+			return true
+		}
+		visited[current] = true
+		_, p := findInSlice(working, current)
+		if p == nil {
+			return false
+		}
+		current = p.ManagerId
+	}
+	return false
+}

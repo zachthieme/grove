@@ -1,10 +1,6 @@
 package api
 
-import (
-	"fmt"
-
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 func (s *OrgService) ListPods() []PodInfo {
 	s.mu.RLock()
@@ -27,7 +23,7 @@ func (s *OrgService) UpdatePod(podID string, fields map[string]string) (*MoveRes
 	defer s.mu.Unlock()
 	pod := FindPodByID(s.pods, podID)
 	if pod == nil {
-		return nil, fmt.Errorf("pod %s not found", podID)
+		return nil, errNotFound("pod %s not found", podID)
 	}
 	for k, v := range fields {
 		switch k {
@@ -46,7 +42,7 @@ func (s *OrgService) UpdatePod(podID string, fields map[string]string) (*MoveRes
 			}
 			pod.PrivateNote = v
 		default:
-			return nil, fmt.Errorf("unknown pod field: %s", k)
+			return nil, errValidation("unknown pod field: %s", k)
 		}
 	}
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
@@ -57,7 +53,7 @@ func (s *OrgService) CreatePod(managerID, name, team string) (*MoveResult, error
 	defer s.mu.Unlock()
 	for _, p := range s.pods {
 		if p.ManagerId == managerID && p.Team == team {
-			return nil, fmt.Errorf("pod already exists for this manager and team")
+			return nil, errConflict("pod already exists for this manager and team")
 		}
 	}
 	pod := Pod{Id: uuid.NewString(), Name: name, Team: team, ManagerId: managerID}

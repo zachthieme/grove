@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"maps"
 
 	"github.com/zachthieme/grove/internal/parser"
 )
@@ -28,18 +27,11 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 			return nil, fmt.Errorf("building org: %w", err)
 		}
 		people := ConvertOrg(org)
-		s.snapshots = nil
 		var persistWarn string
-		if err := s.snapshotStore.Delete(); err != nil {
+		if err := s.snaps.DeleteStore(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
-		s.original = people
-		s.working = deepCopyPeople(people)
-		s.recycled = nil
-		s.pods = SeedPods(s.working)
-		s.originalPods = CopyPods(s.pods)
-		// Seed original people's pod fields too
-		_ = SeedPods(s.original)
+		s.resetState(people, people, nil)
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		return &UploadResponse{
 			Status:             "ready",
@@ -49,8 +41,6 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 	}
 
 	// Required field (name) not matched with high confidence — hold as pending.
-	// Don't clear snapshots yet — user may cancel the mapping dialog.
-	// Snapshots are cleared when the mapping is confirmed in ConfirmMapping.
 	s.pending = &PendingUpload{File: data, Filename: filename}
 	preview := [][]string{header}
 	for i, row := range dataRows {
@@ -85,13 +75,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 			s.mu.Unlock()
 			return nil, fmt.Errorf("parsing pending zip: %w", err)
 		}
-		s.original = orig
-		s.working = deepCopyPeople(work)
-		s.recycled = nil
-		s.snapshots = snaps
-		s.pods = SeedPods(s.working)
-		s.originalPods = CopyPods(s.pods)
-		_ = SeedPods(s.original)
+		s.resetState(orig, work, snaps)
 
 		if podsSidecar != nil {
 			sidecarEntries := parsePodsSidecar(podsSidecar)
@@ -109,18 +93,17 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 			}
 		}
 
-		snapCopy := make(map[string]snapshotData, len(s.snapshots))
-		maps.Copy(snapCopy, s.snapshots)
+		snapCopy := s.snaps.CopyAll()
 		s.pending = nil
 		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 		s.mu.Unlock()
 
 		// Disk I/O outside the lock
 		var persistWarn string
-		if err := s.snapshotStore.Delete(); err != nil {
+		if err := s.snaps.DeleteStore(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
-		if err := s.snapshotStore.Write(snapCopy); err != nil {
+		if err := s.snaps.PersistCopy(snapCopy); err != nil {
 			msg := fmt.Sprintf("snapshot persist error: %v", err)
 			if persistWarn != "" {
 				persistWarn += "; " + msg
@@ -145,13 +128,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	}
 
 	people := ConvertOrg(org)
-	s.original = people
-	s.working = deepCopyPeople(people)
-	s.recycled = nil
-	s.snapshots = nil
-	s.pods = SeedPods(s.working)
-	s.originalPods = CopyPods(s.pods)
-	_ = SeedPods(s.original)
+	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	s.pending = nil
 	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
@@ -159,7 +136,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 
 	// Disk I/O outside the lock
 	var persistWarn string
-	if err := s.snapshotStore.Delete(); err != nil {
+	if err := s.snaps.DeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	resp.PersistenceWarning = persistWarn

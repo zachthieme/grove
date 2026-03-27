@@ -119,22 +119,12 @@ func handleUploadZip(svc *OrgService) http.HandlerFunc {
 }
 
 func handleConfirmMapping(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			Mapping map[string]string `json:"mapping"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		orgData, err := svc.ConfirmMapping(req.Mapping)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, orgData)
+	type req struct {
+		Mapping map[string]string `json:"mapping"`
 	}
+	return jsonHandler(func(r req) (*OrgData, error) {
+		return svc.ConfirmMapping(r.Mapping)
+	})
 }
 
 func handleGetOrg(svc *OrgService) http.HandlerFunc {
@@ -149,102 +139,63 @@ func handleGetOrg(svc *OrgService) http.HandlerFunc {
 }
 
 func handleRestoreState(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var data AutosaveData
-		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
+	return jsonHandler(func(data AutosaveData) (map[string]string, error) {
 		svc.RestoreState(data)
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	}
+		return map[string]string{"status": "ok"}, nil
+	})
 }
 
 func handleMove(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			PersonId     string `json:"personId"`
-			NewManagerId string `json:"newManagerId"`
-			NewTeam      string `json:"newTeam"`
-			NewPod       string `json:"newPod"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.Move(req.PersonId, req.NewManagerId, req.NewTeam, req.NewPod)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	type req struct {
+		PersonId     string `json:"personId"`
+		NewManagerId string `json:"newManagerId"`
+		NewTeam      string `json:"newTeam"`
+		NewPod       string `json:"newPod"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.Move(r.PersonId, r.NewManagerId, r.NewTeam, r.NewPod)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+	})
 }
 
 func handleUpdate(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			PersonId string            `json:"personId"`
-			Fields   map[string]string `json:"fields"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.Update(req.PersonId, req.Fields)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	type req struct {
+		PersonId string            `json:"personId"`
+		Fields   map[string]string `json:"fields"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.Update(r.PersonId, r.Fields)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+	})
 }
 
 func handleAdd(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var p Person
-		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
+	return jsonHandler(func(p Person) (map[string]any, error) {
 		created, working, pods, err := svc.Add(p)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
+			return nil, err
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"created": created,
-			"working": working,
-			"pods":    pods,
-		})
-	}
+		return map[string]any{"created": created, "working": working, "pods": pods}, nil
+	})
 }
 
 func handleDelete(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			PersonId string `json:"personId"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.Delete(req.PersonId)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"working":  result.Working,
-			"recycled": result.Recycled,
-			"pods":     result.Pods,
-		})
+	type req struct {
+		PersonId string `json:"personId"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.Delete(r.PersonId)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "recycled": result.Recycled, "pods": result.Pods}, nil
+	})
 }
 
 func handleGetRecycled(svc *OrgService) http.HandlerFunc {
@@ -254,26 +205,16 @@ func handleGetRecycled(svc *OrgService) http.HandlerFunc {
 }
 
 func handleRestore(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			PersonId string `json:"personId"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.Restore(req.PersonId)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"working":  result.Working,
-			"recycled": result.Recycled,
-			"pods":     result.Pods,
-		})
+	type req struct {
+		PersonId string `json:"personId"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.Restore(r.PersonId)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "recycled": result.Recycled, "pods": result.Pods}, nil
+	})
 }
 
 func handleEmptyBin(svc *OrgService) http.HandlerFunc {
@@ -403,58 +344,36 @@ func handleListSnapshots(svc *OrgService) http.HandlerFunc {
 }
 
 func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			Name string `json:"name"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		if err := svc.SaveSnapshot(req.Name); err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, svc.ListSnapshots())
+	type req struct {
+		Name string `json:"name"`
 	}
+	return jsonHandler(func(r req) ([]SnapshotInfo, error) {
+		if err := svc.SaveSnapshot(r.Name); err != nil {
+			return nil, err
+		}
+		return svc.ListSnapshots(), nil
+	})
 }
 
 func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			Name string `json:"name"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		orgData, err := svc.LoadSnapshot(req.Name)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, orgData)
+	type req struct {
+		Name string `json:"name"`
 	}
+	return jsonHandler(func(r req) (*OrgData, error) {
+		return svc.LoadSnapshot(r.Name)
+	})
 }
 
 func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			Name string `json:"name"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		if err := svc.DeleteSnapshot(req.Name); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, svc.ListSnapshots())
+	type req struct {
+		Name string `json:"name"`
 	}
+	return jsonHandler(func(r req) ([]SnapshotInfo, error) {
+		if err := svc.DeleteSnapshot(r.Name); err != nil {
+			return nil, err
+		}
+		return svc.ListSnapshots(), nil
+	})
 }
 
 func handleListPods(svc *OrgService) http.HandlerFunc {
@@ -464,44 +383,32 @@ func handleListPods(svc *OrgService) http.HandlerFunc {
 }
 
 func handleUpdatePod(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			PodId  string            `json:"podId"`
-			Fields map[string]string `json:"fields"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.UpdatePod(req.PodId, req.Fields)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	type req struct {
+		PodId  string            `json:"podId"`
+		Fields map[string]string `json:"fields"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.UpdatePod(r.PodId, r.Fields)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+	})
 }
 
 func handleCreatePod(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			ManagerId string `json:"managerId"`
-			Name      string `json:"name"`
-			Team      string `json:"team"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.CreatePod(req.ManagerId, req.Name, req.Team)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	type req struct {
+		ManagerId string `json:"managerId"`
+		Name      string `json:"name"`
+		Team      string `json:"team"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.CreatePod(r.ManagerId, r.Name, r.Team)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+	})
 }
 
 func handleReset(svc *OrgService) http.HandlerFunc {
@@ -513,22 +420,16 @@ func handleReset(svc *OrgService) http.HandlerFunc {
 }
 
 func handleReorder(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var req struct {
-			PersonIds []string `json:"personIds"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result, err := svc.Reorder(req.PersonIds)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"working": result.Working, "pods": result.Pods})
+	type req struct {
+		PersonIds []string `json:"personIds"`
 	}
+	return jsonHandler(func(r req) (map[string]any, error) {
+		result, err := svc.Reorder(r.PersonIds)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+	})
 }
 
 func handleGetSettings(svc *OrgService) http.HandlerFunc {
@@ -538,16 +439,9 @@ func handleGetSettings(svc *OrgService) http.HandlerFunc {
 }
 
 func handleUpdateSettings(svc *OrgService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limitBody(w, r)
-		var settings Settings
-		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid JSON")
-			return
-		}
-		result := svc.UpdateSettings(settings)
-		writeJSON(w, http.StatusOK, result)
-	}
+	return jsonHandler(func(settings Settings) (Settings, error) {
+		return svc.UpdateSettings(settings), nil
+	})
 }
 
 func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
@@ -568,6 +462,25 @@ func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
 	}
 }
 
+// jsonHandler creates a handler that decodes JSON, calls fn, and writes the result.
+// For handlers that follow the decode → call → respond pattern.
+func jsonHandler[Req any, Resp any](fn func(Req) (Resp, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitBody(w, r)
+		var req Req
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		resp, err := fn(req)
+		if err != nil {
+			serviceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -581,6 +494,20 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(map[string]string{"error": msg}); err != nil {
 		log.Printf("writeError encode error: %v", err)
+	}
+}
+
+// serviceError maps typed service errors to the appropriate HTTP status code.
+func serviceError(w http.ResponseWriter, err error) {
+	switch {
+	case isNotFound(err):
+		writeError(w, http.StatusNotFound, err.Error())
+	case isConflict(err):
+		writeError(w, http.StatusConflict, err.Error())
+	case isValidation(err):
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+	default:
+		writeError(w, http.StatusBadRequest, err.Error())
 	}
 }
 

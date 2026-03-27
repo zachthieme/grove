@@ -46,15 +46,17 @@ Single Go binary serving a React SPA via `go:embed`.
 ### Go Backend (`internal/`)
 
 - `internal/api/model.go` — API types: `Person` (with UUID `Id`, `ManagerId`), `OrgData`, `UploadResponse` (with optional `Snapshots`), `SnapshotInfo`, `AutosaveData`, `MappedColumn`, `PendingUpload`
-- `internal/api/service.go` — `OrgService` struct definition, constructor, state queries (`GetOrg`, `GetWorking`, `GetRecycled`, `ResetToOriginal`, `RestoreState`), and shared helpers
+- `internal/api/service.go` — `OrgService` struct definition, constructor, state queries (`GetOrg`, `GetWorking`, `GetRecycled`, `ResetToOriginal`, `RestoreState`), and shared helpers. Delegates snapshots to `SnapshotManager`.
+- `internal/api/validate.go` — All validation: `validateFieldLengths`, `validateNoteLen`, `validateManagerChange`, `wouldCreateCycle`, `findInSlice`, `isFrontlineManager`. Also defines typed errors (`ValidationError`, `NotFoundError`, `ConflictError`) for proper HTTP status mapping.
+- `internal/api/snapshot_manager.go` — `SnapshotManager` struct: owns snapshot map + `SnapshotStore`. NOT thread-safe — called under `OrgService.mu`. Constants: `SnapshotWorking`, `SnapshotOriginal`, `SnapshotExportTemp`.
 - `internal/api/service_import.go` — Upload/import methods: `Upload`, `ConfirmMapping`
 - `internal/api/service_people.go` — People mutation methods: `Move`, `Update`, `Add`, `Delete`, `Restore`, `EmptyBin`, `Reorder`
 - `internal/api/service_pods.go` — Pod methods: `ListPods`, `UpdatePod`, `CreatePod`
 - `internal/api/service_settings.go` — Settings methods: `GetSettings`, `UpdateSettings`
-- `internal/api/snapshots.go` — Named snapshot save/load/delete/list/export on OrgService. `ExportSnapshot` is read-only (no state mutation).
+- `internal/api/snapshots.go` — Thin wrappers on OrgService that coordinate locking and delegate to `SnapshotManager`.
 - `internal/api/snapshot_store.go` — File persistence for snapshots to `~/.grove/snapshots.json`
 - `internal/api/zipimport.go` — ZIP upload: `parseZipFileList`, `parseZipEntries`, `UploadZip`. Numeric prefix convention (0=original, 1=working, 2+=snapshots).
-- `internal/api/handlers.go` — HTTP handlers and router (`NewRouter`). REST API at `/api/*`. All JSON mutation handlers use `limitBody` for 1MB request size limit.
+- `internal/api/handlers.go` — HTTP handlers and router (`NewRouter`). REST API at `/api/*`. Uses `serviceError()` to map typed errors to HTTP status codes (404, 409, 422). Generic `jsonHandler[Req, Resp]` eliminates boilerplate for decode→call→respond handlers.
 - `internal/api/autosave.go` — File persistence to `~/.grove/autosave.json`
 - `internal/api/infer.go` — Column inference: `InferMapping` (exact/synonym/fuzzy matching), `AllRequiredHigh` (only `name` is required)
 - `internal/api/convert.go` — Converts `model.Org` to API `[]Person` with UUIDs
@@ -70,6 +72,9 @@ Single Go binary serving a React SPA via `go:embed`.
 - `web/src/store/SelectionContext.tsx` — Selection state provider: selected IDs, pod selection
 - `web/src/store/orgTypes.ts` — Type definitions: `OrgContextValue`, `OrgDataContextValue`, `UIContextValue`, `SelectionContextValue`
 - `web/src/store/useDirtyTracking.ts` — beforeunload guard and dirty state tracking
+- `web/src/views/ChartContext.tsx` — `ChartProvider` / `useChart()`: shared context for tree-view callbacks and state, consumed by recursive subtree components to avoid prop drilling
+- `web/src/views/DragBadgeOverlay.tsx` — Shared drag overlay with multi-select badge, used by ColumnView and ManagerView
+- `web/src/views/LassoSvgOverlay.tsx` — Shared SVG overlay for lasso selection rect and edge lines
 - `web/src/views/ColumnView.tsx` — Detail view: recursive tree with managers horizontal, ICs stacked vertical
 - `web/src/views/ManagerView.tsx` — Manager-only view: managers as nodes, ICs as summary cards
 - `web/src/views/shared.tsx` — Shared `DraggableNode`, `OrgNode`, `buildOrgTree`
@@ -79,6 +84,7 @@ Single Go binary serving a React SPA via `go:embed`.
 - `web/src/components/ColumnMappingModal.tsx` — Column mapping UI for non-standard CSV headers
 - `web/src/hooks/` — `useOrgDiff`, `useIsManager`, `useOrgMetrics`, `useDragDrop`, `useAutosave`, `useExport`, `useSnapshotExport`
 - `web/src/utils/snapshotExportUtils.ts` — Filename sanitization and deduplication for ZIP export
+- `web/src/utils/ids.ts` — Drop-target ID construction/parsing: `buildTeamDropId`, `parseTeamDropId`, `buildPodDropId`, `parsePodDropId`
 
 ### Build
 

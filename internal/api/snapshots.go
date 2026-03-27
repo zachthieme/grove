@@ -1,43 +1,16 @@
 package api
 
-import (
-	"fmt"
-	"maps"
-	"sort"
-	"time"
-)
-
-type snapshotData struct {
-	People    []Person
-	Pods      []Pod
-	Settings  Settings
-	Timestamp time.Time
-}
-
-var reservedSnapshotNames = map[string]bool{
-	"__working__":  true,
-	"__original__": true,
-}
+import "fmt"
 
 func (s *OrgService) SaveSnapshot(name string) error {
-	if reservedSnapshotNames[name] {
-		return fmt.Errorf("snapshot name %q is reserved", name)
-	}
 	s.mu.Lock()
-	if s.snapshots == nil {
-		s.snapshots = make(map[string]snapshotData)
-	}
-	s.snapshots[name] = snapshotData{
-		People:    deepCopyPeople(s.working),
-		Pods:      CopyPods(s.pods),
-		Settings:  s.settings,
-		Timestamp: time.Now(),
-	}
-	// Copy snapshot data for persistence outside the lock
-	snapCopy := make(map[string]snapshotData, len(s.snapshots))
-	maps.Copy(snapCopy, s.snapshots)
+	err := s.snaps.Save(name, s.working, s.pods, s.settings)
+	snapCopy := s.snaps.CopyAll()
 	s.mu.Unlock()
-	if err := s.snapshotStore.Write(snapCopy); err != nil {
+	if err != nil {
+		return err
+	}
+	if err := s.snaps.PersistCopy(snapCopy); err != nil {
 		return fmt.Errorf("persisting snapshot: %w", err)
 	}
 	return nil
@@ -47,13 +20,13 @@ func (s *OrgService) ExportSnapshot(name string) ([]Person, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	switch name {
-	case "__working__":
+	case SnapshotWorking:
 		return deepCopyPeople(s.working), nil
-	case "__original__":
+	case SnapshotOriginal:
 		return deepCopyPeople(s.original), nil
 	default:
-		snap, ok := s.snapshots[name]
-		if !ok {
+		snap := s.snaps.Get(name)
+		if snap == nil {
 			return nil, fmt.Errorf("snapshot '%s' not found", name)
 		}
 		return deepCopyPeople(snap.People), nil
@@ -63,9 +36,9 @@ func (s *OrgService) ExportSnapshot(name string) ([]Person, error) {
 func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap, ok := s.snapshots[name]
-	if !ok {
-		return nil, fmt.Errorf("snapshot '%s' not found", name)
+	snap, err := s.snaps.Load(name)
+	if err != nil {
+		return nil, err
 	}
 	s.working = deepCopyPeople(snap.People)
 	if snap.Pods != nil {
@@ -84,11 +57,10 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 
 func (s *OrgService) DeleteSnapshot(name string) error {
 	s.mu.Lock()
-	delete(s.snapshots, name)
-	snapCopy := make(map[string]snapshotData, len(s.snapshots))
-	maps.Copy(snapCopy, s.snapshots)
+	s.snaps.Delete(name)
+	snapCopy := s.snaps.CopyAll()
 	s.mu.Unlock()
-	if err := s.snapshotStore.Write(snapCopy); err != nil {
+	if err := s.snaps.PersistCopy(snapCopy); err != nil {
 		return fmt.Errorf("persisting snapshot deletion: %w", err)
 	}
 	return nil
@@ -97,24 +69,11 @@ func (s *OrgService) DeleteSnapshot(name string) error {
 // ListSnapshotsUnlocked returns snapshot info without acquiring the lock.
 // Must be called with s.mu held.
 func (s *OrgService) ListSnapshotsUnlocked() []SnapshotInfo {
-	list := make([]SnapshotInfo, 0)
-	for name, snap := range s.snapshots {
-		if name == "__export_temp__" {
-			continue
-		}
-		list = append(list, SnapshotInfo{
-			Name:      name,
-			Timestamp: snap.Timestamp.Format(time.RFC3339Nano),
-		})
-	}
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Timestamp > list[j].Timestamp
-	})
-	return list
+	return s.snaps.List()
 }
 
 func (s *OrgService) ListSnapshots() []SnapshotInfo {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.ListSnapshotsUnlocked()
+	return s.snaps.List()
 }

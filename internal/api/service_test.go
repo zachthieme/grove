@@ -874,7 +874,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 
 	t.Run("returns working for __working__", func(t *testing.T) {
 		t.Parallel()
-		people, err := svc.ExportSnapshot("__working__")
+		people, err := svc.ExportSnapshot(SnapshotWorking)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -885,7 +885,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 
 	t.Run("returns original for __original__", func(t *testing.T) {
 		t.Parallel()
-		people, err := svc.ExportSnapshot("__original__")
+		people, err := svc.ExportSnapshot(SnapshotOriginal)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -928,7 +928,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	for _, name := range []string{"__working__", "__original__"} {
+	for _, name := range []string{SnapshotWorking, SnapshotOriginal} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			err := svc.SaveSnapshot(name)
@@ -1166,7 +1166,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 		t.Parallel()
 		// Bob has Carol (IC only) -> frontline manager
 		svc.mu.RLock()
-		result := svc.isFrontlineManager(bob.Id)
+		result := isFrontlineManager(svc.working, bob.Id)
 		svc.mu.RUnlock()
 		if !result {
 			t.Error("expected Bob to be a frontline manager")
@@ -1177,7 +1177,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 		t.Parallel()
 		// Alice has Bob (who has reports) and Dave -> not frontline
 		svc.mu.RLock()
-		result := svc.isFrontlineManager(alice.Id)
+		result := isFrontlineManager(svc.working, alice.Id)
 		svc.mu.RUnlock()
 		if result {
 			t.Error("expected Alice to NOT be a frontline manager")
@@ -1188,7 +1188,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 		t.Parallel()
 		// Carol has no reports -> not frontline
 		svc.mu.RLock()
-		result := svc.isFrontlineManager(carol.Id)
+		result := isFrontlineManager(svc.working, carol.Id)
 		svc.mu.RUnlock()
 		if result {
 			t.Error("expected Carol to NOT be a frontline manager")
@@ -1198,7 +1198,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	t.Run("IC with no reports is not frontline", func(t *testing.T) {
 		t.Parallel()
 		svc.mu.RLock()
-		result := svc.isFrontlineManager(dave.Id)
+		result := isFrontlineManager(svc.working, dave.Id)
 		svc.mu.RUnlock()
 		if result {
 			t.Error("expected Dave to NOT be a frontline manager")

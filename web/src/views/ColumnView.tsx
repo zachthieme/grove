@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, type ReactNode } from 'react'
-import { DndContext, DragOverlay, useDroppable } from '@dnd-kit/core'
+import { DndContext, useDroppable } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useChartLayout } from '../hooks/useChartLayout'
@@ -8,7 +8,10 @@ import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
 import { OrphanGroup } from './OrphanGroup'
 import { computeEdges } from './columnEdges'
 import { computeRenderItems } from './columnLayout'
-import PersonNode from '../components/PersonNode'
+import { buildPodDropId } from '../utils/ids'
+import { ChartProvider, useChart } from './ChartContext'
+import { DragBadgeOverlay } from './DragBadgeOverlay'
+import { LassoSvgOverlay } from './LassoSvgOverlay'
 import NodeActions from '../components/NodeActions'
 import styles from './ColumnView.module.css'
 
@@ -99,36 +102,21 @@ function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeR
   )
 }
 
-function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect }: {
-  node: OrgNode
-  selectedIds: Set<string>
-  onSelect: (id: string, event?: React.MouseEvent) => void
-  changes?: Map<string, PersonChange>
-  setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
-  managerSet?: Set<string>
-  pods?: Pod[]
-  onAddReport?: (id: string) => void
-  onAddToTeam?: (parentId: string, team: string, podName?: string) => void
-  onDeletePerson?: (id: string) => void
-  onInfo?: (id: string) => void
-  onFocus?: (id: string) => void
-  onPodSelect?: (podId: string) => void
-}) {
+function SubtreeNode({ node }: { node: OrgNode }) {
+  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
   const renderItems = useMemo(() => computeRenderItems(managers, ics), [managers, ics])
 
-  // Check if all render items are ICs (no managers) — use vertical stack
   const allICs = managers.length === 0
 
-  // Look up pod by (managerId, podName)
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
 
   const renderPodHeader = useCallback((managerId: string, podName: string, memberCount: number) => {
     const pod = findPod(managerId, podName)
-    const podNodeId = `pod:${managerId}:${podName}`
+    const podNodeId = buildPodDropId(managerId, podName)
     return (
       <PodHeaderNode
         podName={podName}
@@ -159,10 +147,8 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
     </div>
   ), [selectedIds, changes, managerSet, onAddReport, onDeletePerson, onInfo, onFocus, onSelect, setNodeRef])
 
-  // Compute IC pod list elements (when all children are ICs — no managers)
   const icPodListElements = useMemo((): ReactNode => {
     if (!allICs) return null
-    // Split ICs into podded (grouped under pod headers) and unpodded (flat list)
     const unpodded: OrgNode[] = []
     const podOrder: string[] = []
     const podMap = new Map<string, OrgNode[]>()
@@ -181,7 +167,6 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
     podOrder.sort((a, b) => a.localeCompare(b))
     const hasPods = podOrder.length > 0
     if (!hasPods) {
-      // No pods at all — simple flat list
       return (
         <div className={styles.icStack}>
           {ics.map((child) => renderIC(child))}
@@ -214,11 +199,8 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
     )
   }, [allICs, ics, node.person.id, renderPodHeader, renderIC])
 
-  // Compute mixed children elements (managers + ICs interleaved via renderItems)
   const mixedChildrenElements = useMemo((): ReactNode[] => {
     if (allICs) return []
-    // ICs with additionalTeams are cross-team connectors — render individually (horizontal).
-    // ICs on a single team — batch into vertical stacks.
     const elements: ReactNode[] = []
     let icBatch: OrgNode[] = []
 
@@ -247,22 +229,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
         flushIcBatch()
         if (item.type === 'manager') {
           elements.push(
-            <SubtreeNode
-              key={item.node.person.id}
-              node={item.node}
-              selectedIds={selectedIds}
-              onSelect={onSelect}
-              changes={changes}
-              setNodeRef={setNodeRef}
-              managerSet={managerSet}
-              pods={pods}
-              onAddReport={onAddReport}
-              onAddToTeam={onAddToTeam}
-              onDeletePerson={onDeletePerson}
-              onInfo={onInfo}
-              onFocus={onFocus}
-              onPodSelect={onPodSelect}
-            />
+            <SubtreeNode key={item.node.person.id} node={item.node} />
           )
         } else if (item.type === 'icGroup') {
           elements.push(
@@ -282,7 +249,7 @@ function SubtreeNode({ node, selectedIds, onSelect, changes, setNodeRef, manager
     }
     flushIcBatch()
     return elements
-  }, [allICs, renderItems, renderIC, renderPodHeader, node.person.id, selectedIds, onSelect, changes, setNodeRef, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect])
+  }, [allICs, renderItems, renderIC, renderPodHeader, node.person.id])
 
   return (
     <div className={styles.subtree}>
@@ -330,111 +297,44 @@ export default function ColumnView({ people, selectedIds, onSelect, onBatchSelec
 
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
+  const chartValue = useMemo(() => ({
+    selectedIds, changes, managerSet, pods,
+    onSelect, onBatchSelect, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect,
+    setNodeRef,
+  }), [selectedIds, changes, managerSet, pods, onSelect, onBatchSelect, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef])
+
   if (people.length === 0 && ghostPeople.length === 0) {
     return <div className={styles.container}>No people to display.</div>
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={styles.container} ref={containerRef} data-role="chart-container">
-        <svg className={styles.svgOverlay} style={lassoRect ? { pointerEvents: 'none', zIndex: 10 } : undefined}>
-          {lassoRect && (
-            <rect
-              x={lassoRect.x}
-              y={lassoRect.y}
-              width={lassoRect.width}
-              height={lassoRect.height}
-              fill="rgba(74, 156, 63, 0.08)"
-              stroke="var(--grove-green, #4a9c3f)"
-              strokeWidth={1}
-              strokeDasharray="4 2"
-            />
-          )}
-          {lines.map((l, i) => {
-            if (l.dashed) {
-              const lowerY = Math.max(l.y1, l.y2)
-              const midY = lowerY + 15
-              return (
-                <path
-                  key={i}
-                  d={`M ${l.x1} ${l.y1} L ${l.x1} ${midY} L ${l.x2} ${midY} L ${l.x2} ${l.y2}`}
-                  fill="none"
-                  stroke="var(--grove-sage, #9cad8f)"
-                  strokeWidth={1.2}
-                  strokeDasharray="5 4"
-                  opacity={0.6}
-                />
-              )
-            }
-            return (
-              <path
-                key={i}
-                d={`M ${l.x1} ${l.y1} C ${l.x1} ${(l.y1 + l.y2) / 2}, ${l.x2} ${(l.y1 + l.y2) / 2}, ${l.x2} ${l.y2}`}
-                fill="none"
-                stroke="#b5a898"
-                strokeWidth={1.5}
-              />
-            )
-          })}
-        </svg>
-        <div className={styles.forest} data-role="forest">
-          {roots.filter((r) => r.children.length > 0).map((root) => (
-            <SubtreeNode
-              key={root.person.id}
-              node={root}
+    <ChartProvider value={chartValue}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className={styles.container} ref={containerRef} data-role="chart-container">
+          <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} dashedEdges />
+          <div className={styles.forest} data-role="forest">
+            {roots.filter((r) => r.children.length > 0).map((root) => (
+              <SubtreeNode key={root.person.id} node={root} />
+            ))}
+            <OrphanGroup
+              orphans={roots.filter((r) => r.children.length === 0)}
+              roots={roots}
               selectedIds={selectedIds}
               onSelect={onSelect}
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
-              pods={pods}
               onAddReport={onAddReport}
-              onAddToTeam={onAddToTeam}
               onDeletePerson={onDeletePerson}
               onInfo={onInfo}
-              onFocus={onFocus}
-              onPodSelect={onPodSelect}
+              styles={styles}
+              renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
+              renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}
             />
-          ))}
-          <OrphanGroup
-            orphans={roots.filter((r) => r.children.length === 0)}
-            roots={roots}
-            selectedIds={selectedIds}
-            onSelect={onSelect}
-            changes={changes}
-            setNodeRef={setNodeRef}
-            managerSet={managerSet}
-            onAddReport={onAddReport}
-            onDeletePerson={onDeletePerson}
-            onInfo={onInfo}
-            styles={styles}
-            renderSubtree={(node) => (
-              <SubtreeNode key={node.person.id} node={node} selectedIds={selectedIds} onSelect={onSelect}
-                changes={changes} setNodeRef={setNodeRef} managerSet={managerSet} pods={pods}
-                onAddReport={onAddReport} onAddToTeam={onAddToTeam} onDeletePerson={onDeletePerson}
-                onInfo={onInfo} onFocus={onFocus} onPodSelect={onPodSelect} />
-            )}
-            renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}
-          />
-        </div>
-      </div>
-      <DragOverlay dropAnimation={null}>
-        {draggedPerson && (
-          <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none', position: 'relative' }}>
-            <PersonNode person={draggedPerson} selected={false} />
-            {selectedIds.has(draggedPerson.id) && selectedIds.size > 1 && (
-              <div style={{
-                position: 'absolute', top: -8, right: -8,
-                background: 'var(--grove-green)', color: '#fff', borderRadius: '50%',
-                width: 20, height: 20, fontSize: 11, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {selectedIds.size}
-              </div>
-            )}
           </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+        </div>
+        <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selectedIds} />
+      </DndContext>
+    </ChartProvider>
   )
 }
