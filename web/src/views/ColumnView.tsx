@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react'
 import { DndContext, useDroppable } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
@@ -283,6 +283,14 @@ export default function ColumnView({ people, selectedIds, onSelect, onBatchSelec
   const edges = useMemo(() => computeEdges(people), [people])
 
   const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
+
+  // Auto-scroll to keep selected node visible (e.g. when sidebar opens and shrinks the chart)
+  useEffect(() => {
+    if (selectedIds.size !== 1) return
+    const id = [...selectedIds][0]
+    const el = nodeRefs.current.get(id)
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [selectedIds, nodeRefs])
 
   const handleLassoSelect = useCallback((ids: Set<string>) => {
     onBatchSelect?.(ids)
