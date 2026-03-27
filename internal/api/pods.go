@@ -48,16 +48,16 @@ func SeedPods(people []Person) []Pod {
 // A person is a member of a pod if their ManagerId matches the pod's ManagerId
 // AND their Pod field matches the pod's Name.
 func CleanupEmptyPods(pods []Pod, people []Person) []Pod {
+	// Build O(n) membership set: "managerId:podName" → true
+	members := make(map[string]bool, len(people)/4)
+	for _, p := range people {
+		if p.ManagerId != "" && p.Pod != "" {
+			members[p.ManagerId+":"+p.Pod] = true
+		}
+	}
 	var result []Pod
 	for _, pod := range pods {
-		hasMember := false
-		for _, p := range people {
-			if p.ManagerId == pod.ManagerId && p.Pod == pod.Name {
-				hasMember = true
-				break
-			}
-		}
-		if hasMember {
+		if members[pod.ManagerId+":"+pod.Name] {
 			result = append(result, pod)
 		}
 	}

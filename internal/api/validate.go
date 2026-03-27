@@ -157,3 +157,20 @@ func validateSettings(s *Settings) error {
 	}
 	return nil
 }
+
+// mergeWarnings combines a base warning string with additional warning slices,
+// joining all non-empty parts with "; ".
+func mergeWarnings(base string, extras ...[]string) string {
+	parts := make([]string, 0, 4)
+	if base != "" {
+		parts = append(parts, base)
+	}
+	for _, ws := range extras {
+		for _, w := range ws {
+			if w != "" {
+				parts = append(parts, w)
+			}
+		}
+	}
+	return strings.Join(parts, "; ")
+}

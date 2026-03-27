@@ -112,11 +112,8 @@ func (s *OrgService) Reorder(personIds []string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for i, id := range personIds {
-		for j := range s.working {
-			if s.working[j].Id == id {
-				s.working[j].SortIndex = i
-				break
-			}
+		if idx, ok := s.idIndex[id]; ok && idx < len(s.working) && s.working[idx].Id == id {
+			s.working[idx].SortIndex = i
 		}
 	}
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil

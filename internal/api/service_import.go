@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/zachthieme/grove/internal/parser"
 )
@@ -145,27 +144,13 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 	s.mu.Unlock()
 
 	// Disk I/O outside the lock
-	var persistWarn string
+	var diskWarns []string
 	if err := s.snaps.DeleteStore(); err != nil {
-		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+		diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
 	}
 	if err := s.snaps.PersistCopy(snapCopy); err != nil {
-		msg := fmt.Sprintf("snapshot persist error: %v", err)
-		if persistWarn != "" {
-			persistWarn += "; " + msg
-		} else {
-			persistWarn = msg
-		}
+		diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
 	}
-	allWarns := append(fileWarns, parseWarns...)
-	if len(allWarns) > 0 {
-		warnMsg := strings.Join(allWarns, "; ")
-		if persistWarn != "" {
-			persistWarn += "; " + warnMsg
-		} else {
-			persistWarn = warnMsg
-		}
-	}
-	resp.PersistenceWarning = persistWarn
+	resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
 	return resp, nil
 }

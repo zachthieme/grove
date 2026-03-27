@@ -77,26 +77,26 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
           const serverAutosave = await api.readAutosave()
           if (serverAutosave) {
             setState((s) => ({ ...s, autosaveAvailable: serverAutosave }))
-            return
+            // Still load org data in background so dismiss has data to fall back to
           }
         } catch { /* ignore */ }
-      } else {
-        // We found a local autosave — still need to load org data in the background
-        // so if the user dismisses, the app has data. But we show the banner first.
-        return
       }
+      // else: local autosave found — banner will show, but we still load org data
+      // in the background so if the user dismisses, the app has data.
 
-      // No autosave — load org data normally
+      // Load org data (whether or not autosave was found)
       try {
         const data = await api.getOrg()
         if (data) {
+          // Only set loaded if no autosave banner is showing — otherwise the
+          // banner handles the loaded transition via restoreAutosave/dismissAutosave
           setState((s) => ({
             ...s,
             original: data.original,
             working: data.working,
             pods: data.pods ?? [],
             settings: data.settings ?? { disciplineOrder: [] },
-            loaded: true,
+            loaded: s.autosaveAvailable ? s.loaded : true,
           }))
         }
       } catch { /* No existing data — stay in upload state */ }

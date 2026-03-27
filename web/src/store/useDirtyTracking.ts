@@ -20,17 +20,28 @@ import { useEffect, useRef } from 'react'
 export function useDirtyTracking(loaded: boolean, working: unknown[]) {
   const isDirtyRef = useRef(false)
   const initialWorkingRef = useRef<unknown[] | null>(null)
+  const prevLengthRef = useRef<number>(0)
 
   // Capture the initial working state on first load
   useEffect(() => {
     if (loaded && initialWorkingRef.current === null) {
       initialWorkingRef.current = working
+      prevLengthRef.current = working.length
     }
     if (!loaded) {
       isDirtyRef.current = false
       initialWorkingRef.current = null
+      prevLengthRef.current = 0
     }
   }, [loaded, working])
+
+  // Dev-mode guard: detect in-place mutation (length changed without reference change)
+  if (import.meta.env.DEV && loaded && initialWorkingRef.current === working && working.length !== prevLengthRef.current) {
+    console.error('useDirtyTracking: working array was mutated in-place (length changed without new reference). This violates the reference equality contract.')
+  }
+  if (loaded) {
+    prevLengthRef.current = working.length
+  }
 
   // Mark dirty when working changes AFTER initial load
   useEffect(() => {

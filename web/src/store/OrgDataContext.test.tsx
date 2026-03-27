@@ -814,8 +814,8 @@ describe('OrgDataContext', () => {
 
       expect(result.current.autosaveAvailable).not.toBeNull()
       expect(result.current.loaded).toBe(false) // Not loaded yet, waiting for user decision
-      // Should not call getOrg when localStorage autosave is present
-      expect(api.getOrg).not.toHaveBeenCalled()
+      // getOrg is called in the background so dismiss has data to fall back to
+      expect(api.getOrg).toHaveBeenCalled()
     })
 
     it('shows autosave banner from server when no localStorage', async () => {
@@ -832,8 +832,8 @@ describe('OrgDataContext', () => {
 
       expect(result.current.autosaveAvailable).not.toBeNull()
       expect(api.readAutosave).toHaveBeenCalled()
-      // Should not call getOrg when server autosave exists
-      expect(api.getOrg).not.toHaveBeenCalled()
+      // getOrg is called in the background so dismiss has data to fall back to
+      expect(api.getOrg).toHaveBeenCalled()
     })
 
     it('clears corrupt localStorage autosave and continues init', async () => {
