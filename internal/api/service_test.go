@@ -367,6 +367,30 @@ func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 	}
 }
 
+func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	csv := []byte("Full Name,Title,Department,Reports To,Group\nAlice,VP,Eng,,Eng\nBob,SWE,Eng,Alice,Platform\n")
+	resp, err := svc.Upload("test.csv", csv)
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+	if resp.Status != "needs_mapping" {
+		t.Skipf("headers were auto-mapped; skipping confirm test")
+	}
+	mapping := map[string]string{
+		"name": "Full Name", "role": "Title", "discipline": "Department",
+		"manager": "Reports To", "team": "Group",
+	}
+	data, err := svc.ConfirmMapping(mapping)
+	if err != nil {
+		t.Fatalf("confirm: %v", err)
+	}
+	if len(data.Working) != 2 {
+		t.Errorf("expected 2 working, got %d", len(data.Working))
+	}
+}
+
 func TestOrgService_Reorder(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)

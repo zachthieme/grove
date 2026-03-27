@@ -58,79 +58,88 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 }
 
 func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error) {
+	// Phase 1: grab and clear pending data under lock.
+	// Clearing here prevents a concurrent Upload from setting new pending data
+	// that we'd accidentally nil out when we re-acquire the lock in Phase 3.
 	s.mu.Lock()
-	if s.pending == nil {
-		s.mu.Unlock()
+	pending := s.pending
+	s.pending = nil
+	s.mu.Unlock()
+
+	if pending == nil {
 		return nil, fmt.Errorf("no pending file to confirm")
 	}
 
-	if s.pending.IsZip {
-		entries, podsSidecar, settingsSidecar, err := parseZipFileList(s.pending.File)
-		if err != nil {
-			s.mu.Unlock()
-			return nil, fmt.Errorf("parsing pending zip: %w", err)
-		}
-		orig, work, snaps, err := parseZipEntries(entries, mapping)
-		if err != nil {
-			s.mu.Unlock()
-			return nil, fmt.Errorf("parsing pending zip: %w", err)
-		}
-		s.resetState(orig, work, snaps)
-
-		if podsSidecar != nil {
-			sidecarEntries := parsePodsSidecar(podsSidecar)
-			if len(sidecarEntries) > 0 {
-				idToName := buildIDToName(s.working)
-				applyPodSidecarNotes(s.pods, sidecarEntries, idToName)
-				applyPodSidecarNotes(s.originalPods, sidecarEntries, idToName)
-			}
-		}
-
-		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-		if settingsSidecar != nil {
-			if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
-				s.settings = Settings{DisciplineOrder: order}
-			}
-		}
-
-		snapCopy := s.snaps.CopyAll()
-		s.pending = nil
-		resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
-		s.mu.Unlock()
-
-		// Disk I/O outside the lock
-		var persistWarn string
-		if err := s.snaps.DeleteStore(); err != nil {
-			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
-		}
-		if err := s.snaps.PersistCopy(snapCopy); err != nil {
-			msg := fmt.Sprintf("snapshot persist error: %v", err)
-			if persistWarn != "" {
-				persistWarn += "; " + msg
-			} else {
-				persistWarn = msg
-			}
-		}
-		resp.PersistenceWarning = persistWarn
-		return resp, nil
+	// Phase 2: parse entirely outside the lock (CPU work, no state mutation)
+	if pending.IsZip {
+		return s.confirmMappingZip(pending, mapping)
 	}
+	return s.confirmMappingCSV(pending, mapping)
+}
 
-	header, dataRows, err := extractRows(s.pending.Filename, s.pending.File)
+// confirmMappingCSV handles the non-zip ConfirmMapping path.
+// Called without holding s.mu.
+func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
+	header, dataRows, err := extractRows(pending.Filename, pending.File)
 	if err != nil {
-		s.mu.Unlock()
 		return nil, fmt.Errorf("parsing pending file: %w", err)
 	}
-
 	org, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
 	if err != nil {
-		s.mu.Unlock()
 		return nil, fmt.Errorf("building org: %w", err)
 	}
-
 	people := ConvertOrg(org)
+
+	// Phase 3: commit state under lock (s.pending already cleared in Phase 1)
+	s.mu.Lock()
 	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-	s.pending = nil
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
+	s.mu.Unlock()
+
+	// Phase 4: disk I/O outside lock
+	var persistWarn string
+	if err := s.snaps.DeleteStore(); err != nil {
+		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+	}
+	resp.PersistenceWarning = persistWarn
+	return resp, nil
+}
+
+// confirmMappingZip handles the zip ConfirmMapping path.
+// Called without holding s.mu.
+func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
+	entries, podsSidecar, settingsSidecar, err := parseZipFileList(pending.File)
+	if err != nil {
+		return nil, fmt.Errorf("parsing pending zip: %w", err)
+	}
+	orig, work, snaps, err := parseZipEntries(entries, mapping)
+	if err != nil {
+		return nil, fmt.Errorf("parsing pending zip: %w", err)
+	}
+
+	// Commit state under lock
+	s.mu.Lock()
+	s.resetState(orig, work, snaps)
+
+	if podsSidecar != nil {
+		sidecarEntries := parsePodsSidecar(podsSidecar)
+		if len(sidecarEntries) > 0 {
+			idToName := buildIDToName(s.working)
+			applyPodSidecarNotes(s.pods, sidecarEntries, idToName)
+			applyPodSidecarNotes(s.originalPods, sidecarEntries, idToName)
+		}
+	}
+
+	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+	if settingsSidecar != nil {
+		if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
+			s.settings = Settings{DisciplineOrder: order}
+		}
+	}
+
+	snapCopy := s.snaps.CopyAll()
+	// s.pending already cleared in Phase 1
 	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
 	s.mu.Unlock()
 
@@ -138,6 +147,14 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	var persistWarn string
 	if err := s.snaps.DeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+	}
+	if err := s.snaps.PersistCopy(snapCopy); err != nil {
+		msg := fmt.Sprintf("snapshot persist error: %v", err)
+		if persistWarn != "" {
+			persistWarn += "; " + msg
+		} else {
+			persistWarn = msg
+		}
 	}
 	resp.PersistenceWarning = persistWarn
 	return resp, nil
