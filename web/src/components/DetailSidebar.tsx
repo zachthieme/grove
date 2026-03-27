@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrg, useUI } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { Person, PersonUpdatePayload } from '../api/types'
 import { generateCorrelationId } from '../api/client'
@@ -94,12 +94,16 @@ export default function DetailSidebar() {
   const [showStatusInfo, setShowStatusInfo] = useState(false)
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
 
+  const { showPrivate } = useUI()
+
   const managers = useMemo(() => {
     const managerIds = new Set(working.filter((p) => p.managerId).map((p) => p.managerId))
-    return working
-      .filter((p) => managerIds.has(p.id))
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [working])
+    let mgrs = working.filter((p) => managerIds.has(p.id))
+    if (!showPrivate) {
+      mgrs = mgrs.filter((p) => !p.private)
+    }
+    return mgrs.sort((a, b) => a.name.localeCompare(b.name))
+  }, [working, showPrivate])
 
   // Sync form when selection changes
   const personDataKey = person
