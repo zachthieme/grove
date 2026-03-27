@@ -1,0 +1,23 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: all var(--transition-normal);
+}
+
+.btn:hover {
+  border-color: var(--border-strong);
+}
+
+.active {
+  background: var(--grove-green-soft);
+  border-color: var(--grove-green-muted);
+  color: var(--grove-green);
+}

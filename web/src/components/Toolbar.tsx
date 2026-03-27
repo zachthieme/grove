@@ -5,6 +5,7 @@ import { useOutsideClick } from '../hooks/useOutsideClick'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
+import PrivateToggle from './PrivateToggle'
 import SettingsModal from './SettingsModal'
 import styles from './Toolbar.module.css'
 
@@ -96,6 +97,8 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           </div>
 
           <EmploymentTypeFilter />
+
+          <PrivateToggle />
 
           <RecycleBinButton />
 

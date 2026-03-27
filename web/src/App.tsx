@@ -28,7 +28,7 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, selectedPodId, toggleSelect, batchSelect, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod, setViewMode, setSelectedId } = useOrg()
+  const { loaded, viewMode, dataView, selectedIds, selectedPodId, toggleSelect, batchSelect, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod, setViewMode, setSelectedId, showPrivate } = useOrg()
   useDeepLink({
     viewMode,
     selectedId: selectedIds.size === 1 ? [...selectedIds][0] : null,
@@ -56,9 +56,19 @@ function AppContent() {
   const managerSet = useManagerSet(working)
 
   const headSubtree = useHeadSubtree(headPersonId, working)
-  const { people, ghostPeople } = useFilteredPeople(rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges)
+  const { people, ghostPeople } = useFilteredPeople(rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges, showPrivate)
   const sortedPeople = useSortedPeople(people, settings.disciplineOrder)
   const clearHead = useCallback(() => setHead(null), [setHead])
+
+  useEffect(() => {
+    if (!showPrivate && headPersonId) {
+      const headPerson = working.find((p) => p.id === headPersonId)
+      if (headPerson?.private) {
+        setHead(null)
+      }
+    }
+  }, [showPrivate, headPersonId, working, setHead])
+
   useEscapeKey(clearHead, !!headPersonId)
   useEscapeKey(clearSelection, selectedIds.size > 0)
 
