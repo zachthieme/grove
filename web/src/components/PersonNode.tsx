@@ -24,7 +24,7 @@ function getEmpColor(empType: string | undefined): string | undefined {
 }
 
 interface Props {
-  person: Person
+  person: Person & { isPlaceholder?: boolean }
   selected?: boolean
   ghost?: boolean
   changes?: PersonChange
@@ -41,6 +41,8 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const hasNotes = !!person.publicNote
+  const isPrivate = !!person.private
+  const isPlaceholder = !!(person as any).isPlaceholder
   const isRecruiting = person.status === 'Open' || person.status === 'Backfill'
   const isFuture = person.status === 'Pending Open' || person.status === 'Planned'
   const isTransfer = person.status === 'Transfer In' || person.status === 'Transfer Out'
@@ -56,6 +58,7 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
     isFuture && styles.future,
     isTransfer && styles.transfer,
     ghost && styles.ghost,
+    isPlaceholder && styles.placeholder,
     changes?.types.has('added') && styles.added,
     changes?.types.has('reporting') && styles.reporting,
     changes?.types.has('title') && styles.titleChange,
@@ -65,7 +68,7 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
   const statusLabel = isRecruiting ? 'Recruiting' : isFuture ? 'Planned' : isTransfer ? 'Transfer' : null
-  const showActions = !ghost && (onAdd || onDelete || onInfo || onFocus)
+  const showActions = !ghost && !isPlaceholder && (onAdd || onDelete || onInfo || onFocus)
 
   const nodeStyle = empColor ? { '--emp-color': empColor } as React.CSSProperties : undefined
 
@@ -89,6 +92,9 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
       )}
       {person.warning && person.warning.length > 0 && (
         <div className={styles.warningDot} title={person.warning}>{'\u26A0'}</div>
+      )}
+      {isPrivate && !isPlaceholder && (
+        <div className={styles.privateIcon} title="Private">{'\u{1F512}'}</div>
       )}
       <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} data-selected={selected || false} data-testid={`person-${person.name}`}>
         <div className={styles.name}>

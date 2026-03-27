@@ -205,3 +205,27 @@
   margin-bottom: 2px;
   color: #9a8c60;
 }
+
+.privateIcon {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  font-size: 11px;
+  line-height: 1;
+  z-index: 2;
+  opacity: 0.6;
+}
+
+.placeholder {
+  border-style: dashed;
+  border-color: var(--border-soft);
+  background: var(--surface-sunken);
+  cursor: default;
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+.placeholder .name,
+.placeholder .role {
+  color: var(--text-tertiary);
+}
