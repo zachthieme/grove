@@ -136,7 +136,7 @@ func freePort(t *testing.T) int {
 		t.Fatalf("failed to find free port: %v", err)
 	}
 	port := ln.Addr().(*net.TCPAddr).Port
-	ln.Close()
+	_ = ln.Close()
 	return port
 }
 
@@ -179,7 +179,7 @@ func TestServerLifecycle(t *testing.T) {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(base + "/api/health")
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				lastErr = nil
 				break
@@ -268,7 +268,7 @@ func TestServerLifecycle_WithFrontendFS(t *testing.T) {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(base + "/api/health")
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				break
 			}
@@ -333,7 +333,7 @@ func TestServerLifecycle_DevModeCORS(t *testing.T) {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(base + "/api/health")
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				break
 			}

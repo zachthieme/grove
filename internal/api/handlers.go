@@ -244,7 +244,7 @@ func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition", "attachment; filename=pods.csv")
-		w.Write(data)
+		_, _ = w.Write(data)
 	}
 }
 
@@ -458,7 +458,7 @@ func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition", "attachment; filename=settings.csv")
-		w.Write(data)
+		_, _ = w.Write(data)
 	}
 }
 

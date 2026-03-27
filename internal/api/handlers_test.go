@@ -1419,7 +1419,7 @@ func TestUploadZipHandler(t *testing.T) {
 func TestSettingsHandler_GetAndPost(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	svc.Upload("test.csv", []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n"))
+	_, _ = svc.Upload("test.csv", []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n"))
 	req := httptest.NewRequest("GET", "/api/settings", nil)
 	w := httptest.NewRecorder()
 	NewRouter(svc, nil, NewMemoryAutosaveStore()).ServeHTTP(w, req)

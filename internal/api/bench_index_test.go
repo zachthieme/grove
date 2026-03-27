@@ -9,7 +9,7 @@ func BenchmarkFindWorking(b *testing.B) {
 	for i := 0; i < 499; i++ {
 		rows += "Person" + string(rune('A'+i%26)) + string(rune('0'+i/26)) + ",SWE,Eng,Root,Platform,Active\n"
 	}
-	svc.Upload("bench.csv", []byte(rows))
+	_, _ = svc.Upload("bench.csv", []byte(rows))
 	data := svc.GetOrg()
 	lastId := data.Working[len(data.Working)-1].Id
 

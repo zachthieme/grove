@@ -66,7 +66,7 @@ func FuzzCSVUpload(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		svc := NewOrgService(NewMemorySnapshotStore())
 		// Should never panic regardless of input; errors are expected
-		svc.Upload("test.csv", data)
+		_, _ = svc.Upload("test.csv", data)
 	})
 }
 
@@ -150,6 +150,6 @@ func FuzzUpdateFields(f *testing.F) {
 			return
 		}
 		// Should never panic; errors are expected for unknown fields or invalid values
-		svc.Update(people[0].Id, map[string]string{field: value})
+		_, _ = svc.Update(people[0].Id, map[string]string{field: value})
 	})
 }
