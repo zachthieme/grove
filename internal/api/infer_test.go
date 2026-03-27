@@ -333,3 +333,20 @@ func TestInferMapping_Level(t *testing.T) {
 		t.Errorf("expected level mapped, got %+v", m["level"])
 	}
 }
+
+// Scenarios: UPLOAD-005
+func TestInferMapping_Private(t *testing.T) {
+	t.Parallel()
+	headers := []string{"Name", "Role", "private"}
+	result := InferMapping(headers)
+	mc, ok := result["private"]
+	if !ok {
+		t.Fatal("expected 'private' to be mapped")
+	}
+	if mc.Confidence != "high" {
+		t.Errorf("expected high confidence, got %s", mc.Confidence)
+	}
+	if mc.Column != "private" {
+		t.Errorf("expected column 'private', got %s", mc.Column)
+	}
+}

@@ -21,6 +21,7 @@ var exactMatches = map[string]string{
 	"public note":      "publicNote",
 	"private note":     "privateNote",
 	"level":            "level",
+	"private":          "private",
 }
 
 // synonyms maps lowercased synonym phrases to the app field name.

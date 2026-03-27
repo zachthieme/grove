@@ -78,6 +78,11 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 			}
 		}
 
+		if raw := get("private"); raw != "" {
+			low := strings.ToLower(raw)
+			p.Private = low == "true" || low == "1" || low == "yes"
+		}
+
 		raw := get("additionalTeams")
 		if raw != "" {
 			for _, t := range strings.Split(raw, ",") {
