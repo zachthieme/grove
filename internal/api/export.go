@@ -10,7 +10,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note"}
+var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 
 func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
@@ -106,9 +106,14 @@ func personToRow(p Person, idToName map[string]string) []string {
 	if p.Level != 0 {
 		levelStr = strconv.Itoa(p.Level)
 	}
+	privateStr := "false"
+	if p.Private {
+		privateStr = "true"
+	}
 	return []string{
 		p.Name, p.Role, p.Discipline, managerName, p.Team,
 		strings.Join(p.AdditionalTeams, ","), p.Status, p.EmploymentType,
 		p.NewRole, p.NewTeam, levelStr, p.Pod, p.PublicNote, p.PrivateNote,
+		privateStr,
 	}
 }

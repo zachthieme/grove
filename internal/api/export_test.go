@@ -32,7 +32,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 rows (header + 2 data), got %d", len(records))
 	}
 
-	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note"}
+	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 	for i, h := range expectedHeaders {
 		if records[0][i] != h {
 			t.Errorf("header[%d]: expected %s, got %s", i, h, records[0][i])
@@ -161,5 +161,28 @@ func TestExportCSV_IncludesLevel(t *testing.T) {
 	}
 	if !strings.Contains(csv, "7") {
 		t.Error("expected level value 7")
+	}
+}
+
+// Scenarios: EXPORT-001
+func TestExportCSV_IncludesPrivateColumn(t *testing.T) {
+	t.Parallel()
+	people := []Person{
+		{Id: "1", Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: true},
+		{Id: "2", Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: false},
+	}
+	data, err := ExportCSV(people)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(data), "\n")
+	if !strings.Contains(lines[0], "Private") {
+		t.Errorf("expected header to contain 'Private', got: %s", lines[0])
+	}
+	if !strings.Contains(lines[1], "true") {
+		t.Errorf("expected Alice's row to contain 'true', got: %s", lines[1])
+	}
+	if !strings.Contains(lines[2], "false") {
+		t.Errorf("expected Bob's row to contain 'false', got: %s", lines[2])
 	}
 }
