@@ -235,8 +235,8 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 when snapshot persist fails, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500 when snapshot persist fails, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -267,8 +267,8 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 when snapshot delete persist fails, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500 when snapshot delete persist fails, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

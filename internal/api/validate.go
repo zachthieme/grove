@@ -134,10 +134,13 @@ func wouldCreateCycle(working []Person, personId, newManagerId string) bool {
 
 // validateSettings checks that discipline order entries are non-empty, unique,
 // and don't contain characters that break CSV export (newlines, NUL).
-func validateSettings(s Settings) error {
+// It normalizes entries in-place (trims whitespace) so the stored value matches
+// what was validated.
+func validateSettings(s *Settings) error {
 	seen := make(map[string]bool, len(s.DisciplineOrder))
-	for _, d := range s.DisciplineOrder {
+	for i, d := range s.DisciplineOrder {
 		d = strings.TrimSpace(d)
+		s.DisciplineOrder[i] = d
 		if d == "" {
 			return errValidation("discipline name cannot be empty")
 		}

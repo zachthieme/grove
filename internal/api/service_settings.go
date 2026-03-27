@@ -7,7 +7,7 @@ func (s *OrgService) GetSettings() Settings {
 }
 
 func (s *OrgService) UpdateSettings(settings Settings) (Settings, error) {
-	if err := validateSettings(settings); err != nil {
+	if err := validateSettings(&settings); err != nil {
 		return Settings{}, err
 	}
 	s.mu.Lock()

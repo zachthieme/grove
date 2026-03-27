@@ -27,7 +27,7 @@ func (s *OrgService) ExportSnapshot(name string) ([]Person, error) {
 	default:
 		snap := s.snaps.Get(name)
 		if snap == nil {
-			return nil, fmt.Errorf("snapshot '%s' not found", name)
+			return nil, errNotFound("snapshot '%s' not found", name)
 		}
 		return deepCopyPeople(snap.People), nil
 	}

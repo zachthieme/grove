@@ -68,7 +68,7 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 	s.mu.Unlock()
 
 	if pending == nil {
-		return nil, fmt.Errorf("no pending file to confirm")
+		return nil, errValidation("no pending file to confirm")
 	}
 
 	// Phase 2: parse entirely outside the lock (CPU work, no state mutation)
@@ -83,11 +83,11 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
 	header, dataRows, err := extractRows(pending.Filename, pending.File)
 	if err != nil {
-		return nil, fmt.Errorf("parsing pending file: %w", err)
+		return nil, errValidation("parsing pending file: %v", err)
 	}
 	org, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
 	if err != nil {
-		return nil, fmt.Errorf("building org: %w", err)
+		return nil, errValidation("building org: %v", err)
 	}
 	people := ConvertOrg(org)
 
@@ -112,11 +112,11 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
 	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(pending.File)
 	if err != nil {
-		return nil, fmt.Errorf("parsing pending zip: %w", err)
+		return nil, errValidation("parsing pending zip: %v", err)
 	}
 	orig, work, snaps, parseWarns, err := parseZipEntries(entries, mapping)
 	if err != nil {
-		return nil, fmt.Errorf("parsing pending zip: %w", err)
+		return nil, errValidation("parsing pending zip: %v", err)
 	}
 
 	// Commit state under lock

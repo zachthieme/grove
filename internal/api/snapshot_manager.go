@@ -117,12 +117,6 @@ func (sm *SnapshotManager) CopyAll() map[string]snapshotData {
 	return cp
 }
 
-// Persist writes the current snapshot state to the store. This is safe to call
-// outside the lock if called with a copy from CopyAll.
-func (sm *SnapshotManager) Persist() error {
-	return sm.store.Write(sm.snapshots)
-}
-
 // PersistCopy writes a pre-copied snapshot map to the store. Use this to persist
 // outside the lock: copy under lock with CopyAll, then call PersistCopy without lock.
 func (sm *SnapshotManager) PersistCopy(snapshots map[string]snapshotData) error {

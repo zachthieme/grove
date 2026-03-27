@@ -299,7 +299,7 @@ func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
 
 		people, err := svc.ExportSnapshot(name)
 		if err != nil {
-			writeError(w, http.StatusNotFound, err.Error())
+			serviceError(w, err)
 			return
 		}
 
@@ -498,6 +498,8 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 }
 
 // serviceError maps typed service errors to the appropriate HTTP status code.
+// Typed errors (Validation, NotFound, Conflict) get 4xx; untyped errors
+// (e.g. disk I/O failures) get 500.
 func serviceError(w http.ResponseWriter, err error) {
 	switch {
 	case isNotFound(err):
@@ -507,7 +509,7 @@ func serviceError(w http.ResponseWriter, err error) {
 	case isValidation(err):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 	default:
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }
 

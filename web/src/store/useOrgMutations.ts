@@ -1,4 +1,4 @@
-import { useCallback, type MutableRefObject } from 'react'
+import { useCallback, useMemo, type MutableRefObject } from 'react'
 import type { Person, PersonUpdatePayload, PodUpdatePayload, Settings } from '../api/types'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
@@ -147,8 +147,11 @@ export function useOrgMutations({ setState, stateRef, handleError, setError }: M
     } catch (err) { handleError(err) }
   }, [handleError, setState])
 
-  return {
+  return useMemo(() => ({
     move, reparent, reorder, update, add, remove, restore, emptyBin,
     saveSnapshot, loadSnapshot, deleteSnapshot, updatePod, createPod, updateSettings,
-  }
+  }), [
+    move, reparent, reorder, update, add, remove, restore, emptyBin,
+    saveSnapshot, loadSnapshot, deleteSnapshot, updatePod, createPod, updateSettings,
+  ])
 }

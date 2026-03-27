@@ -1440,4 +1440,17 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 			t.Errorf("expected empty, got %d", len(result.DisciplineOrder))
 		}
 	})
+
+	t.Run("trims whitespace from discipline names", func(t *testing.T) {
+		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"  Eng  ", " Design"}})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.DisciplineOrder[0] != "Eng" {
+			t.Errorf("expected trimmed 'Eng', got %q", result.DisciplineOrder[0])
+		}
+		if result.DisciplineOrder[1] != "Design" {
+			t.Errorf("expected trimmed 'Design', got %q", result.DisciplineOrder[1])
+		}
+	})
 }
