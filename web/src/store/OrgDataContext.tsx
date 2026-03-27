@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings, type PersonUpdatePayload, type PodUpdatePayload } from '../api/types'
-import { ORIGINAL_SNAPSHOT } from '../constants'
+import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
 import * as api from '../api/client'
 import type { OrgDataContextValue } from './orgTypes'
 import { useUI } from './UIContext'
 import { useDirtyTracking } from './useDirtyTracking'
+import { useOrgMutations } from './useOrgMutations'
 
-interface OrgDataState {
+export interface OrgDataState {
   original: Person[]
   working: Person[]
   recycled: Person[]
@@ -178,118 +178,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => {
-    try {
-      const resp = await api.movePerson({ personId, newManagerId, newTeam, newPod }, correlationId)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const reparent = useCallback(async (personId: string, newManagerId: string, correlationId?: string) => {
-    if (!newManagerId) {
-      // Clearing manager — use update, not move
-      try {
-        const resp = await api.updatePerson({ personId, fields: { managerId: '' } }, correlationId)
-        setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-      } catch (err) { handleError(err) }
-      return
-    }
-    const currentWorking = stateRef.current.working
-    const newManager = currentWorking.find((p) => p.id === newManagerId)
-    if (!newManager) {
-      setError('Manager not found (may have been deleted)')
-      return
-    }
-    try {
-      const resp = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError, setError])
-
-  const reorder = useCallback(async (personIds: string[]) => {
-    try {
-      const resp = await api.reorderPeople(personIds)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const update = useCallback(async (personId: string, fields: PersonUpdatePayload, correlationId?: string) => {
-    try {
-      const resp = await api.updatePerson({ personId, fields }, correlationId)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const add = useCallback(async (person: Omit<Person, 'id'>) => {
-    try {
-      const resp = await api.addPerson(person)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const remove = useCallback(async (personId: string) => {
-    try {
-      const resp = await api.deletePerson({ personId })
-      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const restore = useCallback(async (personId: string) => {
-    try {
-      const resp = await api.restorePerson(personId)
-      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const emptyBin = useCallback(async () => {
-    try {
-      const resp = await api.emptyBin()
-      setState((s) => ({ ...s, recycled: resp.recycled, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const saveSnapshot = useCallback(async (name: string) => {
-    try {
-      const snapshots = await api.saveSnapshot(name)
-      setState((s) => ({ ...s, snapshots, currentSnapshotName: name }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const loadSnapshot = useCallback(async (name: string) => {
-    try {
-      if (name === ORIGINAL_SNAPSHOT) {
-        const data = await api.resetToOriginal()
-        setState((s) => ({
-          ...s,
-          original: data.original,
-          working: data.working,
-          recycled: [],
-          pods: data.pods ?? [],
-          settings: data.settings ?? { disciplineOrder: [] },
-          currentSnapshotName: ORIGINAL_SNAPSHOT,
-        }))
-      } else {
-        const data = await api.loadSnapshot(name)
-        setState((s) => ({
-          ...s,
-          original: data.original,
-          working: data.working,
-          recycled: [],
-          pods: data.pods ?? [],
-          settings: data.settings ?? { disciplineOrder: [] },
-          currentSnapshotName: name,
-          loaded: true,
-        }))
-      }
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const deleteSnapshot = useCallback(async (name: string) => {
-    try {
-      const snapshots = await api.deleteSnapshot(name)
-      setState((s) => ({ ...s, snapshots }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
+  const mutations = useOrgMutations({ setState, stateRef, handleError, setError })
 
   const restoreAutosave = useCallback(() => {
     const ad = stateRef.current.autosaveAvailable
@@ -332,27 +221,6 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
-  const updatePod = useCallback(async (podId: string, fields: PodUpdatePayload) => {
-    try {
-      const resp = await api.updatePod(podId, fields)
-      setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const createPod = useCallback(async (managerId: string, name: string, team: string) => {
-    try {
-      const resp = await api.createPod(managerId, name, team)
-      setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
-  const updateSettings = useCallback(async (newSettings: Settings) => {
-    try {
-      const result = await api.updateSettings(newSettings)
-      setState(s => ({ ...s, settings: result }))
-    } catch (err) { handleError(err) }
-  }, [handleError])
-
   // Warn before navigating away with unsaved changes
   useDirtyTracking(state.loaded, state.working)
 
@@ -369,30 +237,15 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     currentSnapshotName: state.currentSnapshotName,
     autosaveAvailable: state.autosaveAvailable,
     upload,
-    move,
-    reparent,
-    reorder,
-    update,
-    add,
-    remove,
-    restore,
-    emptyBin,
+    ...mutations,
     confirmMapping,
     cancelMapping,
-    saveSnapshot,
-    loadSnapshot,
-    deleteSnapshot,
     restoreAutosave,
     dismissAutosave,
-    updatePod,
-    createPod,
-    updateSettings,
   }), [
-    state, upload, move, reparent, reorder, update, add, remove,
-    restore, emptyBin, confirmMapping, cancelMapping,
-    saveSnapshot, loadSnapshot, deleteSnapshot,
-    restoreAutosave, dismissAutosave, updatePod, createPod,
-    updateSettings,
+    state, upload, mutations,
+    confirmMapping, cancelMapping,
+    restoreAutosave, dismissAutosave,
   ])
 
   return <OrgDataContext.Provider value={value}>{children}</OrgDataContext.Provider>
