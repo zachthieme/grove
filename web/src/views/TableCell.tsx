@@ -57,6 +57,26 @@ export default function TableCell({ value, cellType, readOnly, options, onSave, 
   const flashClass = flash === 'success' ? styles.flashSuccess : flash === 'error' ? styles.flashError : ''
   const displayValue = cellType === 'dropdown' ? (options?.find(o => o.value === value)?.label ?? value) : value
 
+  if (cellType === 'checkbox') {
+    return (
+      <td ref={cellRef} className={`${styles.cell} ${flashClass}`}>
+        <input
+          type="checkbox"
+          checked={value === 'true'}
+          disabled={readOnly}
+          onChange={async (e) => {
+            try {
+              await onSave(e.target.checked ? 'true' : 'false')
+              setFlash('success')
+            } catch {
+              setFlash('error')
+            }
+          }}
+        />
+      </td>
+    )
+  }
+
   if (readOnly || !editing) {
     return (
       <td
