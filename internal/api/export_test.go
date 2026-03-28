@@ -5,6 +5,8 @@ import (
 	"encoding/csv"
 	"strings"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/parser"
 )
 
 // Scenarios: EXPORT-001
@@ -225,6 +227,67 @@ func TestExportCSV_NoExtraColumns(t *testing.T) {
 	fields, _ := r.Read()
 	if len(fields) != len(exportHeaders) {
 		t.Errorf("expected %d headers, got %d", len(exportHeaders), len(fields))
+	}
+}
+
+// Scenarios: EXPORT-001
+func TestExportCSV_RoundTrip_ExtraColumns(t *testing.T) {
+	t.Parallel()
+	people := []Person{
+		{Id: "1", Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Engineering", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC", "StartDate": "2020-01-15"}},
+		{Id: "2", Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active", ManagerId: "1",
+			Extra: map[string]string{"CostCenter": "CC002", "Location": "SF"}},
+	}
+
+	// Export
+	data, err := ExportCSV(people)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Re-import via parser
+	r := csv.NewReader(bytes.NewReader(data))
+	allRows, err := r.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	header := allRows[0]
+	dataRows := allRows[1:]
+
+	mapping := InferMapping(header)
+	simpleMapping := make(map[string]string, len(mapping))
+	for field, mc := range mapping {
+		simpleMapping[field] = mc.Column
+	}
+
+	org, err := parser.BuildPeopleWithMapping(header, dataRows, simpleMapping)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify extra columns survived the round-trip
+	if org.People[0].Extra == nil {
+		t.Fatal("expected Extra on Alice after round-trip")
+	}
+	if org.People[0].Extra["CostCenter"] != "CC001" {
+		t.Errorf("CostCenter: got %q, want CC001", org.People[0].Extra["CostCenter"])
+	}
+	if org.People[0].Extra["Location"] != "NYC" {
+		t.Errorf("Location: got %q, want NYC", org.People[0].Extra["Location"])
+	}
+	if org.People[0].Extra["StartDate"] != "2020-01-15" {
+		t.Errorf("StartDate: got %q, want 2020-01-15", org.People[0].Extra["StartDate"])
+	}
+
+	if org.People[1].Extra["CostCenter"] != "CC002" {
+		t.Errorf("Bob CostCenter: got %q, want CC002", org.People[1].Extra["CostCenter"])
+	}
+	if org.People[1].Extra["Location"] != "SF" {
+		t.Errorf("Bob Location: got %q, want SF", org.People[1].Extra["Location"])
+	}
+	if _, ok := org.People[1].Extra["StartDate"]; ok {
+		t.Error("expected StartDate absent for Bob")
 	}
 }
 
