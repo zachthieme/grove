@@ -14,7 +14,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Carol' })).toBeVisible()
   })
 
-  test('[VIEW-001] switch between views', async ({ page }) => {
+  test('[VIEW-001] [VIEW-002] switch between views', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await expect(page.locator('[data-selected]').first()).toBeVisible()
     await switchView(page, 'Manager')

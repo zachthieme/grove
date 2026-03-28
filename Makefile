@@ -44,15 +44,27 @@ ci: lint test-all check-scenarios
 
 check-scenarios:
 	@echo "Checking scenario coverage..."
-	@missing=0; \
+	@fail=0; \
 	for f in docs/scenarios/*.md; do \
 		ids=$$(grep "^\*\*ID\*\*:" $$f | sed 's/.*: //'); \
 		for id in $$ids; do \
-			if ! grep -rqw "$$id" web/e2e/ web/src/ internal/ integration_test.go 2>/dev/null; then \
+			if ! grep -rqw "$$id" --include='*_test.go' --include='*.test.ts' --include='*.test.tsx' --include='*.spec.ts' web/ internal/ integration_test.go 2>/dev/null; then \
 				echo "  UNCOVERED: $$id ($$f)"; \
-				missing=$$((missing+1)); \
+				fail=$$((fail+1)); \
 			fi; \
 		done; \
+		if ! grep -q "^## Behavior" "$$f"; then \
+			echo "  MISSING SECTION: ## Behavior in $$f"; \
+			fail=$$((fail+1)); \
+		fi; \
+		if ! grep -q "^## Invariants" "$$f"; then \
+			echo "  MISSING SECTION: ## Invariants in $$f"; \
+			fail=$$((fail+1)); \
+		fi; \
+		if ! grep -q "^## Edge cases" "$$f"; then \
+			echo "  MISSING SECTION: ## Edge cases in $$f"; \
+			fail=$$((fail+1)); \
+		fi; \
 	done; \
-	if [ $$missing -gt 0 ]; then echo "$$missing uncovered scenario(s)"; exit 1; fi; \
+	if [ $$fail -gt 0 ]; then echo "$$fail issue(s) found"; exit 1; fi; \
 	echo "All scenarios covered."
