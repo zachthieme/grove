@@ -34,22 +34,24 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam s
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
+// longValueFields are fields that use the higher note-length limit (not the 500-char field limit).
+var longValueFields = map[string]bool{"publicNote": true, "privateNote": true, "pod": true}
+
 func (s *OrgService) Update(ctx context.Context, personId string, fields map[string]string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// Extract note/pod fields so they don't hit the 500-char limit
-	noteFields := map[string]string{}
-	for _, key := range []string{"publicNote", "privateNote", "pod"} {
+	// Extract long-value fields so they don't hit the 500-char limit
+	longFields := map[string]string{}
+	for key := range longValueFields {
 		if v, ok := fields[key]; ok {
-			noteFields[key] = v
+			longFields[key] = v
 			delete(fields, key)
 		}
 	}
 	if err := validateFieldLengths(fields); err != nil {
 		return nil, err
 	}
-	// Re-add for switch processing
-	maps.Copy(fields, noteFields)
+	maps.Copy(fields, longFields)
 	_, p := s.findWorking(personId)
 	if p == nil {
 		return nil, errNotFound("person %s not found", personId)
@@ -57,13 +59,10 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields map[str
 	// Clear warning on any edit — the user is actively fixing the data
 	p.Warning = ""
 	for k, v := range fields {
+		if applySimpleField(p, k, v) {
+			continue
+		}
 		switch k {
-		case "name":
-			p.Name = v
-		case "role":
-			p.Role = v
-		case "discipline":
-			p.Discipline = v
 		case "team":
 			s.applyTeamChange(p, personId, v)
 		case "status":
@@ -75,14 +74,6 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields map[str
 			if err := s.applyManagerChange(p, personId, v, fields); err != nil {
 				return nil, err
 			}
-		case "employmentType":
-			p.EmploymentType = v
-		case "additionalTeams":
-			p.AdditionalTeams = parseAdditionalTeams(v)
-		case "newRole":
-			p.NewRole = v
-		case "newTeam":
-			p.NewTeam = v
 		case "publicNote":
 			if err := validateNoteLen(v); err != nil {
 				return nil, err
@@ -99,8 +90,6 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields map[str
 				return nil, errValidation("invalid level: %s", v)
 			}
 			p.Level = n
-		case "private":
-			p.Private = v == "true" || v == "1" || v == "yes"
 		case "pod":
 			s.applyPodChange(p, v)
 		default:
@@ -108,6 +97,32 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields map[str
 		}
 	}
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
+}
+
+// applySimpleField handles direct-assignment fields that need no validation or service state.
+// Returns true if the field was handled.
+func applySimpleField(p *Person, key, value string) bool {
+	switch key {
+	case "name":
+		p.Name = value
+	case "role":
+		p.Role = value
+	case "discipline":
+		p.Discipline = value
+	case "employmentType":
+		p.EmploymentType = value
+	case "newRole":
+		p.NewRole = value
+	case "newTeam":
+		p.NewTeam = value
+	case "additionalTeams":
+		p.AdditionalTeams = parseAdditionalTeams(value)
+	case "private":
+		p.Private = value == "true" || value == "1" || value == "yes"
+	default:
+		return false
+	}
+	return true
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
