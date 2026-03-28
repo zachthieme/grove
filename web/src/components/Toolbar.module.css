@@ -188,3 +188,26 @@
   background: var(--surface-sunken);
   color: var(--text-primary);
 }
+
+.helpBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border-medium);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.helpBtn:hover {
+  background: var(--grove-green);
+  border-color: var(--grove-green);
+  color: #fff;
+}

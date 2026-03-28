@@ -8,6 +8,7 @@ import EmploymentTypeFilter from './EmploymentTypeFilter'
 import PrivateToggle from './PrivateToggle'
 import SettingsModal from './SettingsModal'
 import styles from './Toolbar.module.css'
+import { useTour } from '../hooks/useTour'
 
 const viewModes = [
   { value: 'detail', label: 'Detail' },
@@ -40,6 +41,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
   const [menuOpen, setMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const { startTour } = useTour(loaded)
 
   const handleFileChange = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -189,6 +191,15 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           Logs
         </button>
       )}
+
+      <button
+        className={styles.helpBtn}
+        onClick={startTour}
+        aria-label="Start product tour"
+        data-tour="help"
+      >
+        ?
+      </button>
 
       <div className={styles.hamburgerWrapper} ref={menuRef}>
         <button
