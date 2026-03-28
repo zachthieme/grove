@@ -103,6 +103,17 @@
   background: var(--grove-green-light);
 }
 
+.saveBtnSaved {
+  background: #16a34a;
+  animation: savedPulse 0.3s ease-out;
+}
+
+@keyframes savedPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 .deleteBtn {
   background: transparent;
   color: var(--grove-red);

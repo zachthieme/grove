@@ -314,7 +314,7 @@ export default function DetailSidebar() {
         {saveError && <div className={styles.saveError}>{saveError}</div>}
         <div className={styles.actions}>
           <button
-            className={styles.saveBtn}
+            className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
             onClick={handleSave}
             disabled={isBatch ? batchDirty.size === 0 || saveStatus === 'saving' : saveStatus === 'saving'}
           >
