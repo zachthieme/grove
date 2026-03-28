@@ -84,3 +84,40 @@ type UploadResponse struct {
 	Snapshots          []SnapshotInfo          `json:"snapshots,omitempty"`
 	PersistenceWarning string                  `json:"persistenceWarning,omitempty"`
 }
+
+// WorkingResponse is returned by mutations that affect working people and pods
+// (move, update, reorder, updatePod, createPod).
+type WorkingResponse struct {
+	Working []Person `json:"working"`
+	Pods    []Pod    `json:"pods"`
+}
+
+// AddResponse is returned when a person is added.
+type AddResponse struct {
+	Created Person   `json:"created"`
+	Working []Person `json:"working"`
+	Pods    []Pod    `json:"pods"`
+}
+
+// MutationResponse is returned by mutations that affect both working and
+// recycled slices (delete, restore).
+type MutationResponse struct {
+	Working  []Person `json:"working"`
+	Recycled []Person `json:"recycled"`
+	Pods     []Pod    `json:"pods"`
+}
+
+// RecycledResponse is returned by empty-bin.
+type RecycledResponse struct {
+	Recycled []Person `json:"recycled"`
+}
+
+// HealthResponse is returned by the health endpoint.
+type HealthResponse struct {
+	Status string `json:"status"`
+}
+
+// ConfigResponse is returned by the config endpoint.
+type ConfigResponse struct {
+	Logging bool `json:"logging"`
+}
