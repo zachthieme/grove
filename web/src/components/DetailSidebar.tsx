@@ -105,10 +105,26 @@ export default function DetailSidebar() {
     return mgrs.sort((a, b) => a.name.localeCompare(b.name))
   }, [working, showPrivate])
 
-  // Sync form when selection changes
-  const personDataKey = person
-    ? `${person.id}\0${person.name}\0${person.role}\0${person.discipline}\0${person.team}\0${person.managerId}\0${person.status}\0${person.employmentType ?? ''}\0${(person.additionalTeams ?? []).join(',')}\0${person.pod ?? ''}\0${person.publicNote ?? ''}\0${person.privateNote ?? ''}\0${person.level ?? 0}\0${person.private ?? false}`
-    : ''
+  // Sync form when selection or person data changes.
+  // useMemo with explicit deps replaces the fragile personDataKey string concatenation.
+  // If a new Person field is added, add it here to trigger re-sync.
+  const personSnapshot = useMemo(() => {
+    if (!person) return null
+    return {
+      id: person.id, name: person.name, role: person.role,
+      discipline: person.discipline, team: person.team,
+      managerId: person.managerId, status: person.status,
+      employmentType: person.employmentType, level: person.level,
+      pod: person.pod, publicNote: person.publicNote,
+      privateNote: person.privateNote, private: person.private,
+      additionalTeams: (person.additionalTeams ?? []).join(','),
+    }
+  }, [person?.id, person?.name, person?.role, person?.discipline,
+      person?.team, person?.managerId, person?.status,
+      person?.employmentType, person?.level, person?.pod,
+      person?.publicNote, person?.privateNote, person?.private,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      (person?.additionalTeams ?? []).join(',')])
 
   useEffect(() => {
     if (isBatch) {
@@ -117,7 +133,7 @@ export default function DetailSidebar() {
     } else if (person) {
       setForm(formFromPerson(person))
     }
-  }, [isBatch ? selectedIds.size : personDataKey])
+  }, [isBatch ? selectedIds.size : personSnapshot])
 
   const handleChange = (field: keyof FormFields, value: string) => {
     if (field === 'managerId') {
