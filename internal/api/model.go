@@ -18,7 +18,8 @@ type Person struct {
 	PublicNote      string   `json:"publicNote,omitempty"`
 	PrivateNote     string   `json:"privateNote,omitempty"`
 	Level           int      `json:"level,omitempty"`
-	Private         bool     `json:"private,omitempty"`
+	Private         bool              `json:"private,omitempty"`
+	Extra           map[string]string `json:"extra,omitempty"`
 }
 
 type Pod struct {

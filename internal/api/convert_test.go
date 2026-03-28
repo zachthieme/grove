@@ -88,3 +88,37 @@ func findByName(people []Person, name string) *Person {
 	}
 	return nil
 }
+
+func TestConvertOrg_PreservesExtra(t *testing.T) {
+	t.Parallel()
+	org := &model.Org{
+		People: []model.Person{
+			{
+				Name: "Alice", Role: "VP", Discipline: "Eng", Team: "T", Status: "Active",
+				Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"},
+			},
+			{
+				Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+			},
+		},
+	}
+
+	people := ConvertOrg(org)
+	if len(people) != 2 {
+		t.Fatalf("expected 2 people, got %d", len(people))
+	}
+
+	if people[0].Extra == nil {
+		t.Fatal("expected Extra on Alice, got nil")
+	}
+	if people[0].Extra["CostCenter"] != "CC001" {
+		t.Errorf("expected CostCenter=CC001, got %q", people[0].Extra["CostCenter"])
+	}
+	if people[0].Extra["Location"] != "NYC" {
+		t.Errorf("expected Location=NYC, got %q", people[0].Extra["Location"])
+	}
+
+	if people[1].Extra != nil {
+		t.Errorf("expected nil Extra on Bob, got %v", people[1].Extra)
+	}
+}

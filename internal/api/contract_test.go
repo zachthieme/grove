@@ -44,6 +44,7 @@ func TestContractPersonFields(t *testing.T) {
 		"additionalTeams",
 		"discipline",
 		"employmentType",
+		"extra",
 		"id",
 		"level",
 		"managerId",
