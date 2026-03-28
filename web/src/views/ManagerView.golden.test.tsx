@@ -1,3 +1,4 @@
+// Scenarios: VIEW-008
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import ManagerView from './ManagerView'

@@ -1,3 +1,4 @@
+// Scenarios: UI-014
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

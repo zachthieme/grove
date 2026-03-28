@@ -39,7 +39,7 @@ lint: frontend
 	golangci-lint run ./...
 	cd web && npx eslint src/ --max-warnings 0 2>/dev/null || true
 
-ci: lint test-all
+ci: lint test-all check-scenarios
 	@echo "CI checks passed."
 
 check-scenarios:
@@ -48,7 +48,7 @@ check-scenarios:
 	for f in docs/scenarios/*.md; do \
 		ids=$$(grep "^\*\*ID\*\*:" $$f | sed 's/.*: //'); \
 		for id in $$ids; do \
-			if ! grep -rq "$$id" web/e2e/ web/src/ internal/ integration_test.go 2>/dev/null; then \
+			if ! grep -rqw "$$id" web/e2e/ web/src/ internal/ integration_test.go 2>/dev/null; then \
 				echo "  UNCOVERED: $$id ($$f)"; \
 				missing=$$((missing+1)); \
 			fi; \

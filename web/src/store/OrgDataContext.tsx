@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, u
 import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
 import * as api from '../api/client'
 import type { OrgDataContextValue } from './orgTypes'
+import { AUTOSAVE_STORAGE_KEY } from '../constants'
 import { useUI } from './UIContext'
 import { useDirtyTracking } from './useDirtyTracking'
 import { useOrgMutations } from './useOrgMutations'
@@ -59,14 +60,14 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function init() {
       // Check localStorage first
-      let localRaw = localStorage.getItem('grove-autosave')
+      let localRaw = localStorage.getItem(AUTOSAVE_STORAGE_KEY)
       if (localRaw) {
         try {
           const data = JSON.parse(localRaw) as AutosaveData
           setState((s) => ({ ...s, autosaveAvailable: data }))
         } catch {
           // Corrupt data — clear it so the app doesn't get stuck
-          localStorage.removeItem('grove-autosave')
+          localStorage.removeItem(AUTOSAVE_STORAGE_KEY)
           localRaw = null
         }
       }
@@ -110,6 +111,22 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     init()
   }, [])
 
+  /** Shared state update for fresh org data loads (upload, confirmMapping). */
+  const applyOrgData = useCallback((data: { original: Person[]; working: Person[]; pods?: Pod[]; settings?: Settings }, extra?: Partial<OrgDataState>) => {
+    setState((s) => ({
+      ...s,
+      original: data.original,
+      working: data.working,
+      recycled: [],
+      pods: data.pods ?? [],
+      originalPods: data.pods ?? [],
+      settings: data.settings ?? { disciplineOrder: [] },
+      loaded: true,
+      pendingMapping: null,
+      ...extra,
+    }))
+  }, [])
+
   const handleError = useCallback((err: unknown) => {
     const msg = err instanceof Error ? err.message : String(err)
     setError(msg)
@@ -125,18 +142,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
       return
     }
     if (resp.status === 'ready' && resp.orgData) {
-      setState((s) => ({
-        ...s,
-        original: resp.orgData!.original,
-        working: resp.orgData!.working,
-        recycled: [],
-        pods: resp.orgData!.pods ?? [],
-        originalPods: resp.orgData!.pods ?? [],
-        settings: resp.orgData!.settings ?? { disciplineOrder: [] },
-        loaded: true,
-        pendingMapping: null,
-        snapshots: resp.snapshots ?? [],
-      }))
+      applyOrgData(resp.orgData, { snapshots: resp.snapshots ?? [] })
       if (resp.persistenceWarning) {
         setError(`Warning: ${resp.persistenceWarning}`)
       }
@@ -150,29 +156,18 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         },
       }))
     }
-  }, [setError])
+  }, [setError, applyOrgData])
 
   const confirmMapping = useCallback(async (mapping: Record<string, string>) => {
     try {
       const data = await api.confirmMapping(mapping)
       const snapshots = await api.listSnapshots()
-      setState((s) => ({
-        ...s,
-        original: data.original,
-        working: data.working,
-        recycled: [],
-        pods: data.pods ?? [],
-        originalPods: data.pods ?? [],
-        settings: data.settings ?? { disciplineOrder: [] },
-        loaded: true,
-        pendingMapping: null,
-        snapshots,
-      }))
+      applyOrgData(data, { snapshots })
       if (data.persistenceWarning) {
         setError(`Warning: ${data.persistenceWarning}`)
       }
     } catch (err) { handleError(err) }
-  }, [handleError, setError])
+  }, [handleError, setError, applyOrgData])
 
   const cancelMapping = useCallback(() => {
     setState((s) => ({ ...s, pendingMapping: null }))
@@ -203,7 +198,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const dismissAutosave = useCallback(async () => {
-    localStorage.removeItem('grove-autosave')
+    localStorage.removeItem(AUTOSAVE_STORAGE_KEY)
     try { await api.deleteAutosave() } catch { /* ignore */ }
     // Clear everything — go back to fresh upload state
     setState((s) => ({

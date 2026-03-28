@@ -1,4 +1,5 @@
 import type { Person } from '../api/types'
+import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 
 export interface TeamPodGroup {
   name: string
@@ -56,11 +57,11 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
         metrics.byDiscipline.set(d, (metrics.byDiscipline.get(d) || 0) + 1)
         const discMap = groupMap.get(groupKey)!
         discMap.set(d, (discMap.get(d) || 0) + 1)
-      } else if (r.status === 'Open' || r.status === 'Backfill') {
+      } else if (isRecruitingStatus(r.status)) {
         metrics.recruiting++
-      } else if (r.status === 'Planned') {
+      } else if (isPlannedStatus(r.status)) {
         metrics.planned++
-      } else if (r.status === 'Transfer In' || r.status === 'Transfer Out') {
+      } else if (isTransferStatus(r.status)) {
         metrics.transfers++
       }
 

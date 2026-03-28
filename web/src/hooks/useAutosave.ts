@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Person, Pod, AutosaveData, Settings } from '../api/types'
+import { AUTOSAVE_STORAGE_KEY } from '../constants'
 import * as api from '../api/client'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
@@ -34,7 +35,7 @@ export function useAutosave(state: {
         timestamp: new Date().toISOString(),
       }
       try {
-        localStorage.setItem('grove-autosave', JSON.stringify(data))
+        localStorage.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(data))
       } catch (e) {
         console.warn('localStorage autosave failed:', e)
       }

@@ -170,3 +170,32 @@ User selects multiple people (via lasso or shift/ctrl-click). The sidebar shows 
 
 ## Edge cases
 - Batch with zero dirty fields → save is no-op
+
+---
+
+# Scenario: Chart layout and edge lines
+
+**ID**: VIEW-008
+**Area**: views
+**Tests**:
+- `web/src/views/ColumnView.golden.test.tsx` → "renders status variants"
+- `web/src/views/ManagerView.golden.test.tsx` → "renders manager hierarchy"
+
+## Behavior
+The chart layout hook (`useChartLayout`) computes connecting lines between org chart nodes and manages drag-and-drop interactions. It accepts an array of edges (fromId → toId) and computes SVG line coordinates relative to the chart container.
+
+## Invariants
+- Lines only rendered for edges where both source and target DOM elements exist
+- Coordinates computed relative to container scroll position and bounding rect
+- Lines recalculate on: edge array changes, container resize (via ResizeObserver), scroll events
+- Solid edges connect from source bottom-center to target top-center
+- Dashed edges connect from source bottom-center to target bottom-center
+- `activeDragId` is null except during an active drag operation
+- Mouse sensor requires 8px activation distance before drag starts
+- Keyboard sensor is included for accessibility
+
+## Edge cases
+- Missing node element: edge silently skipped (no error thrown)
+- Empty edges array: lines set to empty array
+- No container ref: lines set to empty array, no observers attached
+- Container scroll: coordinates account for both scrollLeft and scrollTop

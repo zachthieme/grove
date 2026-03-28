@@ -8,6 +8,7 @@ const makePerson = (overrides: Partial<Person>): Person => ({
   ...overrides,
 })
 
+// Scenarios: UI-016
 describe('computeOrgMetrics', () => {
   const alice = makePerson({ id: '1', name: 'Alice', role: 'VP' })
   const bob = makePerson({ id: '2', name: 'Bob', managerId: '1', discipline: 'Engineering' })

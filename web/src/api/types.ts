@@ -1,3 +1,5 @@
+import type { Status } from '../constants'
+
 export interface Person {
   id: string
   name: string
@@ -6,7 +8,7 @@ export interface Person {
   managerId: string
   team: string
   additionalTeams: string[]
-  status: 'Active' | 'Open' | 'Transfer In' | 'Transfer Out' | 'Backfill' | 'Planned'
+  status: Status
   employmentType?: string
   newRole?: string
   newTeam?: string

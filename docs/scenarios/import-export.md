@@ -126,3 +126,32 @@ Snapshot names are sanitized for use as filenames in ZIP exports. Duplicate name
 
 ## Edge cases
 - Clean names pass through unchanged
+
+---
+
+# Scenario: Snapshot ZIP export
+
+**ID**: EXPORT-007
+**Area**: import-export
+**Tests**:
+- `web/src/utils/snapshotExportUtils.test.ts` → "sanitizeFilename"
+- `web/src/utils/snapshotExportUtils.test.ts` → "deduplicateFilenames"
+
+## Behavior
+Exports all snapshots as a ZIP archive. Supports CSV, XLSX, PNG, and SVG formats. Files use numeric prefixes for deterministic ordering. Pod and settings sidecars are included when available.
+
+## Invariants
+- File naming: `{0-indexed}-{sanitized-name}.{ext}` (e.g., `0-original.csv`, `1-working.csv`, `2-Q1-Plan.csv`)
+- Entry 0 is always `original`, entry 1 is always `working`
+- Named snapshots sorted by timestamp before numbering
+- Numeric prefixes are zero-indexed and never skipped
+- Duplicate names after sanitization get `-2`, `-3` suffixes (via `deduplicateFilenames`)
+- Autosave is suppressed during export (via `suppressAutosaveRef`)
+- Sidecar files (`pods.csv`, `settings.csv`) included on best-effort basis
+- For PNG/SVG: each snapshot is loaded into DOM, captured via html-to-image, then state restored
+
+## Edge cases
+- No named snapshots: ZIP contains only `0-original` and `1-working` plus sidecars
+- Duplicate names after sanitization: deduplication appends numeric suffix
+- Partial failure: failed entries logged but export continues with remaining entries
+- Image capture: waits 300ms + requestAnimationFrame before capture to allow DOM render

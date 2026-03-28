@@ -1,3 +1,4 @@
+// Scenarios: EXPORT-007
 import { describe, it, expect } from 'vitest'
 import { sanitizeFilename, deduplicateFilenames } from './snapshotExportUtils'
 

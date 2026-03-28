@@ -62,3 +62,87 @@ Multi-selecting people opens the sidebar in batch mode. Only dirty fields are su
 ## Edge cases
 - All selected people have same value (no mixed indicator)
 - Private checkbox in batch mode
+
+---
+
+# Scenario: Interactive tour
+
+**ID**: UI-014
+**Area**: ui-state
+**Tests**:
+- `web/src/components/Toolbar.test.tsx` → "Toolbar"
+
+## Behavior
+A guided walkthrough highlights key UI features using Driver.js popovers. The tour adapts based on whether data is loaded: empty state shows a 3-step mini-tour (welcome, upload prompt, close); loaded state shows an 8-step full tour covering view modes, data views, editing, drag-drop, snapshots, export, and recycle bin.
+
+## Invariants
+- Tour triggered via "?" help button in the toolbar
+- Steps target elements via `data-tour` attributes
+- Tour shows progress indicator (step N of M)
+- Tour does not block user interaction with the underlying UI
+- Tour configuration is created fresh each launch (not cached)
+- Tour animates between steps with smooth scrolling
+
+## Edge cases
+- Target element not in DOM: Driver.js gracefully skips the step
+- Empty state (no data loaded): shows simplified 3-step tour
+- Tour launched while sidebar open: tour overlay renders above sidebar
+
+---
+
+# Scenario: Log panel
+
+**ID**: UI-015
+**Area**: ui-state
+**Tests**:
+- `web/src/components/LogPanel.test.tsx` → "renders log entries"
+- `web/src/components/LogPanel.test.tsx` → "shows entry count"
+- `web/src/components/LogPanel.test.tsx` → "renders close button"
+- `web/src/components/LogPanel.test.tsx` → "handles empty state"
+
+## Behavior
+Displays API request/response logs from server and web client sources. Supports filtering by correlation ID and source type (API/Web/All). Entries are expandable to show request/response JSON bodies.
+
+## Invariants
+- Log list fetched on mount and when filter changes
+- Status color: green (2xx), amber (3xx), red (4xx+), gray (no status)
+- Correlation ID badge shows first 8 characters; clicking filters by that ID
+- Clear button wipes all server logs then refreshes the list
+- Download exports all logs (not filtered) as `grove-logs-{ISO-timestamp}.json`
+- Entry count and buffer size shown in footer
+
+## Edge cases
+- Fetch error: error message displayed, previous data retained
+- No request/response body: those sections not rendered
+- Null correlationId: badge not shown for that entry
+- Empty log list: "No log entries" message displayed
+
+---
+
+# Scenario: Org metrics
+
+**ID**: UI-016
+**Area**: ui-state
+**Tests**:
+- `web/src/hooks/useOrgMetrics.test.ts` → "span of control"
+- `web/src/hooks/useOrgMetrics.test.ts` → "total headcount"
+- `web/src/hooks/useOrgMetrics.test.ts` → "recruiting count"
+- `web/src/hooks/useOrgMetrics.test.ts` → "discipline breakdown"
+- `web/src/hooks/useOrgMetrics.test.ts` → "team/pod breakdown"
+
+## Behavior
+Computes organizational metrics for a given manager: span of control, total headcount, status breakdown, discipline composition, and team/pod groupings. Used in the manager info popover.
+
+## Invariants
+- Span of control counts direct reports only (not recursive)
+- Total headcount counts all descendants recursively (excludes the manager)
+- Status counters (recruiting, planned, transfers) are mutually exclusive
+- Discipline breakdown only counts people with Active status
+- Team/pod grouping uses pod field if set, team field as fallback, "Unassigned" if neither
+- Groups sorted by count descending
+- Discipline sub-counts within a group are always <= group total count
+
+## Edge cases
+- No direct reports: all metrics are zero
+- No active people in subtree: byDiscipline map is empty
+- Person with both pod and team: pod takes precedence for grouping

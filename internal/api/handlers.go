@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http.Handler {
@@ -68,9 +69,8 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http
 }
 
 func handleUpload(svc *OrgService) http.HandlerFunc {
-	const maxUploadSize = 50 << 20 // 50 MB
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
 		file, header, err := r.FormFile("file")
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
@@ -94,9 +94,8 @@ func handleUpload(svc *OrgService) http.HandlerFunc {
 }
 
 func handleUploadZip(svc *OrgService) http.HandlerFunc {
-	const maxUploadSize = 50 << 20
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
 		file, _, err := r.FormFile("file")
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
@@ -241,9 +240,7 @@ func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		w.Header().Set("Content-Type", "text/csv")
-		w.Header().Set("Content-Disposition", "attachment; filename=pods.csv")
-		_, _ = w.Write(data)
+		writeFileResponse(w, data, "text/csv", "pods.csv")
 	}
 }
 
@@ -256,38 +253,17 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 			return
 		}
 
-		var (
-			data        []byte
-			err         error
-			contentType string
-			filename    string
-		)
-
-		switch format {
-		case "csv":
-			data, err = ExportCSV(working)
-			contentType = "text/csv"
-			filename = "org.csv"
-		case "xlsx":
-			data, err = ExportXLSX(working)
-			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-			filename = "org.xlsx"
-		default:
-			writeError(w, http.StatusBadRequest, "unsupported export format")
-			return
-		}
-
+		data, contentType, filename, err := exportByFormat(format, working, "org")
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		w.Header().Set("Content-Type", contentType)
-		w.Header().Set("Content-Disposition", "attachment; filename="+filename)
-		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-		if _, err := w.Write(data); err != nil {
-			log.Printf("export write error (client disconnect?): %v", err)
+		if data == nil {
+			writeError(w, http.StatusBadRequest, "unsupported export format")
+			return
 		}
+
+		writeFileResponse(w, data, contentType, filename)
 	}
 }
 
@@ -302,37 +278,17 @@ func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
 			return
 		}
 
-		var (
-			data        []byte
-			contentType string
-			filename    string
-		)
-
-		switch format {
-		case "csv":
-			data, err = ExportCSV(people)
-			contentType = "text/csv"
-			filename = "snapshot.csv"
-		case "xlsx":
-			data, err = ExportXLSX(people)
-			contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-			filename = "snapshot.xlsx"
-		default:
-			writeError(w, http.StatusBadRequest, "unsupported export format")
-			return
-		}
-
+		data, contentType, filename, err := exportByFormat(format, people, "snapshot")
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		w.Header().Set("Content-Type", contentType)
-		w.Header().Set("Content-Disposition", "attachment; filename="+filename)
-		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-		if _, err := w.Write(data); err != nil {
-			log.Printf("snapshot export write error: %v", err)
+		if data == nil {
+			writeError(w, http.StatusBadRequest, "unsupported export format")
+			return
 		}
+
+		writeFileResponse(w, data, contentType, filename)
 	}
 }
 
@@ -455,9 +411,7 @@ func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		w.Header().Set("Content-Type", "text/csv")
-		w.Header().Set("Content-Disposition", "attachment; filename=settings.csv")
-		_, _ = w.Write(data)
+		writeFileResponse(w, data, "text/csv", "settings.csv")
 	}
 }
 
@@ -512,8 +466,32 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 
-// limitBody wraps r.Body with a 1 MB size limit.
+// writeFileResponse writes binary data as an attachment download response.
+func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename string) {
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	if _, err := w.Write(data); err != nil {
+		log.Printf("file response write error: %v", err)
+	}
+}
+
+// exportByFormat serializes people to the given format ("csv" or "xlsx").
+// Returns (nil, "", "", nil) for unsupported formats so callers can return 400.
+func exportByFormat(format string, people []Person, baseName string) ([]byte, string, string, error) {
+	switch strings.ToLower(format) {
+	case "csv":
+		data, err := ExportCSV(people)
+		return data, "text/csv", baseName + ".csv", err
+	case "xlsx":
+		data, err := ExportXLSX(people)
+		return data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", baseName + ".xlsx", err
+	default:
+		return nil, "", "", nil
+	}
+}
+
+// limitBody wraps r.Body with a MaxBodySize limit.
 func limitBody(w http.ResponseWriter, r *http.Request) {
-	const maxBodySize = 1 << 20 // 1 MB
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxBodySize)
 }

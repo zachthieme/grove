@@ -39,6 +39,8 @@ jobs:
           fi
       - name: Frontend tests
         run: cd web && npm test -- --coverage
+      - name: Scenario coverage check
+        run: make check-scenarios
 
   e2e:
     runs-on: ubuntu-latest

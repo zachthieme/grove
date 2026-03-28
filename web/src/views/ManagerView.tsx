@@ -3,6 +3,7 @@ import { useEffect, useMemo, useCallback } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
+import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { useLassoSelect } from '../hooks/useLassoSelect'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
@@ -27,13 +28,8 @@ interface ManagerViewProps {
   onBatchSelect?: (ids: Set<string>) => void
 }
 
-function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
-  people: Person[]
-  podName?: string
-  publicNote?: string
-  podId?: string
-  onPodClick?: (podId: string) => void
-}) {
+/** Build summary groups from a list of people, bucketing by status. */
+function buildStatusGroups(people: Person[]): { label: string; count: number }[] {
   const groups: { label: string; count: number }[] = []
 
   const active = people.filter((p) => p.status === 'Active')
@@ -48,20 +44,32 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
     }
   }
 
-  const recruiting = people.filter((p) => p.status === 'Open' || p.status === 'Backfill')
+  const recruiting = people.filter((p) => isRecruitingStatus(p.status))
   if (recruiting.length > 0) {
     groups.push({ label: 'Recruiting', count: recruiting.length })
   }
 
-  const planned = people.filter((p) => p.status === 'Planned')
+  const planned = people.filter((p) => isPlannedStatus(p.status))
   if (planned.length > 0) {
     groups.push({ label: 'Planned', count: planned.length })
   }
 
-  const transfers = people.filter((p) => p.status === 'Transfer In' || p.status === 'Transfer Out')
+  const transfers = people.filter((p) => isTransferStatus(p.status))
   if (transfers.length > 0) {
     groups.push({ label: 'Transfers', count: transfers.length })
   }
+
+  return groups
+}
+
+function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
+  people: Person[]
+  podName?: string
+  publicNote?: string
+  podId?: string
+  onPodClick?: (podId: string) => void
+}) {
+  const groups = buildStatusGroups(people)
 
   if (groups.length === 0 && !podName) return null
 

@@ -4,7 +4,7 @@ import type { PersonChange } from '../hooks/useOrgDiff'
 import { useOrg } from '../store/OrgContext'
 import type { ColumnDef } from './tableColumns'
 import { TABLE_COLUMNS, getPersonValue, buildExtraColumns } from './tableColumns'
-import { STATUSES } from '../constants'
+import { STATUSES, DEFAULT_STATUS } from '../constants'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import TableRow from './TableRow'
 import TableHeader from './TableHeader'
@@ -22,7 +22,7 @@ function draftToPerson(values: Record<string, string>): Omit<Person, 'id'> {
     discipline: values.discipline || '',
     team: values.team || '',
     managerId: values.managerId || '',
-    status: (values.status || 'Active') as Person['status'],
+    status: (values.status || DEFAULT_STATUS) as Person['status'],
     additionalTeams: values.additionalTeams ? values.additionalTeams.split(',').map(s => s.trim()).filter(Boolean) : [],
     employmentType: values.employmentType || 'FTE',
     level: values.level ? parseInt(values.level, 10) : undefined,
@@ -106,7 +106,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
     const id = `draft-${Date.now()}`
     const values: Record<string, string> = {
       name: '', role: '', discipline: '', team: '', pod: '',
-      managerId: '', status: 'Active', employmentType: 'FTE',
+      managerId: '', status: DEFAULT_STATUS, employmentType: 'FTE',
       level: '', publicNote: '', privateNote: '', additionalTeams: '',
       ...contextDefaults,
     }
@@ -176,7 +176,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
         const cells = line.split(delimiter)
         const values: Record<string, string> = {
           name: '', role: '', discipline: '', team: '', pod: '',
-          managerId: '', status: 'Active', employmentType: 'FTE',
+          managerId: '', status: DEFAULT_STATUS, employmentType: 'FTE',
           level: '', publicNote: '', privateNote: '', additionalTeams: '',
           ...contextDefaults,
         }

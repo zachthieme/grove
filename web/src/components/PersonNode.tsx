@@ -2,6 +2,7 @@ import { useState } from 'react'
 import styles from './PersonNode.module.css'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
+import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import NodeActions from './NodeActions'
 
 function getEmpAbbrev(empType: string | undefined): string {
@@ -43,9 +44,9 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
   const hasNotes = !!person.publicNote
   const isPrivate = !!person.private
   const isPlaceholder = !!(person as any).isPlaceholder
-  const isRecruiting = person.status === 'Open' || person.status === 'Backfill'
-  const isFuture = person.status === 'Planned'
-  const isTransfer = person.status === 'Transfer In' || person.status === 'Transfer Out'
+  const isRecruiting = isRecruitingStatus(person.status)
+  const isFuture = isPlannedStatus(person.status)
+  const isTransfer = isTransferStatus(person.status)
 
   const empColor = getEmpColor(person.employmentType)
   const empAbbrev = getEmpAbbrev(person.employmentType)
