@@ -43,6 +43,7 @@ type Person struct {
 	PrivateNote     string
 	Level           int
 	Private         bool
+	Extra           map[string]string // unmapped spreadsheet columns, keyed by original header name
 }
 
 type Org struct {

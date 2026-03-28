@@ -65,3 +65,62 @@ func TestBuildPeopleWithMapping_OnlyNameMapped(t *testing.T) {
 		t.Errorf("expected Alice, got %s", org.People[0].Name)
 	}
 }
+
+func TestBuildPeopleWithMapping_ExtraColumns(t *testing.T) {
+	t.Parallel()
+	header := []string{"Full Name", "Job Title", "Dept", "CostCenter", "Location"}
+	rows := [][]string{
+		{"Alice", "VP", "Engineering", "CC001", "NYC"},
+		{"Bob", "Engineer", "Platform", "CC002", ""},
+	}
+	mapping := map[string]string{
+		"name": "Full Name", "role": "Job Title", "team": "Dept",
+	}
+
+	org, err := BuildPeopleWithMapping(header, rows, mapping)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.People) != 2 {
+		t.Fatalf("expected 2 people, got %d", len(org.People))
+	}
+
+	// Alice should have both extra columns
+	if org.People[0].Extra == nil {
+		t.Fatal("expected Extra map for Alice, got nil")
+	}
+	if org.People[0].Extra["CostCenter"] != "CC001" {
+		t.Errorf("expected CostCenter=CC001, got %q", org.People[0].Extra["CostCenter"])
+	}
+	if org.People[0].Extra["Location"] != "NYC" {
+		t.Errorf("expected Location=NYC, got %q", org.People[0].Extra["Location"])
+	}
+
+	// Bob should have CostCenter but not Location (empty values are skipped)
+	if org.People[1].Extra == nil {
+		t.Fatal("expected Extra map for Bob, got nil")
+	}
+	if org.People[1].Extra["CostCenter"] != "CC002" {
+		t.Errorf("expected CostCenter=CC002, got %q", org.People[1].Extra["CostCenter"])
+	}
+	if _, ok := org.People[1].Extra["Location"]; ok {
+		t.Error("expected Location to be absent for Bob (empty value)")
+	}
+}
+
+func TestBuildPeopleWithMapping_NoExtraColumns(t *testing.T) {
+	t.Parallel()
+	header := []string{"Full Name", "Job Title"}
+	rows := [][]string{{"Alice", "VP"}}
+	mapping := map[string]string{
+		"name": "Full Name", "role": "Job Title",
+	}
+
+	org, err := BuildPeopleWithMapping(header, rows, mapping)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if org.People[0].Extra != nil {
+		t.Errorf("expected nil Extra when all columns mapped, got %v", org.People[0].Extra)
+	}
+}

@@ -34,6 +34,23 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 		return nil, fmt.Errorf("missing required field mapping: name")
 	}
 
+	// Identify extra (unmapped) column indices.
+	consumedIndices := make(map[int]bool, len(cols))
+	for _, idx := range cols {
+		consumedIndices[idx] = true
+	}
+	type extraCol struct {
+		name string
+		idx  int
+	}
+	var extraCols []extraCol
+	for i, h := range header {
+		h = strings.TrimSpace(h)
+		if h != "" && !consumedIndices[i] {
+			extraCols = append(extraCols, extraCol{name: h, idx: i})
+		}
+	}
+
 	var people []model.Person
 	for _, row := range dataRows {
 		get := func(field string) string {
@@ -89,6 +106,19 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 				t = strings.TrimSpace(t)
 				if t != "" {
 					p.AdditionalTeams = append(p.AdditionalTeams, t)
+				}
+			}
+		}
+
+		// Collect extra columns.
+		for _, ec := range extraCols {
+			if ec.idx < len(row) {
+				val := strings.TrimSpace(row[ec.idx])
+				if val != "" {
+					if p.Extra == nil {
+						p.Extra = make(map[string]string)
+					}
+					p.Extra[ec.name] = val
 				}
 			}
 		}
