@@ -1,6 +1,6 @@
 // Scenarios: AUTO-005, UI-012
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 import { useDirtyTracking } from './useDirtyTracking'
 
 import { cleanup } from '@testing-library/react'

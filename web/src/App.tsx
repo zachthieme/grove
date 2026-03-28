@@ -1,14 +1,10 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import styles from './App.module.css'
 import { OrgProvider, useOrg } from './store/OrgContext'
-import { useOrgDiff } from './hooks/useOrgDiff'
+import { ViewDataProvider, useViewData } from './store/ViewDataContext'
 import { useExport } from './hooks/useExport'
 import { useSnapshotExport } from './hooks/useSnapshotExport'
-import { useManagerSet } from './hooks/useIsManager'
 import { useAutosave } from './hooks/useAutosave'
-import { useHeadSubtree } from './hooks/useHeadSubtree'
-import { useFilteredPeople } from './hooks/useFilteredPeople'
-import { useSortedPeople } from './hooks/useSortedPeople'
 import { useEscapeKey } from './hooks/useEscapeKey'
 import { useDeepLink } from './hooks/useDeepLink'
 import UploadPrompt from './components/UploadPrompt'
@@ -28,7 +24,9 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, viewMode, dataView, selectedIds, selectedPodId, toggleSelect, batchSelect, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, add, remove, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, hiddenEmploymentTypes, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, selectPod, setViewMode, setSelectedId, showPrivate } = useOrg()
+  const { loaded, viewMode, selectedIds, selectedPodId, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, setViewMode, setSelectedId } = useOrg()
+  const { infoPopoverId, clearInfoPopover } = useViewData()
+
   useDeepLink({
     viewMode,
     selectedId: selectedIds.size === 1 ? [...selectedIds][0] : null,
@@ -37,6 +35,7 @@ function AppContent() {
     setSelectedId,
     setHead,
   })
+
   const mainRef = useRef<HTMLElement>(null)
   const { exportPng, exportSvg, exporting, exportError, clearExportError } = useExport(mainRef)
   const { exportAllSnapshots, exporting: snapshotExporting, progress: snapshotProgress, suppressAutosaveRef } = useSnapshotExport({
@@ -50,63 +49,9 @@ function AppContent() {
   })
   const { serverSaveError } = useAutosave({ original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded, suppressAutosaveRef })
 
-  const rawPeople = dataView === 'original' ? original : working
-  const changes = useOrgDiff(original, working)
-  const showChanges = dataView === 'diff'
-  const managerSet = useManagerSet(working)
-
-  const headSubtree = useHeadSubtree(headPersonId, working)
-  const { people, ghostPeople } = useFilteredPeople(rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges, showPrivate)
-  const sortedPeople = useSortedPeople(people, settings.disciplineOrder)
   const clearHead = useCallback(() => setHead(null), [setHead])
-
-  useEffect(() => {
-    if (!showPrivate && headPersonId) {
-      const headPerson = working.find((p) => p.id === headPersonId)
-      if (headPerson?.private) {
-        setHead(null)
-      }
-    }
-  }, [showPrivate, headPersonId, working, setHead])
-
   useEscapeKey(clearHead, !!headPersonId)
   useEscapeKey(clearSelection, selectedIds.size > 0)
-
-  const handleSelect = useCallback((id: string, event?: React.MouseEvent) => {
-    const multi = !!(event && (event.shiftKey || event.metaKey || event.ctrlKey))
-    toggleSelect(id, multi)
-  }, [toggleSelect])
-
-  const handleAddReport = useCallback(async (parentId: string) => {
-    const parent = working.find((p) => p.id === parentId)
-    if (!parent) return
-    await add({
-      name: 'New Person',
-      role: '',
-      discipline: '',
-      team: parent.team,
-      managerId: parent.id,
-      status: 'Active',
-      additionalTeams: [],
-    })
-  }, [working, add])
-
-  const handleAddToTeam = useCallback(async (parentId: string, team: string, podName?: string) => {
-    await add({
-      name: 'New Person',
-      role: '',
-      discipline: '',
-      team,
-      managerId: parentId,
-      status: 'Active',
-      additionalTeams: [],
-      pod: podName,
-    })
-  }, [add])
-
-  const handleDeletePerson = useCallback(async (personId: string) => {
-    await remove(personId)
-  }, [remove])
 
   const [loggingEnabled, setLoggingEnabled] = useState(false)
   const [logPanelOpen, setLogPanelOpen] = useState(false)
@@ -117,16 +62,6 @@ function AppContent() {
       setClientLogging(cfg.logging)
     }).catch(() => {})
   }, [])
-
-  const [infoPopoverId, setInfoPopoverId] = useState<string | null>(null)
-
-  const handleShowInfo = useCallback((personId: string) => {
-    setInfoPopoverId(personId)
-  }, [])
-
-  const handleFocus = useCallback((personId: string) => {
-    setHead(personId)
-  }, [setHead])
 
   const hasSidebarSelection = selectedIds.size > 0 || !!selectedPodId
 
@@ -167,45 +102,11 @@ function AppContent() {
           {!loaded ? (
             <UploadPrompt />
           ) : viewMode === 'table' ? (
-            <TableView
-              people={sortedPeople}
-              changes={showChanges ? changes : undefined}
-              readOnly={dataView === 'original'}
-            />
+            <TableView />
           ) : viewMode === 'manager' ? (
-            <ManagerView
-              key={layoutKey}
-              people={sortedPeople}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              changes={showChanges ? changes : undefined}
-              managerSet={managerSet}
-              pods={pods}
-              onAddReport={handleAddReport}
-              onDeletePerson={handleDeletePerson}
-              onInfo={handleShowInfo}
-              onFocus={handleFocus}
-              onPodSelect={selectPod}
-              onBatchSelect={batchSelect}
-            />
+            <ManagerView key={layoutKey} />
           ) : viewMode === 'detail' ? (
-            <ColumnView
-              key={layoutKey}
-              people={sortedPeople}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              onBatchSelect={batchSelect}
-              changes={showChanges ? changes : undefined}
-              ghostPeople={ghostPeople}
-              managerSet={managerSet}
-              pods={pods}
-              onAddReport={handleAddReport}
-              onAddToTeam={handleAddToTeam}
-              onDeletePerson={handleDeletePerson}
-              onInfo={handleShowInfo}
-              onFocus={handleFocus}
-              onPodSelect={selectPod}
-            />
+            <ColumnView key={layoutKey} />
           ) : null}
           {snapshotExporting && (
             <div className={styles.exportOverlay}>
@@ -222,7 +123,7 @@ function AppContent() {
         <ManagerInfoPopover
           personId={infoPopoverId}
           working={working}
-          onClose={() => setInfoPopoverId(null)}
+          onClose={clearInfoPopover}
         />
       )}
       {pendingMapping && (
@@ -243,7 +144,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <OrgProvider>
-        <AppContent />
+        <ViewDataProvider>
+          <AppContent />
+        </ViewDataProvider>
       </OrgProvider>
     </ErrorBoundary>
   )

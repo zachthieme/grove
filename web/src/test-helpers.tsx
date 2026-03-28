@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { render, type RenderOptions } from '@testing-library/react'
 import { OrgOverrideProvider } from './store/OrgContext'
+import { ViewDataProvider } from './store/ViewDataContext'
 import type { Person } from './api/types'
 import type { OrgContextValue } from './store/orgTypes'
 
@@ -101,6 +102,24 @@ export function renderWithOrg(
   return render(ui, {
     wrapper: ({ children }) => (
       <OrgOverrideProvider value={ctx}>{children}</OrgOverrideProvider>
+    ),
+    ...renderOptions,
+  })
+}
+
+/** Render a component wrapped in OrgOverrideProvider + ViewDataProvider.
+ *  Use this for components that consume useViewData() (ColumnView, ManagerView, TableView). */
+export function renderWithViewData(
+  ui: ReactElement,
+  orgOverrides: Partial<OrgContextValue> = {},
+  renderOptions?: RenderOptions,
+) {
+  const ctx = makeOrgContext(orgOverrides)
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <OrgOverrideProvider value={ctx}>
+        <ViewDataProvider>{children}</ViewDataProvider>
+      </OrgOverrideProvider>
     ),
     ...renderOptions,
   })

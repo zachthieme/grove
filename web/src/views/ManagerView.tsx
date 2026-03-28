@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useCallback } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import type { Person, Pod } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
+import { useViewData } from '../store/ViewDataContext'
+import { useOrg } from '../store/OrgContext'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { useLassoSelect } from '../hooks/useLassoSelect'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
@@ -13,20 +14,6 @@ import { DragBadgeOverlay } from './DragBadgeOverlay'
 import { LassoSvgOverlay } from './LassoSvgOverlay'
 import styles from './ManagerView.module.css'
 
-interface ManagerViewProps {
-  people: Person[]
-  selectedIds: Set<string>
-  onSelect: (id: string, event?: React.MouseEvent) => void
-  changes?: Map<string, PersonChange>
-  managerSet?: Set<string>
-  pods?: Pod[]
-  onAddReport?: (id: string) => void
-  onDeletePerson?: (id: string) => void
-  onInfo?: (id: string) => void
-  onFocus?: (id: string) => void
-  onPodSelect?: (podId: string) => void
-  onBatchSelect?: (ids: Set<string>) => void
-}
 
 /** Build summary groups from a list of people, bucketing by status. */
 function buildStatusGroups(people: Person[]): { label: string; count: number }[] {
@@ -177,7 +164,10 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
   )
 }
 
-export default function ManagerView({ people, selectedIds, onSelect, changes, managerSet, pods, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect, onBatchSelect }: ManagerViewProps) {
+export default function ManagerView() {
+  const { people, changes, managerSet, pods, handleSelect, handleAddReport, handleDeletePerson, handleShowInfo, handleFocus } = useViewData()
+  const { selectedIds, batchSelect, selectPod } = useOrg()
+
   const roots = useMemo(() => buildOrgTree(people), [people])
 
   const edges = useMemo(() => {
@@ -223,23 +213,23 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
   }, [selectedIds, nodeRefs])
 
   const handleLassoSelect = useCallback((ids: Set<string>) => {
-    onBatchSelect?.(ids)
-  }, [onBatchSelect])
+    batchSelect?.(ids)
+  }, [batchSelect])
 
   const { lassoRect } = useLassoSelect({
     containerRef,
     nodeRefs,
     onSelect: handleLassoSelect,
-    enabled: !!onBatchSelect,
+    enabled: true,
   })
 
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
   const chartValue = useMemo(() => ({
     selectedIds, changes, managerSet, pods,
-    onSelect, onBatchSelect, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect,
+    onSelect: handleSelect, onBatchSelect: batchSelect, onAddReport: handleAddReport, onDeletePerson: handleDeletePerson, onInfo: handleShowInfo, onFocus: handleFocus, onPodSelect: selectPod,
     setNodeRef,
-  }), [selectedIds, changes, managerSet, pods, onSelect, onBatchSelect, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef])
+  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
 
   if (people.length === 0) {
     return <div className={styles.container}>No people to display.</div>
@@ -258,13 +248,13 @@ export default function ManagerView({ people, selectedIds, onSelect, changes, ma
               orphans={roots.filter((r) => r.children.length === 0)}
               roots={roots}
               selectedIds={selectedIds}
-              onSelect={onSelect}
+              onSelect={handleSelect}
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
-              onAddReport={onAddReport}
-              onDeletePerson={onDeletePerson}
-              onInfo={onInfo}
+              onAddReport={handleAddReport}
+              onDeletePerson={handleDeletePerson}
+              onInfo={handleShowInfo}
               styles={styles}
               wrapInIcStack={false}
               renderSubtree={(node) => <ManagerSubtree key={node.person.id} node={node} />}

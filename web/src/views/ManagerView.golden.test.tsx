@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import ManagerView from './ManagerView'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makePerson, renderWithViewData } from '../test-helpers'
 
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
@@ -41,27 +41,20 @@ describe('ManagerView golden', () => {
     const ic1 = makePerson({ id: 'ic-002', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr-001' })
     const ic2 = makePerson({ id: 'ic-003', name: 'IC Carol', role: 'Designer', discipline: 'Design', status: 'Active', managerId: 'mgr-001' })
     const openReq = makePerson({ id: 'ic-004', name: 'Open Req', role: 'Engineer', discipline: 'Engineering', status: 'Open', managerId: 'mgr-001' })
+    const people = [manager, ic1, ic2, openReq]
 
-    const { container } = renderWithOrg(
-      <ManagerView
-        people={[manager, ic1, ic2, openReq]}
-        selectedIds={new Set()}
-        onSelect={vi.fn()}
-      />,
-      { selectedIds: new Set() },
+    const { container } = renderWithViewData(
+      <ManagerView />,
+      { working: people, original: people, selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/manager-view-summary-cards.golden')
   })
 
   it('renders empty state', () => {
-    const { container } = renderWithOrg(
-      <ManagerView
-        people={[]}
-        selectedIds={new Set()}
-        onSelect={vi.fn()}
-      />,
-      { selectedIds: new Set() },
+    const { container } = renderWithViewData(
+      <ManagerView />,
+      { working: [], original: [], selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/manager-view-empty.golden')
@@ -72,14 +65,11 @@ describe('ManagerView golden', () => {
     const vp = makePerson({ id: 'vp-002', name: 'VP Bob', role: 'VP Engineering', managerId: 'ceo-001' })
     const director = makePerson({ id: 'dir-003', name: 'Director Carol', role: 'Director', managerId: 'vp-002' })
     const ic = makePerson({ id: 'ic-004', name: 'IC Dave', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'dir-003' })
+    const people = [ceo, vp, director, ic]
 
-    const { container } = renderWithOrg(
-      <ManagerView
-        people={[ceo, vp, director, ic]}
-        selectedIds={new Set()}
-        onSelect={vi.fn()}
-      />,
-      { selectedIds: new Set() },
+    const { container } = renderWithViewData(
+      <ManagerView />,
+      { working: people, original: people, selectedIds: new Set() },
     )
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/manager-view-multi-level.golden')

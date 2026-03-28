@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import TableView from './TableView'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
-import type { PersonChange } from '../hooks/useOrgDiff'
+import { normalizeHTML, makePerson, renderWithViewData } from '../test-helpers'
+
 
 const basePeople = [
   makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
@@ -16,8 +16,9 @@ describe('TableView golden', () => {
   })
 
   it('renders table with people', () => {
-    const { container } = renderWithOrg(<TableView people={basePeople} />, {
+    const { container } = renderWithViewData(<TableView />, {
       working: basePeople,
+      original: basePeople,
       viewMode: 'table',
       dataView: 'working',
     })
@@ -26,33 +27,38 @@ describe('TableView golden', () => {
   })
 
   it('renders read-only table', () => {
-    const { container } = renderWithOrg(<TableView people={basePeople} readOnly={true} />, {
+    const { container } = renderWithViewData(<TableView />, {
       working: basePeople,
+      original: basePeople,
       viewMode: 'table',
-      dataView: 'working',
+      dataView: 'original',
     })
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/table-view-readonly.golden')
   })
 
   it('renders diff classes', () => {
-    const changes = new Map<string, PersonChange>([
-      ['p-001', { types: new Set(['added']) }],
-      ['p-002', { types: new Set(['reporting']) }],
-    ])
+    // To get diff changes, original and working must differ
+    const modifiedPeople = [
+      makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
+      makePerson({ id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform', employmentType: 'FTE' }),
+      makePerson({ id: 'p-003', name: 'New Person', role: 'Intern', discipline: 'Eng', managerId: 'p-001', team: 'Platform' }),
+    ]
 
-    const { container } = renderWithOrg(<TableView people={basePeople} changes={changes} />, {
-      working: basePeople,
+    const { container } = renderWithViewData(<TableView />, {
+      working: modifiedPeople,
+      original: basePeople,
       viewMode: 'table',
-      dataView: 'working',
+      dataView: 'diff',
     })
 
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/table-view-diff.golden')
   })
 
   it('renders empty table', () => {
-    const { container } = renderWithOrg(<TableView people={[]} />, {
+    const { container } = renderWithViewData(<TableView />, {
       working: [],
+      original: [],
       viewMode: 'table',
       dataView: 'working',
     })
@@ -64,8 +70,9 @@ describe('TableView golden', () => {
     const singlePerson = [
       makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
     ]
-    const { container } = renderWithOrg(<TableView people={singlePerson} />, {
+    const { container } = renderWithViewData(<TableView />, {
       working: singlePerson,
+      original: singlePerson,
       viewMode: 'table',
       dataView: 'working',
     })

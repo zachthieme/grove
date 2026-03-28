@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react'
 import { DndContext, useDroppable } from '@dnd-kit/core'
-import type { Person, Pod } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
+import type { Pod } from '../api/types'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { useLassoSelect } from '../hooks/useLassoSelect'
 import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
@@ -12,25 +11,10 @@ import { buildPodDropId } from '../utils/ids'
 import { ChartProvider, useChart } from './ChartContext'
 import { DragBadgeOverlay } from './DragBadgeOverlay'
 import { LassoSvgOverlay } from './LassoSvgOverlay'
+import { useViewData } from '../store/ViewDataContext'
+import { useOrg } from '../store/OrgContext'
 import NodeActions from '../components/NodeActions'
 import styles from './ColumnView.module.css'
-
-interface ColumnViewProps {
-  people: Person[]
-  selectedIds: Set<string>
-  onSelect: (id: string, event?: React.MouseEvent) => void
-  onBatchSelect?: (ids: Set<string>) => void
-  changes?: Map<string, PersonChange>
-  ghostPeople?: Person[]
-  managerSet?: Set<string>
-  pods?: Pod[]
-  onAddReport?: (id: string) => void
-  onAddToTeam?: (parentId: string, team: string, podName?: string) => void
-  onDeletePerson?: (id: string) => void
-  onInfo?: (id: string) => void
-  onFocus?: (id: string) => void
-  onPodSelect?: (podId: string) => void
-}
 
 function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef, podNodeId }: {
   podName: string
@@ -279,7 +263,10 @@ function SubtreeNode({ node }: { node: OrgNode }) {
   )
 }
 
-export default function ColumnView({ people, selectedIds, onSelect, onBatchSelect, changes, ghostPeople = [], managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect }: ColumnViewProps) {
+export default function ColumnView() {
+  const { people, ghostPeople, changes, managerSet, pods, handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus } = useViewData()
+  const { selectedIds, batchSelect, selectPod } = useOrg()
+
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people), [people])
 
@@ -294,25 +281,25 @@ export default function ColumnView({ people, selectedIds, onSelect, onBatchSelec
   }, [selectedIds, nodeRefs])
 
   const handleLassoSelect = useCallback((ids: Set<string>) => {
-    onBatchSelect?.(ids)
-  }, [onBatchSelect])
+    batchSelect?.(ids)
+  }, [batchSelect])
 
   const { lassoRect } = useLassoSelect({
     containerRef,
     nodeRefs,
     onSelect: handleLassoSelect,
-    enabled: !!onBatchSelect,
+    enabled: true,
   })
 
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
   const chartValue = useMemo(() => ({
     selectedIds, changes, managerSet, pods,
-    onSelect, onBatchSelect, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect,
+    onSelect: handleSelect, onBatchSelect: batchSelect, onAddReport: handleAddReport, onAddToTeam: handleAddToTeam, onDeletePerson: handleDeletePerson, onInfo: handleShowInfo, onFocus: handleFocus, onPodSelect: selectPod,
     setNodeRef,
-  }), [selectedIds, changes, managerSet, pods, onSelect, onBatchSelect, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef])
+  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
 
-  if (people.length === 0 && ghostPeople.length === 0) {
+  if (people.length === 0 && (ghostPeople ?? []).length === 0) {
     return <div className={styles.container}>No people to display.</div>
   }
 
@@ -329,13 +316,13 @@ export default function ColumnView({ people, selectedIds, onSelect, onBatchSelec
               orphans={roots.filter((r) => r.children.length === 0)}
               roots={roots}
               selectedIds={selectedIds}
-              onSelect={onSelect}
+              onSelect={handleSelect}
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
-              onAddReport={onAddReport}
-              onDeletePerson={onDeletePerson}
-              onInfo={onInfo}
+              onAddReport={handleAddReport}
+              onDeletePerson={handleDeletePerson}
+              onInfo={handleShowInfo}
               styles={styles}
               renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
               renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}

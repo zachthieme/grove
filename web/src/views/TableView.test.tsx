@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
-import { renderWithOrg } from '../test-helpers'
+import { renderWithViewData } from '../test-helpers'
 import type { Person } from '../api/types'
 
 const testPeople: Person[] = [
@@ -33,20 +33,24 @@ describe('TableView', () => {
       toggleSelect,
       add,
       working: testPeople,
+      original: testPeople,
       viewMode: 'table' as const,
+      dataView: 'working' as const,
       ...overrides,
     }
-    const result = renderWithOrg(<TableView people={testPeople} />, ctx)
+    const result = renderWithViewData(<TableView />, ctx)
     return { ...result, update, remove, toggleSelect, add }
   }
 
   function renderTableReadOnly(overrides = {}) {
     const ctx = {
       working: testPeople,
+      original: testPeople,
       viewMode: 'table' as const,
+      dataView: 'original' as const,
       ...overrides,
     }
-    return renderWithOrg(<TableView people={testPeople} readOnly={true} />, ctx)
+    return renderWithViewData(<TableView />, ctx)
   }
 
   it('[VIEW-003] cells become editable when clicked in normal mode', async () => {

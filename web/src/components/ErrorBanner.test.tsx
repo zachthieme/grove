@@ -4,7 +4,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { renderWithOrg, makeOrgContext } from '../test-helpers'
 
 /** Minimal component that mirrors App.tsx's error banner pattern. */
 function ErrorBannerHarness({ error, clearError }: { error: string | null; clearError: () => void }) {

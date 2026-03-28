@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { Person, PersonUpdatePayload } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
 import { useOrg } from '../store/OrgContext'
+import { useViewData } from '../store/ViewDataContext'
 import type { ColumnDef } from './tableColumns'
 import { TABLE_COLUMNS, getPersonValue, buildExtraColumns } from './tableColumns'
 import { STATUSES, DEFAULT_STATUS } from '../constants'
@@ -32,13 +32,8 @@ function draftToPerson(values: Record<string, string>): Omit<Person, 'id'> {
   }
 }
 
-interface TableViewProps {
-  people: Person[]
-  changes?: Map<string, PersonChange>
-  readOnly?: boolean
-}
-
-export default function TableView({ people, changes, readOnly }: TableViewProps) {
+export default function TableView() {
+  const { people, changes, readOnly } = useViewData()
   const { update, remove, toggleSelect, selectedIds, clearSelection, working, add } = useOrg()
 
   const [sortKey, setSortKey] = useState<string | null>(null)
