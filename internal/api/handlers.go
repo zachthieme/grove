@@ -12,7 +12,7 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
 	})
 
 	mux.HandleFunc("POST /api/upload", handleUpload(svc))
@@ -53,7 +53,7 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http
 
 	// Config endpoint — always registered
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]bool{"logging": logBuf != nil})
+		writeJSON(w, http.StatusOK, ConfigResponse{Logging: logBuf != nil})
 	})
 
 	// Log endpoints — only when logging is enabled
@@ -139,9 +139,9 @@ func handleGetOrg(svc *OrgService) http.HandlerFunc {
 }
 
 func handleRestoreState(svc *OrgService) http.HandlerFunc {
-	return jsonHandler(func(data AutosaveData) (map[string]string, error) {
+	return jsonHandler(func(data AutosaveData) (HealthResponse, error) {
 		svc.RestoreState(data)
-		return map[string]string{"status": "ok"}, nil
+		return HealthResponse{Status: "ok"}, nil
 	})
 }
 
@@ -152,12 +152,12 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 		NewTeam      string `json:"newTeam"`
 		NewPod       string `json:"newPod"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*WorkingResponse, error) {
 		result, err := svc.Move(r.PersonId, r.NewManagerId, r.NewTeam, r.NewPod)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+		return &WorkingResponse{Working: result.Working, Pods: result.Pods}, nil
 	})
 }
 
@@ -166,22 +166,22 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 		PersonId string            `json:"personId"`
 		Fields   map[string]string `json:"fields"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*WorkingResponse, error) {
 		result, err := svc.Update(r.PersonId, r.Fields)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+		return &WorkingResponse{Working: result.Working, Pods: result.Pods}, nil
 	})
 }
 
 func handleAdd(svc *OrgService) http.HandlerFunc {
-	return jsonHandler(func(p Person) (map[string]any, error) {
+	return jsonHandler(func(p Person) (*AddResponse, error) {
 		created, working, pods, err := svc.Add(p)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"created": created, "working": working, "pods": pods}, nil
+		return &AddResponse{Created: created, Working: working, Pods: pods}, nil
 	})
 }
 
@@ -189,12 +189,12 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*MutationResponse, error) {
 		result, err := svc.Delete(r.PersonId)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "recycled": result.Recycled, "pods": result.Pods}, nil
+		return &MutationResponse{Working: result.Working, Recycled: result.Recycled, Pods: result.Pods}, nil
 	})
 }
 
@@ -208,12 +208,12 @@ func handleRestore(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*MutationResponse, error) {
 		result, err := svc.Restore(r.PersonId)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "recycled": result.Recycled, "pods": result.Pods}, nil
+		return &MutationResponse{Working: result.Working, Recycled: result.Recycled, Pods: result.Pods}, nil
 	})
 }
 
@@ -221,9 +221,7 @@ func handleEmptyBin(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		recycled := svc.EmptyBin()
-		writeJSON(w, http.StatusOK, map[string]any{
-			"recycled": recycled,
-		})
+		writeJSON(w, http.StatusOK, RecycledResponse{Recycled: recycled})
 	}
 }
 
@@ -387,12 +385,12 @@ func handleUpdatePod(svc *OrgService) http.HandlerFunc {
 		PodId  string            `json:"podId"`
 		Fields map[string]string `json:"fields"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*WorkingResponse, error) {
 		result, err := svc.UpdatePod(r.PodId, r.Fields)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+		return &WorkingResponse{Working: result.Working, Pods: result.Pods}, nil
 	})
 }
 
@@ -402,12 +400,12 @@ func handleCreatePod(svc *OrgService) http.HandlerFunc {
 		Name      string `json:"name"`
 		Team      string `json:"team"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*WorkingResponse, error) {
 		result, err := svc.CreatePod(r.ManagerId, r.Name, r.Team)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+		return &WorkingResponse{Working: result.Working, Pods: result.Pods}, nil
 	})
 }
 
@@ -423,12 +421,12 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		PersonIds []string `json:"personIds"`
 	}
-	return jsonHandler(func(r req) (map[string]any, error) {
+	return jsonHandler(func(r req) (*WorkingResponse, error) {
 		result, err := svc.Reorder(r.PersonIds)
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"working": result.Working, "pods": result.Pods}, nil
+		return &WorkingResponse{Working: result.Working, Pods: result.Pods}, nil
 	})
 }
 
