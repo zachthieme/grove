@@ -1,0 +1,61 @@
+/* Grove-themed Driver.js overrides */
+
+.driver-popover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-soft);
+  font-family: var(--font-body);
+}
+
+.driver-popover .driver-popover-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--grove-green);
+}
+
+.driver-popover .driver-popover-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.driver-popover .driver-popover-progress-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.driver-popover .driver-popover-prev-btn {
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  text-shadow: none;
+}
+
+.driver-popover .driver-popover-prev-btn:hover {
+  background: var(--surface-toolbar);
+  color: var(--text-primary);
+}
+
+.driver-popover .driver-popover-next-btn,
+.driver-popover .driver-popover-close-btn-text {
+  background: var(--grove-green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  text-shadow: none;
+}
+
+.driver-popover .driver-popover-next-btn:hover,
+.driver-popover .driver-popover-close-btn-text:hover {
+  background: var(--grove-green-light);
+}
