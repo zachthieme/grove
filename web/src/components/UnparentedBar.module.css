@@ -2,14 +2,14 @@
   position: fixed;
   bottom: 16px;
   left: 16px;
-  background: var(--grove-gold-light, #fef3c7);
-  border: 1px solid var(--grove-gold, #b8923e);
-  border-radius: 8px;
+  background: var(--grove-gold-light);
+  border: 1px solid var(--grove-gold);
+  border-radius: var(--radius-md);
   padding: 8px 12px;
   font-size: 13px;
   z-index: 100;
   max-width: 260px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   color: var(--text-primary);
 }
 
@@ -31,9 +31,9 @@
 }
 
 .orphanBtn {
-  background: var(--surface-raised, #fff);
-  border: 1px solid var(--grove-gold, #b8923e);
-  border-radius: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--grove-gold);
+  border-radius: var(--radius-sm);
   padding: 3px 8px;
   font-size: 12px;
   cursor: pointer;
@@ -42,5 +42,5 @@
 }
 
 .orphanBtn:hover {
-  background: var(--grove-gold-light, #fef3c7);
+  background: var(--grove-gold-light);
 }

@@ -18,6 +18,25 @@
   --surface-raised: #ffffff;
   --surface-sunken: #f3f0eb;
   --surface-toolbar: #f6f3ee;
+  --surface-note: #fffde7;
+  --surface-overlay: rgba(44, 36, 24, 0.4);
+
+  /* Log panel (dark theme) */
+  --log-bg: #1e1e1e;
+  --log-bg-hover: #2a2a2a;
+  --log-bg-detail: #252525;
+  --log-border: #333;
+  --log-text: #d4d4d4;
+  --log-text-muted: #888;
+  --log-accent: #264f78;
+
+  /* Diff state backgrounds */
+  --diff-added: rgba(61, 107, 53, 0.08);
+  --diff-removed: rgba(161, 59, 45, 0.08);
+  --diff-reporting: rgba(184, 146, 62, 0.08);
+  --diff-title: rgba(117, 103, 88, 0.08);
+  --diff-reorg: rgba(196, 135, 59, 0.08);
+  --diff-pod: rgba(156, 173, 143, 0.08);
 
   /* Borders */
   --border-soft: #ddd7cc;

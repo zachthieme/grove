@@ -95,15 +95,15 @@
 
 /* Diff annotations */
 .added {
-  border-color: #4a9c3f;
-  border-left-color: #3d8534;
-  background: #edf7eb;
+  border-color: var(--grove-green-light);
+  border-left-color: var(--grove-green);
+  background: var(--grove-green-soft);
 }
 
 .reporting {
   border-color: var(--grove-amber);
-  border-left-color: #b87a30;
-  background: #fdf6ec;
+  border-left-color: var(--grove-amber);
+  background: var(--grove-gold-light);
 }
 
 .titleChange {
@@ -149,12 +149,12 @@
   font-size: 11px;
   line-height: 20px;
   text-align: center;
-  border: 1px solid var(--border-medium, #d1d5db);
+  border: 1px solid var(--border-medium);
   border-radius: 50%;
-  background: var(--surface-raised, #fff);
+  background: var(--surface-raised);
   cursor: pointer;
   opacity: 0.5;
-  transition: opacity 0.15s, transform 0.15s;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
   z-index: 3;
   padding: 0;
 }
@@ -167,10 +167,10 @@
 .notePanel {
   margin-top: 4px;
   padding: 8px 10px;
-  background: #fffde7;
-  border: 1px solid #e8e0b0;
-  border-radius: 0 0 var(--radius-md, 6px) var(--radius-md, 6px);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  background: var(--surface-note);
+  border: 1px solid var(--grove-gold-light);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-sm);
   animation: noteSlideIn 0.15s ease-out;
   position: relative;
   z-index: 1;
@@ -183,7 +183,7 @@
 
 .notePanelText {
   font-size: 11px;
-  color: #5d5329;
+  color: var(--text-secondary);
   line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
@@ -192,8 +192,8 @@
 .notePanelPrivate {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px dashed #d4c98a;
-  color: #7a6f50;
+  border-top: 1px dashed var(--grove-gold);
+  color: var(--text-tertiary);
 }
 
 .notePanelLabel {
@@ -203,7 +203,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 2px;
-  color: #9a8c60;
+  color: var(--text-muted);
 }
 
 .privateIcon {

@@ -14,7 +14,7 @@
 
 .rowCount {
   font-size: 0.8rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .tableWrapper {
@@ -32,8 +32,8 @@
 .headerCell {
   position: sticky;
   top: -1px;
-  background: var(--bg-secondary, #f3f4f6);
-  border: 1px solid var(--border, #e5e7eb);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-soft);
   padding: 6px 8px;
   text-align: left;
   font-weight: 600;
@@ -43,14 +43,14 @@
 }
 
 .cell {
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border-soft);
   padding: 4px 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-normal);
 }
 
 .cellText {
@@ -61,12 +61,12 @@
 
 .cellEditing {
   padding: 2px 4px;
-  background: var(--bg-input, #f9fafb);
+  background: var(--surface-sunken);
 }
 
 .cellInput {
   width: 100%;
-  border: 1px solid var(--accent, #3b82f6);
+  border: 1px solid var(--grove-green);
   border-radius: 2px;
   padding: 2px 4px;
   font-size: inherit;
@@ -75,19 +75,19 @@
 }
 
 .flashSuccess {
-  background-color: rgba(34, 197, 94, 0.15);
+  background-color: rgba(61, 107, 53, 0.15);
 }
 
 .flashError {
-  background-color: rgba(239, 68, 68, 0.15);
+  background-color: rgba(161, 59, 45, 0.15);
 }
 
 .row:hover {
-  background: var(--bg-hover, #f9fafb);
+  background: var(--surface-sunken);
 }
 
 .actionCell {
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border-soft);
   padding: 2px;
   text-align: center;
   width: 32px;
@@ -98,28 +98,28 @@
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary);
   padding: 2px 4px;
   border-radius: 2px;
 }
 
-.expandBtn:hover { color: var(--accent, #3b82f6); }
-.deleteBtn:hover { color: var(--danger, #ef4444); }
+.expandBtn:hover { color: var(--grove-green); }
+.deleteBtn:hover { color: var(--grove-red); }
 
-.rowSelected { background: rgba(74, 156, 63, 0.1); }
-.rowSelected:hover { background: rgba(74, 156, 63, 0.15); }
+.rowSelected { background: rgba(61, 107, 53, 0.1); }
+.rowSelected:hover { background: rgba(61, 107, 53, 0.15); }
 
 .selectCheckbox {
   cursor: pointer;
-  accent-color: var(--grove-green, #4a9c3f);
+  accent-color: var(--grove-green);
 }
 
-.rowAdded { background: rgba(34, 197, 94, 0.08); }
-.rowRemoved { background: rgba(239, 68, 68, 0.08); text-decoration: line-through; }
-.rowReporting { background: rgba(59, 130, 246, 0.08); }
-.rowTitle { background: rgba(168, 85, 247, 0.08); }
-.rowReorg { background: rgba(245, 158, 11, 0.08); }
-.rowPod { background: rgba(20, 184, 166, 0.08); }
+.rowAdded { background: var(--diff-added); }
+.rowRemoved { background: var(--diff-removed); text-decoration: line-through; }
+.rowReporting { background: var(--diff-reporting); }
+.rowTitle { background: var(--diff-title); }
+.rowReorg { background: var(--diff-reorg); }
+.rowPod { background: var(--diff-pod); }
 
 .headerContent {
   display: flex;
@@ -142,14 +142,14 @@
   border: none;
   cursor: pointer;
   font-size: 0.6rem;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary);
   padding: 2px;
   opacity: 0.5;
 }
 
 .filterBtn:hover, .filterBtnActive {
   opacity: 1;
-  color: var(--accent, #3b82f6);
+  color: var(--grove-green);
 }
 
 .colToggleWrapper {
@@ -159,9 +159,9 @@
 .colToggleBtn {
   font-size: 0.8rem;
   padding: 4px 8px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border-soft);
   border-radius: 4px;
-  background: var(--bg-primary, #fff);
+  background: var(--surface-raised);
   cursor: pointer;
 }
 
@@ -170,11 +170,11 @@
   top: 100%;
   right: 0;
   margin-top: 4px;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border, #e5e7eb);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
   border-radius: 4px;
   padding: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-md);
   z-index: 10;
   white-space: nowrap;
 }
@@ -190,21 +190,21 @@
 
 .filterDropdown {
   position: fixed;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border, #e5e7eb);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
   border-radius: 4px;
   padding: 8px;
   min-width: 180px;
   max-height: 300px;
   overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-md);
   z-index: 100;
 }
 
 .filterSearch {
   width: 100%;
   padding: 4px 8px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border-soft);
   border-radius: 4px;
   font-size: 0.8rem;
   margin-bottom: 6px;
@@ -228,17 +228,17 @@
 .addBtn {
   font-size: 0.85rem;
   padding: 4px 12px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border-soft);
   border-radius: 4px;
-  background: var(--bg-primary, #fff);
+  background: var(--surface-raised);
   cursor: pointer;
 }
 
 .addBtn:hover {
-  background: var(--bg-hover, #f9fafb);
+  background: var(--surface-sunken);
 }
 
 .rowDraft {
-  background: var(--bg-draft, #fffbeb);
-  border-left: 2px dashed var(--warning, #f59e0b);
+  background: var(--grove-gold-light);
+  border-left: 2px dashed var(--grove-amber);
 }
