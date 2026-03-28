@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func newTestService(t *testing.T) *OrgService {
@@ -1559,4 +1560,63 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 			t.Errorf("expected trimmed 'Design', got %q", result.DisciplineOrder[1])
 		}
 	})
+}
+
+// Scenarios: CONTRACT-008
+func TestConfirmMapping_CancelledContext(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	// Upload a file that needs mapping (non-standard headers)
+	csv := []byte("Nombre,Cargo,Departamento\nAlice,VP,Eng\nBob,Engineer,Eng\n")
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
+	if err != nil {
+		t.Fatalf("upload failed: %v", err)
+	}
+	if resp.Status != "needs_mapping" {
+		t.Fatalf("expected needs_mapping, got %s", resp.Status)
+	}
+
+	// Cancel context before calling ConfirmMapping
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // already cancelled
+
+	_, err = svc.ConfirmMapping(ctx, map[string]string{"name": "Nombre"})
+	if err == nil {
+		t.Fatal("expected error from cancelled context")
+	}
+	if err != context.Canceled {
+		t.Errorf("expected context.Canceled, got %v", err)
+	}
+
+	// Verify no state was committed — pending was cleared in Phase 1,
+	// but no org data should be loaded
+	org := svc.GetOrg(context.Background())
+	if org != nil {
+		t.Error("expected nil org data (no state committed)")
+	}
+}
+
+func TestConfirmMapping_DeadlineExceeded(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	csv := []byte("Nombre,Cargo,Departamento\nAlice,VP,Eng\nBob,Engineer,Eng\n")
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
+	if err != nil {
+		t.Fatalf("upload failed: %v", err)
+	}
+	if resp.Status != "needs_mapping" {
+		t.Fatalf("expected needs_mapping, got %s", resp.Status)
+	}
+
+	// Create an already-expired deadline
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	_, err = svc.ConfirmMapping(ctx, map[string]string{"name": "Nombre"})
+	if err == nil {
+		t.Fatal("expected error from expired deadline")
+	}
+	if err != context.DeadlineExceeded {
+		t.Errorf("expected context.DeadlineExceeded, got %v", err)
+	}
 }
