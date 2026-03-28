@@ -5,6 +5,7 @@ import { useOrg } from '../store/OrgContext'
 import type { ColumnDef } from './tableColumns'
 import { TABLE_COLUMNS, getPersonValue } from './tableColumns'
 import { STATUSES } from '../constants'
+import { useOutsideClick } from '../hooks/useOutsideClick'
 import TableRow from './TableRow'
 import TableHeader from './TableHeader'
 import styles from './TableView.module.css'
@@ -48,6 +49,8 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
   const [openFilter, setOpenFilter] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<DraftRow[]>([])
   const newestDraftRef = useRef<HTMLTableRowElement>(null)
+  const colToggleRef = useRef<HTMLDivElement>(null)
+  useOutsideClick(colToggleRef, () => setShowColToggle(false), showColToggle)
 
   const contextDefaults = useMemo(() => {
     const defaults: Record<string, string> = {}
@@ -253,7 +256,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
             <button className={styles.addBtn} onClick={handlePaste} title="Paste rows from clipboard">Paste</button>
           </>
         )}
-        <div className={styles.colToggleWrapper}>
+        <div className={styles.colToggleWrapper} ref={colToggleRef}>
           <button className={styles.colToggleBtn} onClick={() => setShowColToggle(v => !v)}>
             Columns &#x25BE;
           </button>
