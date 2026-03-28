@@ -139,6 +139,34 @@ describe('UIContext', () => {
     expect(captured!.error).toBeNull()
   })
 
+  it('[UI-001] second error overwrites first', () => {
+    renderWithProvider()
+
+    act(() => { captured!.setError('first error') })
+    expect(captured!.error).toBe('first error')
+
+    act(() => { captured!.setError('second error') })
+    expect(captured!.error).toBe('second error')
+  })
+
+  it('[UI-001] clearError is idempotent when no error is set', () => {
+    renderWithProvider()
+
+    expect(captured!.error).toBeNull()
+    act(() => { captured!.clearError() })
+    expect(captured!.error).toBeNull()
+  })
+
+  it('[UI-001] setError with null clears error', () => {
+    renderWithProvider()
+
+    act(() => { captured!.setError('an error') })
+    expect(captured!.error).toBe('an error')
+
+    act(() => { captured!.setError(null) })
+    expect(captured!.error).toBeNull()
+  })
+
   it('[UI-001] setBinOpen toggles bin state', () => {
     renderWithProvider()
 
