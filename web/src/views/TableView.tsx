@@ -3,7 +3,7 @@ import type { Person, PersonUpdatePayload } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
 import { useOrg } from '../store/OrgContext'
 import type { ColumnDef } from './tableColumns'
-import { TABLE_COLUMNS, getPersonValue } from './tableColumns'
+import { TABLE_COLUMNS, getPersonValue, buildExtraColumns } from './tableColumns'
 import { STATUSES } from '../constants'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import TableRow from './TableRow'
@@ -69,6 +69,9 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(p => ({ value: p.id, label: p.name }))
   }, [working])
+
+  const extraColumns = useMemo(() => buildExtraColumns(people), [people])
+  const allColumns = useMemo(() => [...TABLE_COLUMNS, ...extraColumns], [extraColumns])
 
   const handleUpdate = useCallback(async (personId: string, field: string, value: string) => {
     await update(personId, { [field]: value } as PersonUpdatePayload)
@@ -141,7 +144,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
     setDrafts(prev => prev.filter(d => d.id !== draftId))
   }, [])
 
-  const visibleColumns = useMemo(() => TABLE_COLUMNS.filter(c => !hiddenCols.has(c.key)), [hiddenCols])
+  const visibleColumns = useMemo(() => allColumns.filter(c => !hiddenCols.has(c.key)), [hiddenCols, allColumns])
 
   const handlePaste = useCallback(async () => {
     try {
@@ -153,7 +156,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
       const delimiter = lines[0].includes('\t') ? '\t' : ','
 
       // Detect header row: if first row's cells match known column labels/keys, skip it
-      const headerLabels = new Set(TABLE_COLUMNS.flatMap(c => [c.key.toLowerCase(), c.label.toLowerCase()]))
+      const headerLabels = new Set(allColumns.flatMap(c => [c.key.toLowerCase(), c.label.toLowerCase()]))
       const firstCells = lines[0].split(delimiter).map(c => c.trim().toLowerCase())
       const isHeader = firstCells.length > 1 && firstCells.every(c => headerLabels.has(c))
       const dataLines = isHeader ? lines.slice(1) : lines
@@ -162,7 +165,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
       let colMapping: ColumnDef[]
       if (isHeader) {
         colMapping = firstCells.map(cell => {
-          return TABLE_COLUMNS.find(c => c.key.toLowerCase() === cell || c.label.toLowerCase() === cell)!
+          return allColumns.find(c => c.key.toLowerCase() === cell || c.label.toLowerCase() === cell)!
         }).filter(Boolean)
       } else {
         colMapping = visibleColumns
@@ -262,7 +265,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
           </button>
           {showColToggle && (
             <div className={styles.colToggleDropdown}>
-              {TABLE_COLUMNS.map(col => (
+              {allColumns.map(col => (
                 <label key={col.key} className={styles.colToggleItem}>
                   <input
                     type="checkbox"

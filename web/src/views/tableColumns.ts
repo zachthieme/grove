@@ -10,12 +10,30 @@ export interface ColumnDef {
 }
 
 export function getPersonValue(person: Person, key: string): string {
+  if (key.startsWith('extra:')) {
+    return person.extra?.[key.slice(6)] ?? ''
+  }
   switch (key) {
     case 'level': return person.level ? String(person.level) : ''
     case 'additionalTeams': return (person.additionalTeams ?? []).join(', ')
     case 'private': return person.private ? 'true' : 'false'
     default: return (person as unknown as Record<string, unknown>)[key] as string ?? ''
   }
+}
+
+export function buildExtraColumns(people: Person[]): ColumnDef[] {
+  const keys = new Set<string>()
+  for (const p of people) {
+    if (p.extra) {
+      for (const k of Object.keys(p.extra)) keys.add(k)
+    }
+  }
+  return [...keys].sort().map(key => ({
+    key: `extra:${key}`,
+    label: key,
+    cellType: 'text' as CellType,
+    width: '120px',
+  }))
 }
 
 export const TABLE_COLUMNS: ColumnDef[] = [

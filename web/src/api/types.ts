@@ -17,6 +17,7 @@ export interface Person {
   privateNote?: string
   level?: number
   private?: boolean
+  extra?: Record<string, string>
 }
 
 export interface Pod {

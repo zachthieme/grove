@@ -66,7 +66,7 @@ export default function TableRow({ person, columns, managers, change, readOnly, 
           key={col.key}
           value={getPersonValue(person, col.key)}
           cellType={col.cellType}
-          readOnly={readOnly}
+          readOnly={readOnly || col.key.startsWith('extra:')}
           options={getDropdownOptions(col.key, managers)}
           onSave={async (v) => onUpdate(person.id, col.key, v)}
           onTab={(shift) => handleTab(i, shift)}
