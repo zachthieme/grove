@@ -121,6 +121,7 @@ describe('DetailSidebar', () => {
     })
   })
 
+  // Scenarios: UI-013
   describe('batch edit', () => {
     function renderBatch(overrides = {}) {
       const update = vi.fn().mockResolvedValue(undefined)

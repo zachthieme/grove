@@ -586,7 +586,7 @@ func TestOrgService_Update_InvalidStatus(t *testing.T) {
 	}
 }
 
-// Scenarios: ORG-005
+// Scenarios: ORG-005, ORG-010
 func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
@@ -1403,7 +1403,7 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 
 // --- Pod auto-create on Update tests ---
 
-// Scenarios: ORG-018
+// Scenarios: ORG-018, ORG-019
 func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t) // Alice -> Bob -> Carol

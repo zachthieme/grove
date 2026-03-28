@@ -312,7 +312,7 @@ func TestAdversarial_EmptyCSV(t *testing.T) {
 	}
 }
 
-// Scenarios: UPLOAD-011
+// Scenarios: UPLOAD-012
 func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -359,7 +359,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	}
 }
 
-// Scenarios: UPLOAD-010
+// Scenarios: UPLOAD-013
 func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())

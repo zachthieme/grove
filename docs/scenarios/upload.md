@@ -283,6 +283,47 @@ The system returns clear errors for unsupported formats, empty files, header-onl
 
 ---
 
+# Scenario: Header-only CSV
+
+**ID**: UPLOAD-012
+**Area**: upload
+**Tests**:
+- `internal/api/adversarial_test.go` → "TestAdversarial_HeaderOnlyCSV"
+
+## Behavior
+User uploads a CSV that has headers but zero data rows. The system returns an error without mutating state.
+
+## Invariants
+- extractRowsCSV returns error: "must have a header and at least one data row"
+- No state mutation occurs
+- Error message is clear and actionable
+
+## Edge cases
+- None
+
+---
+
+# Scenario: Duplicate CSV headers
+
+**ID**: UPLOAD-013
+**Area**: upload
+**Tests**:
+- `internal/api/adversarial_test.go` → "TestAdversarial_DuplicateHeaders"
+
+## Behavior
+User uploads a CSV with duplicate column names (e.g., two "Name" columns). The inference engine processes all headers. When mapped to a Go map, the last column with a given key wins.
+
+## Invariants
+- No crash or panic
+- Inference proceeds with all header values
+- Map key semantics resolve duplicates (last value wins)
+- Upload completes successfully
+
+## Edge cases
+- None
+
+---
+
 # Scenario: ZIP with settings sidecar
 
 **ID**: UPLOAD-015

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useDeepLink } from './useDeepLink'
 
+// Scenarios: UI-011
 describe('useDeepLink', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/')
