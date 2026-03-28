@@ -280,8 +280,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 			sidecarEntries := parsePodsSidecar(podsSidecar)
 			if len(sidecarEntries) > 0 {
 				idToName := buildIDToName(s.working)
-				applyPodSidecarNotes(s.pods, sidecarEntries, idToName)
-				applyPodSidecarNotes(s.originalPods, sidecarEntries, idToName)
+				s.podMgr.ApplyNotes(sidecarEntries, idToName)
 			}
 		}
 
@@ -295,7 +294,7 @@ func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
 		snapCopy := s.snaps.CopyAll()
 		resp := &UploadResponse{
 			Status:    "ready",
-			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings},
+			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
 			Snapshots: s.ListSnapshotsUnlocked(),
 		}
 		s.mu.Unlock()

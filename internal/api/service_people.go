@@ -28,9 +28,9 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string, newPod ...stri
 	if len(newPod) > 0 && newPod[0] != "" {
 		p.Pod = newPod[0]
 	}
-	s.pods = ReassignPersonPod(s.pods, p)
-	s.pods = CleanupEmptyPods(s.pods, s.working)
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
+	s.podMgr.Reassign(p)
+	s.podMgr.Cleanup(s.working)
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 func (s *OrgService) Update(personId string, fields map[string]string) (*MoveResult, error) {
@@ -106,7 +106,7 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 			return nil, errValidation("unknown field: %s", k)
 		}
 	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
@@ -118,7 +118,7 @@ func (s *OrgService) Reorder(personIds []string) (*MoveResult, error) {
 			s.working[idx].SortIndex = i
 		}
 	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods)}, nil
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
@@ -142,8 +142,8 @@ func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
 	s.rebuildIndex()
-	s.pods = ReassignPersonPod(s.pods, &s.working[len(s.working)-1])
-	return p, deepCopyPeople(s.working), CopyPods(s.pods), nil
+	s.podMgr.Reassign(&s.working[len(s.working)-1])
+	return p, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
 }
 
 func (s *OrgService) Delete(personId string) (*MutationResult, error) {
@@ -161,11 +161,11 @@ func (s *OrgService) Delete(personId string) (*MutationResult, error) {
 	s.recycled = append(s.recycled, s.working[idx])
 	s.working = append(s.working[:idx], s.working[idx+1:]...)
 	s.rebuildIndex()
-	s.pods = CleanupEmptyPods(s.pods, s.working)
+	s.podMgr.Cleanup(s.working)
 	return &MutationResult{
 		Working:  deepCopyPeople(s.working),
 		Recycled: deepCopyPeople(s.recycled),
-		Pods:     CopyPods(s.pods),
+		Pods:     CopyPods(s.podMgr.GetPods()),
 	}, nil
 }
 
@@ -191,11 +191,11 @@ func (s *OrgService) Restore(personId string) (*MutationResult, error) {
 	}
 	s.working = append(s.working, person)
 	s.rebuildIndex()
-	s.pods = ReassignPersonPod(s.pods, &s.working[len(s.working)-1])
+	s.podMgr.Reassign(&s.working[len(s.working)-1])
 	return &MutationResult{
 		Working:  deepCopyPeople(s.working),
 		Recycled: deepCopyPeople(s.recycled),
-		Pods:     CopyPods(s.pods),
+		Pods:     CopyPods(s.podMgr.GetPods()),
 	}, nil
 }
 
@@ -210,16 +210,16 @@ func (s *OrgService) EmptyBin() []Person {
 // Must be called with s.mu held.
 func (s *OrgService) applyTeamChange(p *Person, personId, team string) {
 	p.Team = team
-	s.pods = ReassignPersonPod(s.pods, p)
+	s.podMgr.Reassign(p)
 	if isFrontlineManager(s.working, personId) {
 		for i := range s.working {
 			if s.working[i].ManagerId == personId {
 				s.working[i].Team = team
-				s.pods = ReassignPersonPod(s.pods, &s.working[i])
+				s.podMgr.Reassign(&s.working[i])
 			}
 		}
 	}
-	s.pods = CleanupEmptyPods(s.pods, s.working)
+	s.podMgr.Cleanup(s.working)
 }
 
 // applyManagerChange validates and applies a manager reassignment.
@@ -236,8 +236,8 @@ func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string
 		}
 	}
 	p.ManagerId = newManagerId
-	s.pods = ReassignPersonPod(s.pods, p)
-	s.pods = CleanupEmptyPods(s.pods, s.working)
+	s.podMgr.Reassign(p)
+	s.podMgr.Cleanup(s.working)
 	return nil
 }
 
@@ -246,17 +246,17 @@ func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string
 func (s *OrgService) applyPodChange(p *Person, podName string) {
 	if podName == "" {
 		p.Pod = ""
-		s.pods = CleanupEmptyPods(s.pods, s.working)
+		s.podMgr.Cleanup(s.working)
 		return
 	}
-	pod := findPod(s.pods, podName, p.ManagerId)
+	pod := findPod(s.podMgr.GetPods(), podName, p.ManagerId)
 	if pod == nil {
-		s.pods = append(s.pods, Pod{
+		s.podMgr.SetPods(append(s.podMgr.GetPods(), Pod{
 			Id:        uuid.NewString(),
 			Name:      podName,
 			Team:      p.Team,
 			ManagerId: p.ManagerId,
-		})
+		}))
 	}
 	p.Pod = podName
 }

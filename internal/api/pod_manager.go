@@ -1,0 +1,98 @@
+package api
+
+import "github.com/google/uuid"
+
+// PodManager owns the in-memory pod state. It is NOT thread-safe — callers
+// must hold an external lock (typically OrgService.mu) around all method calls.
+type PodManager struct {
+	pods         []Pod
+	originalPods []Pod
+}
+
+func NewPodManager() *PodManager {
+	return &PodManager{}
+}
+
+func (pm *PodManager) SetState(pods, originalPods []Pod) {
+	pm.pods = pods
+	pm.originalPods = originalPods
+}
+
+func (pm *PodManager) GetPods() []Pod         { return pm.pods }
+func (pm *PodManager) GetOriginalPods() []Pod { return pm.originalPods }
+func (pm *PodManager) SetPods(pods []Pod)     { pm.pods = pods }
+
+func (pm *PodManager) Reset() {
+	pm.pods = CopyPods(pm.originalPods)
+}
+
+func (pm *PodManager) Seed(working []Person) {
+	pm.pods = SeedPods(working)
+	pm.originalPods = CopyPods(pm.pods)
+}
+
+func (pm *PodManager) ListPods(working []Person) []PodInfo {
+	counts := map[string]int{}
+	for _, p := range working {
+		if p.Pod != "" && p.ManagerId != "" {
+			counts[p.ManagerId+":"+p.Pod]++
+		}
+	}
+	result := make([]PodInfo, len(pm.pods))
+	for i, pod := range pm.pods {
+		result[i] = PodInfo{Pod: pod, MemberCount: counts[pod.ManagerId+":"+pod.Name]}
+	}
+	return result
+}
+
+func (pm *PodManager) UpdatePod(podID string, fields map[string]string, working []Person) error {
+	pod := findPodByID(pm.pods, podID)
+	if pod == nil {
+		return errNotFound("pod %s not found", podID)
+	}
+	for k, v := range fields {
+		switch k {
+		case "name":
+			if err := RenamePod(pm.pods, working, podID, v); err != nil {
+				return err
+			}
+		case "publicNote":
+			if err := validateNoteLen(v); err != nil {
+				return err
+			}
+			pod.PublicNote = v
+		case "privateNote":
+			if err := validateNoteLen(v); err != nil {
+				return err
+			}
+			pod.PrivateNote = v
+		default:
+			return errValidation("unknown pod field: %s", k)
+		}
+	}
+	return nil
+}
+
+func (pm *PodManager) CreatePod(managerID, name, team string) error {
+	for _, p := range pm.pods {
+		if p.ManagerId == managerID && p.Team == team {
+			return errConflict("pod already exists for this manager and team")
+		}
+	}
+	pod := Pod{Id: uuid.NewString(), Name: name, Team: team, ManagerId: managerID}
+	pm.pods = append(pm.pods, pod)
+	return nil
+}
+
+func (pm *PodManager) Cleanup(working []Person) {
+	pm.pods = CleanupEmptyPods(pm.pods, working)
+}
+
+func (pm *PodManager) Reassign(person *Person) {
+	pm.pods = ReassignPersonPod(pm.pods, person)
+}
+
+func (pm *PodManager) ApplyNotes(sidecar []podSidecarEntry, idToName map[string]string) {
+	applyPodSidecarNotes(pm.pods, sidecar, idToName)
+	applyPodSidecarNotes(pm.originalPods, sidecar, idToName)
+}

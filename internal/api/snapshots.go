@@ -4,7 +4,7 @@ import "fmt"
 
 func (s *OrgService) SaveSnapshot(name string) error {
 	s.mu.Lock()
-	err := s.snaps.Save(name, s.working, s.pods, s.settings)
+	err := s.snaps.Save(name, s.working, s.podMgr.GetPods(), s.settings)
 	snapCopy := s.snaps.CopyAll()
 	s.mu.Unlock()
 	if err != nil {
@@ -43,9 +43,9 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 	s.working = deepCopyPeople(snap.People)
 	s.rebuildIndex()
 	if snap.Pods != nil {
-		s.pods = CopyPods(snap.Pods)
+		s.podMgr.SetPods(CopyPods(snap.Pods))
 	} else {
-		s.pods = SeedPods(s.working)
+		s.podMgr.SetPods(SeedPods(s.working))
 	}
 	s.recycled = nil
 	if len(snap.Settings.DisciplineOrder) > 0 {
@@ -53,7 +53,7 @@ func (s *OrgService) LoadSnapshot(name string) (*OrgData, error) {
 	} else {
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}, nil
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}, nil
 }
 
 func (s *OrgService) DeleteSnapshot(name string) error {

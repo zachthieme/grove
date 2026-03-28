@@ -35,7 +35,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		return &UploadResponse{
 			Status:             "ready",
-			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings},
+			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
 			PersistenceWarning: persistWarn,
 		}, nil
 	}
@@ -94,7 +94,7 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	s.mu.Lock()
 	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Phase 4: disk I/O outside lock
@@ -126,8 +126,7 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		sidecarEntries := parsePodsSidecar(podsSidecar)
 		if len(sidecarEntries) > 0 {
 			idToName := buildIDToName(s.working)
-			applyPodSidecarNotes(s.pods, sidecarEntries, idToName)
-			applyPodSidecarNotes(s.originalPods, sidecarEntries, idToName)
+			s.podMgr.ApplyNotes(sidecarEntries, idToName)
 		}
 	}
 
@@ -140,7 +139,7 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 
 	snapCopy := s.snaps.CopyAll()
 	// s.pending already cleared in Phase 1
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Disk I/O outside the lock

@@ -13,16 +13,15 @@ import (
 )
 
 type OrgService struct {
-	mu           sync.RWMutex
-	original     []Person
-	working      []Person
-	recycled     []Person
-	pods         []Pod
-	originalPods []Pod
-	settings     Settings
-	pending      *PendingUpload
-	snaps        *SnapshotManager
-	idIndex      map[string]int
+	mu       sync.RWMutex
+	original []Person
+	working  []Person
+	recycled []Person
+	settings Settings
+	pending  *PendingUpload
+	snaps    *SnapshotManager
+	podMgr   *PodManager
+	idIndex  map[string]int
 }
 
 func deriveDisciplineOrder(people []Person) []string {
@@ -46,7 +45,7 @@ type MoveResult struct {
 }
 
 func NewOrgService(snapStore SnapshotStore) *OrgService {
-	return &OrgService{snaps: NewSnapshotManager(snapStore)}
+	return &OrgService{snaps: NewSnapshotManager(snapStore), podMgr: NewPodManager()}
 }
 
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
@@ -99,8 +98,7 @@ func (s *OrgService) RestoreState(data AutosaveData) {
 	s.working = deepCopyPeople(data.Working)
 	s.rebuildIndex()
 	s.recycled = deepCopyPeople(data.Recycled)
-	s.pods = CopyPods(data.Pods)
-	s.originalPods = CopyPods(data.OriginalPods)
+	s.podMgr.SetState(CopyPods(data.Pods), CopyPods(data.OriginalPods))
 	if data.Settings != nil {
 		s.settings = *data.Settings
 	} else {
@@ -114,7 +112,7 @@ func (s *OrgService) GetOrg() *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 }
 
 func (s *OrgService) GetWorking() []Person {
@@ -135,9 +133,9 @@ func (s *OrgService) ResetToOriginal() *OrgData {
 	s.working = deepCopyPeople(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
-	s.pods = CopyPods(s.originalPods)
+	s.podMgr.Reset()
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.pods), Settings: &s.settings}
+	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 }
 
 // resetState replaces the full org state after an import. Must be called with s.mu held.
@@ -148,8 +146,7 @@ func (s *OrgService) resetState(original, working []Person, snaps map[string]sna
 	s.rebuildIndex()
 	s.recycled = nil
 	s.snaps.ReplaceAll(snaps)
-	s.pods = SeedPods(s.working)
-	s.originalPods = CopyPods(s.pods)
+	s.podMgr.Seed(s.working)
 	_ = SeedPods(s.original)
 }
 

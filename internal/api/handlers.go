@@ -228,7 +228,7 @@ func handleEmptyBin(svc *OrgService) http.HandlerFunc {
 func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		svc.mu.RLock()
-		pods := CopyPods(svc.pods)
+		pods := CopyPods(svc.podMgr.GetPods())
 		people := deepCopyPeople(svc.working)
 		svc.mu.RUnlock()
 		if len(pods) == 0 {
