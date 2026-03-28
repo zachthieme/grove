@@ -1620,3 +1620,182 @@ func TestConfirmMapping_DeadlineExceeded(t *testing.T) {
 		t.Errorf("expected context.DeadlineExceeded, got %v", err)
 	}
 }
+
+// --- Direct service_pods.go tests ---
+
+// Scenarios: ORG-018
+func TestOrgService_ListPods_MemberCounts(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// Create a pod and assign a person to it
+	alice := findByName(svc.GetWorking(ctx), "Alice")
+	bob := findByName(svc.GetWorking(ctx), "Bob")
+	_, err := svc.CreatePod(ctx, alice.Id, "Alpha", "Eng")
+	if err != nil {
+		t.Fatalf("create pod: %v", err)
+	}
+	// Assign Bob to the pod
+	_, err = svc.Update(ctx, bob.Id, map[string]string{"pod": "Alpha"})
+	if err != nil {
+		t.Fatalf("assign pod: %v", err)
+	}
+
+	pods := svc.ListPods(ctx)
+	if len(pods) == 0 {
+		t.Fatal("expected at least one pod")
+	}
+	var alpha *PodInfo
+	for i := range pods {
+		if pods[i].Name == "Alpha" {
+			alpha = &pods[i]
+		}
+	}
+	if alpha == nil {
+		t.Fatal("expected pod 'Alpha' in list")
+	}
+	if alpha.MemberCount != 1 {
+		t.Errorf("expected 1 member in Alpha pod, got %d", alpha.MemberCount)
+	}
+}
+
+// Scenarios: ORG-018
+func TestOrgService_UpdatePod_NotFound(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	_, err := svc.UpdatePod(context.Background(), "nonexistent-pod-id", map[string]string{"publicNote": "hello"})
+	if err == nil {
+		t.Fatal("expected error for nonexistent pod")
+	}
+	if !isNotFound(err) {
+		t.Errorf("expected NotFoundError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: ORG-018
+func TestOrgService_UpdatePod_UnknownField(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	alice := findByName(svc.GetWorking(ctx), "Alice")
+	_, err := svc.CreatePod(ctx, alice.Id, "Alpha", "Eng")
+	if err != nil {
+		t.Fatalf("create pod: %v", err)
+	}
+	pods := svc.ListPods(ctx)
+	_, err = svc.UpdatePod(ctx, pods[0].Id, map[string]string{"badField": "value"})
+	if err == nil {
+		t.Fatal("expected error for unknown pod field")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: ORG-018
+func TestOrgService_UpdatePod_NoteTooLong(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	alice := findByName(svc.GetWorking(ctx), "Alice")
+	_, err := svc.CreatePod(ctx, alice.Id, "Alpha", "Eng")
+	if err != nil {
+		t.Fatalf("create pod: %v", err)
+	}
+	pods := svc.ListPods(ctx)
+
+	longNote := string(make([]byte, maxNoteLen+1))
+	_, err = svc.UpdatePod(ctx, pods[0].Id, map[string]string{"publicNote": longNote})
+	if err == nil {
+		t.Fatal("expected error for oversized note")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: ORG-018
+func TestOrgService_CreatePod_Duplicate(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	alice := findByName(svc.GetWorking(ctx), "Alice")
+	_, err := svc.CreatePod(ctx, alice.Id, "Alpha", "Eng")
+	if err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+	// Creating another pod for same manager+team should conflict
+	_, err = svc.CreatePod(ctx, alice.Id, "Beta", "Eng")
+	if err == nil {
+		t.Fatal("expected error for duplicate manager+team pod")
+	}
+	if !isConflict(err) {
+		t.Errorf("expected ConflictError, got %T: %v", err, err)
+	}
+}
+
+// --- Direct service_settings.go tests ---
+
+// Scenarios: SETTINGS-001
+func TestOrgService_GetSettings_ReturnsDefault(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	settings := svc.GetSettings(context.Background())
+	// After upload, settings should have discipline order derived from data
+	if len(settings.DisciplineOrder) == 0 {
+		t.Error("expected non-empty discipline order after upload")
+	}
+}
+
+// Scenarios: SETTINGS-001
+func TestOrgService_Settings_RoundTrip(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	newSettings := Settings{DisciplineOrder: []string{"Design", "PM", "Eng"}}
+	result, err := svc.UpdateSettings(ctx, newSettings)
+	if err != nil {
+		t.Fatalf("update settings: %v", err)
+	}
+	if len(result.DisciplineOrder) != 3 {
+		t.Fatalf("expected 3 disciplines, got %d", len(result.DisciplineOrder))
+	}
+
+	// Read back
+	got := svc.GetSettings(ctx)
+	if got.DisciplineOrder[0] != "Design" {
+		t.Errorf("expected 'Design' first, got '%s'", got.DisciplineOrder[0])
+	}
+}
+
+// Scenarios: SETTINGS-001
+func TestOrgService_UpdateSettings_RejectsInvalidChars(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng\nDesign"}})
+	if err == nil {
+		t.Fatal("expected error for newline in discipline name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: SETTINGS-001
+func TestOrgService_UpdateSettings_RejectsOversizedName(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	longName := string(make([]byte, maxFieldLen+1))
+	_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{longName}})
+	if err == nil {
+		t.Fatal("expected error for oversized discipline name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
