@@ -64,6 +64,7 @@ export default function TableHeader({ columns, sortKey, sortDir, onSort, filterA
               className={`${styles.filterBtn} ${filterActive.has(col.key) ? styles.filterBtnActive : ''}`}
               onClick={(e) => { e.stopPropagation(); onFilterClick(col.key) }}
               title={`Filter ${col.label}`}
+              aria-label={`Filter ${col.label}`}
             >
               &#x25BC;
             </button>

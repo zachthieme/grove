@@ -209,7 +209,7 @@ export default function DetailSidebar() {
   const ph = (field: StringField, fallback = '') => mixed(field) ? 'Mixed' : fallback
 
   return (
-    <div className={styles.sidebar}>
+    <aside className={styles.sidebar}>
       <div className={styles.header}>
         <h3 data-testid="sidebar-heading">{isBatch ? `Edit ${selectedIds.size} people` : 'Edit Person'}</h3>
         <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close">
@@ -327,6 +327,6 @@ export default function DetailSidebar() {
           )}
         </div>
       </div>
-    </div>
+    </aside>
   )
 }

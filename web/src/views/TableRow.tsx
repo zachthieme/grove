@@ -75,7 +75,7 @@ export default function TableRow({ person, columns, managers, change, readOnly, 
       ))}
       <td className={styles.actionCell}>
         {!readOnly && (
-          <button className={styles.deleteBtn} onClick={() => onDelete(person.id)} title="Delete">x</button>
+          <button className={styles.deleteBtn} onClick={() => onDelete(person.id)} title="Delete" aria-label="Delete">x</button>
         )}
       </td>
     </tr>

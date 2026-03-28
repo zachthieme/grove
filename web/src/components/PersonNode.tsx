@@ -91,12 +91,12 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
         />
       )}
       {person.warning && person.warning.length > 0 && (
-        <div className={styles.warningDot} title={person.warning}>{'\u26A0'}</div>
+        <div className={styles.warningDot} title={person.warning} role="img" aria-label={`Warning: ${person.warning}`}>{'\u26A0'}</div>
       )}
       {isPrivate && !isPlaceholder && (
-        <div className={styles.privateIcon} title="Private">{'\u{1F512}'}</div>
+        <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
-      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} data-selected={selected || false} data-testid={`person-${person.name}`}>
+      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`}>
         <div className={styles.name}>
           {statusLabel && <span className="sr-only">{statusLabel}: </span>}
           {prefix}{person.name}
@@ -111,7 +111,8 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
         <button
           className={`${styles.noteIcon} ${noteOpen ? styles.noteIconActive : ''}`}
           onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
-          title="Toggle notes"
+          aria-label="Toggle notes"
+          aria-expanded={noteOpen}
         >
           {'\u{1F4CB}'}
         </button>

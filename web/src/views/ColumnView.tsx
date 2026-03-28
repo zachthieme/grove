@@ -88,7 +88,8 @@ function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeR
         <button
           className={`${styles.podNoteIcon} ${noteOpen ? styles.podNoteIconActive : ''}`}
           onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
-          title="Toggle notes"
+          aria-label="Toggle pod notes"
+          aria-expanded={noteOpen}
         >
           {'\u{1F4CB}'}
         </button>

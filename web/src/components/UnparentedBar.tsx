@@ -22,6 +22,7 @@ export default function UnparentedBar() {
       <button
         className={styles.toggle}
         onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
       >
         {collapsed ? '▸' : '▾'} {orphans.length} unparented {orphans.length === 1 ? 'person' : 'people'}
       </button>

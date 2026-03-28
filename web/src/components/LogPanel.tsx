@@ -69,7 +69,7 @@ export default function LogPanel({ onClose }: LogPanelProps) {
             <option value="web">Web</option>
           </select>
           {filter.correlationId && (
-            <button className={styles.filterTag} onClick={() => setFilter((f) => ({ ...f, correlationId: undefined }))}>
+            <button className={styles.filterTag} onClick={() => setFilter((f) => ({ ...f, correlationId: undefined }))} aria-label={`Remove filter ${filter.correlationId}`}>
               {filter.correlationId} ×
             </button>
           )}
@@ -86,7 +86,7 @@ export default function LogPanel({ onClose }: LogPanelProps) {
       <div className={styles.entries}>
         {data?.entries.map((entry) => (
           <div key={entry.id} className={styles.entry}>
-            <div className={styles.entryRow} onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}>
+            <div className={styles.entryRow} onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expandedId === entry.id ? null : entry.id) } }} role="button" tabIndex={0}>
               <span className={styles.timestamp}>{new Date(entry.timestamp).toLocaleTimeString()}</span>
               <span className={`${styles.source} ${entry.source === 'api' ? styles.sourceApi : styles.sourceWeb}`}>
                 {entry.source}

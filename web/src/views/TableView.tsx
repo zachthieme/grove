@@ -255,12 +255,12 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
         <span className={styles.rowCount}>{filteredPeople.length} people</span>
         {!readOnly && (
           <>
-            <button className={styles.addBtn} onClick={addDraftRow} title="Add row">+</button>
-            <button className={styles.addBtn} onClick={handlePaste} title="Paste rows from clipboard">Paste</button>
+            <button className={styles.addBtn} onClick={addDraftRow} title="Add row" aria-label="Add new row">+</button>
+            <button className={styles.addBtn} onClick={handlePaste} title="Paste rows from clipboard" aria-label="Paste rows from clipboard">Paste</button>
           </>
         )}
         <div className={styles.colToggleWrapper} ref={colToggleRef}>
-          <button className={styles.colToggleBtn} onClick={() => setShowColToggle(v => !v)}>
+          <button className={styles.colToggleBtn} onClick={() => setShowColToggle(v => !v)} aria-label="Toggle column visibility">
             Columns &#x25BE;
           </button>
           {showColToggle && (
@@ -351,7 +351,7 @@ export default function TableView({ people, changes, readOnly }: TableViewProps)
                   </td>
                 ))}
                 <td className={styles.actionCell}>
-                  <button className={styles.deleteBtn} onClick={() => discardDraft(draft.id)} title="Discard">x</button>
+                  <button className={styles.deleteBtn} onClick={() => discardDraft(draft.id)} title="Discard" aria-label="Discard draft row">x</button>
                 </td>
               </tr>
             ))}

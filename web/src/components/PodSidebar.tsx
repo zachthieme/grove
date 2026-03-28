@@ -50,7 +50,7 @@ export default function PodSidebar() {
   }
 
   return (
-    <div className={styles.sidebar}>
+    <aside className={styles.sidebar}>
       <div className={styles.header}>
         <h3>Pod Details</h3>
         <button className={styles.closeBtn} onClick={() => selectPod(null)} aria-label="Close">
@@ -102,6 +102,6 @@ export default function PodSidebar() {
           </button>
         </div>
       </div>
-    </div>
+    </aside>
   )
 }

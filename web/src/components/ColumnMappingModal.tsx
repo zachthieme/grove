@@ -64,7 +64,7 @@ export default function ColumnMappingModal({ headers, mapping, preview, onConfir
   const mappedFields = APP_FIELDS.filter((f) => localMapping[f.key])
 
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Column mapping">
       <div className={styles.modal}>
         <h2 className={styles.title}>Map Spreadsheet Columns</h2>
 
