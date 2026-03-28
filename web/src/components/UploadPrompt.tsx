@@ -53,6 +53,7 @@ export default function UploadPrompt() {
       <button
         onClick={() => inputRef.current?.click()}
         className={styles.uploadBtn}
+        data-tour="upload-prompt"
       >
         Choose File
       </button>

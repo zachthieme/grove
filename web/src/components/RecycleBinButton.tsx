@@ -22,6 +22,7 @@ export default function RecycleBinButton() {
       className={`${styles.btn} ${binOpen ? styles.open : styles.closed}`}
       aria-label={`Recycle bin${visibleCount > 0 ? ` (${visibleCount} items)` : ''}`}
       aria-pressed={binOpen}
+      data-tour="recycle-bin"
     >
       🗑
       {visibleCount > 0 && (

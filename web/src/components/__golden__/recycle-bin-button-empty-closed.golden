@@ -1,1 +1,1 @@
-<button class="_btn_92b90c _closed_92b90c" aria-label="Recycle bin" aria-pressed="false">🗑</button>
+<button class="_btn_92b90c _closed_92b90c" aria-label="Recycle bin" aria-pressed="false" data-tour="recycle-bin">🗑</button>

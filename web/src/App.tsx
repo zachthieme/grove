@@ -163,7 +163,7 @@ function AppContent() {
       <Breadcrumbs />
       <AutosaveBanner />
       <div className={styles.body}>
-        <main className={styles.main} ref={mainRef}>
+        <main className={styles.main} ref={mainRef} data-tour="main-content">
           {!loaded ? (
             <UploadPrompt />
           ) : viewMode === 'table' ? (

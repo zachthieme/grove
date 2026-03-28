@@ -50,6 +50,7 @@ export default function SnapshotsDropdown() {
         title={`Snapshot: ${label}`}
         aria-expanded={open}
         aria-label={`Snapshot: ${label}`}
+        data-tour="snapshots"
       >
         {label} ▾
       </button>

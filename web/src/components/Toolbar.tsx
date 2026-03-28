@@ -66,13 +66,13 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
-      <button className={styles.uploadBtn} onClick={() => inputRef.current?.click()} aria-label="Upload file">
+      <button className={styles.uploadBtn} onClick={() => inputRef.current?.click()} aria-label="Upload file" data-tour="upload">
         Upload
       </button>
 
       {loaded && (
         <>
-          <div className={styles.pillGroup}>
+          <div className={styles.pillGroup} data-tour="view-modes">
             {viewModes.map((m) => (
               <button
                 key={m.value}
@@ -84,7 +84,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             ))}
           </div>
 
-          <div className={styles.pillGroup}>
+          <div className={styles.pillGroup} data-tour="data-views">
             {dataViews.map((d) => (
               <button
                 key={d.value}
@@ -112,6 +112,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
               onClick={() => setExportOpen((o) => !o)}
               aria-expanded={exportOpen}
               aria-label="Export options"
+              data-tour="export"
             >
               {exporting ? 'Exporting...' : 'Export ▾'}
             </button>
