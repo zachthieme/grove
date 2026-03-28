@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all cover bench mutate check-scenarios lint ci
+.PHONY: frontend build dev clean e2e test test-all test-everything cover bench fuzz mutate check-scenarios lint ci
 
 frontend:
 	cd web && npm run build
@@ -31,6 +31,17 @@ cover:
 
 bench:
 	go test -bench=. -benchmem ./internal/api/ -count=3
+
+fuzz:
+	@echo "Running fuzz tests (5s each)..."
+	go test -fuzz=FuzzInferMapping -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzCSVUpload -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzAllRequiredHigh -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzAllRequiredHighMultiField -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzUpdateFields -fuzztime=5s ./internal/api/
+
+test-everything: lint test-all e2e bench fuzz check-scenarios
+	@echo "All tests passed."
 
 mutate:
 	cd web && npx stryker run
