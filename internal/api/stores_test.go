@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -16,12 +17,12 @@ func TestSaveSnapshot_PersistenceError(t *testing.T) {
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
-	if _, err := svc.Upload("test.csv", csv); err != nil {
+	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 
 	store.SetWriteErr("disk full")
-	err := svc.SaveSnapshot("v1")
+	err := svc.SaveSnapshot(context.Background(), "v1")
 	if err == nil {
 		t.Fatal("expected error when snapshot store write fails")
 	}
@@ -36,16 +37,16 @@ func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
-	if _, err := svc.Upload("test.csv", csv); err != nil {
+	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 
-	if err := svc.SaveSnapshot("v1"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "v1"); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 
 	store.SetWriteErr("permission denied")
-	err := svc.DeleteSnapshot("v1")
+	err := svc.DeleteSnapshot(context.Background(), "v1")
 	if err == nil {
 		t.Fatal("expected error when snapshot store write fails on delete")
 	}
@@ -62,13 +63,13 @@ func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 
 	// First upload to establish state
-	if _, err := svc.Upload("test.csv", csv); err != nil {
+	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 
 	// Now make delete fail for the next upload
 	store.SetDeleteErr("snapshot cleanup failed")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload should not hard-fail on persistence error: %v", err)
 	}
@@ -88,7 +89,7 @@ func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 	svc := NewOrgService(store)
 
 	// Service should start without snapshots, not crash
-	list := svc.ListSnapshots()
+	list := svc.ListSnapshots(context.Background())
 	if len(list) != 0 {
 		t.Errorf("expected 0 snapshots when store read fails, got %d", len(list))
 	}
@@ -104,7 +105,7 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 	})
 
 	svc := NewOrgService(store)
-	list := svc.ListSnapshots()
+	list := svc.ListSnapshots(context.Background())
 	if len(list) != 1 {
 		t.Fatalf("expected 1 snapshot from store, got %d", len(list))
 	}

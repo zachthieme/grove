@@ -3,6 +3,7 @@ package api
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -242,7 +243,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	return original, working, snaps, warnings, nil
 }
 
-func (s *OrgService) UploadZip(data []byte) (*UploadResponse, error) {
+func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadResponse, error) {
 	// Parse before acquiring lock — no state mutation if parsing fails
 	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(data)
 	if err != nil {

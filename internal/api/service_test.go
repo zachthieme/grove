@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"testing"
 )
 
@@ -8,7 +9,7 @@ func newTestService(t *testing.T) *OrgService {
 	t.Helper()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
@@ -22,7 +23,7 @@ func newTestService(t *testing.T) *OrgService {
 func TestOrgService_Upload(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if data == nil {
 		t.Fatal("expected org data after upload")
 	}
@@ -41,11 +42,11 @@ func TestOrgService_Upload(t *testing.T) {
 func TestOrgService_Move(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	carol := findByName(data.Working, "Carol")
 	alice := findByName(data.Working, "Alice")
 
-	result, err := svc.Move(carol.Id, alice.Id, "Eng")
+	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "Eng")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
@@ -57,7 +58,7 @@ func TestOrgService_Move(t *testing.T) {
 		t.Errorf("expected Carol's team to be Eng, got %s", updated.Team)
 	}
 
-	origCarol := findByName(svc.GetOrg().Original, "Carol")
+	origCarol := findByName(svc.GetOrg(context.Background()).Original, "Carol")
 	if origCarol.Team == "Eng" {
 		t.Error("expected original Carol to still be on Platform")
 	}
@@ -67,18 +68,18 @@ func TestOrgService_Move(t *testing.T) {
 func TestOrgService_Move_SetsPod(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	bob := findByName(data.Working, "Bob")
 
 	// Create a pod under Alice
-	_, err := svc.CreatePod(alice.Id, "Alpha", "Eng")
+	_, err := svc.CreatePod(context.Background(), alice.Id, "Alpha", "Eng")
 	if err != nil {
 		t.Fatalf("create pod failed: %v", err)
 	}
 
 	// Move Bob to Alice with pod "Alpha"
-	result, err := svc.Move(bob.Id, alice.Id, "Eng", "Alpha")
+	result, err := svc.Move(context.Background(), bob.Id, alice.Id, "Eng", "Alpha")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
@@ -92,12 +93,12 @@ func TestOrgService_Move_SetsPod(t *testing.T) {
 func TestOrgService_Move_EmptyPodIgnored(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	carol := findByName(data.Working, "Carol")
 
 	// Move with empty pod should not set pod field
-	result, err := svc.Move(carol.Id, alice.Id, "Eng", "")
+	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "Eng", "")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
@@ -111,10 +112,10 @@ func TestOrgService_Move_EmptyPodIgnored(t *testing.T) {
 func TestOrgService_Update(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	result, err := svc.Update(bob.Id, map[string]string{"role": "Senior Engineer", "discipline": "SRE"})
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"role": "Senior Engineer", "discipline": "SRE"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -131,10 +132,10 @@ func TestOrgService_Update(t *testing.T) {
 func TestOrgService_Add(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 
-	added, _, _, err := svc.Add(Person{
+	added, _, _, err := svc.Add(context.Background(), Person{
 		Name: "Dave", Role: "Engineer", Discipline: "Eng",
 		ManagerId: alice.Id, Team: "Eng", Status: "Active",
 	})
@@ -146,7 +147,7 @@ func TestOrgService_Add(t *testing.T) {
 		t.Error("expected added person to have an ID")
 	}
 
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	if len(working) != 4 {
 		t.Errorf("expected 4 people, got %d", len(working))
 	}
@@ -156,16 +157,16 @@ func TestOrgService_Add(t *testing.T) {
 func TestOrgService_Delete(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
-	_, err := svc.Delete(bob.Id)
+	_, err := svc.Delete(context.Background(), bob.Id)
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
 
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	if len(working) != 2 {
 		t.Errorf("expected 2 people, got %d", len(working))
 	}
@@ -178,7 +179,7 @@ func TestOrgService_Delete(t *testing.T) {
 		t.Errorf("expected Carol to be unparented, got managerId %s", updatedCarol.ManagerId)
 	}
 
-	recycled := svc.GetRecycled()
+	recycled := svc.GetRecycled(context.Background())
 	if len(recycled) != 1 {
 		t.Errorf("expected 1 recycled, got %d", len(recycled))
 	}
@@ -188,20 +189,20 @@ func TestOrgService_Delete(t *testing.T) {
 func TestOrgService_SoftDelete(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bobId := findByName(data.Working, "Bob").Id
 	carolId := findByName(data.Working, "Carol").Id
 
-	_, err := svc.Delete(bobId)
+	_, err := svc.Delete(context.Background(), bobId)
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
 
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	if len(working) != 2 {
 		t.Errorf("expected 2 working, got %d", len(working))
 	}
-	recycled := svc.GetRecycled()
+	recycled := svc.GetRecycled(context.Background())
 	if len(recycled) != 1 {
 		t.Fatalf("expected 1 recycled, got %d", len(recycled))
 	}
@@ -218,22 +219,22 @@ func TestOrgService_SoftDelete(t *testing.T) {
 func TestOrgService_Restore(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bobId := findByName(data.Working, "Bob").Id
 
-	if _, err := svc.Delete(bobId); err != nil {
+	if _, err := svc.Delete(context.Background(), bobId); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
-	_, err := svc.Restore(bobId)
+	_, err := svc.Restore(context.Background(), bobId)
 	if err != nil {
 		t.Fatalf("restore failed: %v", err)
 	}
 
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	if len(working) != 3 {
 		t.Errorf("expected 3 working, got %d", len(working))
 	}
-	recycled := svc.GetRecycled()
+	recycled := svc.GetRecycled(context.Background())
 	if len(recycled) != 0 {
 		t.Errorf("expected 0 recycled, got %d", len(recycled))
 	}
@@ -243,21 +244,21 @@ func TestOrgService_Restore(t *testing.T) {
 func TestOrgService_Restore_ManagerGone(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	carolId := findByName(data.Working, "Carol").Id
 	bobId := findByName(data.Working, "Bob").Id
 
-	if _, err := svc.Delete(bobId); err != nil {
+	if _, err := svc.Delete(context.Background(), bobId); err != nil {
 		t.Fatalf("delete bob: %v", err)
 	}
-	if _, err := svc.Delete(carolId); err != nil {
+	if _, err := svc.Delete(context.Background(), carolId); err != nil {
 		t.Fatalf("delete carol: %v", err)
 	}
-	if _, err := svc.Restore(carolId); err != nil {
+	if _, err := svc.Restore(context.Background(), carolId); err != nil {
 		t.Fatalf("restore carol: %v", err)
 	}
 
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	restoredCarol := findById(working, carolId)
 	if restoredCarol.ManagerId != "" {
 		t.Errorf("expected Carol unparented (manager Bob gone), got %s", restoredCarol.ManagerId)
@@ -268,23 +269,23 @@ func TestOrgService_Restore_ManagerGone(t *testing.T) {
 func TestOrgService_EmptyBin(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bobId := findByName(data.Working, "Bob").Id
 	carolId := findByName(data.Working, "Carol").Id
 
-	if _, err := svc.Delete(bobId); err != nil {
+	if _, err := svc.Delete(context.Background(), bobId); err != nil {
 		t.Fatalf("delete bob: %v", err)
 	}
-	if _, err := svc.Delete(carolId); err != nil {
+	if _, err := svc.Delete(context.Background(), carolId); err != nil {
 		t.Fatalf("delete carol: %v", err)
 	}
 
-	if len(svc.GetRecycled()) != 2 {
+	if len(svc.GetRecycled(context.Background())) != 2 {
 		t.Fatalf("expected 2 recycled")
 	}
 
-	svc.EmptyBin()
-	if len(svc.GetRecycled()) != 0 {
+	svc.EmptyBin(context.Background())
+	if len(svc.GetRecycled(context.Background())) != 0 {
 		t.Errorf("expected 0 recycled after empty bin")
 	}
 }
@@ -294,7 +295,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
@@ -316,7 +317,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 	// Use headers that won't all map to high confidence.
 	// "Nombre" and "Nivel" are unrecognizable, so name/role won't be high.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
@@ -343,7 +344,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Use unrecognizable headers so InferMapping won't auto-proceed.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
@@ -360,7 +361,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 		"additionalTeams": "Additional Teams",
 		"status":          "Status",
 	}
-	orgData, err := svc.ConfirmMapping(mapping)
+	orgData, err := svc.ConfirmMapping(context.Background(), mapping)
 	if err != nil {
 		t.Fatalf("confirm mapping failed: %v", err)
 	}
@@ -376,7 +377,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	_, err := svc.ConfirmMapping(map[string]string{"name": "Name"})
+	_, err := svc.ConfirmMapping(context.Background(), map[string]string{"name": "Name"})
 	if err == nil {
 		t.Fatal("expected error when no pending file")
 	}
@@ -387,7 +388,7 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Full Name,Title,Department,Reports To,Group\nAlice,VP,Eng,,Eng\nBob,SWE,Eng,Alice,Platform\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload: %v", err)
 	}
@@ -398,7 +399,7 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 		"name": "Full Name", "role": "Title", "discipline": "Department",
 		"manager": "Reports To", "team": "Group",
 	}
-	data, err := svc.ConfirmMapping(mapping)
+	data, err := svc.ConfirmMapping(context.Background(), mapping)
 	if err != nil {
 		t.Fatalf("confirm: %v", err)
 	}
@@ -411,13 +412,13 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 func TestOrgService_Reorder(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
 	// Reorder: Carol first, then Alice, then Bob
-	result, err := svc.Reorder([]string{carol.Id, alice.Id, bob.Id})
+	result, err := svc.Reorder(context.Background(), []string{carol.Id, alice.Id, bob.Id})
 	if err != nil {
 		t.Fatalf("reorder failed: %v", err)
 	}
@@ -441,11 +442,11 @@ func TestOrgService_Reorder(t *testing.T) {
 func TestOrgService_Reorder_PartialIds(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
 	// Only reorder Bob — others should be unaffected (SortIndex stays 0)
-	result, err := svc.Reorder([]string{bob.Id})
+	result, err := svc.Reorder(context.Background(), []string{bob.Id})
 	if err != nil {
 		t.Fatalf("reorder failed: %v", err)
 	}
@@ -460,29 +461,29 @@ func TestOrgService_Reorder_PartialIds(t *testing.T) {
 func TestOrgService_ResetToOriginal(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 	alice := findByName(data.Working, "Alice")
 
 	// Make some changes: move Bob under Alice, delete Carol
 	carol := findByName(data.Working, "Carol")
-	if _, err := svc.Move(bob.Id, alice.Id, "Eng"); err != nil {
+	if _, err := svc.Move(context.Background(), bob.Id, alice.Id, "Eng"); err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
-	if _, err := svc.Delete(carol.Id); err != nil {
+	if _, err := svc.Delete(context.Background(), carol.Id); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
 
 	// Verify changes took effect
-	if len(svc.GetWorking()) != 2 {
-		t.Fatalf("expected 2 working after delete, got %d", len(svc.GetWorking()))
+	if len(svc.GetWorking(context.Background())) != 2 {
+		t.Fatalf("expected 2 working after delete, got %d", len(svc.GetWorking(context.Background())))
 	}
-	if len(svc.GetRecycled()) != 1 {
-		t.Fatalf("expected 1 recycled after delete, got %d", len(svc.GetRecycled()))
+	if len(svc.GetRecycled(context.Background())) != 1 {
+		t.Fatalf("expected 1 recycled after delete, got %d", len(svc.GetRecycled(context.Background())))
 	}
 
 	// Reset
-	orgData := svc.ResetToOriginal()
+	orgData := svc.ResetToOriginal(context.Background())
 
 	// Working should match original (3 people, original teams)
 	if len(orgData.Working) != 3 {
@@ -493,7 +494,7 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 	}
 
 	// Recycled should be cleared
-	recycled := svc.GetRecycled()
+	recycled := svc.GetRecycled(context.Background())
 	if len(recycled) != 0 {
 		t.Errorf("expected 0 recycled after reset, got %d", len(recycled))
 	}
@@ -520,12 +521,12 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 func TestOrgService_Update_AllFields(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 	alice := findByName(data.Working, "Alice")
 
 	// Update every supported field
-	result, err := svc.Update(bob.Id, map[string]string{
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{
 		"name":            "Robert",
 		"role":            "Staff Engineer",
 		"discipline":      "SRE",
@@ -575,10 +576,10 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 func TestOrgService_Update_InvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Update(bob.Id, map[string]string{"status": "INVALID"})
+	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"status": "INVALID"})
 	if err == nil {
 		t.Fatal("expected error for invalid status, got nil")
 	}
@@ -588,16 +589,16 @@ func TestOrgService_Update_InvalidStatus(t *testing.T) {
 func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
 	// First set additional teams
-	if _, err := svc.Update(bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 
 	// Then clear them
-	result, err := svc.Update(bob.Id, map[string]string{"additionalTeams": ""})
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"additionalTeams": ""})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -611,10 +612,10 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 func TestOrgService_Update_UnknownField(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Update(bob.Id, map[string]string{"unknownField": "value"})
+	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"unknownField": "value"})
 	if err == nil {
 		t.Fatal("expected error for unknown field")
 	}
@@ -624,11 +625,11 @@ func TestOrgService_Update_UnknownField(t *testing.T) {
 func TestOrgService_Update_Private(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
 	// Set private to true
-	result, err := svc.Update(bob.Id, map[string]string{"private": "true"})
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"private": "true"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -638,7 +639,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 	}
 
 	// Set private to false
-	result, err = svc.Update(bob.Id, map[string]string{"private": "false"})
+	result, err = svc.Update(context.Background(), bob.Id, map[string]string{"private": "false"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -648,7 +649,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 	}
 
 	// Set private via "1"
-	result, err = svc.Update(bob.Id, map[string]string{"private": "1"})
+	result, err = svc.Update(context.Background(), bob.Id, map[string]string{"private": "1"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -658,7 +659,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 	}
 
 	// Set private via "yes"
-	result, err = svc.Update(bob.Id, map[string]string{"private": "yes"})
+	result, err = svc.Update(context.Background(), bob.Id, map[string]string{"private": "yes"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -672,7 +673,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 func TestOrgService_Update_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Update("nonexistent", map[string]string{"role": "VP"})
+	_, err := svc.Update(context.Background(), "nonexistent", map[string]string{"role": "VP"})
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -682,7 +683,7 @@ func TestOrgService_Update_PersonNotFound(t *testing.T) {
 func TestOrgService_Move_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Move("nonexistent", "", "Eng")
+	_, err := svc.Move(context.Background(), "nonexistent", "", "Eng")
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -692,10 +693,10 @@ func TestOrgService_Move_PersonNotFound(t *testing.T) {
 func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Move(bob.Id, "nonexistent-manager", "Eng")
+	_, err := svc.Move(context.Background(), bob.Id, "nonexistent-manager", "Eng")
 	if err == nil {
 		t.Fatal("expected error for nonexistent manager")
 	}
@@ -705,12 +706,12 @@ func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	carol := findByName(data.Working, "Carol")
 	alice := findByName(data.Working, "Alice")
 
 	// Move with empty newTeam — team should stay the same
-	result, err := svc.Move(carol.Id, alice.Id, "")
+	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
@@ -727,10 +728,10 @@ func TestOrgService_Move_NoTeamChange(t *testing.T) {
 func TestOrgService_Move_SelfAsManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Move(bob.Id, bob.Id, "")
+	_, err := svc.Move(context.Background(), bob.Id, bob.Id, "")
 	if err == nil {
 		t.Fatal("expected error when moving person to be their own manager")
 	}
@@ -742,11 +743,11 @@ func TestOrgService_Move_CycleDetection(t *testing.T) {
 	// Alice -> Bob -> Carol
 	// Moving Alice under Carol would create Alice -> Carol -> ... -> Alice
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	carol := findByName(data.Working, "Carol")
 
-	_, err := svc.Move(alice.Id, carol.Id, "")
+	_, err := svc.Move(context.Background(), alice.Id, carol.Id, "")
 	if err == nil {
 		t.Fatal("expected error when creating circular manager chain")
 	}
@@ -756,12 +757,12 @@ func TestOrgService_Move_CycleDetection(t *testing.T) {
 func TestOrgService_Update_CycleDetection(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	carol := findByName(data.Working, "Carol")
 
 	// Alice -> Bob -> Carol; setting Alice's manager to Carol creates cycle
-	_, err := svc.Update(alice.Id, map[string]string{"managerId": carol.Id})
+	_, err := svc.Update(context.Background(), alice.Id, map[string]string{"managerId": carol.Id})
 	if err == nil {
 		t.Fatal("expected error when creating circular manager chain via Update")
 	}
@@ -771,7 +772,7 @@ func TestOrgService_Update_CycleDetection(t *testing.T) {
 func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Delete("nonexistent")
+	_, err := svc.Delete(context.Background(), "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -781,7 +782,7 @@ func TestOrgService_Delete_PersonNotFound(t *testing.T) {
 func TestOrgService_Restore_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Restore("nonexistent")
+	_, err := svc.Restore(context.Background(), "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent person in recycled")
 	}
@@ -791,10 +792,10 @@ func TestOrgService_Restore_PersonNotFound(t *testing.T) {
 func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	result, err := svc.Delete(bob.Id)
+	result, err := svc.Delete(context.Background(), bob.Id)
 	if err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
@@ -813,7 +814,7 @@ func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 
 	// Verify the result is a deep copy (mutating it doesn't affect service state)
 	result.Working[0].Name = "MUTATED"
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	for _, p := range working {
 		if p.Name == "MUTATED" {
 			t.Error("expected result to be a deep copy, but mutation leaked to service state")
@@ -825,14 +826,14 @@ func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	if _, err := svc.Delete(bob.Id); err != nil {
+	if _, err := svc.Delete(context.Background(), bob.Id); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
 
-	result, err := svc.Restore(bob.Id)
+	result, err := svc.Restore(context.Background(), bob.Id)
 	if err != nil {
 		t.Fatalf("restore failed: %v", err)
 	}
@@ -851,7 +852,7 @@ func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	_, err := svc.Upload("test.txt", []byte("hello"))
+	_, err := svc.Upload(context.Background(), "test.txt", []byte("hello"))
 	if err == nil {
 		t.Fatal("expected error for unsupported format")
 	}
@@ -862,7 +863,7 @@ func TestOrgService_Upload_InvalidCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	// Only header, no data row
-	_, err := svc.Upload("test.csv", []byte("Name,Role\n"))
+	_, err := svc.Upload(context.Background(), "test.csv", []byte("Name,Role\n"))
 	if err == nil {
 		t.Fatal("expected error for CSV with no data rows")
 	}
@@ -872,17 +873,17 @@ func TestOrgService_Upload_InvalidCSV(t *testing.T) {
 func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
 	// Set additional teams on Bob
-	if _, err := svc.Update(bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 
 	// Get working — should be a deep copy
-	working1 := svc.GetWorking()
-	working2 := svc.GetWorking()
+	working1 := svc.GetWorking(context.Background())
+	working2 := svc.GetWorking(context.Background())
 
 	bob1 := findById(working1, bob.Id)
 	bob2 := findById(working2, bob.Id)
@@ -898,7 +899,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 func TestOrgService_GetOrg_NoData(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if data != nil {
 		t.Error("expected nil when no data loaded")
 	}
@@ -908,12 +909,12 @@ func TestOrgService_GetOrg_NoData(t *testing.T) {
 func TestOrgService_FieldLengthValidation(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	longStr := string(make([]byte, maxFieldLen+1))
 
 	t.Run("[ORG-009] Update rejects long field", func(t *testing.T) {
-		_, err := svc.Update(alice.Id, map[string]string{"name": longStr})
+		_, err := svc.Update(context.Background(), alice.Id, map[string]string{"name": longStr})
 		if err == nil {
 			t.Error("expected error for field too long")
 		}
@@ -921,14 +922,14 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 
 	t.Run("[ORG-009] Update accepts max-length field", func(t *testing.T) {
 		okStr := string(make([]byte, maxFieldLen))
-		_, err := svc.Update(alice.Id, map[string]string{"name": okStr})
+		_, err := svc.Update(context.Background(), alice.Id, map[string]string{"name": okStr})
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
 	})
 
 	t.Run("[ORG-009] Add rejects long name", func(t *testing.T) {
-		_, _, _, err := svc.Add(Person{
+		_, _, _, err := svc.Add(context.Background(), Person{
 			Name: longStr, Role: "Eng", Discipline: "Eng",
 			Team: "Eng", Status: "Active",
 		})
@@ -942,20 +943,20 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 func TestOrgService_ValidateManagerChange(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
 	t.Run("[ORG-002] self-reference via Move", func(t *testing.T) {
-		_, err := svc.Move(alice.Id, alice.Id, "")
+		_, err := svc.Move(context.Background(), alice.Id, alice.Id, "")
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
 	})
 
 	t.Run("[ORG-002] self-reference via Update", func(t *testing.T) {
-		_, err := svc.Update(bob.Id, map[string]string{"managerId": bob.Id})
+		_, err := svc.Update(context.Background(), bob.Id, map[string]string{"managerId": bob.Id})
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
@@ -963,14 +964,14 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 
 	t.Run("[ORG-002] cycle via Move", func(t *testing.T) {
 		// Alice -> Bob -> Carol. Moving Alice under Carol creates cycle.
-		_, err := svc.Move(alice.Id, carol.Id, "")
+		_, err := svc.Move(context.Background(), alice.Id, carol.Id, "")
 		if err == nil {
 			t.Error("expected error for cycle")
 		}
 	})
 
 	t.Run("[ORG-002] nonexistent manager", func(t *testing.T) {
-		_, err := svc.Move(bob.Id, "nonexistent-id", "")
+		_, err := svc.Move(context.Background(), bob.Id, "nonexistent-id", "")
 		if err == nil {
 			t.Error("expected error for nonexistent manager")
 		}
@@ -981,13 +982,13 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 func TestOrgService_ExportSnapshot(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	if err := svc.SaveSnapshot("snap1"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "snap1"); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 
 	t.Run("[SNAP-008] returns working for __working__", func(t *testing.T) {
 		t.Parallel()
-		people, err := svc.ExportSnapshot(SnapshotWorking)
+		people, err := svc.ExportSnapshot(context.Background(), SnapshotWorking)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -998,7 +999,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 
 	t.Run("[SNAP-008] returns original for __original__", func(t *testing.T) {
 		t.Parallel()
-		people, err := svc.ExportSnapshot(SnapshotOriginal)
+		people, err := svc.ExportSnapshot(context.Background(), SnapshotOriginal)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1009,7 +1010,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 
 	t.Run("[SNAP-008] returns named snapshot", func(t *testing.T) {
 		t.Parallel()
-		people, err := svc.ExportSnapshot("snap1")
+		people, err := svc.ExportSnapshot(context.Background(), "snap1")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1020,7 +1021,7 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 
 	t.Run("[SNAP-008] errors on missing snapshot", func(t *testing.T) {
 		t.Parallel()
-		_, err := svc.ExportSnapshot("nonexistent")
+		_, err := svc.ExportSnapshot(context.Background(), "nonexistent")
 		if err == nil {
 			t.Error("expected error for missing snapshot")
 		}
@@ -1028,9 +1029,9 @@ func TestOrgService_ExportSnapshot(t *testing.T) {
 
 	t.Run("[SNAP-008] returns deep copy", func(t *testing.T) {
 		t.Parallel()
-		people, _ := svc.ExportSnapshot("snap1")
+		people, _ := svc.ExportSnapshot(context.Background(), "snap1")
 		people[0].Name = "MUTATED"
-		original, _ := svc.ExportSnapshot("snap1")
+		original, _ := svc.ExportSnapshot(context.Background(), "snap1")
 		if original[0].Name == "MUTATED" {
 			t.Error("ExportSnapshot should return a deep copy")
 		}
@@ -1045,7 +1046,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 	for _, name := range []string{SnapshotWorking, SnapshotOriginal} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			err := svc.SaveSnapshot(name)
+			err := svc.SaveSnapshot(context.Background(), name)
 			if err == nil {
 				t.Errorf("expected error for reserved name %q", name)
 			}
@@ -1057,7 +1058,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, _, _, err := svc.Add(Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
+	_, _, _, err := svc.Add(context.Background(), Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
 	if err == nil {
 		t.Fatal("expected error for invalid status")
 	}
@@ -1067,7 +1068,7 @@ func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, _, _, err := svc.Add(Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
+	_, _, _, err := svc.Add(context.Background(), Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
 	if err == nil {
 		t.Fatal("expected error for invalid manager")
 	}
@@ -1077,19 +1078,19 @@ func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	if err := svc.SaveSnapshot("important"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "important"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
-	if len(svc.ListSnapshots()) != 1 {
+	if len(svc.ListSnapshots(context.Background())) != 1 {
 		t.Fatal("expected 1 snapshot")
 	}
 	// Upload invalid data — should fail without destroying snapshots
-	_, err := svc.Upload("bad.csv", []byte("just-one-row-no-data\n"))
+	_, err := svc.Upload(context.Background(), "bad.csv", []byte("just-one-row-no-data\n"))
 	if err == nil {
 		t.Fatal("expected upload to fail")
 	}
 	// Snapshots should still exist
-	if len(svc.ListSnapshots()) != 1 {
+	if len(svc.ListSnapshots(context.Background())) != 1 {
 		t.Error("expected snapshot to survive failed upload")
 	}
 }
@@ -1099,7 +1100,7 @@ func TestUpload_SeedsPods(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status,Pod\nAlice,VP,Eng,,Eng,Active,\nBob,Engineer,Eng,Alice,Platform,Active,Platform\nCarol,Engineer,Eng,Alice,Infra,Active,Infra\n"
-	resp, err := svc.Upload("test.csv", []byte(csv))
+	resp, err := svc.Upload(context.Background(), "test.csv", []byte(csv))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1116,7 +1117,7 @@ func TestUpload_DerivesSettings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Product,,Eng,Active\nBob,Engineer,Engineering,Alice,Platform,Active\n"
-	resp, err := svc.Upload("test.csv", []byte(csv))
+	resp, err := svc.Upload(context.Background(), "test.csv", []byte(csv))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1156,9 +1157,9 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 		Settings:     settings,
 	}
 
-	svc.RestoreState(data)
+	svc.RestoreState(context.Background(), data)
 
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if org == nil {
 		t.Fatal("expected org data after RestoreState")
 	}
@@ -1168,7 +1169,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 	if len(org.Working) != 2 {
 		t.Errorf("expected 2 working, got %d", len(org.Working))
 	}
-	recycled := svc.GetRecycled()
+	recycled := svc.GetRecycled(context.Background())
 	if len(recycled) != 1 {
 		t.Errorf("expected 1 recycled, got %d", len(recycled))
 	}
@@ -1204,10 +1205,10 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
 	}
 
-	svc.RestoreState(data)
+	svc.RestoreState(context.Background(), data)
 
 	// Delete should work on restored data
-	result, err := svc.Delete("3")
+	result, err := svc.Delete(context.Background(), "3")
 	if err != nil {
 		t.Fatalf("delete after restore failed: %v", err)
 	}
@@ -1219,7 +1220,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	}
 
 	// Update should work on restored data
-	updateResult, err := svc.Update("2", map[string]string{"role": "Staff Engineer"})
+	updateResult, err := svc.Update(context.Background(), "2", map[string]string{"role": "Staff Engineer"})
 	if err != nil {
 		t.Fatalf("update after restore failed: %v", err)
 	}
@@ -1248,9 +1249,9 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 		Settings: nil, // nil settings should derive defaults
 	}
 
-	svc.RestoreState(data)
+	svc.RestoreState(context.Background(), data)
 
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if org.Settings == nil {
 		t.Fatal("expected settings to be derived")
 	}
@@ -1272,14 +1273,14 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	// Build a hierarchy: Alice -> Bob -> Carol, Alice -> Dave (IC)
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Alice,Eng,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
@@ -1338,19 +1339,19 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	// Changing Bob's team should cascade to Carol and Dave.
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Bob,Platform,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 	dave := findByName(data.Working, "Dave")
 
-	result, err := svc.Update(bob.Id, map[string]string{"team": "Infra"})
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"team": "Infra"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1375,12 +1376,12 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 	// Alice -> Bob -> Carol. Alice is NOT a frontline manager (Bob has reports).
 	// Changing Alice's team should NOT cascade to Bob or Carol.
 	svc := newTestService(t) // Alice -> Bob -> Carol
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
-	result, err := svc.Update(alice.Id, map[string]string{"team": "NewTeam"})
+	result, err := svc.Update(context.Background(), alice.Id, map[string]string{"team": "NewTeam"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1405,12 +1406,12 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t) // Alice -> Bob -> Carol
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	carol := findByName(data.Working, "Carol")
 	bob := findByName(data.Working, "Bob")
 
 	// Setting a new pod name should auto-create the pod
-	result, err := svc.Update(carol.Id, map[string]string{"pod": "Alpha"})
+	result, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": "Alpha"})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1435,18 +1436,18 @@ func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	carol := findByName(data.Working, "Carol")
 	bob := findByName(data.Working, "Bob")
 
 	// Create pod "Alpha" first by setting it on Carol
-	_, err := svc.Update(carol.Id, map[string]string{"pod": "Alpha"})
+	_, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": "Alpha"})
 	if err != nil {
 		t.Fatalf("first pod update failed: %v", err)
 	}
 
 	// Add a new person under Bob and assign same pod "Alpha"
-	added, _, _, err := svc.Add(Person{
+	added, _, _, err := svc.Add(context.Background(), Person{
 		Name: "Eve", Role: "Engineer", Discipline: "Eng",
 		ManagerId: bob.Id, Team: "Platform", Status: "Active",
 	})
@@ -1454,7 +1455,7 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 		t.Fatalf("add failed: %v", err)
 	}
 
-	result, err := svc.Update(added.Id, map[string]string{"pod": "Alpha"})
+	result, err := svc.Update(context.Background(), added.Id, map[string]string{"pod": "Alpha"})
 	if err != nil {
 		t.Fatalf("second pod update failed: %v", err)
 	}
@@ -1475,17 +1476,17 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	carol := findByName(data.Working, "Carol")
 
 	// Set pod first
-	_, err := svc.Update(carol.Id, map[string]string{"pod": "Alpha"})
+	_, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": "Alpha"})
 	if err != nil {
 		t.Fatalf("set pod failed: %v", err)
 	}
 
 	// Clear pod
-	result, err := svc.Update(carol.Id, map[string]string{"pod": ""})
+	result, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": ""})
 	if err != nil {
 		t.Fatalf("clear pod failed: %v", err)
 	}
@@ -1510,7 +1511,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	svc := newTestService(t)
 
 	t.Run("[SETTINGS-001] rejects empty discipline name", func(t *testing.T) {
-		_, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "", "Design"}})
+		_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng", "", "Design"}})
 		if err == nil {
 			t.Fatal("expected error for empty discipline name")
 		}
@@ -1520,14 +1521,14 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	})
 
 	t.Run("[SETTINGS-001] rejects duplicate discipline names", func(t *testing.T) {
-		_, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "Design", "Eng"}})
+		_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng", "Design", "Eng"}})
 		if err == nil {
 			t.Fatal("expected error for duplicate discipline")
 		}
 	})
 
 	t.Run("[SETTINGS-001] accepts valid settings", func(t *testing.T) {
-		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"Eng", "Design", "PM"}})
+		result, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng", "Design", "PM"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1537,7 +1538,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	})
 
 	t.Run("[SETTINGS-001] accepts empty list (clears order)", func(t *testing.T) {
-		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{}})
+		result, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1547,7 +1548,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	})
 
 	t.Run("[SETTINGS-001] trims whitespace from discipline names", func(t *testing.T) {
-		result, err := svc.UpdateSettings(Settings{DisciplineOrder: []string{"  Eng  ", " Design"}})
+		result, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"  Eng  ", " Design"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

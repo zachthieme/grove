@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -83,7 +84,7 @@ func handleUpload(svc *OrgService) http.HandlerFunc {
 			return
 		}
 
-		resp, err := svc.Upload(header.Filename, data)
+		resp, err := svc.Upload(r.Context(), header.Filename, data)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
@@ -109,7 +110,7 @@ func handleUploadZip(svc *OrgService) http.HandlerFunc {
 			return
 		}
 
-		resp, err := svc.UploadZip(data)
+		resp, err := svc.UploadZip(r.Context(), data)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
@@ -122,14 +123,14 @@ func handleConfirmMapping(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		Mapping map[string]string `json:"mapping"`
 	}
-	return jsonHandler(func(r req) (*OrgData, error) {
-		return svc.ConfirmMapping(r.Mapping)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+		return svc.ConfirmMapping(ctx, r.Mapping)
 	})
 }
 
 func handleGetOrg(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data := svc.GetOrg()
+		data := svc.GetOrg(r.Context())
 		if data == nil {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -139,8 +140,8 @@ func handleGetOrg(svc *OrgService) http.HandlerFunc {
 }
 
 func handleRestoreState(svc *OrgService) http.HandlerFunc {
-	return jsonHandler(func(data AutosaveData) (HealthResponse, error) {
-		svc.RestoreState(data)
+	return jsonHandlerCtx(func(ctx context.Context, data AutosaveData) (HealthResponse, error) {
+		svc.RestoreState(ctx, data)
 		return HealthResponse{Status: "ok"}, nil
 	})
 }
@@ -152,8 +153,8 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 		NewTeam      string `json:"newTeam"`
 		NewPod       string `json:"newPod"`
 	}
-	return jsonHandler(func(r req) (*WorkingResponse, error) {
-		result, err := svc.Move(r.PersonId, r.NewManagerId, r.NewTeam, r.NewPod)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
+		result, err := svc.Move(ctx, r.PersonId, r.NewManagerId, r.NewTeam, r.NewPod)
 		if err != nil {
 			return nil, err
 		}
@@ -166,8 +167,8 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 		PersonId string            `json:"personId"`
 		Fields   map[string]string `json:"fields"`
 	}
-	return jsonHandler(func(r req) (*WorkingResponse, error) {
-		result, err := svc.Update(r.PersonId, r.Fields)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
+		result, err := svc.Update(ctx, r.PersonId, r.Fields)
 		if err != nil {
 			return nil, err
 		}
@@ -176,8 +177,8 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 }
 
 func handleAdd(svc *OrgService) http.HandlerFunc {
-	return jsonHandler(func(p Person) (*AddResponse, error) {
-		created, working, pods, err := svc.Add(p)
+	return jsonHandlerCtx(func(ctx context.Context, p Person) (*AddResponse, error) {
+		created, working, pods, err := svc.Add(ctx, p)
 		if err != nil {
 			return nil, err
 		}
@@ -189,8 +190,8 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
-	return jsonHandler(func(r req) (*MutationResponse, error) {
-		result, err := svc.Delete(r.PersonId)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*MutationResponse, error) {
+		result, err := svc.Delete(ctx, r.PersonId)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +201,7 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 
 func handleGetRecycled(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.GetRecycled())
+		writeJSON(w, http.StatusOK, svc.GetRecycled(r.Context()))
 	}
 }
 
@@ -208,8 +209,8 @@ func handleRestore(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
-	return jsonHandler(func(r req) (*MutationResponse, error) {
-		result, err := svc.Restore(r.PersonId)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*MutationResponse, error) {
+		result, err := svc.Restore(ctx, r.PersonId)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +221,7 @@ func handleRestore(svc *OrgService) http.HandlerFunc {
 func handleEmptyBin(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
-		recycled := svc.EmptyBin()
+		recycled := svc.EmptyBin(r.Context())
 		writeJSON(w, http.StatusOK, RecycledResponse{Recycled: recycled})
 	}
 }
@@ -249,7 +250,7 @@ func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
 func handleExport(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		format := r.PathValue("format")
-		working := svc.GetWorking()
+		working := svc.GetWorking(r.Context())
 		if len(working) == 0 {
 			writeError(w, http.StatusBadRequest, "no data loaded")
 			return
@@ -295,7 +296,7 @@ func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
 		name := r.URL.Query().Get("name")
 		format := r.URL.Query().Get("format")
 
-		people, err := svc.ExportSnapshot(name)
+		people, err := svc.ExportSnapshot(r.Context(), name)
 		if err != nil {
 			serviceError(w, err)
 			return
@@ -337,7 +338,7 @@ func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
 
 func handleListSnapshots(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.ListSnapshots())
+		writeJSON(w, http.StatusOK, svc.ListSnapshots(r.Context()))
 	}
 }
 
@@ -345,11 +346,11 @@ func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandler(func(r req) ([]SnapshotInfo, error) {
-		if err := svc.SaveSnapshot(r.Name); err != nil {
+	return jsonHandlerCtx(func(ctx context.Context, r req) ([]SnapshotInfo, error) {
+		if err := svc.SaveSnapshot(ctx, r.Name); err != nil {
 			return nil, err
 		}
-		return svc.ListSnapshots(), nil
+		return svc.ListSnapshots(ctx), nil
 	})
 }
 
@@ -357,8 +358,8 @@ func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandler(func(r req) (*OrgData, error) {
-		return svc.LoadSnapshot(r.Name)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+		return svc.LoadSnapshot(ctx, r.Name)
 	})
 }
 
@@ -366,17 +367,17 @@ func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandler(func(r req) ([]SnapshotInfo, error) {
-		if err := svc.DeleteSnapshot(r.Name); err != nil {
+	return jsonHandlerCtx(func(ctx context.Context, r req) ([]SnapshotInfo, error) {
+		if err := svc.DeleteSnapshot(ctx, r.Name); err != nil {
 			return nil, err
 		}
-		return svc.ListSnapshots(), nil
+		return svc.ListSnapshots(ctx), nil
 	})
 }
 
 func handleListPods(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.ListPods())
+		writeJSON(w, http.StatusOK, svc.ListPods(r.Context()))
 	}
 }
 
@@ -385,8 +386,8 @@ func handleUpdatePod(svc *OrgService) http.HandlerFunc {
 		PodId  string            `json:"podId"`
 		Fields map[string]string `json:"fields"`
 	}
-	return jsonHandler(func(r req) (*WorkingResponse, error) {
-		result, err := svc.UpdatePod(r.PodId, r.Fields)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
+		result, err := svc.UpdatePod(ctx, r.PodId, r.Fields)
 		if err != nil {
 			return nil, err
 		}
@@ -400,8 +401,8 @@ func handleCreatePod(svc *OrgService) http.HandlerFunc {
 		Name      string `json:"name"`
 		Team      string `json:"team"`
 	}
-	return jsonHandler(func(r req) (*WorkingResponse, error) {
-		result, err := svc.CreatePod(r.ManagerId, r.Name, r.Team)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
+		result, err := svc.CreatePod(ctx, r.ManagerId, r.Name, r.Team)
 		if err != nil {
 			return nil, err
 		}
@@ -412,7 +413,7 @@ func handleCreatePod(svc *OrgService) http.HandlerFunc {
 func handleReset(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
-		orgData := svc.ResetToOriginal()
+		orgData := svc.ResetToOriginal(r.Context())
 		writeJSON(w, http.StatusOK, orgData)
 	}
 }
@@ -421,8 +422,8 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 	type req struct {
 		PersonIds []string `json:"personIds"`
 	}
-	return jsonHandler(func(r req) (*WorkingResponse, error) {
-		result, err := svc.Reorder(r.PersonIds)
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
+		result, err := svc.Reorder(ctx, r.PersonIds)
 		if err != nil {
 			return nil, err
 		}
@@ -432,19 +433,19 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 
 func handleGetSettings(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.GetSettings())
+		writeJSON(w, http.StatusOK, svc.GetSettings(r.Context()))
 	}
 }
 
 func handleUpdateSettings(svc *OrgService) http.HandlerFunc {
-	return jsonHandler(func(settings Settings) (Settings, error) {
-		return svc.UpdateSettings(settings)
+	return jsonHandlerCtx(func(ctx context.Context, settings Settings) (Settings, error) {
+		return svc.UpdateSettings(ctx, settings)
 	})
 }
 
 func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		settings := svc.GetSettings()
+		settings := svc.GetSettings(r.Context())
 		if len(settings.DisciplineOrder) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -460,9 +461,9 @@ func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-// jsonHandler creates a handler that decodes JSON, calls fn, and writes the result.
-// For handlers that follow the decode → call → respond pattern.
-func jsonHandler[Req any, Resp any](fn func(Req) (Resp, error)) http.HandlerFunc {
+// jsonHandlerCtx creates a context-aware handler that decodes JSON, calls fn
+// with the request context and decoded body, and writes the result.
+func jsonHandlerCtx[Req any, Resp any](fn func(context.Context, Req) (Resp, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		var req Req
@@ -470,7 +471,7 @@ func jsonHandler[Req any, Resp any](fn func(Req) (Resp, error)) http.HandlerFunc
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
 		}
-		resp, err := fn(req)
+		resp, err := fn(r.Context(), req)
 		if err != nil {
 			serviceError(w, err)
 			return

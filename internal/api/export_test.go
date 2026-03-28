@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"bytes"
 	"encoding/csv"
 	"strings"
@@ -15,11 +16,11 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
 	svc := NewOrgService(NewMemorySnapshotStore())
-	if _, err := svc.Upload("test.csv", []byte(input)); err != nil {
+	if _, err := svc.Upload(context.Background(), "test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 
-	data, err := ExportCSV(svc.GetWorking())
+	data, err := ExportCSV(svc.GetWorking(context.Background()))
 	if err != nil {
 		t.Fatalf("export: %v", err)
 	}
@@ -68,11 +69,11 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
 
 	svc := NewOrgService(NewMemorySnapshotStore())
-	if _, err := svc.Upload("test.csv", []byte(input)); err != nil {
+	if _, err := svc.Upload(context.Background(), "test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
 
-	data, err := ExportCSV(svc.GetWorking())
+	data, err := ExportCSV(svc.GetWorking(context.Background()))
 	if err != nil {
 		t.Fatalf("export: %v", err)
 	}

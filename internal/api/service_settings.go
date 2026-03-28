@@ -1,12 +1,14 @@
 package api
 
-func (s *OrgService) GetSettings() Settings {
+import "context"
+
+func (s *OrgService) GetSettings(ctx context.Context) Settings {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.settings
 }
 
-func (s *OrgService) UpdateSettings(settings Settings) (Settings, error) {
+func (s *OrgService) UpdateSettings(ctx context.Context, settings Settings) (Settings, error) {
 	if err := validateSettings(&settings); err != nil {
 		return Settings{}, err
 	}

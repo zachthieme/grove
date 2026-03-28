@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -36,7 +37,7 @@ func benchService(b *testing.B, n int) *OrgService {
 	b.Helper()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csv := generateBenchCSV(n)
-	resp, err := svc.Upload("bench.csv", csv)
+	resp, err := svc.Upload(context.Background(), "bench.csv", csv)
 	if err != nil {
 		b.Fatalf("upload failed: %v", err)
 	}
@@ -50,7 +51,7 @@ func BenchmarkUpload_50(b *testing.B) {
 	csv := generateBenchCSV(50)
 	for b.Loop() {
 		svc := NewOrgService(NewMemorySnapshotStore())
-		if _, err := svc.Upload("bench.csv", csv); err != nil {
+		if _, err := svc.Upload(context.Background(), "bench.csv", csv); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -60,7 +61,7 @@ func BenchmarkUpload_200(b *testing.B) {
 	csv := generateBenchCSV(200)
 	for b.Loop() {
 		svc := NewOrgService(NewMemorySnapshotStore())
-		if _, err := svc.Upload("bench.csv", csv); err != nil {
+		if _, err := svc.Upload(context.Background(), "bench.csv", csv); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -70,7 +71,7 @@ func BenchmarkUpload_500(b *testing.B) {
 	csv := generateBenchCSV(500)
 	for b.Loop() {
 		svc := NewOrgService(NewMemorySnapshotStore())
-		if _, err := svc.Upload("bench.csv", csv); err != nil {
+		if _, err := svc.Upload(context.Background(), "bench.csv", csv); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -78,7 +79,7 @@ func BenchmarkUpload_500(b *testing.B) {
 
 func BenchmarkMove(b *testing.B) {
 	svc := benchService(b, 200)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	// Find a leaf node (no one reports to them) to safely move around
 	hasReports := make(map[string]bool)
 	for _, p := range org.Working {
@@ -116,7 +117,7 @@ func BenchmarkMove(b *testing.B) {
 			target = altManagerID
 		}
 		toggle = !toggle
-		if _, err := svc.Move(leafID, target, "Team1"); err != nil {
+		if _, err := svc.Move(context.Background(), leafID, target, "Team1"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -124,14 +125,14 @@ func BenchmarkMove(b *testing.B) {
 
 func BenchmarkUpdate(b *testing.B) {
 	svc := benchService(b, 200)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	personID := org.Working[10].Id
 	roles := []string{"Engineer", "Senior Engineer", "Staff Engineer"}
 	i := 0
 	for b.Loop() {
 		role := roles[i%len(roles)]
 		i++
-		if _, err := svc.Update(personID, map[string]string{"role": role}); err != nil {
+		if _, err := svc.Update(context.Background(), personID, map[string]string{"role": role}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -139,7 +140,7 @@ func BenchmarkUpdate(b *testing.B) {
 
 func BenchmarkExportCSV(b *testing.B) {
 	svc := benchService(b, 200)
-	people := svc.GetWorking()
+	people := svc.GetWorking(context.Background())
 	for b.Loop() {
 		if _, err := ExportCSV(people); err != nil {
 			b.Fatal(err)
@@ -150,13 +151,13 @@ func BenchmarkExportCSV(b *testing.B) {
 func BenchmarkSnapshotSaveLoad(b *testing.B) {
 	svc := benchService(b, 200)
 	for b.Loop() {
-		if err := svc.SaveSnapshot("bench"); err != nil {
+		if err := svc.SaveSnapshot(context.Background(), "bench"); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := svc.LoadSnapshot("bench"); err != nil {
+		if _, err := svc.LoadSnapshot(context.Background(), "bench"); err != nil {
 			b.Fatal(err)
 		}
-		if err := svc.DeleteSnapshot("bench"); err != nil {
+		if err := svc.DeleteSnapshot(context.Background(), "bench"); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -184,7 +185,7 @@ func BenchmarkInferMapping(b *testing.B) {
 
 func BenchmarkReorder(b *testing.B) {
 	svc := benchService(b, 200)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	ids := make([]string, len(org.Working))
 	for i, p := range org.Working {
 		ids[i] = p.Id
@@ -201,7 +202,7 @@ func BenchmarkReorder(b *testing.B) {
 			order = reversed
 		}
 		toggle = !toggle
-		if _, err := svc.Reorder(order); err != nil {
+		if _, err := svc.Reorder(context.Background(), order); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -3,6 +3,7 @@ package api
 // Scenarios: CONC-002 — all tests in this file
 
 import (
+	"context"
 	"bytes"
 	"encoding/csv"
 	"fmt"
@@ -51,7 +52,7 @@ func uploadLargeOrg(t *testing.T, n int) *OrgService {
 	t.Helper()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	csvData := generateLargeCSV(n)
-	resp, err := svc.Upload("test.csv", csvData)
+	resp, err := svc.Upload(context.Background(), "test.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
@@ -63,7 +64,7 @@ func uploadLargeOrg(t *testing.T, n int) *OrgService {
 
 func TestLargeOrg_Upload(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if data == nil {
 		t.Fatal("expected org data after upload")
 	}
@@ -77,7 +78,7 @@ func TestLargeOrg_Upload(t *testing.T) {
 
 func TestLargeOrg_MoveChain(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 
 	// Find a target director to move ICs to
 	targetDir := findByName(data.Working, "Person-10")
@@ -92,14 +93,14 @@ func TestLargeOrg_MoveChain(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Move(p.Id, targetDir.Id, "")
+		_, err := svc.Move(context.Background(), p.Id, targetDir.Id, "")
 		if err != nil {
 			t.Fatalf("move %s failed: %v", name, err)
 		}
 	}
 
 	// Verify total count is still 200
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	if len(working) != 200 {
 		t.Errorf("expected 200 working people after moves, got %d", len(working))
 	}
@@ -119,7 +120,7 @@ func TestLargeOrg_MoveChain(t *testing.T) {
 
 func TestLargeOrg_BulkUpdate(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 
 	// Update all ICs (Person-25 through Person-199) to have a new role
 	for i := 25; i < 200; i++ {
@@ -129,14 +130,14 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 			t.Fatalf("person %s not found", name)
 		}
 		newRole := fmt.Sprintf("Senior Engineer %d", i)
-		_, err := svc.Update(p.Id, map[string]string{"role": newRole})
+		_, err := svc.Update(context.Background(), p.Id, map[string]string{"role": newRole})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
 	}
 
 	// Verify all updates were applied
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	for i := 25; i < 200; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(working, name)
@@ -152,7 +153,7 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 
 func TestLargeOrg_ReorderAll(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 
 	// Collect all IDs and reverse them
 	ids := make([]string, len(working))
@@ -164,7 +165,7 @@ func TestLargeOrg_ReorderAll(t *testing.T) {
 		ids[i], ids[j] = ids[j], ids[i]
 	}
 
-	result, err := svc.Reorder(ids)
+	result, err := svc.Reorder(context.Background(), ids)
 	if err != nil {
 		t.Fatalf("reorder failed: %v", err)
 	}
@@ -188,7 +189,7 @@ func TestLargeOrg_ReorderAll(t *testing.T) {
 
 func TestLargeOrg_DeleteAndRestore(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 
 	// Delete 50 ICs (Person-150 through Person-199) — chosen from the end
 	// to avoid disrupting other people's manager references as much.
@@ -200,15 +201,15 @@ func TestLargeOrg_DeleteAndRestore(t *testing.T) {
 			t.Fatalf("person %s not found", name)
 		}
 		deletedIds = append(deletedIds, p.Id)
-		_, err := svc.Delete(p.Id)
+		_, err := svc.Delete(context.Background(), p.Id)
 		if err != nil {
 			t.Fatalf("delete %s failed: %v", name, err)
 		}
 	}
 
 	// Assert 150 working, 50 recycled
-	working := svc.GetWorking()
-	recycled := svc.GetRecycled()
+	working := svc.GetWorking(context.Background())
+	recycled := svc.GetRecycled(context.Background())
 	if len(working) != 150 {
 		t.Errorf("expected 150 working after deletes, got %d", len(working))
 	}
@@ -218,15 +219,15 @@ func TestLargeOrg_DeleteAndRestore(t *testing.T) {
 
 	// Restore all deleted people
 	for _, id := range deletedIds {
-		_, err := svc.Restore(id)
+		_, err := svc.Restore(context.Background(), id)
 		if err != nil {
 			t.Fatalf("restore %s failed: %v", id, err)
 		}
 	}
 
 	// Assert 200 working, 0 recycled
-	working = svc.GetWorking()
-	recycled = svc.GetRecycled()
+	working = svc.GetWorking(context.Background())
+	recycled = svc.GetRecycled(context.Background())
 	if len(working) != 200 {
 		t.Errorf("expected 200 working after restores, got %d", len(working))
 	}
@@ -239,42 +240,42 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 
 	// Save a snapshot of the initial state
-	if err := svc.SaveSnapshot("before-mutations"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "before-mutations"); err != nil {
 		t.Fatalf("save snapshot failed: %v", err)
 	}
 
 	// Capture working state before mutations for comparison
-	preMutation := svc.GetWorking()
+	preMutation := svc.GetWorking(context.Background())
 
 	// Mutate 50 people (change their roles)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	for i := 25; i < 75; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(data.Working, name)
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(p.Id, map[string]string{"role": "Mutated"})
+		_, err := svc.Update(context.Background(), p.Id, map[string]string{"role": "Mutated"})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
 	}
 
 	// Verify mutations happened
-	postMutation := svc.GetWorking()
+	postMutation := svc.GetWorking(context.Background())
 	mutatedPerson := findByName(postMutation, "Person-30")
 	if mutatedPerson == nil || mutatedPerson.Role != "Mutated" {
 		t.Fatal("expected Person-30 role to be 'Mutated' after update")
 	}
 
 	// Load snapshot — should restore pre-mutation state
-	_, err := svc.LoadSnapshot("before-mutations")
+	_, err := svc.LoadSnapshot(context.Background(), "before-mutations")
 	if err != nil {
 		t.Fatalf("load snapshot failed: %v", err)
 	}
 
 	// Verify state matches pre-mutation
-	restored := svc.GetWorking()
+	restored := svc.GetWorking(context.Background())
 	if len(restored) != len(preMutation) {
 		t.Fatalf("expected %d working after snapshot load, got %d", len(preMutation), len(restored))
 	}
@@ -292,7 +293,7 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 
 func TestLargeOrg_ExportCSV(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 
 	exported, err := ExportCSV(working)
 	if err != nil {
@@ -332,7 +333,7 @@ func TestLargeOrg_ExportCSV(t *testing.T) {
 
 func TestLargeOrg_500People(t *testing.T) {
 	svc := uploadLargeOrg(t, 500)
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if len(data.Working) != 500 {
 		t.Fatalf("expected 500 working people, got %d", len(data.Working))
 	}
@@ -348,7 +349,7 @@ func TestLargeOrg_500People(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Move(p.Id, targetDir.Id, "")
+		_, err := svc.Move(context.Background(), p.Id, targetDir.Id, "")
 		if err != nil {
 			t.Fatalf("move %s failed: %v", name, err)
 		}
@@ -361,14 +362,14 @@ func TestLargeOrg_500People(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(p.Id, map[string]string{"role": "Staff Engineer"})
+		_, err := svc.Update(context.Background(), p.Id, map[string]string{"role": "Staff Engineer"})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
 	}
 
 	// Verify total count unchanged
-	working := svc.GetWorking()
+	working := svc.GetWorking(context.Background())
 	if len(working) != 500 {
 		t.Errorf("expected 500 working people after mutations, got %d", len(working))
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"path/filepath"
@@ -91,7 +92,7 @@ func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 
 // RestoreState loads full state from an autosave payload into the service,
 // syncing the backend with a frontend that restored from autosave.
-func (s *OrgService) RestoreState(data AutosaveData) {
+func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.original = deepCopyPeople(data.Original)
@@ -106,7 +107,7 @@ func (s *OrgService) RestoreState(data AutosaveData) {
 	}
 }
 
-func (s *OrgService) GetOrg() *OrgData {
+func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.original == nil {
@@ -115,19 +116,19 @@ func (s *OrgService) GetOrg() *OrgData {
 	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 }
 
-func (s *OrgService) GetWorking() []Person {
+func (s *OrgService) GetWorking(ctx context.Context) []Person {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return deepCopyPeople(s.working)
 }
 
-func (s *OrgService) GetRecycled() []Person {
+func (s *OrgService) GetRecycled(ctx context.Context) []Person {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return deepCopyPeople(s.recycled)
 }
 
-func (s *OrgService) ResetToOriginal() *OrgData {
+func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.working = deepCopyPeople(s.original)

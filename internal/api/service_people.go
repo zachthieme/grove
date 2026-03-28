@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"maps"
 	"strconv"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
-func (s *OrgService) Move(personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error) {
+func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, p := s.findWorking(personId)
@@ -33,7 +34,7 @@ func (s *OrgService) Move(personId, newManagerId, newTeam string, newPod ...stri
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
-func (s *OrgService) Update(personId string, fields map[string]string) (*MoveResult, error) {
+func (s *OrgService) Update(ctx context.Context, personId string, fields map[string]string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Extract note/pod fields so they don't hit the 500-char limit
@@ -110,7 +111,7 @@ func (s *OrgService) Update(personId string, fields map[string]string) (*MoveRes
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
-func (s *OrgService) Reorder(personIds []string) (*MoveResult, error) {
+func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for i, id := range personIds {
@@ -121,7 +122,7 @@ func (s *OrgService) Reorder(personIds []string) (*MoveResult, error) {
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
-func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
+func (s *OrgService) Add(ctx context.Context, p Person) (Person, []Person, []Pod, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fields := map[string]string{
@@ -146,7 +147,7 @@ func (s *OrgService) Add(p Person) (Person, []Person, []Pod, error) {
 	return p, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
 }
 
-func (s *OrgService) Delete(personId string) (*MutationResult, error) {
+func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx, _ := s.findWorking(personId)
@@ -169,7 +170,7 @@ func (s *OrgService) Delete(personId string) (*MutationResult, error) {
 	}, nil
 }
 
-func (s *OrgService) Restore(personId string) (*MutationResult, error) {
+func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx := -1
@@ -199,7 +200,7 @@ func (s *OrgService) Restore(personId string) (*MutationResult, error) {
 	}, nil
 }
 
-func (s *OrgService) EmptyBin() []Person {
+func (s *OrgService) EmptyBin(ctx context.Context) []Person {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.recycled = nil

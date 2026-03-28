@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"bytes"
 	"encoding/csv"
 	"fmt"
@@ -20,7 +21,7 @@ func setupService(t *testing.T) *OrgService {
 		{"Bob", "Engineer", "Eng", "Alice", "Platform", "Active"},
 		{"Carol", "Engineer", "Eng", "Bob", "Platform", "Active"},
 	})
-	resp, err := svc.Upload("test.csv", data)
+	resp, err := svc.Upload(context.Background(), "test.csv", data)
 	if err != nil {
 		t.Fatalf("setup upload failed: %v", err)
 	}
@@ -58,7 +59,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 	bom := []byte{0xEF, 0xBB, 0xBF}
 	withBOM := append(bom, csvData...)
 
-	resp, err := svc.Upload("bom.csv", withBOM)
+	resp, err := svc.Upload(context.Background(), "bom.csv", withBOM)
 	if err != nil {
 		t.Fatalf("upload with BOM failed: %v", err)
 	}
@@ -83,7 +84,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 			"team":    "Team",
 			"status":  "Status",
 		}
-		orgData, err := svc.ConfirmMapping(mapping)
+		orgData, err := svc.ConfirmMapping(context.Background(), mapping)
 		if err != nil {
 			t.Fatalf("confirm mapping with BOM failed: %v", err)
 		}
@@ -95,7 +96,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready' or 'needs_mapping', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if len(org.Working) != 1 {
 		t.Fatalf("expected 1 person, got %d", len(org.Working))
 	}
@@ -111,14 +112,14 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 		"Bob,Engineer,Alice,Platform,Active\r\n" +
 		"Carol,Designer,,Design,Active\n"
 
-	resp, err := svc.Upload("mixed.csv", []byte(raw))
+	resp, err := svc.Upload(context.Background(), "mixed.csv", []byte(raw))
 	if err != nil {
 		t.Fatalf("upload with mixed line endings failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if len(org.Working) != 3 {
 		t.Errorf("expected 3 people, got %d", len(org.Working))
 	}
@@ -141,14 +142,14 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 		rows = append(rows, []string{name, "Engineer", "", "Eng", "Active"})
 	}
 
-	resp, err := svc.Upload("unicode.csv", makeCSV(rows))
+	resp, err := svc.Upload(context.Background(), "unicode.csv", makeCSV(rows))
 	if err != nil {
 		t.Fatalf("upload with unicode names failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if len(org.Working) != len(names) {
 		t.Fatalf("expected %d people, got %d", len(names), len(org.Working))
 	}
@@ -172,14 +173,14 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 		{"<script>alert('xss')</script>", `"><img src=x onerror=alert(1)>`, "", "javascript:alert(1)", "Active"},
 	})
 
-	resp, err := svc.Upload("xss.csv", csvData)
+	resp, err := svc.Upload(context.Background(), "xss.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload with XSS payloads failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	p := org.Working[0]
 	if p.Name != "<script>alert('xss')</script>" {
 		t.Errorf("expected XSS name stored verbatim, got %q", p.Name)
@@ -202,14 +203,14 @@ func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 		{payload, "Engineer", "", "Eng", "Active"},
 	})
 
-	resp, err := svc.Upload("sqli.csv", csvData)
+	resp, err := svc.Upload(context.Background(), "sqli.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload with SQL injection string failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if org.Working[0].Name != payload {
 		t.Errorf("expected SQL injection name stored verbatim, got %q", org.Working[0].Name)
 	}
@@ -219,12 +220,12 @@ func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 func TestAdversarial_OversizedFields(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	bob := findByName(org.Working, "Bob")
 
 	// 501 characters should fail
 	tooLong := strings.Repeat("x", 501)
-	_, err := svc.Update(bob.Id, map[string]string{"name": tooLong})
+	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"name": tooLong})
 	if err == nil {
 		t.Fatal("expected error for 501-char name, got nil")
 	}
@@ -234,7 +235,7 @@ func TestAdversarial_OversizedFields(t *testing.T) {
 
 	// Exactly 500 characters should succeed
 	exact := strings.Repeat("y", 500)
-	result, err := svc.Update(bob.Id, map[string]string{"name": exact})
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"name": exact})
 	if err != nil {
 		t.Fatalf("expected success for 500-char name, got: %v", err)
 	}
@@ -248,12 +249,12 @@ func TestAdversarial_OversizedFields(t *testing.T) {
 func TestAdversarial_OversizedNote(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	bob := findByName(org.Working, "Bob")
 
 	// 2001 characters should fail
 	tooLong := strings.Repeat("n", 2001)
-	_, err := svc.Update(bob.Id, map[string]string{"publicNote": tooLong})
+	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"publicNote": tooLong})
 	if err == nil {
 		t.Fatal("expected error for 2001-char note, got nil")
 	}
@@ -263,7 +264,7 @@ func TestAdversarial_OversizedNote(t *testing.T) {
 
 	// Exactly 2000 characters should succeed
 	exact := strings.Repeat("m", 2000)
-	result, err := svc.Update(bob.Id, map[string]string{"publicNote": exact})
+	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"publicNote": exact})
 	if err != nil {
 		t.Fatalf("expected success for 2000-char note, got: %v", err)
 	}
@@ -277,13 +278,13 @@ func TestAdversarial_OversizedNote(t *testing.T) {
 func TestAdversarial_CircularManagerChain(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	alice := findByName(org.Working, "Alice")
 	bob := findByName(org.Working, "Bob")
 	carol := findByName(org.Working, "Carol")
 
 	// Try to move Alice under Carol (creates A→C→B→A cycle)
-	_, err := svc.Move(alice.Id, carol.Id, "")
+	_, err := svc.Move(context.Background(), alice.Id, carol.Id, "")
 	if err == nil {
 		t.Fatal("expected error for circular move, got nil")
 	}
@@ -292,7 +293,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 	}
 
 	// Try to make Bob his own manager
-	_, err = svc.Move(bob.Id, bob.Id, "")
+	_, err = svc.Move(context.Background(), bob.Id, bob.Id, "")
 	if err == nil {
 		t.Fatal("expected error for self-manager, got nil")
 	}
@@ -305,7 +306,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 func TestAdversarial_EmptyCSV(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	_, err := svc.Upload("empty.csv", []byte{})
+	_, err := svc.Upload(context.Background(), "empty.csv", []byte{})
 	if err == nil {
 		t.Fatal("expected error for empty CSV, got nil")
 	}
@@ -318,7 +319,7 @@ func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 	})
-	_, err := svc.Upload("header_only.csv", csvData)
+	_, err := svc.Upload(context.Background(), "header_only.csv", csvData)
 	if err == nil {
 		t.Fatal("expected error for header-only CSV, got nil")
 	}
@@ -345,14 +346,14 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 		})
 	}
 
-	resp, err := svc.Upload("massive.csv", makeCSV(rows))
+	resp, err := svc.Upload(context.Background(), "massive.csv", makeCSV(rows))
 	if err != nil {
 		t.Fatalf("upload of %d people failed: %v", count, err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if len(org.Working) != count {
 		t.Errorf("expected %d people, got %d", count, len(org.Working))
 	}
@@ -370,14 +371,14 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 		{"Alice", "AliceDup", "VP", "", "Eng", "Active"},
 	})
 
-	resp, err := svc.Upload("dupheaders.csv", csvData)
+	resp, err := svc.Upload(context.Background(), "dupheaders.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload with duplicate headers failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if len(org.Working) != 1 {
 		t.Fatalf("expected 1 person, got %d", len(org.Working))
 	}
@@ -396,14 +397,14 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 		{"Smith, John", "VP", "", "Eng", "Active"},
 	})
 
-	resp, err := svc.Upload("commas.csv", csvData)
+	resp, err := svc.Upload(context.Background(), "commas.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload with commas in quoted field failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if org.Working[0].Name != "Smith, John" {
 		t.Errorf("expected 'Smith, John', got %q", org.Working[0].Name)
 	}
@@ -420,14 +421,14 @@ func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 		{"Alice\nSmith", "VP", "", "Eng", "Active"},
 	})
 
-	resp, err := svc.Upload("newlines.csv", csvData)
+	resp, err := svc.Upload(context.Background(), "newlines.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload with newlines in quoted field failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	if org.Working[0].Name != "Alice\nSmith" {
 		t.Errorf("expected 'Alice\\nSmith', got %q", org.Working[0].Name)
 	}
@@ -437,10 +438,10 @@ func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 func TestAdversarial_InvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	bob := findByName(org.Working, "Bob")
 
-	_, err := svc.Update(bob.Id, map[string]string{"status": "InvalidStatus"})
+	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"status": "InvalidStatus"})
 	if err == nil {
 		t.Fatal("expected error for invalid status, got nil")
 	}
@@ -453,10 +454,10 @@ func TestAdversarial_InvalidStatus(t *testing.T) {
 func TestAdversarial_MoveToNonexistentManager(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
-	org := svc.GetOrg()
+	org := svc.GetOrg(context.Background())
 	bob := findByName(org.Working, "Bob")
 
-	_, err := svc.Move(bob.Id, "nonexistent-uuid-1234", "")
+	_, err := svc.Move(context.Background(), bob.Id, "nonexistent-uuid-1234", "")
 	if err == nil {
 		t.Fatal("expected error for non-existent manager, got nil")
 	}
@@ -470,7 +471,7 @@ func TestAdversarial_DeleteNonexistentPerson(t *testing.T) {
 	t.Parallel()
 	svc := setupService(t)
 
-	_, err := svc.Delete("nonexistent-uuid-5678")
+	_, err := svc.Delete(context.Background(), "nonexistent-uuid-5678")
 	if err == nil {
 		t.Fatal("expected error for deleting non-existent person, got nil")
 	}
@@ -485,7 +486,7 @@ func TestAdversarial_RestoreFromEmptyBin(t *testing.T) {
 	svc := setupService(t)
 
 	// Bin starts empty — try to restore a random ID
-	_, err := svc.Restore("nonexistent-uuid-9999")
+	_, err := svc.Restore(context.Background(), "nonexistent-uuid-9999")
 	if err == nil {
 		t.Fatal("expected error restoring from empty bin, got nil")
 	}

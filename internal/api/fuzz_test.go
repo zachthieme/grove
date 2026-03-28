@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -66,7 +67,7 @@ func FuzzCSVUpload(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		svc := NewOrgService(NewMemorySnapshotStore())
 		// Should never panic regardless of input; errors are expected
-		_, _ = svc.Upload("test.csv", data)
+		_, _ = svc.Upload(context.Background(), "test.csv", data)
 	})
 }
 
@@ -141,15 +142,15 @@ func FuzzUpdateFields(f *testing.F) {
 	f.Fuzz(func(t *testing.T, field, value string) {
 		svc := NewOrgService(NewMemorySnapshotStore())
 		csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n")
-		resp, err := svc.Upload("test.csv", csv)
+		resp, err := svc.Upload(context.Background(), "test.csv", csv)
 		if err != nil || resp.Status != "ready" {
 			return
 		}
-		people := svc.GetWorking()
+		people := svc.GetWorking(context.Background())
 		if len(people) == 0 {
 			return
 		}
 		// Should never panic; errors are expected for unknown fields or invalid values
-		_, _ = svc.Update(people[0].Id, map[string]string{field: value})
+		_, _ = svc.Update(context.Background(), people[0].Id, map[string]string{field: value})
 	})
 }

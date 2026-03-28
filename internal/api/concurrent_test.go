@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -45,14 +46,14 @@ func setupConcurrentService(t *testing.T) (svc *OrgService, aliceID, bobID, caro
 	t.Helper()
 	svc = NewOrgService(newSafeMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
-	resp, err := svc.Upload("test.csv", csv)
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
 	if resp.Status != "ready" {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	for _, p := range data.Working {
 		switch p.Name {
 		case "Alice":
@@ -83,15 +84,15 @@ func TestConcurrentMoves(t *testing.T) {
 			defer wg.Done()
 			for range iterations {
 				// Move Carol to Alice
-				_, _ = svc.Move(carolID, aliceID, "Eng")
+				_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng")
 				// Move Carol back to Bob
-				_, _ = svc.Move(carolID, bobID, "Platform")
+				_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
 			}
 		}()
 	}
 	wg.Wait()
 
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if data == nil {
 		t.Fatal("expected non-nil org data after concurrent moves")
 	}
@@ -114,13 +115,13 @@ func TestConcurrentUpdates(t *testing.T) {
 			defer wg.Done()
 			for range iterations {
 				role := fmt.Sprintf("Role-%d", g)
-				_, _ = svc.Update(bobID, map[string]string{"role": role})
+				_, _ = svc.Update(context.Background(), bobID, map[string]string{"role": role})
 			}
 		}()
 	}
 	wg.Wait()
 
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if data == nil {
 		t.Fatal("expected non-nil org data after concurrent updates")
 	}
@@ -156,9 +157,9 @@ func TestConcurrentReadsAndWrites(t *testing.T) {
 			defer wg.Done()
 			for i := range iterations {
 				if i%2 == 0 {
-					_, _ = svc.Move(carolID, aliceID, "Eng")
+					_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng")
 				} else {
-					_, _ = svc.Move(carolID, bobID, "Platform")
+					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
 				}
 			}
 		}()
@@ -170,7 +171,7 @@ func TestConcurrentReadsAndWrites(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range iterations {
-				data := svc.GetOrg()
+				data := svc.GetOrg(context.Background())
 				if data == nil {
 					errs <- "GetOrg returned nil"
 					continue
@@ -202,17 +203,17 @@ func TestConcurrentDeleteRestore(t *testing.T) {
 			defer wg.Done()
 			if g%2 == 0 {
 				// Deleter
-				_, _ = svc.Delete(carolID)
+				_, _ = svc.Delete(context.Background(), carolID)
 			} else {
 				// Restorer
-				_, _ = svc.Restore(carolID)
+				_, _ = svc.Restore(context.Background(), carolID)
 			}
 		}()
 	}
 	wg.Wait()
 
-	working := svc.GetWorking()
-	recycled := svc.GetRecycled()
+	working := svc.GetWorking(context.Background())
+	recycled := svc.GetRecycled(context.Background())
 	total := len(working) + len(recycled)
 	if total != 3 {
 		t.Errorf("expected working + recycled == 3, got %d (working=%d, recycled=%d)", total, len(working), len(recycled))
@@ -235,13 +236,13 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 				name := fmt.Sprintf("snap-%d-%d", g, i)
 				switch i % 4 {
 				case 0:
-					_ = svc.SaveSnapshot(name)
+					_ = svc.SaveSnapshot(context.Background(), name)
 				case 1:
-					_, _ = svc.LoadSnapshot(name)
+					_, _ = svc.LoadSnapshot(context.Background(), name)
 				case 2:
-					_ = svc.ListSnapshots()
+					_ = svc.ListSnapshots(context.Background())
 				case 3:
-					_ = svc.DeleteSnapshot(name)
+					_ = svc.DeleteSnapshot(context.Background(), name)
 				}
 			}
 		}()
@@ -249,7 +250,7 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 	wg.Wait()
 
 	// Service should still be functional
-	data := svc.GetOrg()
+	data := svc.GetOrg(context.Background())
 	if data == nil {
 		t.Fatal("expected non-nil org data after concurrent snapshot operations")
 	}
@@ -272,16 +273,16 @@ func TestConcurrentMixedOperations(t *testing.T) {
 				switch op {
 				case 0:
 					// Move Carol to Alice
-					_, _ = svc.Move(carolID, aliceID, "Eng")
+					_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng")
 				case 1:
 					// Move Carol back to Bob
-					_, _ = svc.Move(carolID, bobID, "Platform")
+					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
 				case 2:
 					// Update Bob's role
-					_, _ = svc.Update(bobID, map[string]string{"role": fmt.Sprintf("Role-%d-%d", g, i)})
+					_, _ = svc.Update(context.Background(), bobID, map[string]string{"role": fmt.Sprintf("Role-%d-%d", g, i)})
 				case 3:
 					// Add a new person
-					_, _, _, _ = svc.Add(Person{
+					_, _, _, _ = svc.Add(context.Background(), Person{
 						Name:      fmt.Sprintf("NewPerson-%d-%d", g, i),
 						Role:      "IC",
 						ManagerId: aliceID,
@@ -290,35 +291,35 @@ func TestConcurrentMixedOperations(t *testing.T) {
 					})
 				case 4:
 					// Delete Carol (may fail if already deleted)
-					_, _ = svc.Delete(carolID)
+					_, _ = svc.Delete(context.Background(), carolID)
 				case 5:
 					// Restore Carol (may fail if not deleted)
-					_, _ = svc.Restore(carolID)
+					_, _ = svc.Restore(context.Background(), carolID)
 				case 6:
 					// Reorder working people
-					working := svc.GetWorking()
+					working := svc.GetWorking(context.Background())
 					if len(working) > 0 {
 						ids := make([]string, len(working))
 						for j, p := range working {
 							ids[j] = p.Id
 						}
-						_, _ = svc.Reorder(ids)
+						_, _ = svc.Reorder(context.Background(), ids)
 					}
 				case 7:
 					// GetOrg (read)
-					_ = svc.GetOrg()
+					_ = svc.GetOrg(context.Background())
 				case 8:
 					// GetWorking (read)
-					_ = svc.GetWorking()
+					_ = svc.GetWorking(context.Background())
 				case 9:
 					// GetRecycled (read)
-					_ = svc.GetRecycled()
+					_ = svc.GetRecycled(context.Background())
 				case 10:
 					// Snapshot save + load + delete
 					snapName := fmt.Sprintf("stress-%d-%d", g, i)
-					_ = svc.SaveSnapshot(snapName)
-					_, _ = svc.LoadSnapshot(snapName)
-					_ = svc.DeleteSnapshot(snapName)
+					_ = svc.SaveSnapshot(context.Background(), snapName)
+					_, _ = svc.LoadSnapshot(context.Background(), snapName)
+					_ = svc.DeleteSnapshot(context.Background(), snapName)
 				}
 			}
 		}()
@@ -327,7 +328,7 @@ func TestConcurrentMixedOperations(t *testing.T) {
 
 	// Verify the service is still functional after the stress test
 	t.Cleanup(func() {
-		data := svc.GetOrg()
+		data := svc.GetOrg(context.Background())
 		if data == nil {
 			t.Error("expected non-nil org data after stress test cleanup")
 		}

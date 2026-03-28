@@ -1,12 +1,13 @@
 package api
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zachthieme/grove/internal/parser"
 )
 
-func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, error) {
+func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (*UploadResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.pending = nil
@@ -57,7 +58,7 @@ func (s *OrgService) Upload(filename string, data []byte) (*UploadResponse, erro
 	}, nil
 }
 
-func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error) {
+func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]string) (*OrgData, error) {
 	// Phase 1: grab and clear pending data under lock.
 	// Clearing here prevents a concurrent Upload from setting new pending data
 	// that we'd accidentally nil out when we re-acquire the lock in Phase 3.
@@ -68,6 +69,11 @@ func (s *OrgService) ConfirmMapping(mapping map[string]string) (*OrgData, error)
 
 	if pending == nil {
 		return nil, errValidation("no pending file to confirm")
+	}
+
+	// Check for cancellation before expensive parsing
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
 	// Phase 2: parse entirely outside the lock (CPU work, no state mutation)

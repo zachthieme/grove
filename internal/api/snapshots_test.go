@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -10,15 +11,15 @@ func TestSnapshot_SaveAndList(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	if err := svc.SaveSnapshot("v1"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "v1"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
 	time.Sleep(time.Millisecond)
-	if err := svc.SaveSnapshot("v2"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "v2"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
 
-	list := svc.ListSnapshots()
+	list := svc.ListSnapshots(context.Background())
 	if len(list) != 2 {
 		t.Fatalf("expected 2 snapshots, got %d", len(list))
 	}
@@ -40,16 +41,16 @@ func TestSnapshot_Load(t *testing.T) {
 	svc := newTestService(t)
 
 	// Save snapshot, then mutate working data.
-	if err := svc.SaveSnapshot("before"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "before"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
-	bob := findByName(svc.GetWorking(), "Bob")
-	if _, err := svc.Update(bob.Id, map[string]string{"role": "Senior Engineer"}); err != nil {
+	bob := findByName(svc.GetWorking(context.Background()), "Bob")
+	if _, err := svc.Update(context.Background(), bob.Id, map[string]string{"role": "Senior Engineer"}); err != nil {
 		t.Fatalf("update: %v", err)
 	}
 
 	// Load the snapshot — should restore original working data.
-	orgData, err := svc.LoadSnapshot("before")
+	orgData, err := svc.LoadSnapshot(context.Background(), "before")
 	if err != nil {
 		t.Fatalf("load snapshot failed: %v", err)
 	}
@@ -63,7 +64,7 @@ func TestSnapshot_Load(t *testing.T) {
 	}
 
 	// Verify working state on service matches.
-	workingBob := findByName(svc.GetWorking(), "Bob")
+	workingBob := findByName(svc.GetWorking(context.Background()), "Bob")
 	if workingBob.Role != "Engineer" {
 		t.Errorf("expected working Bob's role to be 'Engineer', got '%s'", workingBob.Role)
 	}
@@ -74,14 +75,14 @@ func TestSnapshot_Overwrite(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	if err := svc.SaveSnapshot("v1"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "v1"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
-	if err := svc.SaveSnapshot("v1"); err != nil { // Overwrite silently.
+	if err := svc.SaveSnapshot(context.Background(), "v1"); err != nil { // Overwrite silently.
 		t.Fatalf("save snapshot: %v", err)
 	}
 
-	list := svc.ListSnapshots()
+	list := svc.ListSnapshots(context.Background())
 	if len(list) != 1 {
 		t.Errorf("expected 1 snapshot after overwrite, got %d", len(list))
 	}
@@ -92,12 +93,12 @@ func TestSnapshot_Delete(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	if err := svc.SaveSnapshot("v1"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "v1"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
-	_ = svc.DeleteSnapshot("v1")
+	_ = svc.DeleteSnapshot(context.Background(), "v1")
 
-	list := svc.ListSnapshots()
+	list := svc.ListSnapshots(context.Background())
 	if len(list) != 0 {
 		t.Errorf("expected 0 snapshots after delete, got %d", len(list))
 	}
@@ -108,7 +109,7 @@ func TestSnapshot_LoadNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	_, err := svc.LoadSnapshot("nonexistent")
+	_, err := svc.LoadSnapshot(context.Background(), "nonexistent")
 	if err == nil {
 		t.Fatal("expected error loading nonexistent snapshot")
 	}
@@ -119,25 +120,25 @@ func TestSnapshot_LoadClearsRecycled(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	if err := svc.SaveSnapshot("clean"); err != nil {
+	if err := svc.SaveSnapshot(context.Background(), "clean"); err != nil {
 		t.Fatalf("save snapshot: %v", err)
 	}
 
 	// Delete someone to populate recycled.
-	bob := findByName(svc.GetWorking(), "Bob")
-	if _, err := svc.Delete(bob.Id); err != nil {
+	bob := findByName(svc.GetWorking(context.Background()), "Bob")
+	if _, err := svc.Delete(context.Background(), bob.Id); err != nil {
 		t.Fatalf("delete failed: %v", err)
 	}
-	if len(svc.GetRecycled()) == 0 {
+	if len(svc.GetRecycled(context.Background())) == 0 {
 		t.Fatal("expected recycled to be non-empty")
 	}
 
 	// Load snapshot should clear recycled.
-	_, err := svc.LoadSnapshot("clean")
+	_, err := svc.LoadSnapshot(context.Background(), "clean")
 	if err != nil {
 		t.Fatalf("load snapshot failed: %v", err)
 	}
-	if len(svc.GetRecycled()) != 0 {
-		t.Errorf("expected recycled to be cleared after load, got %d", len(svc.GetRecycled()))
+	if len(svc.GetRecycled(context.Background())) != 0 {
+		t.Errorf("expected recycled to be cleared after load, got %d", len(svc.GetRecycled(context.Background())))
 	}
 }

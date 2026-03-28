@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"archive/zip"
 	"bytes"
 	"testing"
@@ -44,7 +45,7 @@ func TestUploadZip_ThreeFiles(t *testing.T) {
 		{"2-snapshot.csv", testCSVContent3},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -76,7 +77,7 @@ func TestUploadZip_SingleFile(t *testing.T) {
 		{"org.csv", testCSVContent},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -99,7 +100,7 @@ func TestUploadZip_NoCSVFiles(t *testing.T) {
 		{"image.png", "not a csv"},
 	})
 
-	_, err := svc.UploadZip(data)
+	_, err := svc.UploadZip(context.Background(), data)
 	if err == nil {
 		t.Error("expected error for ZIP with no CSV files")
 	}
@@ -114,7 +115,7 @@ func TestUploadZip_UnprefixedFiles(t *testing.T) {
 		{"alpha.csv", testCSVContent2},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -134,7 +135,7 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 		{"1-working.csv", csvContent},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -142,7 +143,7 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
-	orgData, err := svc.ConfirmMapping(map[string]string{
+	orgData, err := svc.ConfirmMapping(context.Background(), map[string]string{
 		"name": "Who", "role": "Title", "discipline": "Dept",
 		"manager": "Reports To", "team": "Group", "additionalTeams": "Extra Teams",
 		"status": "State",
@@ -164,7 +165,7 @@ func TestUploadZip_SharedIDsAcrossFiles(t *testing.T) {
 		{"1-working.csv", testCSVContent2},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -218,7 +219,7 @@ func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 		{"2-snapshot.csv", testCSVContent3},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -230,7 +231,7 @@ func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 	}
 
 	// Load the snapshot and verify shared IDs
-	orgData, err := svc.LoadSnapshot("snapshot")
+	orgData, err := svc.LoadSnapshot(context.Background(), "snapshot")
 	if err != nil {
 		t.Fatalf("LoadSnapshot failed: %v", err)
 	}
@@ -255,7 +256,7 @@ func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 		{"1-working.csv", testCSVContent2},
 		{"pods.csv", podsCsv},
 	})
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestUploadZip_SeedsPods(t *testing.T) {
 		{"0-original.csv", csvWithPods},
 		{"1-working.csv", csvWithPods},
 	})
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -294,7 +295,7 @@ func TestUploadZip_NoPodFieldNoPods(t *testing.T) {
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},
 	})
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -316,7 +317,7 @@ func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
 		{"1-working.csv", csvWithPod2},
 		{"pods.csv", podsCsv},
 	})
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -347,7 +348,7 @@ func TestUploadZip_RestoresSettingsFromSidecar(t *testing.T) {
 		{"1-working.csv", testCSVContent2},
 		{"settings.csv", settingsCsv},
 	})
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
@@ -371,7 +372,7 @@ func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 		{"README.md", "ignore me"},
 	})
 
-	resp, err := svc.UploadZip(data)
+	resp, err := svc.UploadZip(context.Background(), data)
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
