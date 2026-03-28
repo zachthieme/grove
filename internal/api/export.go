@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -12,15 +13,41 @@ import (
 
 var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 
+// collectExtraKeys returns the sorted union of all Extra map keys across people.
+func collectExtraKeys(people []Person) []string {
+	seen := make(map[string]bool)
+	for _, p := range people {
+		for k := range p.Extra {
+			seen[k] = true
+		}
+	}
+	keys := make([]string, 0, len(seen))
+	for k := range seen {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func personToRowWithExtra(p Person, idToName map[string]string, extraKeys []string) []string {
+	row := personToRow(p, idToName)
+	for _, k := range extraKeys {
+		row = append(row, p.Extra[k])
+	}
+	return row
+}
+
 func ExportCSV(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
+	extraKeys := collectExtraKeys(people)
+	headers := append(append([]string{}, exportHeaders...), extraKeys...)
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
-	if err := w.Write(exportHeaders); err != nil {
+	if err := w.Write(headers); err != nil {
 		return nil, fmt.Errorf("writing CSV headers: %w", err)
 	}
 	for _, p := range people {
-		if err := w.Write(personToRow(p, idToName)); err != nil {
+		if err := w.Write(personToRowWithExtra(p, idToName, extraKeys)); err != nil {
 			return nil, fmt.Errorf("writing CSV row: %w", err)
 		}
 	}
@@ -33,17 +60,19 @@ func ExportCSV(people []Person) ([]byte, error) {
 
 func ExportXLSX(people []Person) ([]byte, error) {
 	idToName := buildIDToName(people)
+	extraKeys := collectExtraKeys(people)
+	headers := append(append([]string{}, exportHeaders...), extraKeys...)
 	f := excelize.NewFile()
 	defer func() { _ = f.Close() }()
 	sheet := "Sheet1"
-	for i, h := range exportHeaders {
+	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		if err := f.SetCellValue(sheet, cell, h); err != nil {
 			return nil, fmt.Errorf("setting header cell: %w", err)
 		}
 	}
 	for rowIdx, p := range people {
-		row := personToRow(p, idToName)
+		row := personToRowWithExtra(p, idToName, extraKeys)
 		for colIdx, val := range row {
 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx+2)
 			if err := f.SetCellValue(sheet, cell, val); err != nil {

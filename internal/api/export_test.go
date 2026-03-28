@@ -165,6 +165,70 @@ func TestExportCSV_IncludesLevel(t *testing.T) {
 }
 
 // Scenarios: EXPORT-001
+func TestExportCSV_IncludesExtraColumns(t *testing.T) {
+	t.Parallel()
+	people := []Person{
+		{Id: "1", Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"}},
+		{Id: "2", Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC002"}},
+	}
+	data, err := ExportCSV(people)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(data), "\n")
+
+	// Extra headers should appear after standard headers, sorted alphabetically
+	if !strings.Contains(lines[0], "CostCenter") {
+		t.Errorf("expected header to contain CostCenter, got: %s", lines[0])
+	}
+	if !strings.Contains(lines[0], "Location") {
+		t.Errorf("expected header to contain Location, got: %s", lines[0])
+	}
+
+	// Verify CostCenter comes before Location (alphabetical)
+	ccIdx := strings.Index(lines[0], "CostCenter")
+	locIdx := strings.Index(lines[0], "Location")
+	if ccIdx > locIdx {
+		t.Errorf("expected CostCenter before Location in headers")
+	}
+
+	// Alice's row should have CC001 and NYC
+	if !strings.Contains(lines[1], "CC001") {
+		t.Errorf("expected Alice row to contain CC001, got: %s", lines[1])
+	}
+	if !strings.Contains(lines[1], "NYC") {
+		t.Errorf("expected Alice row to contain NYC, got: %s", lines[1])
+	}
+
+	// Bob's row should have CC002 but empty Location
+	if !strings.Contains(lines[2], "CC002") {
+		t.Errorf("expected Bob row to contain CC002, got: %s", lines[2])
+	}
+}
+
+// Scenarios: EXPORT-001
+func TestExportCSV_NoExtraColumns(t *testing.T) {
+	t.Parallel()
+	people := []Person{
+		{Id: "1", Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active"},
+	}
+	data, err := ExportCSV(people)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(data), "\n")
+
+	// Header count should match standard exportHeaders (15 columns)
+	r := csv.NewReader(strings.NewReader(lines[0]))
+	fields, _ := r.Read()
+	if len(fields) != len(exportHeaders) {
+		t.Errorf("expected %d headers, got %d", len(exportHeaders), len(fields))
+	}
+}
+
+// Scenarios: EXPORT-001
 func TestExportCSV_IncludesPrivateColumn(t *testing.T) {
 	t.Parallel()
 	people := []Person{
