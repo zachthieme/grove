@@ -58,7 +58,7 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
         discMap.set(d, (discMap.get(d) || 0) + 1)
       } else if (r.status === 'Open' || r.status === 'Backfill') {
         metrics.recruiting++
-      } else if (r.status === 'Pending Open' || r.status === 'Planned') {
+      } else if (r.status === 'Planned') {
         metrics.planned++
       } else if (r.status === 'Transfer In' || r.status === 'Transfer Out') {
         metrics.transfers++

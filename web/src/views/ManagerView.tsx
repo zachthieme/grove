@@ -53,7 +53,7 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
     groups.push({ label: 'Recruiting', count: recruiting.length })
   }
 
-  const planned = people.filter((p) => p.status === 'Pending Open' || p.status === 'Planned')
+  const planned = people.filter((p) => p.status === 'Planned')
   if (planned.length > 0) {
     groups.push({ label: 'Planned', count: planned.length })
   }

@@ -214,8 +214,7 @@ Domain model validates people on construction. Parser converts CSV rows to domai
 - Dangling manager references allowed (with warning)
 - Invalid status generates warning (doesn't reject)
 - Missing required fields generate warning
-- Transfer/Transfer In allow blank role and discipline
-- Legacy statuses (Hiring→Open, Transfer→Transfer In) are mapped
+- Transfer In/Out and Planned allow blank role and discipline
 
 ## Edge cases
 - Empty input → empty org

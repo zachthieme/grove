@@ -115,13 +115,13 @@ func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
 func TestNewOrg_NewStatuses(t *testing.T) {
 	t.Parallel()
 	allStatuses := []string{
-		StatusActive, StatusOpen, StatusPendingOpen,
+		StatusActive, StatusOpen,
 		StatusTransferIn, StatusTransferOut,
 		StatusBackfill, StatusPlanned,
 	}
 	for _, s := range allStatuses {
 		role, disc := "Engineer", "Eng"
-		if s == StatusTransferIn || s == StatusTransferOut || s == StatusPendingOpen || s == StatusPlanned {
+		if s == StatusTransferIn || s == StatusTransferOut || s == StatusPlanned {
 			role, disc = "", ""
 		}
 		people := []Person{

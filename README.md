@@ -60,17 +60,14 @@ If Grove can't confidently match your columns, it shows a mapping screen with it
 
 ### Statuses
 
-| Status       | Meaning                                 |
-| ------------ | --------------------------------------- |
-| Active       | Currently filled and working            |
-| Open         | Approved headcount, actively recruiting |
-| Pending Open | Headcount requested, not yet approved   |
-| Transfer In  | Person coming from another team/org     |
-| Transfer Out | Person leaving to another team/org      |
-| Backfill     | Replacing someone who left              |
-| Planned      | Future role in a reorg, not yet active  |
-
-Legacy values `Hiring` and `Transfer` are automatically mapped to `Open` and `Transfer In`.
+| Status       | Meaning                                      |
+| ------------ | -------------------------------------------- |
+| Active       | Currently filled and working                 |
+| Open         | Approved headcount, actively recruiting      |
+| Transfer In  | Person coming from another team/org          |
+| Transfer Out | Person leaving to another team/org           |
+| Backfill     | Replacing someone who left                   |
+| Planned      | Future headcount, not yet approved or active |
 
 ## Views
 

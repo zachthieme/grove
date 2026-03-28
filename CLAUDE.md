@@ -76,7 +76,7 @@ Single Go binary serving a React SPA via `go:embed`.
 - `internal/api/convert.go` — Converts `model.Org` to API `[]Person` with UUIDs
 - `internal/api/export.go` — Serializes `[]Person` back to CSV/XLSX bytes
 - `internal/model/` — Core domain: `Person`, `Org`, `NewOrg` (validates fields, resolves managers, detects cycles). Duplicate names are allowed.
-- `internal/parser/` — CSV/XLSX parsing via `BuildPeople` and `BuildPeopleWithMapping`. Backwards-compat: maps legacy "Hiring" → "Open", "Transfer" → "Transfer In".
+- `internal/parser/` — CSV/XLSX parsing via `BuildPeople` and `BuildPeopleWithMapping`.
 
 ### React Frontend (`web/`)
 
@@ -109,7 +109,7 @@ Single Go binary serving a React SPA via `go:embed`.
 
 ### Key Concepts
 
-- **Status types**: Active, Open, Pending Open, Transfer In, Transfer Out, Backfill, Planned — each gets different visual styling
+- **Status types**: Active, Open, Transfer In, Transfer Out, Backfill, Planned — each gets different visual styling
 - **Manager detection**: A person is a manager if they have direct reports (role title matching removed)
 - **Snapshots**: Named save points for the working state, persisted to `~/.grove/snapshots.json`. "Original" resets to the initial import.
 - **Autosave**: Debounced to localStorage + `~/.grove/autosave.json` after every mutation

@@ -9,7 +9,6 @@ import (
 var ValidStatuses = map[string]bool{
 	StatusActive:      true,
 	StatusOpen:        true,
-	StatusPendingOpen: true,
 	StatusTransferIn:  true,
 	StatusTransferOut: true,
 	StatusBackfill:    true,
@@ -19,7 +18,6 @@ var ValidStatuses = map[string]bool{
 const (
 	StatusActive      = "Active"
 	StatusOpen        = "Open"
-	StatusPendingOpen = "Pending Open"
 	StatusTransferIn  = "Transfer In"
 	StatusTransferOut = "Transfer Out"
 	StatusBackfill    = "Backfill"
@@ -77,7 +75,7 @@ func NewOrg(people []Person) (*Org, error) {
 		}
 
 		blankAllowed := p.Status == StatusTransferIn || p.Status == StatusTransferOut ||
-			p.Status == StatusPendingOpen || p.Status == StatusPlanned
+			p.Status == StatusPlanned
 		if !blankAllowed {
 			if p.Role == "" {
 				issues = append(issues, "missing Role")

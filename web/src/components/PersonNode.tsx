@@ -44,7 +44,7 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
   const isPrivate = !!person.private
   const isPlaceholder = !!(person as any).isPlaceholder
   const isRecruiting = person.status === 'Open' || person.status === 'Backfill'
-  const isFuture = person.status === 'Pending Open' || person.status === 'Planned'
+  const isFuture = person.status === 'Planned'
   const isTransfer = person.status === 'Transfer In' || person.status === 'Transfer Out'
 
   const empColor = getEmpColor(person.employmentType)

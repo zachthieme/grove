@@ -6,7 +6,7 @@ export interface Person {
   managerId: string
   team: string
   additionalTeams: string[]
-  status: 'Active' | 'Open' | 'Pending Open' | 'Transfer In' | 'Transfer Out' | 'Backfill' | 'Planned'
+  status: 'Active' | 'Open' | 'Transfer In' | 'Transfer Out' | 'Backfill' | 'Planned'
   employmentType?: string
   newRole?: string
   newTeam?: string

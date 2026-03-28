@@ -13,7 +13,7 @@ describe('computeOrgMetrics', () => {
   const bob = makePerson({ id: '2', name: 'Bob', managerId: '1', discipline: 'Engineering' })
   const carol = makePerson({ id: '3', name: 'Carol', managerId: '1', discipline: 'Design', team: 'Design' })
   const open = makePerson({ id: '4', name: 'Open', managerId: '1', status: 'Open' })
-  const planned = makePerson({ id: '5', name: 'Planned', managerId: '2', status: 'Pending Open' })
+  const planned = makePerson({ id: '5', name: 'Planned', managerId: '2', status: 'Planned' })
   const transfer = makePerson({ id: '6', name: 'Transfer', managerId: '1', status: 'Transfer In' })
 
   const all = [alice, bob, carol, open, planned, transfer]

@@ -62,12 +62,6 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 		}
 
 		status := get("status")
-		switch status {
-		case "Hiring":
-			status = "Open"
-		case "Transfer":
-			status = "Transfer In"
-		}
 
 		empType := get("employmentType")
 		if empType == "" {
