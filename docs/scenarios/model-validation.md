@@ -186,15 +186,19 @@ Updating a non-existent person ID returns a NotFoundError.
 - `internal/api/service_test.go` → "TestValidateNoteLen"
 
 ## Behavior
-Field values have maximum lengths. Standard fields: 500 chars. Notes: 2000 chars.
+Field values have maximum lengths. Standard fields: 500 chars. Notes (publicNote, privateNote): 2000 chars. Returns HTTP 422 with a ValidationError describing the limit.
 
 ## Invariants
 - 501-char name rejected, 500-char name accepted
 - 2001-char note rejected, 2000-char note accepted
-- ValidationError with descriptive message
+- ValidationError with descriptive message (includes max character count)
+- Note fields (publicNote, privateNote) are extracted before standard field validation so they use the higher limit
+- Pod field also uses the note-length path (not standard field validation)
+- No state mutation on rejection
 
 ## Edge cases
-- None
+- Exactly-at-limit values (500/2000 chars) are accepted
+- Empty string passes validation regardless of field type
 
 ---
 
@@ -383,7 +387,9 @@ When a front-line manager's team changes, the team change cascades to all their 
 - Non-front-line managers only update their own team
 
 ## Edge cases
-- None
+- Manager with one sub-manager and other ICs is NOT front-line (no cascade)
+- Manager becomes front-line after sub-manager is deleted → next team change cascades
+- Team change via update with explicit team field in same request takes precedence over cascade
 
 ---
 

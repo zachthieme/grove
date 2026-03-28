@@ -67,15 +67,17 @@ People are sorted within each (managerId, team) group by: FTE tier → disciplin
 
 ## Invariants
 - FTEs and Interns sort in tier 0; all other types in tier 1
-- Discipline order follows settings.disciplineOrder
-- Unknown disciplines sort alphabetically after known
+- Discipline order follows settings.disciplineOrder array index
+- Unknown disciplines (not in disciplineOrder) sort alphabetically after all known disciplines
 - Higher levels sort first within same discipline
-- Level 0 (unset) sorts below set levels
-- Root nodes are not sorted
-- sortIndex breaks ties
+- Level 0 (unset) sorts below all positive levels but above no-level entries
+- Root nodes (no managerId) are not sorted
+- sortIndex breaks remaining ties (ascending)
 
 ## Edge cases
-- Empty discipline order → all alphabetical
+- Empty discipline order → all disciplines sort alphabetically
+- All people same discipline and level → sortIndex is sole differentiator
+- Negative levels are not used in practice but would sort below positive levels
 
 ---
 

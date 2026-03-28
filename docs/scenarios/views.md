@@ -34,17 +34,26 @@ The default view shows managers as horizontal columns with their ICs stacked ver
 **Area**: views
 **Tests**:
 - `web/e2e/smoke.spec.ts` → "switch between views"
+- `web/src/views/ManagerView.golden.test.tsx` → "renders manager hierarchy"
 
 ## Behavior
-Shows only managers as nodes, with ICs summarized as cards under each manager.
+Shows only managers as nodes, with ICs summarized as cards under each manager. IC counts are broken down by status group (Active by discipline, Recruiting, Planned, Transfers).
 
 ## Invariants
 - Only people with direct reports shown as full nodes
-- ICs displayed as summary counts/cards
-- Same drag-drop behavior as column view
+- ICs displayed as summary cards with status-grouped counts
+- Active ICs counted by discipline (e.g., "Engineering: 3, Design: 2")
+- Recruiting = Open + Backfill statuses combined
+- Planned = Planned status
+- Transfers = Transfer In + Transfer Out combined
+- ICs grouped by pod when pods exist (sorted alphabetically)
+- Pod cards show pod name, member count, and truncated public note (max 50 chars)
+- Same drag-drop and lasso behavior as column view
 
 ## Edge cases
-- None
+- Manager with zero ICs in any status group → that group row hidden
+- All ICs in same pod → single pod summary card
+- No pods → single flat summary card
 
 ---
 

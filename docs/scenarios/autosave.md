@@ -20,13 +20,14 @@ After any mutation, autosave fires (debounced). Data is written to both localSto
 - Debounced — multiple rapid changes produce one save
 - Saves to localStorage AND server via writeAutosave API
 - Includes: original, working, recycled, pods, originalPods, settings, snapshotName
-- Does not save when loaded=false or working is empty
-- Does not save when suppressAutosaveRef is true (snapshot export in progress)
+- Does not save when loaded=false or working array has zero elements
+- Does not save when suppressAutosaveRef.current is true (snapshot export in progress)
 
 ## Edge cases
 - Server save failure sets serverSaveError flag (AUTO-002)
 - Timer cleaned up on unmount
-- Snapshot name is empty string when null
+- Snapshot name stored as empty string when currentSnapshotName is null
+- localStorage write failure logged to console but does not throw
 
 ---
 

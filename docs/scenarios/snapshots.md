@@ -100,14 +100,17 @@ Loading a snapshot that doesn't exist returns a not-found error.
 - `internal/api/service_test.go` → "TestOrgService_SaveSnapshot_RejectsReservedNames"
 
 ## Behavior
-Saving a snapshot with a reserved name (__working__, __original__) returns a conflict error.
+Saving a snapshot with a reserved name (__working__, __original__) returns a conflict error. The __export_temp__ name is used internally during snapshot ZIP export and is excluded from the user-visible list.
 
 ## Invariants
-- HTTP 409 for reserved names
-- No state mutation
+- HTTP 409 for reserved names (__working__, __original__)
+- No state mutation on rejection
+- __export_temp__ is used transiently during ZIP export (created, used, then deleted)
+- __export_temp__ never appears in ListSnapshots results
 
 ## Edge cases
-- __export_temp__ is not user-creatable but is also excluded from list
+- User cannot save as __export_temp__ (rejected as reserved)
+- Empty string name is technically allowed (not reserved)
 
 ---
 
