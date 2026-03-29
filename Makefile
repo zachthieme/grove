@@ -77,5 +77,16 @@ check-scenarios:
 			fail=$$((fail+1)); \
 		fi; \
 	done; \
+	echo "Checking for orphaned test references..."; \
+	defined_ids=$$(grep -rh '^\*\*ID\*\*:' docs/scenarios/*.md | sed 's/.*: //' | sort -u); \
+	referenced_ids=$$(grep -rohw '[A-Z]\{2,\}-[0-9]\{3,\}' --include='*_test.go' --include='*.test.ts' --include='*.test.tsx' --include='*.spec.ts' internal/ web/src/ integration_test.go 2>/dev/null | sort -u); \
+	orphans=0; \
+	for ref_id in $$referenced_ids; do \
+		if ! echo "$$defined_ids" | grep -qw "$$ref_id"; then \
+			echo "  WARNING: orphaned test reference: $$ref_id (not in docs/scenarios/)"; \
+			orphans=$$((orphans+1)); \
+		fi; \
+	done; \
+	if [ $$orphans -gt 0 ]; then echo "$$orphans orphaned reference(s) (warnings only)"; fi; \
 	if [ $$fail -gt 0 ]; then echo "$$fail issue(s) found"; exit 1; fi; \
 	echo "All scenarios covered."
