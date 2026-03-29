@@ -19,6 +19,7 @@ export interface ChartContextValue {
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
   collapsedIds?: Set<string>
   onToggleCollapse?: (id: string) => void
+  onInlineEdit?: (personId: string, field: string, value: string) => void
 }
 
 const ChartContext = createContext<ChartContextValue | null>(null)

@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import styles from './PersonNode.module.css'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
@@ -39,11 +39,51 @@ interface Props {
   onFocus?: () => void
   onToggleCollapse?: () => void
   onClick?: (e?: React.MouseEvent) => void
+  onInlineEdit?: (field: string, value: string) => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick }: Props) {
+type EditingField = 'name' | 'role' | 'team' | null
+
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onInlineEdit }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
+  const [editingField, setEditingField] = useState<EditingField>(null)
+  const [editValue, setEditValue] = useState('')
+  const editRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingField && editRef.current) {
+      editRef.current.focus()
+      editRef.current.select()
+    }
+  }, [editingField])
+
+  const startEdit = (field: EditingField, currentValue: string) => (e: React.MouseEvent) => {
+    if (!onInlineEdit || ghost || isPlaceholder) return
+    e.stopPropagation()
+    setEditingField(field)
+    setEditValue(currentValue)
+  }
+
+  const commitEdit = () => {
+    if (editingField && editValue.trim() !== getOriginal(editingField)) {
+      onInlineEdit?.(editingField, editValue.trim())
+    }
+    setEditingField(null)
+  }
+
+  const getOriginal = (field: EditingField): string => {
+    if (field === 'name') return person.name
+    if (field === 'role') return person.role
+    if (field === 'team') return person.team
+    return ''
+  }
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
+    if (e.key === 'Escape') { setEditingField(null) }
+    if (e.key === 'Tab') { e.preventDefault(); commitEdit() }
+  }
   const hasNotes = !!person.publicNote
   const isPrivate = !!person.private
   const isPlaceholder = !!person.isPlaceholder
@@ -103,14 +143,28 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
         <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
       <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
-        <div className={styles.name}>
-          {statusLabel && <span className="sr-only">{statusLabel}: </span>}
-          {prefix}{person.name}
+        <div className={styles.name} onDoubleClick={startEdit('name', person.name)}>
+          {editingField === 'name' ? (
+            <input ref={editRef} className={styles.inlineEdit} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />
+          ) : (
+            <>{statusLabel && <span className="sr-only">{statusLabel}: </span>}{prefix}{person.name}</>
+          )}
         </div>
-        {showTeam && <div className={styles.team}>{person.team}</div>}
-        <div className={styles.role}>
-          {person.role || 'TBD'}
-          {empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}
+        {showTeam && (
+          <div className={styles.team} onDoubleClick={startEdit('team', person.team)}>
+            {editingField === 'team' ? (
+              <input ref={editRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />
+            ) : (
+              person.team || '\u00A0'
+            )}
+          </div>
+        )}
+        <div className={styles.role} onDoubleClick={startEdit('role', person.role)}>
+          {editingField === 'role' ? (
+            <input ref={editRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />
+          ) : (
+            <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
+          )}
         </div>
       </div>
       {hasNotes && (

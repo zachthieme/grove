@@ -246,3 +246,10 @@
 .infoRow strong {
   color: var(--text-primary);
 }
+
+.fieldHint {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  font-style: italic;
+}

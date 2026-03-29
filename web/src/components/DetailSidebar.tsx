@@ -270,6 +270,7 @@ export default function DetailSidebar() {
         </div>
         <div className={styles.field}>
           <label>Pod</label>
+          <span className={styles.fieldHint}>Group people within a team — e.g. &quot;Backend&quot;, &quot;Frontend&quot;</span>
           <input data-testid="field-pod" value={val('pod')} placeholder={ph('pod')} onChange={(e) => handleChange('pod', e.target.value)} />
         </div>
         <div className={styles.field}>

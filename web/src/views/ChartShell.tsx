@@ -12,6 +12,7 @@ import { LassoSvgOverlay } from './LassoSvgOverlay'
 import { usePeople, useChanges, useActions } from '../store/ViewDataContext'
 import { useSelection } from '../store/OrgContext'
 import AddParentPopover from '../components/AddParentPopover'
+import DeleteConfirmPopover from '../components/DeleteConfirmPopover'
 import styles from './ChartShell.module.css'
 
 export interface ChartShellProps {
@@ -40,7 +41,7 @@ export default function ChartShell({
 }: ChartShellProps) {
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
-  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, addParentTargetId, setAddParentTargetId, submitAddParent } = useActions()
+  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, addParentTargetId, setAddParentTargetId, submitAddParent, deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit } = useActions()
   const { selectedIds, batchSelect, selectPod } = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
@@ -93,7 +94,8 @@ export default function ChartShell({
     setNodeRef,
     collapsedIds,
     onToggleCollapse: handleToggleCollapse,
-  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef, collapsedIds, handleToggleCollapse])
+    onInlineEdit: handleInlineEdit,
+  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef, collapsedIds, handleToggleCollapse, handleInlineEdit])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>
@@ -139,6 +141,19 @@ export default function ChartShell({
           onCancel={() => setAddParentTargetId(null)}
         />
       )}
+      {deleteTargetId != null && (() => {
+        const person = people.find(p => p.id === deleteTargetId)
+        if (!person) return null
+        const reportCount = people.filter(p => p.managerId === deleteTargetId).length
+        return (
+          <DeleteConfirmPopover
+            personName={person.name}
+            reportCount={reportCount}
+            onConfirm={confirmDelete}
+            onCancel={cancelDelete}
+          />
+        )
+      })()}
     </ChartProvider>
   )
 }

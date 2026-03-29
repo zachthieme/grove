@@ -208,13 +208,36 @@ describe('ViewDataContext', () => {
       }))
     })
 
-    it('handleDeletePerson calls remove', async () => {
+    it('handleDeletePerson sets deleteTargetId without calling remove', async () => {
       const remove = vi.fn().mockResolvedValue(undefined)
       const { result } = renderHook(() => useActions(), {
         wrapper: wrapper({ remove }),
       })
-      await act(async () => { await result.current.handleDeletePerson('p1') })
+      act(() => { result.current.handleDeletePerson('p1') })
+      expect(result.current.deleteTargetId).toBe('p1')
+      expect(remove).not.toHaveBeenCalled()
+    })
+
+    it('confirmDelete calls remove and clears deleteTargetId', async () => {
+      const remove = vi.fn().mockResolvedValue(undefined)
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ remove }),
+      })
+      act(() => { result.current.handleDeletePerson('p1') })
+      await act(async () => { result.current.confirmDelete() })
       expect(remove).toHaveBeenCalledWith('p1')
+      expect(result.current.deleteTargetId).toBeNull()
+    })
+
+    it('cancelDelete clears deleteTargetId without calling remove', () => {
+      const remove = vi.fn().mockResolvedValue(undefined)
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ remove }),
+      })
+      act(() => { result.current.handleDeletePerson('p1') })
+      act(() => { result.current.cancelDelete() })
+      expect(remove).not.toHaveBeenCalled()
+      expect(result.current.deleteTargetId).toBeNull()
     })
 
     it('handleShowInfo sets the info popover id', () => {

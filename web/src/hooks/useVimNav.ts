@@ -121,6 +121,15 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         return
       }
 
+      if (e.key === 'i' && selectedId) {
+        e.preventDefault()
+        // Trigger inline edit on the selected person's name
+        const node = document.querySelector(`[data-testid="person-${working.find(p => p.id === selectedId)?.name}"]`)
+        const nameEl = node?.querySelector('[class*="name"]') as HTMLElement
+        nameEl?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+        return
+      }
+
       if (['j', 'k', 'h', 'l', 'o', 'x'].includes(e.key)) {
         e.preventDefault()
         navigate(e.key)

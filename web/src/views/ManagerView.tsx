@@ -94,7 +94,7 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
 }
 
 function ManagerSubtree({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, onInlineEdit } = useChart()
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -145,6 +145,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
           onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
+          onInlineEdit={onInlineEdit ? (field: string, value: string) => onInlineEdit(node.person.id, field, value) : undefined}
           nodeRef={setNodeRef(node.person.id)}
         />
       </div>

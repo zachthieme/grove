@@ -28,6 +28,7 @@ export function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick
       className={styles.teamHeaderWrapper}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      title="Pod: a named subgroup within a team"
       style={{
         outline: isOver ? '2px solid var(--grove-green, #3d6b35)' : undefined,
         outlineOffset: isOver ? 2 : undefined,

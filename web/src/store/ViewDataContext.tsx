@@ -27,7 +27,7 @@ export interface ActionsContextValue {
   handleAddReport: (parentId: string) => Promise<void>
   handleAddToTeam: (parentId: string, team: string, podName?: string) => Promise<void>
   handleAddParent: (childId: string) => void
-  handleDeletePerson: (personId: string) => Promise<void>
+  handleDeletePerson: (personId: string) => void
   handleShowInfo: (personId: string) => void
   handleFocus: (personId: string) => void
   infoPopoverId: string | null
@@ -35,6 +35,10 @@ export interface ActionsContextValue {
   addParentTargetId: string | null
   setAddParentTargetId: (id: string | null) => void
   submitAddParent: (name: string) => void
+  deleteTargetId: string | null
+  confirmDelete: () => void
+  cancelDelete: () => void
+  handleInlineEdit: (personId: string, field: string, value: string) => void
 }
 
 const PeopleCtx = createContext<PeopleContextValue | null>(null)
@@ -60,7 +64,7 @@ export function useActions(): ActionsContextValue {
 }
 
 export function ViewDataProvider({ children }: { children: ReactNode }) {
-  const { original, working, pods, settings, add, addParent, remove } = useOrgData()
+  const { original, working, pods, settings, add, addParent, remove, update } = useOrgData()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
   const { toggleSelect } = useSelection()
 
@@ -134,9 +138,23 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     setAddParentTargetId(null)
   }, [addParentTargetId, addParent])
 
-  const handleDeletePerson = useCallback(async (personId: string) => {
-    await remove(personId)
-  }, [remove])
+  // Delete confirmation state
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+
+  const handleDeletePerson = useCallback((personId: string) => {
+    setDeleteTargetId(personId)
+  }, [])
+
+  const confirmDelete = useCallback(() => {
+    if (deleteTargetId) {
+      void remove(deleteTargetId)
+    }
+    setDeleteTargetId(null)
+  }, [deleteTargetId, remove])
+
+  const cancelDelete = useCallback(() => {
+    setDeleteTargetId(null)
+  }, [])
 
   // Info popover
   const [infoPopoverId, setInfoPopoverId] = useState<string | null>(null)
@@ -153,6 +171,10 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     setHead(personId)
   }, [setHead])
 
+  const handleInlineEdit = useCallback((personId: string, field: string, value: string) => {
+    void update(personId, { [field]: value })
+  }, [update])
+
   const peopleValue: PeopleContextValue = useMemo(() => ({
     people, ghostPeople, managerSet, readOnly, pods, showChanges,
   }), [people, ghostPeople, managerSet, readOnly, pods, showChanges])
@@ -165,9 +187,12 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
     handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
     addParentTargetId, setAddParentTargetId, submitAddParent,
+    deleteTargetId, confirmDelete, cancelDelete,
+    handleInlineEdit,
   }), [handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
        handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
-       addParentTargetId, setAddParentTargetId, submitAddParent])
+       addParentTargetId, setAddParentTargetId, submitAddParent,
+       deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit])
 
   return (
     <PeopleCtx.Provider value={peopleValue}>
