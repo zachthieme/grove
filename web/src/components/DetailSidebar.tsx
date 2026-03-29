@@ -235,7 +235,7 @@ export default function DetailSidebar() {
     <aside className={styles.sidebar}>
       <div className={styles.header}>
         <h3 data-testid="sidebar-heading">{isBatch ? `Edit ${selectedIds.size} people` : 'Edit Person'}</h3>
-        <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close">
+        <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close" title="Close">
           &times;
         </button>
       </div>
@@ -284,7 +284,7 @@ export default function DetailSidebar() {
               <div className={styles.infoPop} onMouseDown={(e) => e.stopPropagation()}>
                 <div className={styles.infoHeader}>
                   <span>Status Types</span>
-                  <button className={styles.infoClose} onClick={() => setShowStatusInfo(false)}>x</button>
+                  <button className={styles.infoClose} onClick={() => setShowStatusInfo(false)} title="Close" aria-label="Close">x</button>
                 </div>
                 {STATUSES.map((s) => (
                   <div key={s} className={styles.infoRow}>
@@ -341,13 +341,14 @@ export default function DetailSidebar() {
           className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
           onClick={handleSave}
           disabled={isBatch ? batchDirty.size === 0 || saveStatus === 'saving' : saveStatus === 'saving'}
+          title="Save changes"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>
         {isBatch ? (
-          <button className={styles.deleteBtn} onClick={clearSelection}>Clear selection</button>
+          <button className={styles.deleteBtn} onClick={clearSelection} title="Clear selection">Clear selection</button>
         ) : (
-          <button className={styles.deleteBtn} onClick={handleDelete}>Delete</button>
+          <button className={styles.deleteBtn} onClick={handleDelete} title="Delete this person">Delete</button>
         )}
       </div>
     </aside>

@@ -22,10 +22,10 @@ export default function AutosaveBanner() {
       <span className={styles.message}>
         Restore previous session?{time ? ` (saved at ${time})` : ''}
       </span>
-      <button className={styles.restoreBtn} onClick={restoreAutosave}>
+      <button className={styles.restoreBtn} onClick={restoreAutosave} title="Restore autosaved data">
         Restore
       </button>
-      <button className={styles.dismissBtn} onClick={dismissAutosave}>
+      <button className={styles.dismissBtn} onClick={dismissAutosave} title="Dismiss and start fresh">
         Dismiss
       </button>
     </div>

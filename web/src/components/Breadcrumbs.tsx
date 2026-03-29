@@ -22,7 +22,7 @@ export default function Breadcrumbs() {
 
   return (
     <div className={styles.bar}>
-      <button onClick={() => setHead(null)} className={styles.navBtn}>
+      <button onClick={() => setHead(null)} className={styles.navBtn} title="Show full org chart">
         All
       </button>
       {breadcrumbs.map((crumb, i) => {
@@ -33,7 +33,7 @@ export default function Breadcrumbs() {
             {isLast ? (
               <span className={styles.current}>{crumb.name}</span>
             ) : (
-              <button onClick={() => setHead(crumb.id)} className={styles.navBtn}>
+              <button onClick={() => setHead(crumb.id)} className={styles.navBtn} title={`Focus on ${crumb.name}'s subtree`}>
                 {crumb.name}
               </button>
             )}

@@ -116,10 +116,10 @@ export default function ColumnMappingModal({ headers, mapping, preview, onConfir
         )}
 
         <div className={styles.actions}>
-          <button disabled={!canConfirm} onClick={() => onConfirm(localMapping)}>
+          <button disabled={!canConfirm} onClick={() => onConfirm(localMapping)} title="Confirm mapping and load data">
             Load
           </button>
-          <button onClick={onCancel}>Cancel</button>
+          <button onClick={onCancel} title="Cancel and go back">Cancel</button>
         </div>
       </div>
     </div>

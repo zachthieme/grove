@@ -38,10 +38,10 @@ export default function EmploymentTypeFilter() {
       {open && (
         <div className={styles.menu}>
           <div className={styles.menuActions}>
-            <button className={styles.menuActionBtn} onClick={() => showAllEmploymentTypes()}>
+            <button className={styles.menuActionBtn} onClick={() => showAllEmploymentTypes()} title="Show all employment types">
               Show All
             </button>
-            <button className={styles.menuActionBtn} onClick={() => hideAllEmploymentTypes(allTypes)}>
+            <button className={styles.menuActionBtn} onClick={() => hideAllEmploymentTypes(allTypes)} title="Hide all employment types">
               Hide All
             </button>
           </div>

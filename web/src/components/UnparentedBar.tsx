@@ -23,6 +23,7 @@ export default function UnparentedBar() {
         className={styles.toggle}
         onClick={() => setCollapsed((c) => !c)}
         aria-expanded={!collapsed}
+        title="Toggle unparented people"
       >
         {collapsed ? '▸' : '▾'} {orphans.length} unparented {orphans.length === 1 ? 'person' : 'people'}
       </button>
@@ -33,6 +34,7 @@ export default function UnparentedBar() {
               key={p.id}
               onClick={() => toggleSelect(p.id, false)}
               className={styles.orphanBtn}
+              title={`Select ${p.name}`}
             >
               {p.name}
             </button>

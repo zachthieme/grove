@@ -1,1 +1,1 @@
-<div class="_banner_932a9c" role="alert"><span class="_message_932a9c">Restore previous session? (saved at Invalid Date)</span><button class="_restoreBtn_932a9c">Restore</button><button class="_dismissBtn_932a9c">Dismiss</button></div>
+<div class="_banner_932a9c" role="alert"><span class="_message_932a9c">Restore previous session? (saved at Invalid Date)</span><button class="_restoreBtn_932a9c" title="Restore autosaved data">Restore</button><button class="_dismissBtn_932a9c" title="Dismiss and start fresh">Dismiss</button></div>

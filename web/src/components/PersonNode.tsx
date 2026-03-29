@@ -100,7 +100,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       {isPrivate && !isPlaceholder && (
         <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
-      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`}>
+      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
         <div className={styles.name}>
           {statusLabel && <span className="sr-only">{statusLabel}: </span>}
           {prefix}{person.name}

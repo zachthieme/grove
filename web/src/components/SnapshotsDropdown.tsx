@@ -56,7 +56,7 @@ export default function SnapshotsDropdown() {
       </button>
       {open && (
         <div className={styles.menu}>
-          <button className={styles.menuItem} onClick={handleSaveAs}>
+          <button className={styles.menuItem} onClick={handleSaveAs} title="Save current state as a snapshot">
             Save As...
           </button>
           <div className={styles.separator} />

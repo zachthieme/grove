@@ -81,6 +81,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
                 key={m.value}
                 className={`${styles.pill} ${viewMode === m.value ? styles.pillActive : ''}`}
                 onClick={() => setViewMode(m.value)}
+                title={`Switch to ${m.label} view`}
               >
                 {m.label}
               </button>
@@ -93,6 +94,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
                 key={d.value}
                 className={`${styles.pill} ${dataView === d.value ? styles.pillActive : ''}`}
                 onClick={() => setDataView(d.value)}
+                title={`Show ${d.label} data`}
               >
                 {d.label}
               </button>
@@ -124,12 +126,14 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
                 <button
                   className={styles.exportMenuItem}
                   onClick={() => { onExportPng?.(); setExportOpen(false) }}
+                  title="Export as PNG"
                 >
                   PNG
                 </button>
                 <button
                   className={styles.exportMenuItem}
                   onClick={() => { onExportSvg?.(); setExportOpen(false) }}
+                  title="Export as SVG"
                 >
                   SVG
                 </button>
@@ -142,6 +146,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
                     a.download = 'grove.csv'
                     a.click()
                   }}
+                  title="Export as CSV"
                 >
                   CSV
                 </button>
@@ -154,6 +159,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
                     a.download = 'grove.xlsx'
                     a.click()
                   }}
+                  title="Export as XLSX"
                 >
                   XLSX
                 </button>
@@ -161,19 +167,23 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
                   <>
                     <div className={styles.exportSeparator} />
                     <button className={styles.exportMenuItem} disabled={exporting}
-                      onClick={() => { onExportAllSnapshots('csv'); setExportOpen(false) }}>
+                      onClick={() => { onExportAllSnapshots('csv'); setExportOpen(false) }}
+                      title="Export all snapshots as CSV">
                       All Snapshots (CSV)
                     </button>
                     <button className={styles.exportMenuItem} disabled={exporting}
-                      onClick={() => { onExportAllSnapshots('xlsx'); setExportOpen(false) }}>
+                      onClick={() => { onExportAllSnapshots('xlsx'); setExportOpen(false) }}
+                      title="Export all snapshots as XLSX">
                       All Snapshots (XLSX)
                     </button>
                     <button className={styles.exportMenuItem} disabled={exporting}
-                      onClick={() => { onExportAllSnapshots('png'); setExportOpen(false) }}>
+                      onClick={() => { onExportAllSnapshots('png'); setExportOpen(false) }}
+                      title="Export all snapshots as PNG">
                       All Snapshots (PNG)
                     </button>
                     <button className={styles.exportMenuItem} disabled={exporting}
-                      onClick={() => { onExportAllSnapshots('svg'); setExportOpen(false) }}>
+                      onClick={() => { onExportAllSnapshots('svg'); setExportOpen(false) }}
+                      title="Export all snapshots as SVG">
                       All Snapshots (SVG)
                     </button>
                   </>
@@ -214,11 +224,11 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
         {menuOpen && (
           <div className={styles.hamburgerMenu}>
             {viewMode !== 'table' && (
-              <button className={styles.hamburgerItem} onClick={() => { reflow(); setMenuOpen(false) }}>
+              <button className={styles.hamburgerItem} onClick={() => { reflow(); setMenuOpen(false) }} title="Refresh Layout">
                 Refresh Layout
               </button>
             )}
-            <button className={styles.hamburgerItem} onClick={() => { setSettingsOpen(true); setMenuOpen(false) }}>
+            <button className={styles.hamburgerItem} onClick={() => { setSettingsOpen(true); setMenuOpen(false) }} title="Settings">
               Settings
             </button>
           </div>

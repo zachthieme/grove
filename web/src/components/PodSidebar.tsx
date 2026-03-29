@@ -99,6 +99,7 @@ export default function PodSidebar() {
           className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
           onClick={handleSave}
           disabled={!isDirty || saveStatus === 'saving'}
+          title="Save changes"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>

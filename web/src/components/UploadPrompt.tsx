@@ -69,6 +69,7 @@ export default function UploadPrompt() {
         onClick={() => inputRef.current?.click()}
         className={styles.uploadBtn}
         data-tour="upload-prompt"
+        title="Upload a CSV, XLSX, or ZIP file"
       >
         Choose File
       </button>
@@ -77,6 +78,7 @@ export default function UploadPrompt() {
         <button
           onClick={() => setShowCreate(true)}
           className={styles.scratchBtn}
+          title="Create an org chart from scratch"
         >
           or start from scratch
         </button>
@@ -90,7 +92,7 @@ export default function UploadPrompt() {
             className={styles.createInput}
             autoFocus
           />
-          <button type="submit" className={styles.createBtn} disabled={!name.trim()}>
+          <button type="submit" className={styles.createBtn} disabled={!name.trim()} title="Create org chart">
             Create
           </button>
         </form>
