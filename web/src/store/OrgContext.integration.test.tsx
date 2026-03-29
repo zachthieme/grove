@@ -23,6 +23,7 @@ vi.mock('../api/client', () => ({
   deleteSnapshot: vi.fn(),
   deleteAutosave: vi.fn(),
   reorderPeople: vi.fn(),
+  setOnApiError: vi.fn().mockReturnValue(() => {}),
 }))
 
 import * as api from '../api/client'

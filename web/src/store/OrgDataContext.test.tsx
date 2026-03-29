@@ -29,6 +29,7 @@ vi.mock('../api/client', () => ({
   updatePod: vi.fn(),
   createPod: vi.fn(),
   updateSettings: vi.fn(),
+  setOnApiError: vi.fn().mockReturnValue(() => {}),
 }))
 
 import * as api from '../api/client'
