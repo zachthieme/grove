@@ -56,6 +56,7 @@ export interface OrgDataContextValue {
   currentSnapshotName: string | null
   autosaveAvailable: AutosaveData | null
   upload: (file: File) => Promise<void>
+  createOrg: (name: string) => Promise<void>
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>

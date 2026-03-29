@@ -79,3 +79,65 @@
 .uploadBtn:hover {
   background: var(--grove-green-light);
 }
+
+.scratchBtn {
+  margin-top: 16px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.scratchBtn:hover {
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+.createForm {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.createInput {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  width: 220px;
+}
+
+.createInput:focus {
+  outline: none;
+  border-color: var(--grove-green);
+}
+
+.createBtn {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--grove-green);
+  background: var(--grove-green);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.createBtn:hover:not(:disabled) {
+  background: var(--grove-green-light);
+}
+
+.createBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

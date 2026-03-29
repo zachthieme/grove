@@ -163,6 +163,15 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     }
   }, [setError, applyOrgData])
 
+  const createOrg = useCallback(async (name: string) => {
+    try {
+      const data = await api.createOrg(name)
+      applyOrgData(data)
+    } catch (err) {
+      setError(`Create failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }, [setError, applyOrgData])
+
   const confirmMapping = useCallback(async (mapping: Record<string, string>) => {
     try {
       const data = await api.confirmMapping(mapping)
@@ -237,13 +246,14 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     currentSnapshotName: state.currentSnapshotName,
     autosaveAvailable: state.autosaveAvailable,
     upload,
+    createOrg,
     ...mutations,
     confirmMapping,
     cancelMapping,
     restoreAutosave,
     dismissAutosave,
   }), [
-    state, upload, mutations,
+    state, upload, createOrg, mutations,
     confirmMapping, cancelMapping,
     restoreAutosave, dismissAutosave,
   ])

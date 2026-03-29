@@ -88,6 +88,11 @@ export interface DeletePayload {
   personId: string
 }
 
+export interface AddParentPayload {
+  childId: string
+  name: string
+}
+
 export interface DeleteResponse {
   working: Person[]
   recycled: Person[]

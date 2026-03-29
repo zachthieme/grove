@@ -1,4 +1,4 @@
-import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings, PodUpdatePayload } from './types'
+import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, AddParentPayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings, PodUpdatePayload } from './types'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -113,6 +113,20 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
   return json<UploadResponse>(resp)
 }
 
+export async function createOrg(name: string, correlationId?: string): Promise<OrgData> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+    correlationId: cid,
+  })
+  return jsonWithLog<OrgData>(resp, {
+    method: 'POST', path: '/api/create', correlationId: cid, requestBody: { name }, startTime,
+  })
+}
+
 export async function confirmMapping(mapping: Record<string, string>, correlationId?: string): Promise<OrgData> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
@@ -176,6 +190,20 @@ export async function addPerson(person: Omit<Person, 'id'>, correlationId?: stri
   })
   return jsonWithLog<AddResponse>(resp, {
     method: 'POST', path: '/api/add', correlationId: cid, requestBody: person, startTime,
+  })
+}
+
+export async function addParent(payload: AddParentPayload, correlationId?: string): Promise<AddResponse> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const resp = await fetchWithTimeout(`${BASE}/people/add-parent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    correlationId: cid,
+  })
+  return jsonWithLog<AddResponse>(resp, {
+    method: 'POST', path: '/api/people/add-parent', correlationId: cid, requestBody: payload, startTime,
   })
 }
 

@@ -47,6 +47,7 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     currentSnapshotName: null,
     autosaveAvailable: null,
     upload: asyncNoop,
+    createOrg: asyncNoop,
     move: asyncNoop,
     reparent: asyncNoop,
     reorder: asyncNoop,

@@ -1,10 +1,12 @@
-import { useCallback, useRef, type ChangeEvent } from 'react'
+import { useState, useCallback, useRef, type ChangeEvent, type FormEvent } from 'react'
 import { useOrgData } from '../store/OrgContext'
 import styles from './UploadPrompt.module.css'
 
 export default function UploadPrompt() {
-  const { upload } = useOrgData()
+  const { upload, createOrg } = useOrgData()
   const inputRef = useRef<HTMLInputElement>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [name, setName] = useState('')
 
   const handleChange = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -14,6 +16,17 @@ export default function UploadPrompt() {
       }
     },
     [upload],
+  )
+
+  const handleCreate = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault()
+      const trimmed = name.trim()
+      if (trimmed) {
+        await createOrg(trimmed)
+      }
+    },
+    [name, createOrg],
   )
 
   return (
@@ -57,6 +70,29 @@ export default function UploadPrompt() {
       >
         Choose File
       </button>
+
+      {!showCreate ? (
+        <button
+          onClick={() => setShowCreate(true)}
+          className={styles.scratchBtn}
+        >
+          or start from scratch
+        </button>
+      ) : (
+        <form onSubmit={handleCreate} className={styles.createForm}>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name of the first person"
+            className={styles.createInput}
+            autoFocus
+          />
+          <button type="submit" className={styles.createBtn} disabled={!name.trim()}>
+            Create
+          </button>
+        </form>
+      )}
     </div>
   )
 }
