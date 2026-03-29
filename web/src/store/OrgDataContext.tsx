@@ -85,7 +85,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
             setState((s) => ({ ...s, autosaveAvailable: serverAutosave }))
             // Still load org data in background so dismiss has data to fall back to
           }
-        } catch { /* ignore */ }
+        } catch { /* No server autosave — expected on fresh start */ }
       }
       // else: local autosave found — banner will show, but we still load org data
       // in the background so if the user dismisses, the app has data.
@@ -111,7 +111,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
       try {
         const snapshots = await api.listSnapshots()
         setState((s) => ({ ...s, snapshots }))
-      } catch { /* ignore */ }
+      } catch { /* Snapshots unavailable — non-fatal, UI works without them */ }
     }
     init()
   }, [])
