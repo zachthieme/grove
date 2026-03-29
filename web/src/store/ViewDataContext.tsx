@@ -33,9 +33,6 @@ export interface ActionsContextValue {
   clearInfoPopover: () => void
 }
 
-// Backward compat — union of all 3
-export type ViewDataContextValue = PeopleContextValue & ChangesContextValue & ActionsContextValue
-
 const PeopleCtx = createContext<PeopleContextValue | null>(null)
 const ChangesCtx = createContext<ChangesContextValue | null>(null)
 const ActionsCtx = createContext<ActionsContextValue | null>(null)
@@ -56,10 +53,6 @@ export function useActions(): ActionsContextValue {
   const ctx = useContext(ActionsCtx)
   if (!ctx) throw new Error('useActions must be used within a ViewDataProvider')
   return ctx
-}
-
-export function useViewData(): ViewDataContextValue {
-  return { ...usePeople(), ...useChanges(), ...useActions() }
 }
 
 export function ViewDataProvider({ children }: { children: ReactNode }) {

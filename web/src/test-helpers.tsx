@@ -108,7 +108,7 @@ export function renderWithOrg(
 }
 
 /** Render a component wrapped in OrgOverrideProvider + ViewDataProvider.
- *  Use this for components that consume useViewData() (ColumnView, ManagerView, TableView). */
+ *  Use this for components that consume usePeople/useChanges/useActions (ColumnView, ManagerView, TableView). */
 export function renderWithViewData(
   ui: ReactElement,
   orgOverrides: Partial<OrgContextValue> = {},
