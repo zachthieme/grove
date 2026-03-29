@@ -32,6 +32,9 @@ export interface ActionsContextValue {
   handleFocus: (personId: string) => void
   infoPopoverId: string | null
   clearInfoPopover: () => void
+  addParentTargetId: string | null
+  setAddParentTargetId: (id: string | null) => void
+  submitAddParent: (name: string) => void
 }
 
 const PeopleCtx = createContext<PeopleContextValue | null>(null)
@@ -117,12 +120,19 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     })
   }, [add])
 
+  // Add-parent popover state
+  const [addParentTargetId, setAddParentTargetId] = useState<string | null>(null)
+
   const handleAddParent = useCallback((childId: string) => {
-    const name = window.prompt('Name of the new manager')
-    if (name?.trim()) {
-      addParent(childId, name.trim())
+    setAddParentTargetId(childId)
+  }, [])
+
+  const submitAddParent = useCallback((name: string) => {
+    if (addParentTargetId && name.trim()) {
+      addParent(addParentTargetId, name.trim())
     }
-  }, [addParent])
+    setAddParentTargetId(null)
+  }, [addParentTargetId, addParent])
 
   const handleDeletePerson = useCallback(async (personId: string) => {
     await remove(personId)
@@ -154,8 +164,10 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
   const actionsValue: ActionsContextValue = useMemo(() => ({
     handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
     handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
+    addParentTargetId, setAddParentTargetId, submitAddParent,
   }), [handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
-       handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover])
+       handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
+       addParentTargetId, setAddParentTargetId, submitAddParent])
 
   return (
     <PeopleCtx.Provider value={peopleValue}>

@@ -11,6 +11,7 @@ import { DragBadgeOverlay } from './DragBadgeOverlay'
 import { LassoSvgOverlay } from './LassoSvgOverlay'
 import { usePeople, useChanges, useActions } from '../store/ViewDataContext'
 import { useSelection } from '../store/OrgContext'
+import AddParentPopover from '../components/AddParentPopover'
 import styles from './ChartShell.module.css'
 
 export interface ChartShellProps {
@@ -39,7 +40,7 @@ export default function ChartShell({
 }: ChartShellProps) {
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
-  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus } = useActions()
+  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, addParentTargetId, setAddParentTargetId, submitAddParent } = useActions()
   const { selectedIds, batchSelect, selectPod } = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
@@ -112,9 +113,20 @@ export default function ChartShell({
               renderTeamHeader={renderTeamHeader}
             />
           </div>
+          {people.length === 1 && roots.length === 1 && roots[0].children.length === 0 && (
+            <div className={styles.emptyHint}>
+              Click <strong>+</strong> on the card to add your first report
+            </div>
+          )}
         </div>
         <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selectedIds} />
       </DndContext>
+      {addParentTargetId != null && (
+        <AddParentPopover
+          onSubmit={submitAddParent}
+          onCancel={() => setAddParentTargetId(null)}
+        />
+      )}
     </ChartProvider>
   )
 }

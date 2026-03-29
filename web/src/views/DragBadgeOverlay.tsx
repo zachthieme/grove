@@ -11,7 +11,7 @@ export function DragBadgeOverlay({ draggedPerson, selectedIds }: DragBadgeOverla
   return (
     <DragOverlay dropAnimation={null}>
       {draggedPerson && (
-        <div style={{ width: 160, opacity: 0.9, pointerEvents: 'none', position: 'relative' }}>
+        <div style={{ width: 160, opacity: 0.92, pointerEvents: 'none', position: 'relative', transform: 'rotate(-2deg) scale(1.04)', filter: 'drop-shadow(0 8px 20px rgba(44, 36, 24, 0.18))', transition: 'transform 0.15s ease' }}>
           <PersonNode person={draggedPerson} selected={false} />
           {selectedIds.has(draggedPerson.id) && selectedIds.size > 1 && (
             <div style={{

@@ -32,12 +32,15 @@
 .headerCell {
   position: sticky;
   top: -1px;
-  background: var(--surface-sunken);
+  background: var(--surface-toolbar);
   border: 1px solid var(--border-soft);
-  padding: 6px 8px;
+  padding: 8px 10px;
   text-align: left;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
   white-space: nowrap;
   z-index: 2;
 }
@@ -80,6 +83,10 @@
 
 .flashError {
   background-color: rgba(161, 59, 45, 0.15);
+}
+
+.row:nth-child(even) {
+  background: rgba(0, 0, 0, 0.015);
 }
 
 .row:hover {

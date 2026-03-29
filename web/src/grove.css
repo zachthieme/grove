@@ -117,3 +117,55 @@ input, select, button {
   white-space: nowrap;
   border: 0;
 }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grove-green: #4a8c3f;
+    --grove-green-light: #5a9c4f;
+    --grove-green-soft: rgba(74, 140, 63, 0.12);
+    --grove-green-muted: #6a9a62;
+    --grove-sage: #7a9a6f;
+    --grove-gold: #c9a34e;
+    --grove-gold-light: rgba(201, 163, 78, 0.12);
+    --grove-amber: #d4983b;
+    --grove-red: #cf5a4a;
+    --grove-red-light: rgba(207, 90, 74, 0.12);
+
+    --surface-page: #1a1814;
+    --surface-raised: #242019;
+    --surface-sunken: #141210;
+    --surface-toolbar: #1e1b16;
+    --surface-note: rgba(201, 163, 78, 0.08);
+    --surface-overlay: rgba(0, 0, 0, 0.6);
+
+    --border-soft: #332e27;
+    --border-medium: #443d34;
+    --border-strong: #5a5248;
+
+    --text-primary: #e8e0d4;
+    --text-secondary: #a89b8a;
+    --text-tertiary: #8a7e6f;
+    --text-muted: #5e5548;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.35);
+    --shadow-focus: 0 0 0 3px rgba(74, 140, 63, 0.3);
+
+    --diff-added: rgba(74, 140, 63, 0.12);
+    --diff-removed: rgba(207, 90, 74, 0.12);
+    --diff-reporting: rgba(201, 163, 78, 0.12);
+    --diff-title: rgba(138, 126, 111, 0.12);
+    --diff-reorg: rgba(212, 152, 59, 0.12);
+    --diff-pod: rgba(122, 154, 111, 0.12);
+  }
+
+  body {
+    background-image: radial-gradient(ellipse at 50% 0%, rgba(74, 140, 63, 0.04) 0%, transparent 60%);
+  }
+
+  body::before {
+    opacity: 0.03;
+  }
+}
