@@ -10,7 +10,7 @@ import { ChartProvider } from './ChartContext'
 import { DragBadgeOverlay } from './DragBadgeOverlay'
 import { LassoSvgOverlay } from './LassoSvgOverlay'
 import { usePeople, useChanges, useActions } from '../store/ViewDataContext'
-import { useOrg } from '../store/OrgContext'
+import { useSelection } from '../store/OrgContext'
 import styles from './ChartShell.module.css'
 
 export interface ChartShellProps {
@@ -40,7 +40,7 @@ export default function ChartShell({
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
   const { handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus } = useActions()
-  const { selectedIds, batchSelect, selectPod } = useOrg()
+  const { selectedIds, batchSelect, selectPod } = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people, roots), [computeEdges, people, roots])

@@ -1,10 +1,11 @@
 import { useState, useRef, useMemo, useCallback } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData, useUI } from '../store/OrgContext'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import styles from './EmploymentTypeFilter.module.css'
 
 export default function EmploymentTypeFilter() {
-  const { working, hiddenEmploymentTypes, toggleEmploymentTypeFilter, showAllEmploymentTypes, hideAllEmploymentTypes } = useOrg()
+  const { working } = useOrgData()
+  const { hiddenEmploymentTypes, toggleEmploymentTypeFilter, showAllEmploymentTypes, hideAllEmploymentTypes } = useUI()
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 

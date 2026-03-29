@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData, useSelection } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { PodUpdatePayload } from '../api/types'
 import styles from './DetailSidebar.module.css'
 
 export default function PodSidebar() {
-  const { pods, working, selectedPodId, selectPod, updatePod } = useOrg()
+  const { pods, working, updatePod } = useOrgData()
+  const { selectedPodId, selectPod } = useSelection()
   const pod = pods.find(p => p.id === selectedPodId)
 
   const [form, setForm] = useState({ name: '', publicNote: '', privateNote: '' })

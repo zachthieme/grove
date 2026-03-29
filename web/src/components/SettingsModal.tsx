@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData } from '../store/OrgContext'
 import styles from './SettingsModal.module.css'
 
 export default function SettingsModal({ onClose }: { onClose: () => void }) {
-  const { working, settings, updateSettings } = useOrg()
+  const { working, settings, updateSettings } = useOrgData()
 
   const allDisciplines = Array.from(new Set(
     working.filter(p => p.discipline).map(p => p.discipline)

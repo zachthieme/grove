@@ -3,12 +3,13 @@ package api
 // Scenarios: CONC-002 — all tests in this file
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 // generateLargeCSV creates a CSV with n people in a realistic org structure:
@@ -63,7 +64,23 @@ func uploadLargeOrg(t *testing.T, n int) *OrgService {
 }
 
 func TestLargeOrg_Upload(t *testing.T) {
-	svc := uploadLargeOrg(t, 200)
+	svc := NewOrgService(NewMemorySnapshotStore())
+	csvData := generateLargeCSV(200)
+
+	start := time.Now()
+	resp, err := svc.Upload(context.Background(), "test.csv", csvData)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("upload failed: %v", err)
+	}
+	if resp.Status != UploadReady {
+		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
+	}
+	if elapsed >= 2*time.Second {
+		t.Errorf("upload took %v, expected < 2s", elapsed)
+	}
+
 	data := svc.GetOrg(context.Background())
 	if data == nil {
 		t.Fatal("expected org data after upload")
@@ -87,6 +104,7 @@ func TestLargeOrg_MoveChain(t *testing.T) {
 	}
 
 	// Move 50 ICs (Person-25 through Person-74) to the target director
+	start := time.Now()
 	for i := 25; i < 75; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(data.Working, name)
@@ -97,6 +115,10 @@ func TestLargeOrg_MoveChain(t *testing.T) {
 		if err != nil {
 			t.Fatalf("move %s failed: %v", name, err)
 		}
+	}
+	elapsed := time.Since(start)
+	if elapsed >= 5*time.Second {
+		t.Errorf("50 moves took %v, expected < 5s", elapsed)
 	}
 
 	// Verify total count is still 200
@@ -123,6 +145,7 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 
 	// Update all ICs (Person-25 through Person-199) to have a new role
+	start := time.Now()
 	for i := 25; i < 200; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(data.Working, name)
@@ -134,6 +157,10 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
+	}
+	elapsed := time.Since(start)
+	if elapsed >= 10*time.Second {
+		t.Errorf("175 updates took %v, expected < 10s", elapsed)
 	}
 
 	// Verify all updates were applied
@@ -240,8 +267,13 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 
 	// Save a snapshot of the initial state
+	saveStart := time.Now()
 	if err := svc.SaveSnapshot(context.Background(), "before-mutations"); err != nil {
 		t.Fatalf("save snapshot failed: %v", err)
+	}
+	saveElapsed := time.Since(saveStart)
+	if saveElapsed >= 500*time.Millisecond {
+		t.Errorf("snapshot save took %v, expected < 500ms", saveElapsed)
 	}
 
 	// Capture working state before mutations for comparison
@@ -269,9 +301,14 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 	}
 
 	// Load snapshot — should restore pre-mutation state
+	loadStart := time.Now()
 	_, err := svc.LoadSnapshot(context.Background(), "before-mutations")
+	loadElapsed := time.Since(loadStart)
 	if err != nil {
 		t.Fatalf("load snapshot failed: %v", err)
+	}
+	if loadElapsed >= 500*time.Millisecond {
+		t.Errorf("snapshot load took %v, expected < 500ms", loadElapsed)
 	}
 
 	// Verify state matches pre-mutation
@@ -295,9 +332,15 @@ func TestLargeOrg_ExportCSV(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 	working := svc.GetWorking(context.Background())
 
+	start := time.Now()
 	exported, err := ExportCSV(working)
+	elapsed := time.Since(start)
+
 	if err != nil {
 		t.Fatalf("export CSV failed: %v", err)
+	}
+	if elapsed >= 500*time.Millisecond {
+		t.Errorf("CSV export took %v, expected < 500ms", elapsed)
 	}
 
 	// Parse the exported CSV
@@ -343,6 +386,7 @@ func TestLargeOrg_500People(t *testing.T) {
 	if targetDir == nil {
 		t.Fatal("target director Person-15 not found")
 	}
+	start := time.Now()
 	for i := 100; i < 120; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(data.Working, name)
@@ -366,6 +410,10 @@ func TestLargeOrg_500People(t *testing.T) {
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
+	}
+	elapsed := time.Since(start)
+	if elapsed >= 5*time.Second {
+		t.Errorf("50 mutations on 500-person org took %v, expected < 5s", elapsed)
 	}
 
 	// Verify total count unchanged

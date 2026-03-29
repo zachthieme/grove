@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData } from '../store/OrgContext'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import styles from './SnapshotsDropdown.module.css'
@@ -15,7 +15,7 @@ function formatTimestamp(iso: string): string {
 }
 
 export default function SnapshotsDropdown() {
-  const { snapshots, currentSnapshotName, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrg()
+  const { snapshots, currentSnapshotName, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgData()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 

@@ -12,6 +12,14 @@ export function setLoggingEnabled(enabled: boolean) {
   loggingEnabled = enabled
 }
 
+let onApiError: ((message: string) => void) | null = null
+
+/** Register a global callback for API errors. Returns a cleanup function. */
+export function setOnApiError(handler: (message: string) => void): () => void {
+  onApiError = handler
+  return () => { if (onApiError === handler) onApiError = null }
+}
+
 function postLogEntry(entry: Record<string, unknown>): void {
   if (!loggingEnabled) return
   fetch(`${BASE}/logs`, {
@@ -55,7 +63,9 @@ const BASE = '/api'
 async function json<T>(resp: Response): Promise<T> {
   if (!resp.ok) {
     const text = await resp.text()
-    throw new Error(`API ${resp.status}: ${text}`)
+    const msg = `API ${resp.status}: ${text}`
+    onApiError?.(msg)
+    throw new Error(msg)
   }
   return resp.json() as Promise<T>
 }
@@ -78,7 +88,9 @@ async function jsonWithLog<T>(
       error: text,
       durationMs,
     })
-    throw new Error(`API ${resp.status}: ${text}`)
+    const msg = `API ${resp.status}: ${text}`
+    onApiError?.(msg)
+    throw new Error(msg)
   }
   const data = await resp.json() as T
   postLogEntry({

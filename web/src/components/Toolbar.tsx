@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react'
-import { useOrg } from '../store/OrgContext'
+import { useOrgData, useUI } from '../store/OrgContext'
 import { exportDataUrl } from '../api/client'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import RecycleBinButton from './RecycleBinButton'
@@ -34,7 +34,8 @@ interface ToolbarProps {
 }
 
 export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen }: ToolbarProps) {
-  const { loaded, viewMode, dataView, setViewMode, setDataView, upload, reflow } = useOrg()
+  const { upload, loaded } = useOrgData()
+  const { viewMode, dataView, setViewMode, setDataView, reflow } = useUI()
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)

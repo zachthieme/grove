@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const mockFetch = vi.fn().mockResolvedValue({
   ok: true,
@@ -18,6 +18,55 @@ beforeEach(() => {
     json: () => Promise.resolve([]),
     text: () => Promise.resolve(''),
     status: 200,
+  })
+})
+
+describe('API error callback', () => {
+  afterEach(() => {
+    // Reset fetch mock to success for subsequent tests
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
+      text: () => Promise.resolve(''),
+      status: 200,
+    })
+  })
+
+  it('calls onApiError when an API request fails', async () => {
+    const handler = vi.fn()
+    const cleanup = api.setOnApiError(handler)
+
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      text: async () => 'validation failed',
+    })
+
+    await expect(
+      api.movePerson({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
+    ).rejects.toThrow('API 422')
+
+    expect(handler).toHaveBeenCalledWith('API 422: validation failed')
+
+    cleanup()
+  })
+
+  it('does not call onApiError after cleanup', async () => {
+    const handler = vi.fn()
+    const cleanup = api.setOnApiError(handler)
+    cleanup()
+
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'server error',
+    })
+
+    await expect(
+      api.movePerson({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
+    ).rejects.toThrow()
+
+    expect(handler).not.toHaveBeenCalled()
   })
 })
 
