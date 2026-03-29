@@ -1,7 +1,9 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import '../tour.css'
+
+const TOUR_SEEN_KEY = 'grove-tour-seen'
 
 function buildSteps(loaded: boolean) {
   if (!loaded) {
@@ -104,7 +106,19 @@ export function useTour(loaded: boolean) {
       steps: buildSteps(loaded),
     })
     tour.drive()
+    localStorage.setItem(TOUR_SEEN_KEY, '1')
   }, [loaded])
+
+  // Auto-start on first visit
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (autoStarted.current) return
+    if (localStorage.getItem(TOUR_SEEN_KEY)) return
+    autoStarted.current = true
+    // Small delay so the UI is fully rendered before tour highlights elements
+    const timer = setTimeout(startTour, 500)
+    return () => clearTimeout(timer)
+  }, [startTour])
 
   return { startTour }
 }
