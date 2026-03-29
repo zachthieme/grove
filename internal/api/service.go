@@ -52,9 +52,9 @@ func NewOrgService(snapStore SnapshotStore) *OrgService {
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
-	case ".csv":
+	case ExtCSV:
 		return extractRowsCSV(data)
-	case ".xlsx":
+	case ExtXLSX:
 		return extractRowsXLSX(data)
 	default:
 		return nil, nil, fmt.Errorf("unsupported file format '%s'", ext)

@@ -42,7 +42,7 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding upload response: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected upload status 'ready', got '%s'", resp.Status)
 	}
 	return resp.OrgData
@@ -473,7 +473,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 
 	resp := uploadNonStandardCSV(t, handler)
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Fatalf("expected 'needs_mapping', got '%s'", resp.Status)
 	}
 
@@ -1408,7 +1408,7 @@ func TestUploadZipHandler(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	if len(resp.Snapshots) != 1 {

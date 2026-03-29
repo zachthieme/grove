@@ -124,7 +124,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 		normalized := strings.ToLower(strings.TrimSpace(h))
 		if field, ok := exactMatches[normalized]; ok {
 			if !assigned[field] {
-				result[field] = MappedColumn{Column: h, Confidence: "high"}
+				result[field] = MappedColumn{Column: h, Confidence: ConfidenceHigh}
 				assigned[field] = true
 				used[i] = true
 			}
@@ -139,7 +139,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 		normalized := strings.ToLower(strings.TrimSpace(h))
 		if field, ok := synonyms[normalized]; ok {
 			if !assigned[field] {
-				result[field] = MappedColumn{Column: h, Confidence: "high"}
+				result[field] = MappedColumn{Column: h, Confidence: ConfidenceHigh}
 				assigned[field] = true
 				used[i] = true
 			}
@@ -158,7 +158,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 				continue
 			}
 			if strings.Contains(normalized, kw) {
-				result[field] = MappedColumn{Column: h, Confidence: "medium"}
+				result[field] = MappedColumn{Column: h, Confidence: ConfidenceMedium}
 				assigned[field] = true
 				used[i] = true
 				break
@@ -176,7 +176,7 @@ func AllRequiredHigh(m map[string]MappedColumn) bool {
 	required := []string{"name"}
 	for _, field := range required {
 		mc, ok := m[field]
-		if !ok || mc.Confidence != "high" {
+		if !ok || mc.Confidence != ConfidenceHigh {
 			return false
 		}
 	}

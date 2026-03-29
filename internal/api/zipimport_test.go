@@ -49,7 +49,7 @@ func TestUploadZip_ThreeFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	if resp.OrgData == nil {
@@ -81,7 +81,7 @@ func TestUploadZip_SingleFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	if len(resp.OrgData.Original) != len(resp.OrgData.Working) {
@@ -119,7 +119,7 @@ func TestUploadZip_UnprefixedFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 }
@@ -139,7 +139,7 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
@@ -260,7 +260,7 @@ func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	if len(resp.OrgData.Original) != 2 {
@@ -376,7 +376,7 @@ func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UploadZip failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	if len(resp.Snapshots) != 0 {

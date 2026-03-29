@@ -41,7 +41,7 @@ func benchService(b *testing.B, n int) *OrgService {
 	if err != nil {
 		b.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		b.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc

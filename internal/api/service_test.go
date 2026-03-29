@@ -16,7 +16,7 @@ func newTestService(t *testing.T) *OrgService {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -302,7 +302,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Errorf("expected status 'ready', got '%s'", resp.Status)
 	}
 	if resp.OrgData == nil {
@@ -324,7 +324,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Errorf("expected status 'needs_mapping', got '%s'", resp.Status)
 	}
 	if resp.OrgData != nil {
@@ -351,7 +351,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
@@ -395,7 +395,7 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload: %v", err)
 	}
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Skipf("headers were auto-mapped; skipping confirm test")
 	}
 	mapping := map[string]string{
@@ -1247,7 +1247,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -1313,7 +1313,7 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -1541,7 +1541,7 @@ func TestConfirmMapping_CancelledContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
@@ -1573,7 +1573,7 @@ func TestConfirmMapping_DeadlineExceeded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "needs_mapping" {
+	if resp.Status != UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 

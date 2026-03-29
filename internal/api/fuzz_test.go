@@ -129,7 +129,7 @@ func FuzzUpdateFields(f *testing.F) {
 		svc := NewOrgService(NewMemorySnapshotStore())
 		csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n")
 		resp, err := svc.Upload(context.Background(), "test.csv", csv)
-		if err != nil || resp.Status != "ready" {
+		if err != nil || resp.Status != UploadReady {
 			return
 		}
 		people := svc.GetWorking(context.Background())

@@ -35,7 +35,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		s.resetState(people, people, nil)
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		return &UploadResponse{
-			Status:             "ready",
+			Status:             UploadReady,
 			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
 			PersistenceWarning: persistWarn,
 		}, nil
@@ -51,7 +51,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		preview = append(preview, row)
 	}
 	return &UploadResponse{
-		Status:  "needs_mapping",
+		Status:  UploadNeedsMapping,
 		Headers: header,
 		Mapping: mapping,
 		Preview: preview,

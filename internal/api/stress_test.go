@@ -56,7 +56,7 @@ func uploadLargeOrg(t *testing.T, n int) *OrgService {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != "ready" {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc

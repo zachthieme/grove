@@ -477,10 +477,10 @@ func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename
 // Returns (nil, "", "", nil) for unsupported formats so callers can return 400.
 func exportByFormat(format string, people []Person, baseName string) ([]byte, string, string, error) {
 	switch strings.ToLower(format) {
-	case "csv":
+	case FormatCSV:
 		data, err := ExportCSV(people)
 		return data, "text/csv", baseName + ".csv", err
-	case "xlsx":
+	case FormatXLSX:
 		data, err := ExportXLSX(people)
 		return data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", baseName + ".xlsx", err
 	default:

@@ -294,7 +294,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 
 		snapCopy := s.snaps.CopyAll()
 		resp := &UploadResponse{
-			Status:    "ready",
+			Status:    UploadReady,
 			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
 			Snapshots: s.ListSnapshotsUnlocked(),
 		}
@@ -327,7 +327,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		preview = append(preview, row)
 	}
 	return &UploadResponse{
-		Status:  "needs_mapping",
+		Status:  UploadNeedsMapping,
 		Headers: header,
 		Mapping: mapping,
 		Preview: preview,
