@@ -43,6 +43,7 @@ func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.H
 	mux.HandleFunc("POST /api/pods/create", handleCreatePod(svcs.Pods))
 
 	mux.HandleFunc("POST /api/reset", handleReset(svcs.Org))
+	mux.HandleFunc("POST /api/create", handleCreate(svcs.Org))
 	mux.HandleFunc("POST /api/reorder", handleReorder(svcs.People))
 
 	mux.HandleFunc("GET /api/settings", handleGetSettings(svcs.Settings))
@@ -370,6 +371,15 @@ func handleReset(svc OrgStateService) http.HandlerFunc {
 		orgData := svc.ResetToOriginal(r.Context())
 		writeJSON(w, http.StatusOK, orgData)
 	}
+}
+
+func handleCreate(svc OrgStateService) http.HandlerFunc {
+	type req struct {
+		Name string `json:"name"`
+	}
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+		return svc.Create(ctx, r.Name)
+	})
 }
 
 func handleReorder(svc PersonService) http.HandlerFunc {

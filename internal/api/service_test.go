@@ -1747,3 +1747,61 @@ func TestOrgService_UpdateSettings_RejectsOversizedName(t *testing.T) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
+
+// Scenarios: CREATE-001
+func TestOrgService_Create(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	data, err := svc.Create(context.Background(), "Alice")
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	if len(data.Original) != 1 {
+		t.Errorf("expected 1 original, got %d", len(data.Original))
+	}
+	if len(data.Working) != 1 {
+		t.Errorf("expected 1 working, got %d", len(data.Working))
+	}
+	p := data.Working[0]
+	if p.Name != "Alice" {
+		t.Errorf("expected name Alice, got %s", p.Name)
+	}
+	if p.Status != "Active" {
+		t.Errorf("expected status Active, got %s", p.Status)
+	}
+	if p.Id == "" {
+		t.Error("expected non-empty ID")
+	}
+	if p.Role != "" || p.Discipline != "" || p.Team != "" {
+		t.Error("expected blank role, discipline, and team")
+	}
+}
+
+// Scenarios: CREATE-004
+func TestOrgService_Create_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	_, err := svc.Create(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestOrgService_Create_WhitespaceName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	_, err := svc.Create(context.Background(), "   ")
+	if err == nil {
+		t.Fatal("expected error for whitespace-only name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}

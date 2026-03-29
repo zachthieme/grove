@@ -20,6 +20,7 @@ type OrgStateService interface {
 	GetRecycled(ctx context.Context) []Person
 	ResetToOriginal(ctx context.Context) *OrgData
 	RestoreState(ctx context.Context, data AutosaveData)
+	Create(ctx context.Context, name string) (*OrgData, error)
 }
 
 // SnapshotService manages named save points.

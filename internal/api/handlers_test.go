@@ -1686,3 +1686,48 @@ func TestContentTypeValidation_ErrorShape(t *testing.T) {
 	}
 }
 
+// Scenarios: CREATE-001
+func TestCreateHandler(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	body := strings.NewReader(`{"name":"Alice"}`)
+	req := httptest.NewRequest("POST", "/api/create", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var data OrgData
+	if err := json.NewDecoder(rec.Body).Decode(&data); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(data.Working) != 1 {
+		t.Errorf("expected 1 working person, got %d", len(data.Working))
+	}
+	if data.Working[0].Name != "Alice" {
+		t.Errorf("expected Alice, got %s", data.Working[0].Name)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestCreateHandler_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	body := strings.NewReader(`{"name":""}`)
+	req := httptest.NewRequest("POST", "/api/create", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
