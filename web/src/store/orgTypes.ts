@@ -62,6 +62,7 @@ export interface OrgDataContextValue {
   reorder: (personIds: string[]) => Promise<void>
   update: (personId: string, fields: PersonUpdatePayload, correlationId?: string) => Promise<void>
   add: (person: Omit<Person, 'id'>) => Promise<void>
+  addParent: (childId: string, name: string) => Promise<void>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>
   emptyBin: () => Promise<void>

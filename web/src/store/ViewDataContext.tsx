@@ -26,6 +26,7 @@ export interface ActionsContextValue {
   handleSelect: (id: string, event?: React.MouseEvent) => void
   handleAddReport: (parentId: string) => Promise<void>
   handleAddToTeam: (parentId: string, team: string, podName?: string) => Promise<void>
+  handleAddParent: (childId: string) => void
   handleDeletePerson: (personId: string) => Promise<void>
   handleShowInfo: (personId: string) => void
   handleFocus: (personId: string) => void
@@ -56,7 +57,7 @@ export function useActions(): ActionsContextValue {
 }
 
 export function ViewDataProvider({ children }: { children: ReactNode }) {
-  const { original, working, pods, settings, add, remove } = useOrgData()
+  const { original, working, pods, settings, add, addParent, remove } = useOrgData()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
   const { toggleSelect } = useSelection()
 
@@ -116,6 +117,13 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     })
   }, [add])
 
+  const handleAddParent = useCallback((childId: string) => {
+    const name = window.prompt('Name of the new manager')
+    if (name?.trim()) {
+      addParent(childId, name.trim())
+    }
+  }, [addParent])
+
   const handleDeletePerson = useCallback(async (personId: string) => {
     await remove(personId)
   }, [remove])
@@ -144,9 +152,9 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
   }), [showChanges, changes])
 
   const actionsValue: ActionsContextValue = useMemo(() => ({
-    handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson,
+    handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
     handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
-  }), [handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson,
+  }), [handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
        handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover])
 
   return (

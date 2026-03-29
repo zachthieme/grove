@@ -53,6 +53,7 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     reorder: asyncNoop,
     update: asyncNoop,
     add: asyncNoop,
+    addParent: asyncNoop,
     remove: asyncNoop,
     restore: asyncNoop,
     emptyBin: asyncNoop,

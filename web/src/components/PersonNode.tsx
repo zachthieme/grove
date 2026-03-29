@@ -32,13 +32,14 @@ interface Props {
   showTeam?: boolean
   isManager?: boolean
   onAdd?: () => void
+  onAddParent?: () => void
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
   onClick?: (e?: React.MouseEvent) => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, onAdd, onDelete, onInfo, onFocus, onClick }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, onAdd, onAddParent, onDelete, onInfo, onFocus, onClick }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const hasNotes = !!person.publicNote
@@ -69,7 +70,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
   const statusLabel = isRecruiting ? 'Recruiting' : isFuture ? 'Planned' : isTransfer ? 'Transfer' : null
-  const showActions = !ghost && !isPlaceholder && (onAdd || onDelete || onInfo || onFocus)
+  const showActions = !ghost && !isPlaceholder && (onAdd || onAddParent || onDelete || onInfo || onFocus)
 
   const nodeStyle = empColor ? { '--emp-color': empColor } as React.CSSProperties : undefined
 
@@ -82,9 +83,11 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       {showActions && hovered && (
         <NodeActions
           showAdd={!!isManager}
+          showAddParent={!!onAddParent}
           showInfo={!!onInfo}
           showFocus={!!onFocus}
           onAdd={(e) => { e.stopPropagation(); onAdd?.() }}
+          onAddParent={onAddParent ? (e) => { e.stopPropagation(); onAddParent() } : undefined}
           onDelete={(e) => { e.stopPropagation(); onDelete?.() }}
           onEdit={(e) => { e.stopPropagation(); onClick?.(e) }}
           onInfo={(e) => { e.stopPropagation(); onInfo?.() }}
