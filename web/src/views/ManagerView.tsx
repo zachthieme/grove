@@ -94,7 +94,7 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
 }
 
 function ManagerSubtree({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -136,6 +136,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
           isManager={managerSet?.has(node.person.id)}
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
+          onAddParent={!node.person.managerId && onAddParent ? () => onAddParent(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}

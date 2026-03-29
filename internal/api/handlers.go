@@ -25,6 +25,7 @@ func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.H
 	mux.HandleFunc("POST /api/move", handleMove(svcs.People))
 	mux.HandleFunc("POST /api/update", handleUpdate(svcs.People))
 	mux.HandleFunc("POST /api/add", handleAdd(svcs.People))
+	mux.HandleFunc("POST /api/people/add-parent", handleAddParent(svcs.People))
 	mux.HandleFunc("POST /api/delete", handleDelete(svcs.People))
 	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svcs.Org))
 	mux.HandleFunc("POST /api/restore", handleRestore(svcs.People))
@@ -43,6 +44,7 @@ func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.H
 	mux.HandleFunc("POST /api/pods/create", handleCreatePod(svcs.Pods))
 
 	mux.HandleFunc("POST /api/reset", handleReset(svcs.Org))
+	mux.HandleFunc("POST /api/create", handleCreate(svcs.Org))
 	mux.HandleFunc("POST /api/reorder", handleReorder(svcs.People))
 
 	mux.HandleFunc("GET /api/settings", handleGetSettings(svcs.Settings))
@@ -179,6 +181,20 @@ func handleUpdate(svc PersonService) http.HandlerFunc {
 func handleAdd(svc PersonService) http.HandlerFunc {
 	return jsonHandlerCtx(func(ctx context.Context, p Person) (*AddResponse, error) {
 		created, working, pods, err := svc.Add(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		return &AddResponse{Created: created, Working: working, Pods: pods}, nil
+	})
+}
+
+func handleAddParent(svc PersonService) http.HandlerFunc {
+	type req struct {
+		ChildId string `json:"childId"`
+		Name    string `json:"name"`
+	}
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*AddResponse, error) {
+		created, working, pods, err := svc.AddParent(ctx, r.ChildId, r.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -370,6 +386,15 @@ func handleReset(svc OrgStateService) http.HandlerFunc {
 		orgData := svc.ResetToOriginal(r.Context())
 		writeJSON(w, http.StatusOK, orgData)
 	}
+}
+
+func handleCreate(svc OrgStateService) http.HandlerFunc {
+	type req struct {
+		Name string `json:"name"`
+	}
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+		return svc.Create(ctx, r.Name)
+	})
 }
 
 func handleReorder(svc PersonService) http.HandlerFunc {

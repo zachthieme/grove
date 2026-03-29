@@ -62,6 +62,13 @@ export function useOrgMutations({ setState, stateRef, handleError, setError }: M
     } catch (err) { handleError(err) }
   }, [handleError, setState])
 
+  const addParent = useCallback(async (childId: string, name: string) => {
+    try {
+      const resp = await api.addParent({ childId, name })
+      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
+    } catch (err) { handleError(err) }
+  }, [handleError, setState])
+
   const remove = useCallback(async (personId: string) => {
     try {
       const resp = await api.deletePerson({ personId })
@@ -148,10 +155,10 @@ export function useOrgMutations({ setState, stateRef, handleError, setError }: M
   }, [handleError, setState])
 
   return useMemo(() => ({
-    move, reparent, reorder, update, add, remove, restore, emptyBin,
+    move, reparent, reorder, update, add, addParent, remove, restore, emptyBin,
     saveSnapshot, loadSnapshot, deleteSnapshot, updatePod, createPod, updateSettings,
   }), [
-    move, reparent, reorder, update, add, remove, restore, emptyBin,
+    move, reparent, reorder, update, add, addParent, remove, restore, emptyBin,
     saveSnapshot, loadSnapshot, deleteSnapshot, updatePod, createPod, updateSettings,
   ])
 }

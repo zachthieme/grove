@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup, act } from '@testing-library/react'
+import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableCell from './TableCell'
 
@@ -200,7 +200,7 @@ describe('TableCell', () => {
     it('flash clears after timeout', async () => {
       vi.useFakeTimers()
       const onSave = vi.fn().mockResolvedValue(undefined)
-      const { container } = renderInTable(<TableCell value="Alice" cellType="text" onSave={onSave} />)
+      renderInTable(<TableCell value="Alice" cellType="text" onSave={onSave} />)
 
       // We need to manually set editing + change + save to trigger flash
       // This is tested via the interaction flow, but the timer branch is what we want

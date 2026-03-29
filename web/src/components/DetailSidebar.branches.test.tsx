@@ -431,7 +431,6 @@ describe('DetailSidebar — branch coverage', () => {
     }
 
     it('does not call update when batchDirty is empty on save', async () => {
-      const user = userEvent.setup()
       const { update, reparent } = renderBatch()
       // Save without changing anything - button should be disabled
       const saveBtn = screen.getByText('Save') as HTMLButtonElement

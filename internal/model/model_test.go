@@ -85,15 +85,17 @@ func TestNewOrg_InvalidStatusWarns(t *testing.T) {
 
 func TestNewOrg_MissingFieldWarns(t *testing.T) {
 	t.Parallel()
+	// After validation relaxation, only Name and Status are required.
+	// Missing Name should still produce a warning.
 	people := []Person{
-		{Name: "Alice", Role: "", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{Name: "", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(org.Warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d", len(org.Warnings))
+		t.Fatalf("expected 1 warning, got %d: %v", len(org.Warnings), org.Warnings)
 	}
 }
 
@@ -157,7 +159,6 @@ func TestNewOrg_OldStatusesWarn(t *testing.T) {
 
 func TestNewOrg_MultipleWarnings(t *testing.T) {
 	t.Parallel()
-	// A single row missing name, team, and with invalid status should get all issues in one warning.
 	people := []Person{
 		{Name: "", Role: "Eng", Discipline: "Eng", Manager: "", Team: "", Status: "Bogus"},
 	}
@@ -172,8 +173,7 @@ func TestNewOrg_MultipleWarnings(t *testing.T) {
 	if w == "" {
 		t.Fatal("expected non-empty warning on person")
 	}
-	// Should mention all three problems
-	for _, substr := range []string{"missing Name", "missing Team", "invalid status"} {
+	for _, substr := range []string{"missing Name", "invalid status"} {
 		if !contains(w, substr) {
 			t.Errorf("expected warning to contain %q, got: %s", substr, w)
 		}
@@ -222,6 +222,20 @@ func containsSubstr(s, sub string) bool {
 		}
 	}
 	return false
+}
+
+func TestNewOrg_ActiveAllowsBlankRoleDisciplineTeam(t *testing.T) {
+	t.Parallel()
+	people := []Person{
+		{Name: "Alice", Role: "", Discipline: "", Manager: "", Team: "", Status: "Active"},
+	}
+	org, err := NewOrg(people)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.Warnings) != 0 {
+		t.Errorf("expected 0 warnings, got %d: %v", len(org.Warnings), org.Warnings)
+	}
 }
 
 func TestNewOrg_Empty(t *testing.T) {

@@ -65,24 +65,10 @@ func NewOrg(people []Person) (*Org, error) {
 		if p.Name == "" {
 			issues = append(issues, "missing Name")
 		}
-		if p.Team == "" {
-			issues = append(issues, "missing Team")
-		}
 		if p.Status == "" {
 			issues = append(issues, "missing Status")
 		} else if !ValidStatuses[p.Status] {
 			issues = append(issues, fmt.Sprintf("invalid status '%s'", p.Status))
-		}
-
-		blankAllowed := p.Status == StatusTransferIn || p.Status == StatusTransferOut ||
-			p.Status == StatusPlanned
-		if !blankAllowed {
-			if p.Role == "" {
-				issues = append(issues, "missing Role")
-			}
-			if p.Discipline == "" {
-				issues = append(issues, "missing Discipline")
-			}
 		}
 
 		if len(issues) > 0 {

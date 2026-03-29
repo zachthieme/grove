@@ -6,7 +6,6 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import ManagerView from './ManagerView'
 import { makePerson, renderWithViewData } from '../test-helpers'
 

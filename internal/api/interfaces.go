@@ -7,6 +7,7 @@ type PersonService interface {
 	Move(ctx context.Context, personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error)
 	Update(ctx context.Context, personId string, fields PersonUpdate) (*MoveResult, error)
 	Add(ctx context.Context, p Person) (Person, []Person, []Pod, error)
+	AddParent(ctx context.Context, childId, name string) (Person, []Person, []Pod, error)
 	Delete(ctx context.Context, personId string) (*MutationResult, error)
 	Restore(ctx context.Context, personId string) (*MutationResult, error)
 	EmptyBin(ctx context.Context) []Person
@@ -20,6 +21,7 @@ type OrgStateService interface {
 	GetRecycled(ctx context.Context) []Person
 	ResetToOriginal(ctx context.Context) *OrgData
 	RestoreState(ctx context.Context, data AutosaveData)
+	Create(ctx context.Context, name string) (*OrgData, error)
 }
 
 // SnapshotService manages named save points.

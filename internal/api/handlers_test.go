@@ -1686,3 +1686,117 @@ func TestContentTypeValidation_ErrorShape(t *testing.T) {
 	}
 }
 
+// Scenarios: CREATE-001
+func TestCreateHandler(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	body := strings.NewReader(`{"name":"Alice"}`)
+	req := httptest.NewRequest("POST", "/api/create", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var data OrgData
+	if err := json.NewDecoder(rec.Body).Decode(&data); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if len(data.Working) != 1 {
+		t.Errorf("expected 1 working person, got %d", len(data.Working))
+	}
+	if data.Working[0].Name != "Alice" {
+		t.Errorf("expected Alice, got %s", data.Working[0].Name)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestCreateHandler_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	body := strings.NewReader(`{"name":""}`)
+	req := httptest.NewRequest("POST", "/api/create", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// Scenarios: CREATE-002
+func TestAddParentHandler(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	data := uploadCSV(t, handler)
+	alice := findByName(data.Working, "Alice")
+
+	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":"CEO"}`, alice.Id))
+	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp AddResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if resp.Created.Name != "CEO" {
+		t.Errorf("expected created name CEO, got %s", resp.Created.Name)
+	}
+	updatedAlice := findByName(resp.Working, "Alice")
+	if updatedAlice.ManagerId != resp.Created.Id {
+		t.Errorf("expected Alice's manager to be %s, got %s", resp.Created.Id, updatedAlice.ManagerId)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestAddParentHandler_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	data := uploadCSV(t, handler)
+	alice := findByName(data.Working, "Alice")
+
+	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":""}`, alice.Id))
+	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// Scenarios: CREATE-003
+func TestAddParentHandler_ChildHasManager(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	data := uploadCSV(t, handler)
+	bob := findByName(data.Working, "Bob") // Bob reports to Alice
+
+	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":"CEO"}`, bob.Id))
+	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected 409, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+

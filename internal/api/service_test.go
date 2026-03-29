@@ -1747,3 +1747,193 @@ func TestOrgService_UpdateSettings_RejectsOversizedName(t *testing.T) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
+
+// Scenarios: CREATE-002
+func TestOrgService_AddParent(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	alice := findByName(data.Working, "Alice")
+
+	parent, working, pods, err := svc.AddParent(context.Background(), alice.Id, "CEO")
+	if err != nil {
+		t.Fatalf("add parent failed: %v", err)
+	}
+	if parent.Name != "CEO" {
+		t.Errorf("expected parent name CEO, got %s", parent.Name)
+	}
+	if parent.Status != "Active" {
+		t.Errorf("expected status Active, got %s", parent.Status)
+	}
+	if parent.Id == "" {
+		t.Error("expected non-empty parent ID")
+	}
+	if parent.ManagerId != "" {
+		t.Error("expected parent to have no manager")
+	}
+	// Alice should now report to the new parent
+	updatedAlice := findById(working, alice.Id)
+	if updatedAlice.ManagerId != parent.Id {
+		t.Errorf("expected Alice's manager to be %s, got %s", parent.Id, updatedAlice.ManagerId)
+	}
+	// New parent should be in working but NOT in original
+	if len(working) != 4 {
+		t.Errorf("expected 4 working people, got %d", len(working))
+	}
+	orig := svc.GetOrg(context.Background()).Original
+	if len(orig) != 3 {
+		t.Errorf("expected 3 original people (unchanged), got %d", len(orig))
+	}
+	_ = pods
+}
+
+// Scenarios: CREATE-003
+func TestOrgService_AddParent_ChildHasManager(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob") // Bob reports to Alice
+
+	_, _, _, err := svc.AddParent(context.Background(), bob.Id, "CEO")
+	if err == nil {
+		t.Fatal("expected error when child already has a manager")
+	}
+	if !isConflict(err) {
+		t.Errorf("expected ConflictError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestOrgService_AddParent_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	alice := findByName(data.Working, "Alice")
+
+	_, _, _, err := svc.AddParent(context.Background(), alice.Id, "")
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestOrgService_AddParent_ChildNotFound(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+
+	_, _, _, err := svc.AddParent(context.Background(), "nonexistent", "CEO")
+	if err == nil {
+		t.Fatal("expected error for nonexistent child")
+	}
+	if !isNotFound(err) {
+		t.Errorf("expected NotFoundError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: CREATE-001
+func TestOrgService_Create(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	data, err := svc.Create(context.Background(), "Alice")
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	if len(data.Original) != 1 {
+		t.Errorf("expected 1 original, got %d", len(data.Original))
+	}
+	if len(data.Working) != 1 {
+		t.Errorf("expected 1 working, got %d", len(data.Working))
+	}
+	p := data.Working[0]
+	if p.Name != "Alice" {
+		t.Errorf("expected name Alice, got %s", p.Name)
+	}
+	if p.Status != "Active" {
+		t.Errorf("expected status Active, got %s", p.Status)
+	}
+	if p.Id == "" {
+		t.Error("expected non-empty ID")
+	}
+	if p.Role != "" || p.Discipline != "" || p.Team != "" {
+		t.Error("expected blank role, discipline, and team")
+	}
+}
+
+// Scenarios: CREATE-004
+func TestOrgService_Create_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	_, err := svc.Create(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: CREATE-004
+func TestOrgService_Create_WhitespaceName(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	_, err := svc.Create(context.Background(), "   ")
+	if err == nil {
+		t.Fatal("expected error for whitespace-only name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got %T: %v", err, err)
+	}
+}
+
+// Scenarios: CREATE-001, CREATE-002
+func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	// Step 1: Create from scratch
+	data, err := svc.Create(context.Background(), "Alice")
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	alice := data.Working[0]
+
+	// Step 2: Add a direct report
+	bob, working, _, err := svc.Add(context.Background(), Person{
+		Name: "Bob", Status: "Active", ManagerId: alice.Id,
+	})
+	if err != nil {
+		t.Fatalf("add failed: %v", err)
+	}
+	if len(working) != 2 {
+		t.Errorf("expected 2 working, got %d", len(working))
+	}
+
+	// Step 3: Add parent above Alice
+	ceo, working, _, err := svc.AddParent(context.Background(), alice.Id, "CEO")
+	if err != nil {
+		t.Fatalf("add parent failed: %v", err)
+	}
+	if len(working) != 3 {
+		t.Errorf("expected 3 working, got %d", len(working))
+	}
+
+	// Verify hierarchy: CEO -> Alice -> Bob
+	updatedAlice := findById(working, alice.Id)
+	if updatedAlice.ManagerId != ceo.Id {
+		t.Errorf("Alice should report to CEO")
+	}
+	updatedBob := findById(working, bob.Id)
+	if updatedBob.ManagerId != alice.Id {
+		t.Errorf("Bob should still report to Alice")
+	}
+	ceoEntry := findById(working, ceo.Id)
+	if ceoEntry.ManagerId != "" {
+		t.Errorf("CEO should be root (no manager)")
+	}
+}

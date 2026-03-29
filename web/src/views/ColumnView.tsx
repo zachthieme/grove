@@ -10,7 +10,7 @@ import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
 function SubtreeNode({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -45,6 +45,7 @@ function SubtreeNode({ node }: { node: OrgNode }) {
         changes={changes?.get(child.person.id)}
         isManager={managerSet?.has(child.person.id)}
         onAdd={onAddReport ? () => onAddReport(child.person.id) : undefined}
+        onAddParent={!child.person.managerId && onAddParent ? () => onAddParent(child.person.id) : undefined}
         onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
         onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
         onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
@@ -52,7 +53,7 @@ function SubtreeNode({ node }: { node: OrgNode }) {
         nodeRef={setNodeRef(child.person.id)}
       />
     </div>
-  ), [selectedIds, changes, managerSet, onAddReport, onDeletePerson, onInfo, onFocus, onSelect, setNodeRef])
+  ), [selectedIds, changes, managerSet, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onSelect, setNodeRef])
 
   const icPodListElements = useMemo((): ReactNode => {
     if (!allICs) return null
@@ -168,6 +169,7 @@ function SubtreeNode({ node }: { node: OrgNode }) {
           showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
           isManager={managerSet?.has(node.person.id)}
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
+          onAddParent={!node.person.managerId && onAddParent ? () => onAddParent(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}

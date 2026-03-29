@@ -148,7 +148,6 @@ describe('TableHeader — branch coverage', () => {
     })
 
     it('renders dropdown only for the matching column', async () => {
-      const user = userEvent.setup()
       const people = [makePerson({ id: '1', name: 'Alice', role: 'VP' })]
       // To get the filter dropdown to actually render, we need the anchorRef to
       // have a real button. The simplest way is to check the branch is entered.

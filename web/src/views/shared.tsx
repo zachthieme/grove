@@ -31,13 +31,14 @@ export function buildOrgTree(people: Person[]): OrgNode[] {
   return roots.map(build)
 }
 
-export function DraggableNode({ person, selected, changes, showTeam, isManager, onAdd, onDelete, onInfo, onFocus, onSelect, nodeRef }: {
+export function DraggableNode({ person, selected, changes, showTeam, isManager, onAdd, onAddParent, onDelete, onInfo, onFocus, onSelect, nodeRef }: {
   person: Person
   selected: boolean
   changes?: PersonChange
   showTeam?: boolean
   isManager?: boolean
   onAdd?: () => void
+  onAddParent?: () => void
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
@@ -86,6 +87,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
           showTeam={showTeam}
           isManager={isManager}
           onAdd={onAdd}
+          onAddParent={onAddParent}
           onDelete={onDelete}
           onInfo={onInfo}
           onFocus={onFocus}

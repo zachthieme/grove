@@ -77,7 +77,7 @@ describe('useChartLayout — branch coverage round 2', () => {
   describe('ResizeObserver', () => {
     it('triggers re-render when ResizeObserver fires, recomputing lines', () => {
       const edges: ChartEdge[] = [{ fromId: 'a', toId: 'b' }]
-      const { result, containerEl } = renderWithContainer(edges, 0)
+      const { result } = renderWithContainer(edges, 0)
 
       const fromEl = makeElement({ top: 10, left: 50, bottom: 30, right: 100, width: 50, height: 20 })
       const toEl = makeElement({ top: 50, left: 60, bottom: 70, right: 110, width: 50, height: 20 })

@@ -7,7 +7,7 @@
  * selected node highlighting, and originalView readOnly mode.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen, cleanup, within } from '@testing-library/react'
+import { screen, cleanup } from '@testing-library/react'
 import ColumnView from './ColumnView'
 import { makePerson, renderWithViewData } from '../test-helpers'
 import type { Pod } from '../api/types'

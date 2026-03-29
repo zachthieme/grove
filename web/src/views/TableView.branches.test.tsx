@@ -4,7 +4,7 @@
  * column visibility toggle, add/paste buttons in read-only mode.
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest'
-import { screen, cleanup, within } from '@testing-library/react'
+import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
 import { renderWithViewData, makePerson } from '../test-helpers'
@@ -138,7 +138,7 @@ describe('TableView — branch coverage', () => {
 
     it('discards draft row when x button clicked', async () => {
       const user = userEvent.setup()
-      const { container } = renderTable()
+      renderTable()
 
       await user.click(screen.getByLabelText('Add new row'))
       const discardBtn = screen.getByLabelText('Discard draft row')

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -194,4 +195,42 @@ func deepCopyPeople(src []Person) []Person {
 		}
 	}
 	return dst
+}
+
+// Create initializes a new org with a single root person. It replaces any
+// existing org state and clears snapshots, returning the new OrgData.
+func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errValidation("name is required")
+	}
+	if len(name) > maxFieldLen {
+		return nil, errValidation("name too long (max %d characters)", maxFieldLen)
+	}
+
+	p := Person{
+		Id:     uuid.NewString(),
+		Name:   name,
+		Status: "Active",
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.pending = nil
+	people := []Person{p}
+	var persistWarn string
+	if err := s.snaps.DeleteStore(); err != nil {
+		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+	}
+	s.resetState(people, people, nil)
+	s.settings = Settings{DisciplineOrder: nil}
+
+	return &OrgData{
+		Original:           deepCopyPeople(s.original),
+		Working:            deepCopyPeople(s.working),
+		Pods:               CopyPods(s.podMgr.GetPods()),
+		Settings:           &s.settings,
+		PersistenceWarning: persistWarn,
+	}, nil
 }

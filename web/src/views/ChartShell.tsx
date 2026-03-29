@@ -39,7 +39,7 @@ export default function ChartShell({
 }: ChartShellProps) {
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
-  const { handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus } = useActions()
+  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus } = useActions()
   const { selectedIds, batchSelect, selectPod } = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
@@ -73,13 +73,14 @@ export default function ChartShell({
     onSelect: handleSelect,
     onBatchSelect: batchSelect,
     onAddReport: handleAddReport,
+    onAddParent: handleAddParent,
     onAddToTeam: includeAddToTeam ? handleAddToTeam : undefined,
     onDeletePerson: handleDeletePerson,
     onInfo: handleShowInfo,
     onFocus: handleFocus,
     onPodSelect: selectPod,
     setNodeRef,
-  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
+  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>

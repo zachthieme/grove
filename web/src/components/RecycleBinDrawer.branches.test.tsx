@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import RecycleBinDrawer from './RecycleBinDrawer'
 import { makePerson, renderWithOrg } from '../test-helpers'
 
@@ -9,7 +8,6 @@ describe('RecycleBinDrawer branch coverage', () => {
 
   it('calls clearSelection when setBinOpen is called with true', () => {
     const clearSelectionFn = vi.fn()
-    const setBinOpenFn = vi.fn()
     // The component calls setBinOpen internally via a wrapper that also calls clearSelection.
     // When binOpen is false, the component returns null, so we cannot interact with it.
     // But the component itself calls clearSelection when open is true.
