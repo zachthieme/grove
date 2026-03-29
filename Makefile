@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all test-everything cover bench fuzz mutate check-scenarios lint ci
+.PHONY: frontend build dev clean e2e test test-all cover bench fuzz mutate check-scenarios lint ci
 
 frontend:
 	cd web && npm run build
@@ -44,9 +44,6 @@ fuzz:
 	go test -fuzz=FuzzParseZipFileList -fuzztime=5s ./internal/api/
 	go test -fuzz=FuzzWouldCreateCycle -fuzztime=5s ./internal/api/
 
-test-everything: lint test-all e2e bench fuzz check-scenarios
-	@echo "All tests passed."
-
 mutate:
 	cd web && npx stryker run
 
@@ -54,7 +51,7 @@ lint: frontend
 	golangci-lint run ./...
 	cd web && npx eslint src/ --max-warnings 0 2>/dev/null || true
 
-ci: lint test-all check-scenarios
+ci: lint test-all e2e bench fuzz check-scenarios
 	@echo "CI checks passed."
 
 check-scenarios:
