@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import styles from './PersonNode.module.css'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
@@ -38,12 +38,12 @@ interface Props {
   onClick?: (e?: React.MouseEvent) => void
 }
 
-export default function PersonNode({ person, selected, ghost, changes, showTeam, isManager, onAdd, onDelete, onInfo, onFocus, onClick }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, onAdd, onDelete, onInfo, onFocus, onClick }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const hasNotes = !!person.publicNote
   const isPrivate = !!person.private
-  const isPlaceholder = !!(person as any).isPlaceholder
+  const isPlaceholder = !!person.isPlaceholder
   const isRecruiting = isRecruitingStatus(person.status)
   const isFuture = isPlannedStatus(person.status)
   const isTransfer = isTransferStatus(person.status)
@@ -126,3 +126,6 @@ export default function PersonNode({ person, selected, ghost, changes, showTeam,
     </div>
   )
 }
+
+const PersonNode = memo(PersonNodeInner)
+export default PersonNode
