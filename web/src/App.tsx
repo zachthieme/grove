@@ -63,13 +63,19 @@ function AppContent() {
     add({ name: 'New Person', role: '', discipline: '', team: parent.team, managerId: parent.id, status: 'Active' as const, additionalTeams: [] })
   }, [working, add])
 
+  const [vimMode, setVimMode] = useState(() => localStorage.getItem('grove-vim-mode') === '1')
+  const toggleVimMode = useCallback((on: boolean) => {
+    setVimMode(on)
+    localStorage.setItem('grove-vim-mode', on ? '1' : '0')
+  }, [])
+
   useVimNav({
     working,
     selectedId,
     setSelectedId,
     onDelete: remove,
     onAddReport: vimAddReport,
-    enabled: loaded && viewMode !== 'table',
+    enabled: vimMode && loaded && viewMode !== 'table',
   })
 
   const [loggingEnabled, setLoggingEnabled] = useState(false)
@@ -114,6 +120,8 @@ function AppContent() {
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        vimMode={vimMode}
+        onToggleVimMode={toggleVimMode}
       />
       {error && (
         <div className={styles.errorBanner} role="alert">

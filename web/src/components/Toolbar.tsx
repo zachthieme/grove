@@ -36,9 +36,11 @@ interface ToolbarProps {
   onRedo?: () => void
   canUndo?: boolean
   canRedo?: boolean
+  vimMode?: boolean
+  onToggleVimMode?: (on: boolean) => void
 }
 
-export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, onUndo, onRedo, canUndo, canRedo }: ToolbarProps) {
+export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, onUndo, onRedo, canUndo, canRedo, vimMode, onToggleVimMode }: ToolbarProps) {
   const { upload, loaded } = useOrgData()
   const { viewMode, dataView, setViewMode, setDataView, reflow } = useUI()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -263,7 +265,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
         )}
       </div>
 
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} vimMode={vimMode} onToggleVimMode={onToggleVimMode} />}
     </header>
   )
 }

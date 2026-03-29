@@ -2,7 +2,13 @@ import { useState, useCallback } from 'react'
 import { useOrgData } from '../store/OrgContext'
 import styles from './SettingsModal.module.css'
 
-export default function SettingsModal({ onClose }: { onClose: () => void }) {
+interface SettingsModalProps {
+  onClose: () => void
+  vimMode?: boolean
+  onToggleVimMode?: (on: boolean) => void
+}
+
+export default function SettingsModal({ onClose, vimMode, onToggleVimMode }: SettingsModalProps) {
   const { working, settings, updateSettings } = useOrgData()
 
   const allDisciplines = Array.from(new Set(
@@ -60,6 +66,18 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
         {order.length === 0 && (
           <p className={styles.hint}>No disciplines found in current data.</p>
         )}
+
+        <h4 className={styles.sectionTitle}>Keyboard</h4>
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={vimMode ?? false}
+            onChange={(e) => onToggleVimMode?.(e.target.checked)}
+          />
+          <span>Vim navigation keys</span>
+          <span className={styles.hint} style={{ margin: 0 }}> — hjkl to navigate, o to add, x to delete</span>
+        </label>
+
         <div className={styles.actions}>
           <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
           <button className={styles.saveBtn} onClick={handleSave}>Save</button>
