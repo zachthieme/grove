@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, type ReactNode } from 'react'
+import { useEffect, useMemo, useCallback, useState, type ReactNode } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import type { Person } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
@@ -48,6 +48,16 @@ export default function ChartShell({
 
   const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
 
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
+  const handleToggleCollapse = useCallback((id: string) => {
+    setCollapsedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
   // Auto-scroll to keep selected node visible
   useEffect(() => {
     if (selectedIds.size !== 1) return
@@ -81,7 +91,9 @@ export default function ChartShell({
     onFocus: handleFocus,
     onPodSelect: selectPod,
     setNodeRef,
-  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
+    collapsedIds,
+    onToggleCollapse: handleToggleCollapse,
+  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef, collapsedIds, handleToggleCollapse])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>

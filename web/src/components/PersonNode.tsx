@@ -31,15 +31,17 @@ interface Props {
   changes?: PersonChange
   showTeam?: boolean
   isManager?: boolean
+  collapsed?: boolean
   onAdd?: () => void
   onAddParent?: () => void
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
+  onToggleCollapse?: () => void
   onClick?: (e?: React.MouseEvent) => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, onAdd, onAddParent, onDelete, onInfo, onFocus, onClick }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const hasNotes = !!person.publicNote
@@ -125,6 +127,17 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
         <div className={styles.notePanel}>
           <div className={styles.notePanelText}>{person.publicNote}</div>
         </div>
+      )}
+      {onToggleCollapse && (
+        <button
+          className={styles.collapseToggle}
+          onClick={(e) => { e.stopPropagation(); onToggleCollapse() }}
+          aria-label={collapsed ? 'Expand subtree' : 'Collapse subtree'}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          {collapsed ? '\u25B8' : '\u25BE'}
+        </button>
       )}
     </div>
   )

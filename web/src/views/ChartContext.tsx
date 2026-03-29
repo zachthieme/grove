@@ -17,6 +17,8 @@ export interface ChartContextValue {
   onFocus?: (id: string) => void
   onPodSelect?: (podId: string) => void
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
+  collapsedIds?: Set<string>
+  onToggleCollapse?: (id: string) => void
 }
 
 const ChartContext = createContext<ChartContextValue | null>(null)

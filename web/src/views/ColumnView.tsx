@@ -10,7 +10,7 @@ import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
 function SubtreeNode({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -159,6 +159,8 @@ function SubtreeNode({ node }: { node: OrgNode }) {
     return elements
   }, [allICs, renderItems, renderIC, renderPodHeader, node.person.id])
 
+  const isCollapsed = collapsedIds?.has(node.person.id) ?? false
+
   return (
     <div className={styles.subtree}>
       <div className={styles.nodeSlot}>
@@ -168,20 +170,25 @@ function SubtreeNode({ node }: { node: OrgNode }) {
           changes={changes?.get(node.person.id)}
           showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
           isManager={managerSet?.has(node.person.id)}
+          collapsed={node.children.length > 0 ? isCollapsed : undefined}
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
           onAddParent={!node.person.managerId && onAddParent ? () => onAddParent(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
+          onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
           nodeRef={setNodeRef(node.person.id)}
         />
       </div>
 
-      {node.children.length > 0 && (
+      {node.children.length > 0 && !isCollapsed && (
         <div className={styles.children}>
           {allICs ? icPodListElements : mixedChildrenElements}
         </div>
+      )}
+      {node.children.length > 0 && isCollapsed && (
+        <div className={styles.collapsedCount}>{node.children.length} report{node.children.length !== 1 ? 's' : ''}</div>
       )}
     </div>
   )

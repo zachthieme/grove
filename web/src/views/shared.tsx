@@ -31,17 +31,19 @@ export function buildOrgTree(people: Person[]): OrgNode[] {
   return roots.map(build)
 }
 
-export function DraggableNode({ person, selected, changes, showTeam, isManager, onAdd, onAddParent, onDelete, onInfo, onFocus, onSelect, nodeRef }: {
+export function DraggableNode({ person, selected, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onSelect, nodeRef }: {
   person: Person
   selected: boolean
   changes?: PersonChange
   showTeam?: boolean
   isManager?: boolean
+  collapsed?: boolean
   onAdd?: () => void
   onAddParent?: () => void
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
+  onToggleCollapse?: () => void
   onSelect: (e?: React.MouseEvent) => void
   nodeRef?: (el: HTMLDivElement | null) => void
 }) {
@@ -86,11 +88,13 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
           changes={changes}
           showTeam={showTeam}
           isManager={isManager}
+          collapsed={collapsed}
           onAdd={onAdd}
           onAddParent={onAddParent}
           onDelete={onDelete}
           onInfo={onInfo}
           onFocus={onFocus}
+          onToggleCollapse={onToggleCollapse}
           onClick={onSelect}
         />
       </div>
