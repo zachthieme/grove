@@ -7,7 +7,7 @@
  * hamburger menu toggle, and help button (startTour).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen, cleanup, waitFor } from '@testing-library/react'
+import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Toolbar from './Toolbar'
 import { makePerson, renderWithOrg } from '../test-helpers'

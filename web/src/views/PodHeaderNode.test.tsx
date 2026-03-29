@@ -22,7 +22,6 @@ describe('PodHeaderNode', () => {
   })
 
   it('shows add action on hover when onAdd is provided', async () => {
-    const user = userEvent.setup()
     const onAdd = vi.fn()
     const { container } = render(<PodHeaderNode podName="Pod" memberCount={3} onAdd={onAdd} />)
 

@@ -138,7 +138,6 @@ describe('TableFilterDropdown', () => {
   })
 
   it('returns null when anchor has no position', () => {
-    const anchorEl = document.createElement('button')
     // Do NOT define getBoundingClientRect - the ref just has the element
     // But the component will call updatePos on mount; we need the element in the body
     // Actually, the component calls getBoundingClientRect which exists on all elements

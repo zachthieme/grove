@@ -45,7 +45,6 @@ function renderPod(podOverride: Partial<Pod> = {}, contextOverrides = {}) {
 describe('PodSidebar — branch coverage', () => {
   describe('handleSave early return', () => {
     it('does not call updatePod when no fields have changed', async () => {
-      const user = userEvent.setup()
       const { updatePod } = renderPod()
       // Save button should be disabled (nothing dirty)
       const saveBtn = screen.getByRole('button', { name: /save/i }) as HTMLButtonElement
@@ -134,7 +133,7 @@ describe('PodSidebar — branch coverage', () => {
     })
 
     it('shows "Saved!" after successful save', async () => {
-      const { updatePod } = renderPod()
+      renderPod()
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
       fireEvent.change(nameInput, { target: { value: 'Renamed' } })
       fireEvent.click(screen.getByRole('button', { name: /save/i }))
@@ -144,7 +143,7 @@ describe('PodSidebar — branch coverage', () => {
     })
 
     it('applies saved CSS class after successful save', async () => {
-      const { updatePod } = renderPod()
+      renderPod()
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
       fireEvent.change(nameInput, { target: { value: 'Renamed' } })
       fireEvent.click(screen.getByRole('button', { name: /save/i }))
