@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useOrg, useUI } from '../store/OrgContext'
+import { useOrgData, useUI, useSelection } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { Person, PersonUpdatePayload } from '../api/types'
 import { generateCorrelationId } from '../api/client'
@@ -80,7 +80,8 @@ function formFromBatch(people: Person[]): FormFields {
 }
 
 export default function DetailSidebar() {
-  const { working, selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection, update, remove, reparent } = useOrg()
+  const { working, update, remove, reparent } = useOrgData()
+  const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection } = useSelection()
 
   const isBatch = selectedIds.size > 1
   const person = selectedId ? working.find((p) => p.id === selectedId) : null

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
-import { useOrg } from './OrgContext'
+import { useOrgData, useUI, useSelection } from './OrgContext'
 import { useOrgDiff } from '../hooks/useOrgDiff'
 import { useManagerSet } from '../hooks/useIsManager'
 import { useHeadSubtree } from '../hooks/useHeadSubtree'
@@ -56,11 +56,9 @@ export function useActions(): ActionsContextValue {
 }
 
 export function ViewDataProvider({ children }: { children: ReactNode }) {
-  const {
-    original, working, pods, settings, dataView,
-    hiddenEmploymentTypes, headPersonId, showPrivate,
-    toggleSelect, add, remove, setHead,
-  } = useOrg()
+  const { original, working, pods, settings, add, remove } = useOrgData()
+  const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
+  const { toggleSelect } = useSelection()
 
   // Derived data
   const rawPeople = dataView === 'original' ? original : working

@@ -3,7 +3,9 @@ import { render, type RenderOptions } from '@testing-library/react'
 import { OrgOverrideProvider } from './store/OrgContext'
 import { ViewDataProvider } from './store/ViewDataContext'
 import type { Person } from './api/types'
-import type { OrgContextValue } from './store/orgTypes'
+import type { OrgDataContextValue, UIContextValue, SelectionContextValue } from './store/orgTypes'
+
+type OrgTestContext = OrgDataContextValue & UIContextValue & SelectionContextValue
 
 export function normalizeHTML(html: string): string {
   return html
@@ -30,8 +32,9 @@ export function makePerson(overrides: Partial<Person> = {}): Person {
 const noop = () => {}
 const asyncNoop = async () => {}
 
-export function makeOrgContext(overrides: Partial<OrgContextValue> = {}): OrgContextValue {
+export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTestContext {
   return {
+    // OrgData
     original: [],
     working: [],
     recycled: [],
@@ -39,26 +42,10 @@ export function makeOrgContext(overrides: Partial<OrgContextValue> = {}): OrgCon
     originalPods: [],
     settings: { disciplineOrder: [] },
     loaded: true,
-    viewMode: 'detail',
-    dataView: 'working',
-    selectedIds: new Set(),
-    selectedId: null,
-    selectedPodId: null,
-    hiddenEmploymentTypes: new Set(),
-    headPersonId: null,
-    binOpen: false,
-    layoutKey: 0,
     pendingMapping: null,
     snapshots: [],
     currentSnapshotName: null,
     autosaveAvailable: null,
-    error: null,
-    showPrivate: false,
-    setViewMode: noop,
-    setDataView: noop,
-    setSelectedId: noop,
-    toggleSelect: noop,
-    clearSelection: noop,
     upload: asyncNoop,
     move: asyncNoop,
     reparent: asyncNoop,
@@ -68,26 +55,45 @@ export function makeOrgContext(overrides: Partial<OrgContextValue> = {}): OrgCon
     remove: asyncNoop,
     restore: asyncNoop,
     emptyBin: asyncNoop,
-    setBinOpen: noop,
     confirmMapping: asyncNoop,
     cancelMapping: noop,
-    reflow: noop,
     saveSnapshot: asyncNoop,
     loadSnapshot: asyncNoop,
     deleteSnapshot: asyncNoop,
     restoreAutosave: noop,
     dismissAutosave: asyncNoop,
+    updatePod: asyncNoop,
+    createPod: asyncNoop,
+    updateSettings: asyncNoop,
+    // UI
+    viewMode: 'detail',
+    dataView: 'working',
+    hiddenEmploymentTypes: new Set(),
+    headPersonId: null,
+    binOpen: false,
+    layoutKey: 0,
+    error: null,
+    showPrivate: false,
+    setViewMode: noop,
+    setDataView: noop,
+    setBinOpen: noop,
     toggleEmploymentTypeFilter: noop,
     showAllEmploymentTypes: noop,
     hideAllEmploymentTypes: noop,
     setHead: noop,
+    reflow: noop,
+    setError: noop,
     clearError: noop,
     setShowPrivate: noop,
+    // Selection
+    selectedIds: new Set(),
+    selectedId: null,
+    selectedPodId: null,
+    setSelectedId: noop,
+    toggleSelect: noop,
+    clearSelection: noop,
     selectPod: noop,
     batchSelect: noop,
-    updatePod: asyncNoop,
-    createPod: asyncNoop,
-    updateSettings: asyncNoop,
     ...overrides,
   }
 }
@@ -95,7 +101,7 @@ export function makeOrgContext(overrides: Partial<OrgContextValue> = {}): OrgCon
 /** Render a component wrapped in OrgOverrideProvider. */
 export function renderWithOrg(
   ui: ReactElement,
-  orgOverrides: Partial<OrgContextValue> = {},
+  orgOverrides: Partial<OrgTestContext> = {},
   renderOptions?: RenderOptions,
 ) {
   const ctx = makeOrgContext(orgOverrides)
@@ -111,7 +117,7 @@ export function renderWithOrg(
  *  Use this for components that consume usePeople/useChanges/useActions (ColumnView, ManagerView, TableView). */
 export function renderWithViewData(
   ui: ReactElement,
-  orgOverrides: Partial<OrgContextValue> = {},
+  orgOverrides: Partial<OrgTestContext> = {},
   renderOptions?: RenderOptions,
 ) {
   const ctx = makeOrgContext(orgOverrides)

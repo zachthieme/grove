@@ -1,9 +1,15 @@
-import { useOrg, useUI } from '../store/OrgContext'
+import { useCallback } from 'react'
+import { useOrgData, useUI, useSelection } from '../store/OrgContext'
 import styles from './RecycleBinDrawer.module.css'
 
 export default function RecycleBinDrawer() {
-  const { recycled, binOpen, setBinOpen, restore, emptyBin } = useOrg()
-  const { showPrivate } = useUI()
+  const { recycled, restore, emptyBin } = useOrgData()
+  const { binOpen, setBinOpen: rawSetBinOpen, showPrivate } = useUI()
+  const { clearSelection } = useSelection()
+  const setBinOpen = useCallback((open: boolean) => {
+    rawSetBinOpen(open)
+    if (open) clearSelection()
+  }, [rawSetBinOpen, clearSelection])
   if (!binOpen) return null
 
   const visibleRecycled = showPrivate ? recycled : recycled.filter((p) => !p.private)
