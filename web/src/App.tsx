@@ -7,6 +7,7 @@ import { useSnapshotExport } from './hooks/useSnapshotExport'
 import { useAutosave } from './hooks/useAutosave'
 import { useEscapeKey } from './hooks/useEscapeKey'
 import { useDeepLink } from './hooks/useDeepLink'
+import { useVimNav } from './hooks/useVimNav'
 import UploadPrompt from './components/UploadPrompt'
 import Toolbar from './components/Toolbar'
 import DetailSidebar from './components/DetailSidebar'
@@ -24,7 +25,7 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo } = useOrgData()
+  const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo, remove, add } = useOrgData()
   const { viewMode, layoutKey, error, clearError, headPersonId, setHead, showAllEmploymentTypes, setViewMode } = useUI()
   const { selectedIds, selectedPodId, clearSelection, setSelectedId } = useSelection()
   const { infoPopoverId, clearInfoPopover } = useActions()
@@ -54,6 +55,22 @@ function AppContent() {
   const clearHead = useCallback(() => setHead(null), [setHead])
   useEscapeKey(clearHead, !!headPersonId)
   useEscapeKey(clearSelection, selectedIds.size > 0)
+
+  const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
+  const vimAddReport = useCallback((parentId: string) => {
+    const parent = working.find(p => p.id === parentId)
+    if (!parent) return
+    add({ name: 'New Person', role: '', discipline: '', team: parent.team, managerId: parent.id, status: 'Active' as const, additionalTeams: [] })
+  }, [working, add])
+
+  useVimNav({
+    working,
+    selectedId,
+    setSelectedId,
+    onDelete: remove,
+    onAddReport: vimAddReport,
+    enabled: loaded && viewMode !== 'table',
+  })
 
   const [loggingEnabled, setLoggingEnabled] = useState(false)
   const [logPanelOpen, setLogPanelOpen] = useState(false)
