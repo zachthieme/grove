@@ -25,10 +25,10 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo, remove, add } = useOrgData()
+  const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo, remove, add, reparent } = useOrgData()
   const { viewMode, layoutKey, error, clearError, headPersonId, setHead, showAllEmploymentTypes, setViewMode } = useUI()
   const { selectedIds, selectedPodId, clearSelection, setSelectedId } = useSelection()
-  const { infoPopoverId, clearInfoPopover } = useActions()
+  const { infoPopoverId, clearInfoPopover, handleAddParent } = useActions()
 
   useDeepLink({
     viewMode,
@@ -69,12 +69,14 @@ function AppContent() {
     localStorage.setItem('grove-vim-mode', on ? '1' : '0')
   }, [])
 
-  useVimNav({
+  const { cutId } = useVimNav({
     working,
     selectedId,
     setSelectedId,
     onDelete: remove,
     onAddReport: vimAddReport,
+    onAddParent: handleAddParent,
+    onReparent: reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })
 
@@ -123,6 +125,14 @@ function AppContent() {
         vimMode={vimMode}
         onToggleVimMode={toggleVimMode}
       />
+      {cutId && (() => {
+        const cutPerson = working.find(p => p.id === cutId)
+        return cutPerson ? (
+          <div className={styles.warnBanner}>
+            <span className={styles.warnText}>Cut: <strong>{cutPerson.name}</strong> — navigate to new manager and press <strong>p</strong> to paste, or <strong>Esc</strong> to cancel</span>
+          </div>
+        ) : null
+      })()}
       {error && (
         <div className={styles.errorBanner} role="alert">
           <span className={styles.errorText}>{error}</span>

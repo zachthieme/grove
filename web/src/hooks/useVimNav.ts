@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { Person } from '../api/types'
 
 interface VimNavOptions {
@@ -7,6 +7,8 @@ interface VimNavOptions {
   setSelectedId: (id: string | null) => void
   onDelete?: (id: string) => void
   onAddReport?: (id: string) => void
+  onAddParent?: (childId: string) => void
+  onReparent?: (personId: string, newManagerId: string) => void
   enabled: boolean
 }
 
@@ -16,11 +18,25 @@ interface VimNavOptions {
  * j/k — next/previous sibling
  * h   — go to parent (manager)
  * l   — go to first child (direct report)
+ * i   — inline edit selected node
  * o   — add report under selected
- * x   — delete selected
+ * O   — add parent above selected (root nodes only)
+ * d   — delete selected (sends to recycle bin)
+ * x   — cut selected (mark for move)
+ * p   — paste (move cut person under selected)
  * /   — focus search
+ * Esc — cancel cut / deselect
  */
-export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddReport, enabled }: VimNavOptions) {
+export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddReport, onAddParent, onReparent, enabled }: VimNavOptions) {
+  const [cutId, setCutId] = useState<string | null>(null)
+
+  // Clear cut if the person was deleted or no longer exists
+  useEffect(() => {
+    if (cutId && !working.some(p => p.id === cutId)) {
+      setCutId(null)
+    }
+  }, [cutId, working])
+
   // Build lookup maps once when working changes
   const { childrenOf, parentOf, siblingIds } = useMemo(() => {
     const childrenOf = new Map<string, string[]>()
@@ -34,7 +50,6 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
       }
     }
 
-    // Sibling groups: people sharing the same managerId (or root siblings with no manager)
     const siblingGroups = new Map<string, string[]>()
     for (const p of working) {
       const key = p.managerId || '__root__'
@@ -54,7 +69,6 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
 
   const navigate = useCallback((key: string) => {
     if (!selectedId) {
-      // Nothing selected — select first root
       if (working.length > 0) {
         const roots = working.filter(p => !p.managerId)
         setSelectedId(roots.length > 0 ? roots[0].id : working[0].id)
@@ -63,7 +77,7 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
     }
 
     switch (key) {
-      case 'j': { // next sibling
+      case 'j': {
         const siblings = siblingIds.get(selectedId) ?? []
         const idx = siblings.indexOf(selectedId)
         if (idx >= 0 && idx < siblings.length - 1) {
@@ -71,7 +85,7 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         }
         break
       }
-      case 'k': { // previous sibling
+      case 'k': {
         const siblings = siblingIds.get(selectedId) ?? []
         const idx = siblings.indexOf(selectedId)
         if (idx > 0) {
@@ -79,43 +93,62 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         }
         break
       }
-      case 'h': { // go to parent
+      case 'h': {
         const parent = parentOf.get(selectedId)
         if (parent) setSelectedId(parent)
         break
       }
-      case 'l': { // go to first child
+      case 'l': {
         const children = childrenOf.get(selectedId)
         if (children && children.length > 0) {
           setSelectedId(children[0])
         }
         break
       }
-      case 'o': { // add report
+      case 'o': {
         if (onAddReport) onAddReport(selectedId)
         break
       }
-      case 'x': { // delete
+      case 'O': {
+        const person = working.find(p => p.id === selectedId)
+        if (person && !person.managerId && onAddParent) onAddParent(selectedId)
+        break
+      }
+      case 'd': {
         if (onDelete) onDelete(selectedId)
         break
       }
+      case 'x': {
+        setCutId(selectedId)
+        break
+      }
+      case 'p': {
+        if (cutId && cutId !== selectedId && onReparent) {
+          onReparent(cutId, selectedId)
+          setCutId(null)
+        }
+        break
+      }
     }
-  }, [selectedId, working, siblingIds, parentOf, childrenOf, setSelectedId, onDelete, onAddReport])
+  }, [selectedId, working, siblingIds, parentOf, childrenOf, setSelectedId, onDelete, onAddReport, onReparent, cutId])
 
   useEffect(() => {
     if (!enabled) return
     const handler = (e: KeyboardEvent) => {
-      // Skip when focus is in form elements
       const el = e.target as HTMLElement
       const tag = el?.tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       if (el?.isContentEditable) return
-      // Skip when modifier keys are held (let Cmd+Z etc. through)
       if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      if (e.key === 'Escape' && cutId) {
+        e.preventDefault()
+        setCutId(null)
+        return
+      }
 
       if (e.key === '/') {
         e.preventDefault()
-        // Focus search bar
         const searchInput = document.querySelector<HTMLInputElement>('[data-tour="search"] input, [placeholder*="Search"]')
         searchInput?.focus()
         return
@@ -123,19 +156,20 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
 
       if (e.key === 'i' && selectedId) {
         e.preventDefault()
-        // Trigger inline edit on the selected person's name
         const node = document.querySelector(`[data-testid="person-${working.find(p => p.id === selectedId)?.name}"]`)
         const nameEl = node?.querySelector('[class*="name"]') as HTMLElement
         nameEl?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
         return
       }
 
-      if (['j', 'k', 'h', 'l', 'o', 'x'].includes(e.key)) {
+      if (['j', 'k', 'h', 'l', 'o', 'O', 'd', 'x', 'p'].includes(e.key)) {
         e.preventDefault()
         navigate(e.key)
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [enabled, navigate])
+  }, [enabled, navigate, cutId, selectedId, working])
+
+  return { cutId }
 }
