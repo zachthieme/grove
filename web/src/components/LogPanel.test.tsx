@@ -54,4 +54,17 @@ describe('LogPanel', () => {
     })
     expect(screen.getByText('No log entries')).toBeDefined()
   })
+
+  // Scenarios: UI-015
+  describe('error and edge states', () => {
+    it('renders error message when getLogs rejects', async () => {
+      const { getLogs } = await import('../api/client')
+      vi.mocked(getLogs).mockRejectedValueOnce(new Error('Server error'))
+
+      await act(async () => {
+        render(<LogPanel onClose={onClose} />)
+      })
+      expect(screen.getByText('Server error')).toBeDefined()
+    })
+  })
 })

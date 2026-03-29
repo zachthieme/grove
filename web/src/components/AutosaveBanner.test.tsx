@@ -36,4 +36,14 @@ describe('AutosaveBanner', () => {
     await user.click(dismissBtn)
     expect(dismissFn).toHaveBeenCalledTimes(1)
   })
+
+  // Scenarios: AUTO-003
+  describe('error and edge states', () => {
+    it('does not render when autosaveAvailable is null', () => {
+      const { container } = renderWithOrg(<AutosaveBanner />, {
+        autosaveAvailable: null,
+      })
+      expect(container.innerHTML).toBe('')
+    })
+  })
 })

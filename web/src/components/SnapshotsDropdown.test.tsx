@@ -94,4 +94,37 @@ describe('SnapshotsDropdown', () => {
     expect(saveFn).not.toHaveBeenCalled()
     vi.restoreAllMocks()
   })
+
+  // Scenarios: UI-005
+  describe('error and edge states', () => {
+    it('renders no snapshot items when snapshots list is empty', async () => {
+      const user = userEvent.setup()
+      renderWithOrg(<SnapshotsDropdown />, {
+        working: [makePerson()],
+        snapshots: [],
+      })
+      await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
+      // Should still show "Save As..." and "Original" but no named snapshots
+      expect(screen.getByText('Save As...')).toBeDefined()
+      expect(screen.getByText('Original')).toBeDefined()
+      expect(screen.queryByRole('button', { name: /Delete snapshot/ })).toBeNull()
+    })
+
+    it('displays current snapshot name label', () => {
+      renderWithOrg(<SnapshotsDropdown />, {
+        working: [makePerson()],
+        currentSnapshotName: 'Sprint 1',
+        snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
+      })
+      expect(screen.getByRole('button', { name: /Snapshot: Sprint 1/ })).toBeDefined()
+    })
+
+    it('displays "Original" label when currentSnapshotName is __original__', () => {
+      renderWithOrg(<SnapshotsDropdown />, {
+        working: [makePerson()],
+        currentSnapshotName: '__original__',
+      })
+      expect(screen.getByRole('button', { name: /Snapshot: Original/ })).toBeDefined()
+    })
+  })
 })

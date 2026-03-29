@@ -292,6 +292,91 @@ func TestExportCSV_RoundTrip_ExtraColumns(t *testing.T) {
 	}
 }
 
+// Scenarios: EXPORT-008
+func TestSanitizeCell(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "normal string", input: "Alice", want: "Alice"},
+		{name: "empty string", input: "", want: ""},
+		{name: "equals prefix", input: "=SUM(1,1)", want: "\t=SUM(1,1)"},
+		{name: "plus prefix", input: "+cmd|'/c calc'!A1", want: "\t+cmd|'/c calc'!A1"},
+		{name: "minus prefix", input: "-2+3", want: "\t-2+3"},
+		{name: "at prefix", input: "@SUM(1,1)", want: "\t@SUM(1,1)"},
+		{name: "tab prefix", input: "\tfoo", want: "\t\tfoo"},
+		{name: "cr prefix", input: "\rfoo", want: "\t\rfoo"},
+		{name: "lf prefix", input: "\nfoo", want: "\t\nfoo"},
+		{name: "number string", input: "42", want: "42"},
+		{name: "Senior Engineer", input: "Senior Engineer", want: "Senior Engineer"},
+		{name: "space prefix", input: " hello", want: " hello"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := sanitizeCell(tt.input)
+			if got != tt.want {
+				t.Errorf("sanitizeCell(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+// Scenarios: EXPORT-008
+func TestExportCSV_FormulaEscaping(t *testing.T) {
+	t.Parallel()
+	people := []Person{
+		{Id: "1", Name: "=SUM(1,1)", Role: "+cmd|'/c calc'!A1", Discipline: "Eng", Team: "T", Status: "Active"},
+		{Id: "2", Name: "-2+3", Role: "@SUM(1,1)", Discipline: "Design", Team: "T", Status: "Active", ManagerId: "1"},
+		{Id: "3", Name: "Alice", Role: "Senior Engineer", Discipline: "Eng", Team: "Platform", Status: "Active", ManagerId: "1"},
+	}
+	data, err := ExportCSV(people)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := csv.NewReader(bytes.NewReader(data))
+	records, err := reader.ReadAll()
+	if err != nil {
+		t.Fatalf("parsing exported CSV: %v", err)
+	}
+	if len(records) != 4 {
+		t.Fatalf("expected 4 rows (header + 3 data), got %d", len(records))
+	}
+
+	// Row 1: person with =SUM name and +cmd role
+	row1 := records[1]
+	if row1[0] != "\t=SUM(1,1)" {
+		t.Errorf("Name: got %q, want %q", row1[0], "\t=SUM(1,1)")
+	}
+	if row1[1] != "\t+cmd|'/c calc'!A1" {
+		t.Errorf("Role: got %q, want %q", row1[1], "\t+cmd|'/c calc'!A1")
+	}
+
+	// Row 2: person with -2+3 name, @SUM role, and manager name "=SUM(1,1)" should be sanitized
+	row2 := records[2]
+	if row2[0] != "\t-2+3" {
+		t.Errorf("Name: got %q, want %q", row2[0], "\t-2+3")
+	}
+	if row2[1] != "\t@SUM(1,1)" {
+		t.Errorf("Role: got %q, want %q", row2[1], "\t@SUM(1,1)")
+	}
+	// Manager name is "=SUM(1,1)" which should also be sanitized
+	if row2[3] != "\t=SUM(1,1)" {
+		t.Errorf("Manager: got %q, want %q", row2[3], "\t=SUM(1,1)")
+	}
+
+	// Row 3: normal values should not be modified
+	row3 := records[3]
+	if row3[0] != "Alice" {
+		t.Errorf("Normal name: got %q, want %q", row3[0], "Alice")
+	}
+	if row3[1] != "Senior Engineer" {
+		t.Errorf("Normal role: got %q, want %q", row3[1], "Senior Engineer")
+	}
+}
+
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesPrivateColumn(t *testing.T) {
 	t.Parallel()

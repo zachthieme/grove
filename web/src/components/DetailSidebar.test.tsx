@@ -315,4 +315,29 @@ describe('DetailSidebar', () => {
       })
     })
   })
+
+  describe('error and edge states', () => {
+    it('renders nothing when no person is selected', () => {
+      const { container } = renderWithOrg(<DetailSidebar />, {
+        working: [alice, bob],
+        selectedId: null,
+        selectedIds: new Set(),
+      })
+      expect(container.innerHTML).toBe('')
+    })
+
+    it('[UI-002] shows "Retry" when update rejects', async () => {
+      const user = userEvent.setup()
+      const update = vi.fn().mockRejectedValueOnce(new Error('Network error'))
+      renderWithOrg(<DetailSidebar />, {
+        working: [alice, bob],
+        selectedId: 'b2',
+        selectedIds: new Set(['b2']),
+        update,
+      })
+      await user.click(screen.getByText('Save'))
+      expect(screen.getByText('Retry')).toBeDefined()
+      expect(screen.getByText('Save failed')).toBeDefined()
+    })
+  })
 })

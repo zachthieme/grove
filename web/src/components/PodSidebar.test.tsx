@@ -98,4 +98,35 @@ describe('PodSidebar', () => {
     expect(updatePodFn).toHaveBeenCalledTimes(1)
     expect(updatePodFn).toHaveBeenCalledWith('pod-1', { privateNote: 'Updated private' })
   })
+
+  // Scenarios: UI-003
+  describe('error and edge states', () => {
+    it('shows "Retry" and error message when updatePod rejects', async () => {
+      const updatePodFn = vi.fn().mockRejectedValueOnce(new Error('Network error'))
+      renderWithOrg(<PodSidebar />, {
+        pods: [alphaPod],
+        working: [manager, member1, member2],
+        selectedPodId: 'pod-1',
+        updatePod: updatePodFn,
+      })
+      const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
+      fireEvent.change(nameInput, { target: { value: 'Alpha Renamed' } })
+      await fireEvent.click(screen.getByRole('button', { name: /save/i }))
+      // Wait for the async rejection to be handled
+      await vi.waitFor(() => {
+        expect(screen.getByText('Retry')).toBeDefined()
+      })
+      expect(screen.getByText('Network error')).toBeDefined()
+      expect(updatePodFn).toHaveBeenCalledTimes(1)
+    })
+
+    it('renders nothing when selectedPodId does not match any pod', () => {
+      const { container } = renderWithOrg(<PodSidebar />, {
+        pods: [alphaPod],
+        working: [manager, member1, member2],
+        selectedPodId: 'nonexistent',
+      })
+      expect(container.innerHTML).toBe('')
+    })
+  })
 })

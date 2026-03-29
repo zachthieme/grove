@@ -41,4 +41,33 @@ describe('RecycleBinDrawer', () => {
     await user.click(screen.getByRole('button', { name: /empty bin/i }))
     expect(emptyBinFn).toHaveBeenCalledTimes(1)
   })
+
+  // Scenarios: UI-004
+  describe('error and edge states', () => {
+    it('renders empty bin message when recycled is empty', () => {
+      renderWithOrg(<RecycleBinDrawer />, {
+        binOpen: true,
+        recycled: [],
+      })
+      expect(screen.getByText('Bin is empty')).toBeDefined()
+      expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull()
+      expect(screen.queryByRole('button', { name: /empty bin/i })).toBeNull()
+    })
+
+    it('does not render when binOpen is false', () => {
+      const { container } = renderWithOrg(<RecycleBinDrawer />, {
+        binOpen: false,
+        recycled: [makePerson({ id: 'r1', name: 'Bob Jones' })],
+      })
+      expect(container.innerHTML).toBe('')
+    })
+
+    it('hides Empty Bin button when recycled list is empty', () => {
+      renderWithOrg(<RecycleBinDrawer />, {
+        binOpen: true,
+        recycled: [],
+      })
+      expect(screen.queryByRole('button', { name: /empty bin/i })).toBeNull()
+    })
+  })
 })

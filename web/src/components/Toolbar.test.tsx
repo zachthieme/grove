@@ -100,4 +100,24 @@ describe('Toolbar', () => {
     await user.click(exportBtn)
     expect(exportBtn.getAttribute('aria-expanded')).toBe('true')
   })
+
+  // Scenarios: UI-014
+  describe('error and edge states', () => {
+    it('does not render view modes or export actions when loaded is false', () => {
+      renderWithOrg(<Toolbar />, {
+        working: [makePerson()],
+        loaded: false,
+      })
+      expect(screen.queryByRole('button', { name: 'Manager' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Diff' }))  .toBeNull()
+      expect(screen.queryByRole('button', { name: 'Export options' })).toBeNull()
+    })
+
+    it('shows "Exporting..." text on export button when exporting is true', () => {
+      renderWithOrg(<Toolbar exporting />, {
+        working: [makePerson()],
+      })
+      expect(screen.getByText('Exporting...')).toBeDefined()
+    })
+  })
 })

@@ -13,6 +13,20 @@ import (
 
 var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 
+// sanitizeCell prevents CSV injection by prefixing cells that start with
+// formula-triggering characters. See OWASP CSV Injection guidance.
+func sanitizeCell(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	switch s[0] {
+	case '=', '+', '-', '@', '\t', '\r', '\n':
+		return "\t" + s
+	default:
+		return s
+	}
+}
+
 // collectExtraKeys returns the sorted union of all Extra map keys across people.
 func collectExtraKeys(people []Person) []string {
 	seen := make(map[string]bool)
@@ -32,7 +46,7 @@ func collectExtraKeys(people []Person) []string {
 func personToRowWithExtra(p Person, idToName map[string]string, extraKeys []string) []string {
 	row := personToRow(p, idToName)
 	for _, k := range extraKeys {
-		row = append(row, p.Extra[k])
+		row = append(row, sanitizeCell(p.Extra[k]))
 	}
 	return row
 }
@@ -105,7 +119,13 @@ func ExportPodsSidecarCSV(pods []Pod, people []Person) ([]byte, error) {
 		return nil, fmt.Errorf("writing pod sidecar headers: %w", err)
 	}
 	for _, pod := range pods {
-		row := []string{pod.Name, idToName[pod.ManagerId], pod.Team, pod.PublicNote, pod.PrivateNote}
+		row := []string{
+			sanitizeCell(pod.Name),
+			sanitizeCell(idToName[pod.ManagerId]),
+			sanitizeCell(pod.Team),
+			sanitizeCell(pod.PublicNote),
+			sanitizeCell(pod.PrivateNote),
+		}
 		if err := w.Write(row); err != nil {
 			return nil, fmt.Errorf("writing pod sidecar row: %w", err)
 		}
@@ -121,7 +141,7 @@ func ExportSettingsSidecarCSV(settings Settings) ([]byte, error) {
 		return nil, fmt.Errorf("writing settings header: %w", err)
 	}
 	for _, d := range settings.DisciplineOrder {
-		if err := w.Write([]string{d}); err != nil {
+		if err := w.Write([]string{sanitizeCell(d)}); err != nil {
 			return nil, fmt.Errorf("writing settings row: %w", err)
 		}
 	}
@@ -140,9 +160,13 @@ func personToRow(p Person, idToName map[string]string) []string {
 		privateStr = "true"
 	}
 	return []string{
-		p.Name, p.Role, p.Discipline, managerName, p.Team,
-		strings.Join(p.AdditionalTeams, ","), p.Status, p.EmploymentType,
-		p.NewRole, p.NewTeam, levelStr, p.Pod, p.PublicNote, p.PrivateNote,
+		sanitizeCell(p.Name), sanitizeCell(p.Role), sanitizeCell(p.Discipline),
+		sanitizeCell(managerName), sanitizeCell(p.Team),
+		sanitizeCell(strings.Join(p.AdditionalTeams, ",")),
+		sanitizeCell(p.Status), sanitizeCell(p.EmploymentType),
+		sanitizeCell(p.NewRole), sanitizeCell(p.NewTeam),
+		levelStr,
+		sanitizeCell(p.Pod), sanitizeCell(p.PublicNote), sanitizeCell(p.PrivateNote),
 		privateStr,
 	}
 }

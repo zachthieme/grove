@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -463,10 +464,29 @@ func serviceError(w http.ResponseWriter, err error) {
 	}
 }
 
+// sanitizeFilename strips control characters and quotes from a filename
+// to prevent header injection in Content-Disposition.
+func sanitizeFilename(name string) string {
+	name = filepath.Base(name)
+	var b strings.Builder
+	b.Grow(len(name))
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f || r == '"' || r == '\\' {
+			continue // strip control chars, quotes, backslashes
+		}
+		b.WriteRune(r)
+	}
+	result := b.String()
+	if result == "" {
+		return "download"
+	}
+	return result
+}
+
 // writeFileResponse writes binary data as an attachment download response.
 func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename string) {
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+sanitizeFilename(filename)+`"`)
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	if _, err := w.Write(data); err != nil {
 		log.Printf("file response write error: %v", err)

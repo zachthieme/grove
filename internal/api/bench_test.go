@@ -176,6 +176,81 @@ func BenchmarkGetOrgHandler(b *testing.B) {
 	}
 }
 
+func BenchmarkMoveChain_50(b *testing.B) {
+	csvData := generateLargeCSV(200)
+	for b.Loop() {
+		svc := NewOrgService(NewMemorySnapshotStore())
+		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
+		if err != nil || resp.Status != UploadReady {
+			b.Fatal("setup failed")
+		}
+		data := svc.GetOrg(context.Background())
+		targetDir := findByName(data.Working, "Person-10")
+		if targetDir == nil {
+			b.Fatal("Person-10 not found")
+		}
+		for i := 25; i < 75; i++ {
+			p := findByName(data.Working, fmt.Sprintf("Person-%d", i))
+			if p == nil {
+				b.Fatalf("Person-%d not found", i)
+			}
+			if _, err := svc.Move(context.Background(), p.Id, targetDir.Id, ""); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
+func BenchmarkBulkUpdate_175(b *testing.B) {
+	csvData := generateLargeCSV(200)
+	for b.Loop() {
+		svc := NewOrgService(NewMemorySnapshotStore())
+		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
+		if err != nil || resp.Status != UploadReady {
+			b.Fatal("setup failed")
+		}
+		data := svc.GetOrg(context.Background())
+		for i := 25; i < 200; i++ {
+			p := findByName(data.Working, fmt.Sprintf("Person-%d", i))
+			if p == nil {
+				b.Fatalf("Person-%d not found", i)
+			}
+			newRole := fmt.Sprintf("Senior Engineer %d", i)
+			if _, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr(newRole)}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
+func BenchmarkDeleteRestore_50(b *testing.B) {
+	csvData := generateLargeCSV(200)
+	for b.Loop() {
+		svc := NewOrgService(NewMemorySnapshotStore())
+		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
+		if err != nil || resp.Status != UploadReady {
+			b.Fatal("setup failed")
+		}
+		data := svc.GetOrg(context.Background())
+		var ids []string
+		for i := 150; i < 200; i++ {
+			p := findByName(data.Working, fmt.Sprintf("Person-%d", i))
+			if p == nil {
+				b.Fatalf("Person-%d not found", i)
+			}
+			ids = append(ids, p.Id)
+			if _, err := svc.Delete(context.Background(), p.Id); err != nil {
+				b.Fatal(err)
+			}
+		}
+		for _, id := range ids {
+			if _, err := svc.Restore(context.Background(), id); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
 func BenchmarkInferMapping(b *testing.B) {
 	headers := []string{"Full Name", "Job Title", "Department", "Reports To", "Function", "Employment Status"}
 	for b.Loop() {

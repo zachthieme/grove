@@ -158,4 +158,21 @@ describe('PersonNode behavior', () => {
     rerender(<PersonNode person={makePerson()} selected />)
     expect(node.dataset.selected).toBe('true')
   })
+
+  // Scenarios: UI-002
+  describe('error and edge states', () => {
+    it('renders with empty role showing TBD and no employment abbreviation', () => {
+      const { container } = render(
+        <PersonNode person={makePerson({ role: '', employmentType: '' })} />,
+      )
+      expect(screen.getByText('TBD')).toBeTruthy()
+      // No employment abbreviation rendered for empty type
+      expect(container.textContent).not.toContain('\u00b7')
+    })
+
+    it('renders gracefully with empty name', () => {
+      render(<PersonNode person={makePerson({ name: '' })} />)
+      expect(screen.getByTestId('person-')).toBeTruthy()
+    })
+  })
 })

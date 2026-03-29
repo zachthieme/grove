@@ -155,3 +155,26 @@ Exports all snapshots as a ZIP archive. Supports CSV, XLSX, PNG, and SVG formats
 - Duplicate names after sanitization: deduplication appends numeric suffix
 - Partial failure: failed entries logged but export continues with remaining entries
 - Image capture: waits 300ms + requestAnimationFrame before capture to allow DOM render
+
+---
+
+# Scenario: CSV formula injection prevention
+
+**ID**: EXPORT-008
+**Area**: import-export
+**Tests**:
+- `internal/api/export_test.go` → "TestExportCSV_FormulaEscaping"
+- `internal/api/export_test.go` → "TestSanitizeCell"
+- `internal/api/fuzz_test.go` → "FuzzSanitizeCell"
+
+## Behavior
+Exported CSV/XLSX cells are sanitized to prevent formula injection. Cells starting with `=`, `+`, `-`, `@`, tab, CR, or LF are prefixed with a tab character.
+
+## Invariants
+- No exported cell starts with a formula-triggering character without a tab prefix
+- Normal values pass through unchanged
+- Applies to all person fields, pod sidecar, and settings sidecar
+
+## Edge cases
+- Empty strings pass through unchanged
+- Numeric strings (level, private) are not sanitized

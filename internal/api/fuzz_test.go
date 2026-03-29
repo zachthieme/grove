@@ -1,6 +1,8 @@
 package api
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -140,5 +142,125 @@ func FuzzUpdateFields(f *testing.F) {
 		_, _ = svc.Update(context.Background(), people[0].Id, PersonUpdate{
 			Name: &name, Role: &role, Discipline: &disc,
 		})
+	})
+}
+
+// Scenarios: EXPORT-008
+func FuzzSanitizeCell(f *testing.F) {
+	f.Add("Alice")
+	f.Add("=SUM(1,1)")
+	f.Add("+cmd")
+	f.Add("-2+3")
+	f.Add("@SUM")
+	f.Add("")
+	f.Add("\tfoo")
+	f.Add("\rfoo")
+	f.Add("\nfoo")
+
+	f.Fuzz(func(t *testing.T, input string) {
+		result := sanitizeCell(input)
+		if len(result) == 0 && len(input) == 0 {
+			return
+		}
+		// Invariant: result never starts with a dangerous character
+		if len(result) > 0 {
+			switch result[0] {
+			case '=', '+', '-', '@', '\r', '\n':
+				t.Errorf("sanitizeCell(%q) = %q starts with dangerous char", input, result)
+			}
+		}
+	})
+}
+
+func FuzzZipUpload(f *testing.F) {
+	// Seed with a valid minimal ZIP containing a CSV
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, _ := zw.Create("0-original.csv")
+	_, _ = w.Write([]byte("Name,Role,Manager,Team,Status\nAlice,VP,,Eng,Active\n"))
+	_ = zw.Close()
+	f.Add(buf.Bytes())
+
+	// Seed with empty bytes
+	f.Add([]byte{})
+	// Seed with not-a-zip
+	f.Add([]byte("this is not a zip file"))
+	// Seed with truncated zip magic bytes
+	f.Add([]byte("PK\x03\x04"))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		svc := NewOrgService(NewMemorySnapshotStore())
+		// Must not panic — errors are acceptable
+		resp, err := svc.UploadZip(context.Background(), data)
+		if err != nil {
+			return
+		}
+		// If successful, verify basic invariants
+		if resp.OrgData != nil {
+			if len(resp.OrgData.Working) == 0 {
+				t.Error("successful upload returned empty working set")
+			}
+		}
+	})
+}
+
+func FuzzParseZipFileList(f *testing.F) {
+	// Seed with valid zip
+	var buf2 bytes.Buffer
+	zw2 := zip.NewWriter(&buf2)
+	w2, _ := zw2.Create("test.csv")
+	_, _ = w2.Write([]byte("Name\nAlice\n"))
+	_ = zw2.Close()
+	f.Add(buf2.Bytes())
+
+	f.Add([]byte{})
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		entries, _, _, _, err := parseZipFileList(data)
+		if err != nil {
+			return
+		}
+		// Invariant: all entries have non-empty filenames and non-nil data
+		for _, e := range entries {
+			if e.filename == "" {
+				t.Error("parsed entry has empty filename")
+			}
+			if e.data == nil {
+				t.Error("parsed entry has nil data")
+			}
+		}
+	})
+}
+
+func FuzzWouldCreateCycle(f *testing.F) {
+	f.Add("alice", "bob", "bob,alice", "alice,")
+	f.Add("a", "a", "a,", "")
+	f.Add("", "", "", "")
+
+	f.Fuzz(func(t *testing.T, personId, newManagerId, names, managers string) {
+		nameList := strings.Split(names, ",")
+		managerList := strings.Split(managers, ",")
+		if len(nameList) > 50 {
+			nameList = nameList[:50]
+		}
+
+		var people []Person
+		for i, name := range nameList {
+			if name == "" {
+				continue
+			}
+			mgr := ""
+			if i < len(managerList) {
+				mgr = managerList[i]
+			}
+			people = append(people, Person{
+				Id:        name,
+				Name:      name,
+				ManagerId: mgr,
+			})
+		}
+
+		// Must never panic
+		_ = wouldCreateCycle(people, personId, newManagerId)
 	})
 }

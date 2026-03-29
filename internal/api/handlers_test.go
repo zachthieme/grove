@@ -1558,3 +1558,63 @@ func TestBodySizeLimit(t *testing.T) {
 	}
 }
 
+// Scenario: CONTRACT-012
+func TestSanitizeFilename(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"normal filename", "org-export.csv", "org-export.csv"},
+		{"CRLF injection", "export\r\nX-Injected: true\r\n.csv", "exportX-Injected: true.csv"},
+		{"null bytes", "export\x00.csv", "export.csv"},
+		{"quotes", "export\".csv", "export.csv"},
+		{"control chars stripped", "export\x01\x02.csv", "export.csv"},
+		{"empty after sanitization", "\r\n", "download"},
+		{"unicode preserved", "données.csv", "données.csv"},
+		{"spaces preserved", "my export.csv", "my export.csv"},
+		{"backslashes stripped", `export\.csv`, "export.csv"},
+		{"path traversal stripped", "../../../etc/passwd", "passwd"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := sanitizeFilename(tc.input)
+			if got != tc.expected {
+				t.Errorf("sanitizeFilename(%q) = %q, want %q", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
+// Scenario: CONTRACT-012
+func TestWriteFileResponse_SanitizedHeader(t *testing.T) {
+	t.Parallel()
+	rec := httptest.NewRecorder()
+	writeFileResponse(rec, []byte("data"), "text/csv", "export\r\nX-Injected: true\r\n.csv")
+
+	// Should have exactly one Content-Disposition header
+	cdHeaders := rec.Result().Header["Content-Disposition"]
+	if len(cdHeaders) != 1 {
+		t.Fatalf("expected 1 Content-Disposition header, got %d: %v", len(cdHeaders), cdHeaders)
+	}
+
+	// The header value should not contain CRLF
+	cd := cdHeaders[0]
+	if strings.ContainsAny(cd, "\r\n") {
+		t.Errorf("Content-Disposition contains control characters: %q", cd)
+	}
+
+	// Filename should be quoted and sanitized
+	expected := `attachment; filename="exportX-Injected: true.csv"`
+	if cd != expected {
+		t.Errorf("Content-Disposition = %q, want %q", cd, expected)
+	}
+
+	// No injected headers should appear
+	if rec.Result().Header.Get("X-Injected") != "" {
+		t.Error("header injection succeeded: X-Injected header found in response")
+	}
+}
+

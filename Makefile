@@ -39,6 +39,10 @@ fuzz:
 	go test -fuzz=FuzzAllRequiredHigh -fuzztime=5s ./internal/api/
 	go test -fuzz=FuzzAllRequiredHighMultiField -fuzztime=5s ./internal/api/
 	go test -fuzz=FuzzUpdateFields -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzSanitizeCell -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzZipUpload -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzParseZipFileList -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzWouldCreateCycle -fuzztime=5s ./internal/api/
 
 test-everything: lint test-all e2e bench fuzz check-scenarios
 	@echo "All tests passed."

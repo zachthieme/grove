@@ -60,4 +60,28 @@ describe('SettingsModal', () => {
     await user.click(screen.getByText('Settings'))
     expect(onClose).not.toHaveBeenCalled()
   })
+
+  // Scenarios: SETTINGS-001
+  describe('error and edge states', () => {
+    it('renders "No disciplines found" hint when working has no disciplines', () => {
+      const onClose = vi.fn()
+      renderWithOrg(<SettingsModal onClose={onClose} />, {
+        working: [],
+        settings: { disciplineOrder: [] },
+      })
+      expect(screen.getByText('No disciplines found in current data.')).toBeDefined()
+    })
+
+    it('does not call onClose when updateSettings has not yet resolved', async () => {
+      const user = userEvent.setup()
+      const onClose = vi.fn()
+      // updateSettings returns a pending promise that never resolves
+      const updateSettings = vi.fn().mockReturnValue(new Promise(() => {}))
+      renderSettings(onClose, { updateSettings })
+      await user.click(screen.getByText('Save'))
+      expect(updateSettings).toHaveBeenCalledTimes(1)
+      // onClose should not be called because updateSettings hasn't resolved
+      expect(onClose).not.toHaveBeenCalled()
+    })
+  })
 })

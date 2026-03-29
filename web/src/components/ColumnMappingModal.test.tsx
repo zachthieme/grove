@@ -80,4 +80,28 @@ describe('ColumnMappingModal', () => {
     fireEvent.change(selects[0], { target: { value: '' } })
     expect(loadBtn.disabled).toBe(true)
   })
+
+  // Scenarios: UI-010
+  describe('error and edge states', () => {
+    it('Load is disabled when all mappings are empty', () => {
+      renderModal({ mapping: emptyMapping })
+      const loadBtn = screen.getByRole('button', { name: 'Load' }) as HTMLButtonElement
+      expect(loadBtn.disabled).toBe(true)
+    })
+
+    it('does not call onConfirm when Load is disabled', () => {
+      const { onConfirm } = renderModal({ mapping: emptyMapping })
+      const loadBtn = screen.getByRole('button', { name: 'Load' }) as HTMLButtonElement
+      expect(loadBtn.disabled).toBe(true)
+      fireEvent.click(loadBtn)
+      expect(onConfirm).not.toHaveBeenCalled()
+    })
+
+    it('renders all field rows even with empty preview', () => {
+      renderModal({ preview: [] })
+      // All 9 APP_FIELDS should have comboboxes
+      const selects = screen.getAllByRole('combobox') as HTMLSelectElement[]
+      expect(selects.length).toBe(9)
+    })
+  })
 })

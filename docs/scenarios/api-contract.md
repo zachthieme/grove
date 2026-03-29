@@ -263,3 +263,26 @@ Core views pass axe-core critical accessibility checks.
 
 ## Edge cases
 - None
+
+---
+
+# Scenario: Content-Disposition filename sanitization
+
+**ID**: CONTRACT-012
+**Area**: api-contract
+**Tests**:
+- `internal/api/handlers_test.go` → "TestSanitizeFilename"
+- `internal/api/handlers_test.go` → "TestWriteFileResponse_SanitizedHeader"
+
+## Behavior
+Export response filenames are sanitized to prevent HTTP header injection. Control characters, quotes, and backslashes are stripped.
+
+## Invariants
+- No control characters (0x00-0x1f, 0x7f) in Content-Disposition filename
+- Filename wrapped in double quotes per RFC 6266
+- Empty filename after sanitization defaults to "download"
+- Unicode characters preserved
+
+## Edge cases
+- CRLF injection attempt produces clean filename
+- All-control-char filename falls back to "download"
