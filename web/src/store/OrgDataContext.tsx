@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
 import * as api from '../api/client'
+import { setOnApiError } from '../api/client'
 import type { OrgDataContextValue } from './orgTypes'
 import { AUTOSAVE_STORAGE_KEY } from '../constants'
 import { useUI } from './UIContext'
@@ -37,6 +38,10 @@ export function useOrgData(): OrgDataContextValue {
 
 export function OrgDataProvider({ children }: { children: ReactNode }) {
   const { setError } = useUI()
+
+  useEffect(() => {
+    return setOnApiError((msg) => setError(msg))
+  }, [setError])
 
   const [state, setState] = useState<OrgDataState>({
     original: [],

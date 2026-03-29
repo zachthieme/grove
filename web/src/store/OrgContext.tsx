@@ -87,6 +87,12 @@ export function useSelection(): SelectionContextValue {
   throw new Error('useSelection must be used within a SelectionProvider or OrgOverrideProvider')
 }
 
+/**
+ * @deprecated Use granular hooks instead: useOrgData(), useUI(), useSelection().
+ * This mega-hook causes unnecessary re-renders — every property change triggers
+ * all consumers. Only use in components that genuinely need all three contexts
+ * (App.tsx, RecycleBinDrawer).
+ */
 export function useOrg(): OrgContextValue {
   const override = useContext(OrgOverrideContext)
   if (override) return override
