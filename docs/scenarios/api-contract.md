@@ -213,8 +213,8 @@ Domain model validates people on construction. Parser converts CSV rows to domai
 - Duplicate names allowed
 - Dangling manager references allowed (with warning)
 - Invalid status generates warning (doesn't reject)
-- Missing required fields generate warning
-- Transfer In/Out and Planned allow blank role and discipline
+- Only Name and Status are required fields; missing either generates a warning
+- Team, Role, and Discipline are optional for all statuses (blank allowed)
 
 ## Edge cases
 - Empty input → empty org

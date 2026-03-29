@@ -1,4 +1,4 @@
-// Scenarios: UI-002
+// Scenarios: UI-002, CREATE-003
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -157,6 +157,28 @@ describe('PersonNode behavior', () => {
 
     rerender(<PersonNode person={makePerson()} selected />)
     expect(node.dataset.selected).toBe('true')
+  })
+
+  // Scenarios: CREATE-003
+  describe('[CREATE-003] onAddParent / "Add manager above" button visibility', () => {
+    it('[CREATE-003] shows "Add manager above" button on hover when onAddParent is provided', async () => {
+      const user = userEvent.setup()
+      const onAddParent = vi.fn()
+      const { container } = render(
+        <PersonNode person={makePerson()} onAddParent={onAddParent} onClick={vi.fn()} />,
+      )
+      await user.hover(container.firstElementChild!)
+      expect(screen.getByLabelText('Add manager above')).toBeTruthy()
+    })
+
+    it('[CREATE-003] does not show "Add manager above" button when onAddParent is not provided', async () => {
+      const user = userEvent.setup()
+      const { container } = render(
+        <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
+      )
+      await user.hover(container.firstElementChild!)
+      expect(screen.queryByLabelText('Add manager above')).toBeNull()
+    })
   })
 
   // Scenarios: UI-002

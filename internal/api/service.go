@@ -217,17 +217,20 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	s.pending = nil
 	people := []Person{p}
+	var persistWarn string
 	if err := s.snaps.DeleteStore(); err != nil {
-		// Non-fatal: log but proceed
+		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: nil}
 
 	return &OrgData{
-		Original: deepCopyPeople(s.original),
-		Working:  deepCopyPeople(s.working),
-		Pods:     CopyPods(s.podMgr.GetPods()),
-		Settings: &s.settings,
+		Original:           deepCopyPeople(s.original),
+		Working:            deepCopyPeople(s.working),
+		Pods:               CopyPods(s.podMgr.GetPods()),
+		Settings:           &s.settings,
+		PersistenceWarning: persistWarn,
 	}, nil
 }

@@ -178,6 +178,7 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Perso
 	child.ManagerId = parent.Id
 	s.working = append(s.working, parent)
 	s.rebuildIndex()
+	s.podMgr.Reassign(&s.working[len(s.working)-1])
 	return parent, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
 }
 

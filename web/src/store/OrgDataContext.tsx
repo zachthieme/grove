@@ -166,7 +166,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   const createOrg = useCallback(async (name: string) => {
     try {
       const data = await api.createOrg(name)
-      applyOrgData(data)
+      applyOrgData(data, { autosaveAvailable: null, snapshots: [] })
     } catch (err) {
       setError(`Create failed: ${err instanceof Error ? err.message : String(err)}`)
     }
