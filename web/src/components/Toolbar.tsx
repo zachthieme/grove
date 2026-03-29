@@ -7,6 +7,7 @@ import SnapshotsDropdown from './SnapshotsDropdown'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
 import PrivateToggle from './PrivateToggle'
 import SettingsModal from './SettingsModal'
+import SearchBar from './SearchBar'
 import styles from './Toolbar.module.css'
 import { useTour } from '../hooks/useTour'
 
@@ -31,9 +32,13 @@ interface ToolbarProps {
   loggingEnabled?: boolean
   onToggleLogs?: () => void
   logPanelOpen?: boolean
+  onUndo?: () => void
+  onRedo?: () => void
+  canUndo?: boolean
+  canRedo?: boolean
 }
 
-export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen }: ToolbarProps) {
+export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, onUndo, onRedo, canUndo, canRedo }: ToolbarProps) {
   const { upload, loaded } = useOrgData()
   const { viewMode, dataView, setViewMode, setDataView, reflow } = useUI()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -101,6 +106,8 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
             ))}
           </div>
 
+          <SearchBar />
+
           <EmploymentTypeFilter />
 
           <PrivateToggle />
@@ -108,6 +115,27 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
           <RecycleBinButton />
 
           <SnapshotsDropdown />
+
+          <div className={styles.undoRedoGroup}>
+            <button
+              className={styles.undoRedoBtn}
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo (⌘Z)"
+              aria-label="Undo"
+            >
+              ↩
+            </button>
+            <button
+              className={styles.undoRedoBtn}
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo (⌘⇧Z)"
+              aria-label="Redo"
+            >
+              ↪
+            </button>
+          </div>
 
           <div className={styles.spacer} />
 

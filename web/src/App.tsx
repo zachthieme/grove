@@ -24,7 +24,7 @@ import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
 function AppContent() {
-  const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgData()
+  const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo } = useOrgData()
   const { viewMode, layoutKey, error, clearError, headPersonId, setHead, showAllEmploymentTypes, setViewMode } = useUI()
   const { selectedIds, selectedPodId, clearSelection, setSelectedId } = useSelection()
   const { infoPopoverId, clearInfoPopover } = useActions()
@@ -65,6 +65,21 @@ function AppContent() {
     }).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        if (canUndo) undo()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        if (canRedo) redo()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [canUndo, canRedo, undo, redo])
+
   const hasSidebarSelection = selectedIds.size > 0 || !!selectedPodId
 
   return (
@@ -78,6 +93,10 @@ function AppContent() {
         loggingEnabled={loggingEnabled}
         onToggleLogs={() => setLogPanelOpen((o) => !o)}
         logPanelOpen={logPanelOpen}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
       {error && (
         <div className={styles.errorBanner} role="alert">

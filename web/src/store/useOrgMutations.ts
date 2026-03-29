@@ -11,17 +11,20 @@ interface MutationDeps {
   stateRef: MutableRefObject<OrgDataState>
   handleError: (err: unknown) => void
   setError: (msg: string | null) => void
+  captureForUndo: () => void
 }
 
-export function useOrgMutations({ setState, stateRef, handleError, setError }: MutationDeps) {
+export function useOrgMutations({ setState, stateRef, handleError, setError, captureForUndo }: MutationDeps) {
   const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => {
+    captureForUndo()
     try {
       const resp = await api.movePerson({ personId, newManagerId, newTeam, newPod }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const reparent = useCallback(async (personId: string, newManagerId: string, correlationId?: string) => {
+    captureForUndo()
     if (!newManagerId) {
       try {
         const resp = await api.updatePerson({ personId, fields: { managerId: '' } }, correlationId)
@@ -39,56 +42,63 @@ export function useOrgMutations({ setState, stateRef, handleError, setError }: M
       const resp = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setError, setState, stateRef])
+  }, [captureForUndo, handleError, setError, setState, stateRef])
 
   const reorder = useCallback(async (personIds: string[]) => {
+    captureForUndo()
     try {
       const resp = await api.reorderPeople(personIds)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const update = useCallback(async (personId: string, fields: PersonUpdatePayload, correlationId?: string) => {
+    captureForUndo()
     try {
       const resp = await api.updatePerson({ personId, fields }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const add = useCallback(async (person: Omit<Person, 'id'>) => {
+    captureForUndo()
     try {
       const resp = await api.addPerson(person)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const addParent = useCallback(async (childId: string, name: string) => {
+    captureForUndo()
     try {
       const resp = await api.addParent({ childId, name })
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const remove = useCallback(async (personId: string) => {
+    captureForUndo()
     try {
       const resp = await api.deletePerson({ personId })
       setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const restore = useCallback(async (personId: string) => {
+    captureForUndo()
     try {
       const resp = await api.restorePerson(personId)
       setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const emptyBin = useCallback(async () => {
+    captureForUndo()
     try {
       const resp = await api.emptyBin()
       setState((s) => ({ ...s, recycled: resp.recycled, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  }, [captureForUndo, handleError, setState])
 
   const saveSnapshot = useCallback(async (name: string) => {
     try {

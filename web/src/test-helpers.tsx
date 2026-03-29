@@ -67,6 +67,10 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     updatePod: asyncNoop,
     createPod: asyncNoop,
     updateSettings: asyncNoop,
+    undo: noop,
+    redo: noop,
+    canUndo: false,
+    canRedo: false,
     // UI
     viewMode: 'detail',
     dataView: 'working',

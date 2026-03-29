@@ -206,3 +206,29 @@ Shows when upload needs column mapping. Dropdowns let user assign columns. Load 
 
 ## Edge cases
 - Unmapping name disables Load button
+
+---
+
+# Scenario: Global people search
+
+**ID**: UI-017
+**Area**: ui-components
+**Tests**:
+- `web/src/components/SearchBar.test.tsx` → "SearchBar"
+
+## Behavior
+A search input in the toolbar lets users find people by name. As the user types, a dropdown shows up to 8 matching people. Clicking a result selects that person (opens sidebar) and scrolls to their node. Cmd+K / Ctrl+K focuses the input from anywhere. Escape clears and closes the dropdown.
+
+## Invariants
+- Only visible when org data is loaded (rendered inside the `{loaded && ...}` block of Toolbar)
+- Filters `working` array by case-insensitive substring match on name only
+- Shows at most 8 results
+- Shows "No matches" when filter returns empty
+- Clicking a result calls `setSelectedId(person.id)` and clears the query
+- Arrow keys navigate results; Enter selects the highlighted result
+- Escape clears the query and closes the dropdown
+- Cmd+K / Ctrl+K focuses the search input
+
+## Edge cases
+- Empty query: dropdown does not open
+- Query with no matches: shows "No matches" item

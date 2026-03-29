@@ -7,6 +7,7 @@ import { AUTOSAVE_STORAGE_KEY } from '../constants'
 import { useUI } from './UIContext'
 import { useDirtyTracking } from './useDirtyTracking'
 import { useOrgMutations } from './useOrgMutations'
+import { useUndoRedo } from '../hooks/useUndoRedo'
 
 export interface OrgDataState {
   original: Person[]
@@ -60,6 +61,12 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   // Ref to access latest state in callbacks without re-creating them
   const stateRef = useRef(state)
   stateRef.current = state
+
+  const { undoStack, redoStack, pushUndo, canUndo, canRedo, setUndoStack, setRedoStack } = useUndoRedo()
+
+  const captureForUndo = useCallback(() => {
+    pushUndo({ working: stateRef.current.working, pods: stateRef.current.pods })
+  }, [pushUndo])
 
   // On mount: check for autosave first, then fall back to loading org data
   useEffect(() => {
@@ -189,7 +196,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const mutations = useOrgMutations({ setState, stateRef, handleError, setError })
+  const mutations = useOrgMutations({ setState, stateRef, handleError, setError, captureForUndo })
 
   const restoreAutosave = useCallback(() => {
     const ad = stateRef.current.autosaveAvailable
@@ -235,6 +242,50 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   // Warn before navigating away with unsaved changes
   useDirtyTracking(state.loaded, state.working)
 
+  const undo = useCallback(() => {
+    if (undoStack.length === 0) return
+    const prev = undoStack[undoStack.length - 1]
+    const current = { working: stateRef.current.working, pods: stateRef.current.pods }
+    setUndoStack(s => s.slice(0, -1))
+    setRedoStack(s => [...s, current])
+    setState(s => ({ ...s, working: prev.working, pods: prev.pods, currentSnapshotName: null }))
+    const autosaveData: AutosaveData = {
+      original: stateRef.current.original,
+      working: prev.working,
+      recycled: stateRef.current.recycled,
+      pods: prev.pods,
+      originalPods: stateRef.current.originalPods,
+      settings: stateRef.current.settings,
+      snapshotName: '',
+      timestamp: new Date().toISOString(),
+    }
+    api.restoreState(autosaveData).catch(() => {
+      console.warn('Failed to sync undo state to backend')
+    })
+  }, [undoStack, setUndoStack, setRedoStack, setState])
+
+  const redo = useCallback(() => {
+    if (redoStack.length === 0) return
+    const next = redoStack[redoStack.length - 1]
+    const current = { working: stateRef.current.working, pods: stateRef.current.pods }
+    setRedoStack(s => s.slice(0, -1))
+    setUndoStack(s => [...s, current])
+    setState(s => ({ ...s, working: next.working, pods: next.pods, currentSnapshotName: null }))
+    const autosaveData: AutosaveData = {
+      original: stateRef.current.original,
+      working: next.working,
+      recycled: stateRef.current.recycled,
+      pods: next.pods,
+      originalPods: stateRef.current.originalPods,
+      settings: stateRef.current.settings,
+      snapshotName: '',
+      timestamp: new Date().toISOString(),
+    }
+    api.restoreState(autosaveData).catch(() => {
+      console.warn('Failed to sync redo state to backend')
+    })
+  }, [redoStack, setUndoStack, setRedoStack, setState])
+
   const value: OrgDataContextValue = useMemo(() => ({
     original: state.original,
     working: state.working,
@@ -254,10 +305,15 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     cancelMapping,
     restoreAutosave,
     dismissAutosave,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   }), [
     state, upload, createOrg, mutations,
     confirmMapping, cancelMapping,
     restoreAutosave, dismissAutosave,
+    undo, redo, canUndo, canRedo,
   ])
 
   return <OrgDataContext.Provider value={value}>{children}</OrgDataContext.Provider>

@@ -76,4 +76,8 @@ export interface OrgDataContextValue {
   updatePod: (podId: string, fields: PodUpdatePayload) => Promise<void>
   createPod: (managerId: string, name: string, team: string) => Promise<void>
   updateSettings: (settings: Settings) => Promise<void>
+  undo: () => void
+  redo: () => void
+  canUndo: boolean
+  canRedo: boolean
 }
