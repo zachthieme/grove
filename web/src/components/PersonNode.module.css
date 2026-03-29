@@ -1,5 +1,11 @@
 .wrapper {
   position: relative;
+  animation: nodeEnter 0.3s ease-out both;
+}
+
+@keyframes nodeEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .node {
@@ -16,6 +22,11 @@
 
 .manager {
   border-left: 3.5px solid var(--grove-green);
+  background: linear-gradient(135deg, var(--surface-raised) 0%, #f9faf8 100%);
+}
+
+.manager .name {
+  font-size: 13.5px;
 }
 
 .node:hover {
