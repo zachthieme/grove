@@ -35,13 +35,26 @@ This builds the React frontend and embeds it into a single Go binary (`grove`).
 ```
 grove
 grove -p 3000
+grove --log
 ```
 
-Your browser opens automatically. Upload a CSV, XLSX, or ZIP of snapshots and start planning.
+Your browser opens automatically. Upload a CSV/XLSX/ZIP or start from scratch.
+
+## Getting Started
+
+### Import from a spreadsheet
+
+Upload any CSV or XLSX with at least a Name column. Grove matches headers flexibly — "Job Title" maps to Role, "Department" maps to Team, etc. If it can't match confidently, you'll see a mapping screen with its best guesses.
+
+### Start from scratch
+
+Click "or start from scratch" on the landing page, enter a name, and build your org chart one person at a time. The sidebar opens immediately so you can fill in details. Click + on any person to add a report under them.
+
+### Product tour
+
+A guided walkthrough starts automatically on your first visit. Click the **?** button in the toolbar to replay it anytime.
 
 ## File Format
-
-Any spreadsheet with these columns works (headers are matched flexibly — "Job Title" maps to Role, "Department" maps to Team, etc.):
 
 | Column           | Required | Description                   |
 | ---------------- | -------- | ----------------------------- |
@@ -54,9 +67,7 @@ Any spreadsheet with these columns works (headers are matched flexibly — "Job 
 | Employment Type  | no       | FTE, Contractor, Agency, etc. |
 | Additional Teams | no       | Comma-separated               |
 
-Only the Name column is required. All other columns are optional and default to empty if unmapped.
-
-If Grove can't confidently match your columns, it shows a mapping screen with its best guesses for you to correct. Duplicate names are fine. Row ordering doesn't matter.
+Only the Name column is required. All other columns are optional and default to empty if unmapped. Duplicate names are fine. Row ordering doesn't matter.
 
 ### Statuses
 
@@ -73,48 +84,96 @@ If Grove can't confidently match your columns, it shows a mapping screen with it
 
 ### Detail
 
-The default view. Shows every person in a compact hierarchy — managers spread horizontally, ICs stacked vertically beneath them. When a manager has ICs on multiple teams, each team gets its own column with a header node. Drag any node onto another to reparent. Hover for quick actions (+/edit/delete).
+The default view. Shows every person in a compact hierarchy — managers spread horizontally, ICs stacked vertically beneath them. When a manager has ICs on multiple teams, each team gets its own column with a header node.
 
 ### Manager
 
 Shows only the management hierarchy. ICs are collapsed into summary cards showing discipline counts and recruiting/planned/transfer numbers. Good for seeing the shape of the org without the noise of individual contributors.
 
+### Table
+
+A spreadsheet-style view. Inline editing, sortable columns, column filters, column visibility toggles, and a paste-from-clipboard button for bulk entry. Add draft rows with the + button.
+
 ## Features
 
-**Drag-and-drop** — Reparent people by dragging onto a new manager. Drop onto a team header to move someone to that team.
+**Create from scratch** — Start a new org chart without importing a file. Add people one at a time, build the hierarchy as you go.
 
-**Hover actions** — Every node shows +/edit/delete on hover. The + button creates a new direct report. Delete moves to the recycle bin. Managers also get an info button.
+**Add parent** — Click the up-arrow icon on any root-level person to add a manager above them.
 
-**Manager info** — Click ℹ on any manager to see span of control, total headcount, recruiting/planned/transfer counts, and breakdowns by discipline and team.
+**Drag-and-drop** — Reparent people by dragging onto a new manager. When you move a manager, their team cascades to their direct reports.
+
+**Collapse/expand** — Click the chevron (v/>) below any manager to collapse or expand their subtree. Collapsed nodes show a report count.
+
+**Hover actions** — Every node shows quick actions on hover: + (add report), edit, delete, info, focus. Root nodes also show an up-arrow to add a parent.
+
+**Sidebar editing** — Click any person to open the detail sidebar. Edit name, role, discipline, team, status, employment type, level, pods, notes, and privacy. Save and Delete buttons are always visible (sticky header/footer).
+
+**Multi-select** — Ctrl/Cmd-click or lasso-select multiple people. The sidebar switches to batch edit mode.
+
+**Search** — Type in the search bar (or press **Cmd+K**) to find people by name. Select a result to jump to them in the chart.
+
+**Undo/redo** — **Cmd+Z** to undo, **Cmd+Shift+Z** to redo. Toolbar buttons also available. Tracks the last 50 mutations.
+
+**Manager info** — Click the info icon on any manager to see span of control, total headcount, and breakdowns by discipline, team, and status.
 
 **Recycle bin** — Deleted people go to a slide-out bin with restore and empty actions. Nothing is permanently lost until you empty it.
 
-**Snapshots** — Save named versions of your org ("Q1 Plan", "Option B"). Load any snapshot to switch contexts. "Original" always resets to the initial import. Snapshots persist to `~/.grove/snapshots.json` and survive server restarts.
+**Snapshots** — Save named versions of your org ("Q1 Plan", "Option B"). Load any snapshot to switch contexts. "Original" always resets to the initial import. Snapshots persist to `~/.grove/snapshots.json`.
 
 **Autosave** — Every change is automatically saved to both localStorage and `~/.grove/autosave.json`. If the server restarts, you get a banner offering to restore your session.
 
-**ZIP import/export** — Export all snapshots as a ZIP with numeric-prefixed filenames (`0-original.csv`, `1-working.csv`, `2-Q1-Plan.csv`). Import a ZIP to restore the full snapshot set. Supports CSV, XLSX, PNG, and SVG formats.
+**ZIP import/export** — Export all snapshots as a ZIP with numeric-prefixed filenames (`0-original.csv`, `1-working.csv`, `2-Q1-Plan.csv`). Import a ZIP to restore the full snapshot set.
 
 **Diff mode** — Toggle to see what changed since the original import. Added people get green borders, reporting changes get orange, reorgs get yellow. Deleted people appear as ghost nodes.
 
-**Export** — PNG and SVG (captured from the rendered view, tight-cropped to content), CSV and XLSX (with manager names resolved back from UUIDs). Bulk export all snapshots as a ZIP.
+**Export** — PNG, SVG (tight-cropped to content), CSV, and XLSX. Bulk export all snapshots as a ZIP.
 
-**Employment types** — Track FTE, Contractor, Agency, Vendor, or any custom label. Non-FTE types show as a pill badge on the node.
+**Pods** — Group people into named pods within a team. Pods show as headers in the detail view with their own notes.
 
-**Accessible** — ARIA labels on all interactive controls, screen reader text for status indicators, keyboard support for drag-and-drop and all menus, `role="alert"` for error/warning banners.
+**Employment types** — Track FTE, Contractor, Agency, Vendor, or any custom label. Non-FTE types show as a colored accent bar. Filter by employment type in the toolbar.
+
+**Dark mode** — Automatically follows your system preference. Full warm dark palette.
+
+**Request logging** — Run with `--log` to enable the request log viewer. See all API calls with timing, correlation IDs, and request/response bodies. Copy or download logs for debugging.
+
+## Keyboard Shortcuts
+
+| Shortcut            | Action                            |
+| ------------------- | --------------------------------- |
+| Cmd+K / Ctrl+K      | Focus search                      |
+| Cmd+Z / Ctrl+Z      | Undo                              |
+| Cmd+Shift+Z         | Redo                              |
+| Escape              | Deselect / close                  |
+| /                   | Focus search (vim mode)           |
+| h / j / k / l       | Navigate tree (vim mode)          |
+| o                   | Add report (vim mode)             |
+| x                   | Delete selected (vim mode)        |
+
+Vim keys are off by default. Enable in Settings (hamburger menu > Settings > "Vim navigation keys").
 
 ## Configuration
 
-Grove requires no configuration. It runs as a self-contained server. It writes to `~/.grove/` for autosave (`autosave.json`) and snapshot persistence (`snapshots.json`).
+Grove requires no configuration. It runs as a self-contained server writing to `~/.grove/` for persistence.
 
 ```
 grove [flags]
 ```
 
-| Flag     | Short | Default | Description                        |
-| -------- | ----- | ------- | ---------------------------------- |
-| `--port` | `-p`  | 8080    | Port to listen on                  |
-| `--dev`  |       | false   | Dev mode (frontend served by Vite) |
+| Flag     | Short | Default | Description                                |
+| -------- | ----- | ------- | ------------------------------------------ |
+| `--port` | `-p`  | 8080    | Port to listen on                          |
+| `--dev`  |       | false   | Dev mode (frontend served by Vite)         |
+| `--log`  |       | false   | Enable request logging and log viewer      |
+
+## Accessibility
+
+- ARIA labels and hover tooltips on all interactive controls
+- Screen reader text for status indicators
+- Keyboard navigation (Tab, Enter, Escape, arrow keys)
+- Optional vim keybindings
+- Semantic HTML with proper roles
+- Focus ring indicators
+- `role="alert"` for error/warning banners
 
 ## Development
 
@@ -122,6 +181,7 @@ grove [flags]
 make dev          # Vite dev server + Go server (hot reload)
 make build        # Production build (single binary)
 make frontend     # Build just the React frontend
+make typecheck    # TypeScript type check (no build)
 make clean        # Remove build artifacts
 ```
 
@@ -129,7 +189,12 @@ make clean        # Remove build artifacts
 
 ```
 go test ./...                    # Go tests (model, parser, API, integration)
-cd web && npm test               # Frontend tests (vitest)
+cd web && npm test               # Frontend tests (vitest, 1000+ tests)
+cd web && npm test -- --coverage # With coverage report
+make check-scenarios             # Verify scenario contract coverage
+make e2e                         # Playwright end-to-end tests
+make bench                       # Go benchmarks
+make fuzz                        # Fuzz testing
 ```
 
 ### Architecture
@@ -144,9 +209,10 @@ grove
 │   ├── model/            # Person, Org, field validation
 │   └── parser/           # CSV/XLSX parsing with column mapping
 ├── web/src/
-│   ├── views/            # ColumnView, ManagerView, OrphanGroup, layout algorithms
-│   ├── components/       # PersonNode, DetailSidebar, BatchEditSidebar, modals
-│   ├── hooks/            # useChartLayout, useOrgDiff, useAutosave, useSnapshotExport
-│   └── store/            # OrgDataContext, UIContext, SelectionContext, useDirtyTracking
+│   ├── views/            # ColumnView, ManagerView, TableView, ChartShell
+│   ├── components/       # PersonNode, DetailSidebar, SearchBar, modals
+│   ├── hooks/            # useChartLayout, useOrgDiff, useAutosave, useUndoRedo, useVimNav
+│   └── store/            # OrgDataContext, UIContext, SelectionContext, ViewDataContext
+├── docs/scenarios/       # Scenario contracts (source of truth for behavior)
 └── embed.go              # go:embed web/dist
 ```
