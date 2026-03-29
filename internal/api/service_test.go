@@ -1890,3 +1890,50 @@ func TestOrgService_Create_WhitespaceName(t *testing.T) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
+
+// Scenarios: CREATE-001, CREATE-002
+func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	// Step 1: Create from scratch
+	data, err := svc.Create(context.Background(), "Alice")
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	alice := data.Working[0]
+
+	// Step 2: Add a direct report
+	bob, working, _, err := svc.Add(context.Background(), Person{
+		Name: "Bob", Status: "Active", ManagerId: alice.Id,
+	})
+	if err != nil {
+		t.Fatalf("add failed: %v", err)
+	}
+	if len(working) != 2 {
+		t.Errorf("expected 2 working, got %d", len(working))
+	}
+
+	// Step 3: Add parent above Alice
+	ceo, working, _, err := svc.AddParent(context.Background(), alice.Id, "CEO")
+	if err != nil {
+		t.Fatalf("add parent failed: %v", err)
+	}
+	if len(working) != 3 {
+		t.Errorf("expected 3 working, got %d", len(working))
+	}
+
+	// Verify hierarchy: CEO -> Alice -> Bob
+	updatedAlice := findById(working, alice.Id)
+	if updatedAlice.ManagerId != ceo.Id {
+		t.Errorf("Alice should report to CEO")
+	}
+	updatedBob := findById(working, bob.Id)
+	if updatedBob.ManagerId != alice.Id {
+		t.Errorf("Bob should still report to Alice")
+	}
+	ceoEntry := findById(working, ceo.Id)
+	if ceoEntry.ManagerId != "" {
+		t.Errorf("CEO should be root (no manager)")
+	}
+}
