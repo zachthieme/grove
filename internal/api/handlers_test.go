@@ -1712,6 +1712,13 @@ func TestCreateHandler(t *testing.T) {
 	if data.Working[0].Name != "Alice" {
 		t.Errorf("expected Alice, got %s", data.Working[0].Name)
 	}
+	// [CREATE-001] disciplineOrder must be [] (not null) so it serializes as [] in JSON
+	if data.Settings == nil {
+		t.Fatal("expected non-nil settings in response")
+	}
+	if data.Settings.DisciplineOrder == nil {
+		t.Error("[CREATE-001] disciplineOrder must be [] not null after create")
+	}
 }
 
 // Scenarios: CREATE-004

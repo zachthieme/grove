@@ -12,6 +12,7 @@ vi.mock('../api/client', () => ({
   listSnapshots: vi.fn().mockResolvedValue([]),
   uploadFile: vi.fn(),
   uploadZipFile: vi.fn(),
+  createOrg: vi.fn(),
   confirmMapping: vi.fn(),
   movePerson: vi.fn(),
   updatePerson: vi.fn(),
@@ -501,6 +502,35 @@ describe('OrgDataContext', () => {
       expect(result.current.loaded).toBe(false)
       expect(api.restoreState).not.toHaveBeenCalled()
     })
+
+    it('[AUTO-003] still restores UI state when restoreState API fails (backend sync failure)', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      vi.mocked(api.restoreState).mockRejectedValue(new Error('network error'))
+
+      const autosaveData: AutosaveData = {
+        original: [alice],
+        working: [alice, bob],
+        recycled: [],
+        snapshotName: '',
+        timestamp: '2026-01-01T00:00:00Z',
+      }
+      localStorage.setItem('grove-autosave', JSON.stringify(autosaveData))
+
+      const { result } = await renderOrgData()
+      await act(async () => { result.current.restoreAutosave() })
+      // Allow the async restoreState rejection to propagate
+      await act(async () => {})
+
+      // UI state should still be restored despite API failure
+      expect(result.current.loaded).toBe(true)
+      expect(result.current.working).toEqual([alice, bob])
+      expect(result.current.autosaveAvailable).toBeNull()
+      // No user-visible error — only a console.warn
+      expect(result.current.error).toBeNull()
+      expect(warnSpy).toHaveBeenCalledWith('Failed to sync restored state to backend')
+
+      warnSpy.mockRestore()
+    })
   })
 
   describe('dismissAutosave', () => {
@@ -867,6 +897,41 @@ describe('OrgDataContext', () => {
       // Data should still load fine
       expect(result.current.loaded).toBe(true)
       expect(result.current.snapshots).toEqual([])
+    })
+  })
+
+  describe('createOrg', () => {
+    it('[CREATE-001] calls createOrg API, loads data, and returns first person id', async () => {
+      const newData: OrgData = {
+        original: [alice],
+        working: [alice],
+      }
+      vi.mocked(api.createOrg).mockResolvedValue(newData)
+
+      const { result } = await renderOrgData()
+      let returnedId: string | undefined
+      await act(async () => {
+        returnedId = await result.current.createOrg('Alice')
+      })
+
+      expect(api.createOrg).toHaveBeenCalledWith('Alice')
+      expect(result.current.loaded).toBe(true)
+      expect(result.current.working).toEqual([alice])
+      expect(returnedId).toBe('a1')
+    })
+
+    it('[CREATE-001] sets error and returns undefined when createOrg API fails', async () => {
+      vi.mocked(api.createOrg).mockRejectedValue(new Error('create failed'))
+
+      const { result } = await renderOrgData()
+      let returnedId: string | undefined
+      await act(async () => {
+        returnedId = await result.current.createOrg('Alice')
+      })
+
+      expect(result.current.loaded).toBe(false)
+      expect(result.current.error).toContain('create failed')
+      expect(returnedId).toBeUndefined()
     })
   })
 

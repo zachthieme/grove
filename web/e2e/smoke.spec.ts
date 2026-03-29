@@ -89,10 +89,16 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Changed Role' })).toHaveCount(0)
   })
 
-  test.fixme('[VIEW-007] multi-select batch edit', async ({ page }) => {
+  test('[VIEW-007] multi-select batch edit', async ({ page }) => {
     await uploadCSV(page, 'grove.csv')
     await switchView(page, 'Table')
-    const checkboxes = page.locator('tbody input[type="checkbox"]')
+    // Use aria-label prefix to select only row-select checkboxes, not inline "Private" field checkboxes.
+    // Each row has two checkboxes: "Select [Name]" (row select) and "Private for [Name]" (field),
+    // so a bare `tbody input[type="checkbox"]` would count both and produce wrong nth() indices.
+    const checkboxes = page.locator('tbody input[type="checkbox"][aria-label^="Select "]')
+    // Click first checkbox and wait for sidebar to fully open before selecting second.
+    // This avoids the layout-shift race where the sidebar appearing shifts the DOM
+    // and causes the second check() to miss or not propagate state.
     await checkboxes.nth(1).click()
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     await checkboxes.nth(2).click()
@@ -103,8 +109,8 @@ test.describe('Smoke tests', () => {
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
     await page.getByRole('button', { name: 'Clear selection' }).click()
-    await expect(page.locator('tbody tr').nth(0)).toContainText('Design')
     await expect(page.locator('tbody tr').nth(1)).toContainText('Design')
+    await expect(page.locator('tbody tr').nth(2)).toContainText('Design')
   })
 
 })

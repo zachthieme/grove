@@ -168,6 +168,23 @@ describe('ViewDataContext', () => {
       }))
     })
 
+    // Scenarios: CREATE-005
+    it('[CREATE-005] handleAddReport works on leaf/IC node (promotes IC to manager)', async () => {
+      const add = vi.fn().mockResolvedValue(undefined)
+      // ic has a managerId — it's a leaf node (IC), not a manager
+      const ic = makePerson({ id: 'ic-1', name: 'IC Person', team: 'Design', managerId: 'some-parent' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [ic], add }),
+      })
+      await act(async () => { await result.current.handleAddReport('ic-1') })
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'New Person',
+        team: 'Design',
+        managerId: 'ic-1',
+        status: 'Active',
+      }))
+    })
+
     it('handleAddReport is a no-op when parent not found', async () => {
       const add = vi.fn().mockResolvedValue(undefined)
       const { result } = renderHook(() => useActions(), {

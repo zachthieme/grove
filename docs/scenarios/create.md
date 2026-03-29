@@ -12,7 +12,7 @@
 - `web/src/components/UploadPrompt.test.tsx` → "[CREATE-001]"
 
 ## Behavior
-User clicks "Start from scratch" on the landing page, enters a name, and an org is created with one active person. The chart view loads immediately.
+User clicks "Start from scratch" on the landing page, enters a name, and an org is created with one active person. The chart view loads immediately with the new person's sidebar open.
 
 ## Invariants
 - Original and working slices both contain exactly one person
@@ -20,6 +20,8 @@ User clicks "Start from scratch" on the landing page, enters a name, and an org 
 - Recycled list is empty after fresh creation
 - Snapshots are cleared
 - Autosave is cleared
+- disciplineOrder is an empty array `[]` (never null) in the returned settings
+- The new person is auto-selected after creation (sidebar opens immediately)
 
 ---
 
@@ -80,3 +82,24 @@ Both create and add-parent endpoints reject empty names with a 422 ValidationErr
 ## Edge cases
 - Person not found → NotFoundError (404)
 - Name is whitespace-only → treated as empty, returns ValidationError
+
+---
+
+# Scenario: Add direct report to leaf node
+
+**ID**: CREATE-005
+**Area**: create
+**Tests**:
+- `web/src/components/PersonNode.test.tsx` → "[CREATE-005]"
+- `web/src/store/ViewDataContext.test.tsx` → "[CREATE-005]"
+
+## Behavior
+Every person node (manager or IC/leaf) shows a "+" button on hover when the add-report action is available. Clicking "+" on a leaf node adds a direct report to that person, promoting them to a manager. The newly created person has status "Active" and name "New Person".
+
+## Invariants
+- The "+" button appears on hover for both managers and ICs when onAdd is provided
+- Clicking "+" on an IC node calls handleAddReport with that person's ID
+- handleAddReport creates a new person with name "New Person" and the IC's team
+
+## Edge cases
+- If the parent is not found in working, handleAddReport is a no-op

@@ -1,6 +1,6 @@
-// Scenarios: UI-002, CREATE-003
+// Scenarios: UI-002, CREATE-003, CREATE-005
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { makePerson } from '../test-helpers'
 import PersonNode from './PersonNode'
@@ -157,6 +157,40 @@ describe('PersonNode behavior', () => {
 
     rerender(<PersonNode person={makePerson()} selected />)
     expect(node.dataset.selected).toBe('true')
+  })
+
+  // Scenarios: CREATE-005
+  describe('[CREATE-005] "+" button on leaf/IC nodes', () => {
+    it('[CREATE-005] shows "Add direct report" button on hover when onAdd is provided', async () => {
+      const user = userEvent.setup()
+      const onAdd = vi.fn()
+      const { container } = render(
+        <PersonNode person={makePerson({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
+      )
+      await user.hover(container.firstElementChild!)
+      expect(screen.getByLabelText('Add direct report')).toBeTruthy()
+    })
+
+    it('[CREATE-005] clicking "+" on a leaf node calls onAdd', async () => {
+      const user = userEvent.setup()
+      const onAdd = vi.fn()
+      const { container } = render(
+        <PersonNode person={makePerson({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
+      )
+      await user.hover(container.firstElementChild!)
+      // fireEvent avoids pointer-move side effects that would trigger mouseLeave on the wrapper
+      fireEvent.click(screen.getByLabelText('Add direct report'))
+      expect(onAdd).toHaveBeenCalledTimes(1)
+    })
+
+    it('[CREATE-005] does not show "+" button when onAdd is not provided', async () => {
+      const user = userEvent.setup()
+      const { container } = render(
+        <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
+      )
+      await user.hover(container.firstElementChild!)
+      expect(screen.queryByLabelText('Add direct report')).toBeNull()
+    })
   })
 
   // Scenarios: CREATE-003

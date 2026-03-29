@@ -1,9 +1,13 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
 import { renderWithViewData } from '../test-helpers'
 import type { Person } from '../api/types'
+
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 const testPeople: Person[] = [
   {
@@ -116,5 +120,37 @@ describe('TableView', () => {
 
     const checkboxes = document.querySelectorAll('input[type="checkbox"]')
     expect(checkboxes.length).toBeGreaterThan(0)
+  })
+
+  // Scenarios: VIEW-003
+  describe('edge states', () => {
+    it('[VIEW-003] renders table headers when working is empty', () => {
+      renderWithViewData(<TableView />, {
+        working: [],
+        original: [],
+        viewMode: 'table' as const,
+        dataView: 'working' as const,
+      })
+      // Table headers must always render — user can still add rows
+      expect(screen.getByRole('table')).toBeTruthy()
+      expect(screen.getAllByRole('columnheader').length).toBeGreaterThan(0)
+    })
+
+    it('[VIEW-003] add button works when working is empty', async () => {
+      const user = userEvent.setup()
+      const add = vi.fn().mockResolvedValue(undefined)
+      renderWithViewData(<TableView />, {
+        working: [],
+        original: [],
+        viewMode: 'table' as const,
+        dataView: 'working' as const,
+        add,
+      })
+      const addBtn = screen.getByTitle('Add row')
+      await user.click(addBtn)
+      // A draft row should appear (input for name)
+      const nameInput = screen.queryByPlaceholderText('Name')
+      expect(nameInput).not.toBeNull()
+    })
   })
 })

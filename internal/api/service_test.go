@@ -1861,6 +1861,16 @@ func TestOrgService_Create(t *testing.T) {
 	if p.Role != "" || p.Discipline != "" || p.Team != "" {
 		t.Error("expected blank role, discipline, and team")
 	}
+	// disciplineOrder must be [] not nil so JSON encodes as [] not null
+	if data.Settings == nil {
+		t.Fatal("expected non-nil settings")
+	}
+	if data.Settings.DisciplineOrder == nil {
+		t.Error("[CREATE-001] disciplineOrder must be [] not null after create")
+	}
+	if len(data.Settings.DisciplineOrder) != 0 {
+		t.Errorf("[CREATE-001] expected empty disciplineOrder, got %v", data.Settings.DisciplineOrder)
+	}
 }
 
 // Scenarios: CREATE-004
