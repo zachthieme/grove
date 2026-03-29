@@ -76,3 +76,7 @@ Both create and add-parent endpoints reject empty names with a 422 ValidationErr
 - Empty name → ValidationError
 - Whitespace-only name → ValidationError
 - Service state is not modified on validation failure
+
+## Edge cases
+- Person not found → NotFoundError (404)
+- Name is whitespace-only → treated as empty, returns ValidationError

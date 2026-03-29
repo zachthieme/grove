@@ -150,6 +150,37 @@ func (s *OrgService) Add(ctx context.Context, p Person) (Person, []Person, []Pod
 	return p, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
 }
 
+func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Person, []Person, []Pod, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return Person{}, nil, nil, errValidation("name is required")
+	}
+	if len(name) > maxFieldLen {
+		return Person{}, nil, nil, errValidation("name too long (max %d characters)", maxFieldLen)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, child := s.findWorking(childId)
+	if child == nil {
+		return Person{}, nil, nil, errNotFound("person %s not found", childId)
+	}
+	if child.ManagerId != "" {
+		return Person{}, nil, nil, errConflict("person %s already has a manager", childId)
+	}
+
+	parent := Person{
+		Id:     uuid.NewString(),
+		Name:   name,
+		Status: "Active",
+	}
+	child.ManagerId = parent.Id
+	s.working = append(s.working, parent)
+	s.rebuildIndex()
+	return parent, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
+}
+
 func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
