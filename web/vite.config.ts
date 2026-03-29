@@ -14,6 +14,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     env: { TZ: 'UTC' },
+    setupFiles: ['./src/test-setup.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
