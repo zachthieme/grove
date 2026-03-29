@@ -8,7 +8,7 @@ func (s *OrgService) ListPods(ctx context.Context) []PodInfo {
 	return s.podMgr.ListPods(s.working)
 }
 
-func (s *OrgService) UpdatePod(ctx context.Context, podID string, fields map[string]string) (*MoveResult, error) {
+func (s *OrgService) UpdatePod(ctx context.Context, podID string, fields PodUpdate) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.podMgr.UpdatePod(podID, fields, s.working); err != nil {

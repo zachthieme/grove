@@ -45,30 +45,27 @@ func (pm *PodManager) ListPods(working []Person) []PodInfo {
 	return result
 }
 
-func (pm *PodManager) UpdatePod(podID string, fields map[string]string, working []Person) error {
+func (pm *PodManager) UpdatePod(podID string, fields PodUpdate, working []Person) error {
 	pod := findPodByID(pm.pods, podID)
 	if pod == nil {
 		return errNotFound("pod %s not found", podID)
 	}
-	for k, v := range fields {
-		switch k {
-		case "name":
-			if err := RenamePod(pm.pods, working, podID, v); err != nil {
-				return err
-			}
-		case "publicNote":
-			if err := validateNoteLen(v); err != nil {
-				return err
-			}
-			pod.PublicNote = v
-		case "privateNote":
-			if err := validateNoteLen(v); err != nil {
-				return err
-			}
-			pod.PrivateNote = v
-		default:
-			return errValidation("unknown pod field: %s", k)
+	if fields.Name != nil {
+		if err := RenamePod(pm.pods, working, podID, *fields.Name); err != nil {
+			return err
 		}
+	}
+	if fields.PublicNote != nil {
+		if err := validateNoteLen(*fields.PublicNote); err != nil {
+			return err
+		}
+		pod.PublicNote = *fields.PublicNote
+	}
+	if fields.PrivateNote != nil {
+		if err := validateNoteLen(*fields.PrivateNote); err != nil {
+			return err
+		}
+		pod.PrivateNote = *fields.PrivateNote
 	}
 	return nil
 }

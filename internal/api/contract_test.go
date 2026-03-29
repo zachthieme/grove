@@ -186,6 +186,46 @@ func TestContractSettingsFields(t *testing.T) {
 	assertFieldsMatch(t, "Settings", expected, got)
 }
 
+func TestContractPersonUpdateFields(t *testing.T) {
+	t.Parallel()
+	// TypeScript PersonUpdatePayload interface fields
+	expected := []string{
+		"additionalTeams",
+		"discipline",
+		"employmentType",
+		"level",
+		"managerId",
+		"name",
+		"newRole",
+		"newTeam",
+		"pod",
+		"private",
+		"privateNote",
+		"publicNote",
+		"role",
+		"status",
+		"team",
+	}
+	sort.Strings(expected)
+
+	got := jsonFieldNames(PersonUpdate{})
+	assertFieldsMatch(t, "PersonUpdate", expected, got)
+}
+
+func TestContractPodUpdateFields(t *testing.T) {
+	t.Parallel()
+	// TypeScript PodUpdatePayload interface fields
+	expected := []string{
+		"name",
+		"privateNote",
+		"publicNote",
+	}
+	sort.Strings(expected)
+
+	got := jsonFieldNames(PodUpdate{})
+	assertFieldsMatch(t, "PodUpdate", expected, got)
+}
+
 func TestContractPersonJSONRoundTrip(t *testing.T) {
 	t.Parallel()
 	original := Person{

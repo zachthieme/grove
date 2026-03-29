@@ -120,26 +120,12 @@ func FuzzAllRequiredHighMultiField(f *testing.F) {
 }
 
 func FuzzUpdateFields(f *testing.F) {
-	f.Add("name", "John")
-	f.Add("role", "Engineer")
-	f.Add("unknownField", "value")
-	f.Add("status", "Invalid")
-	f.Add("status", "Active")
-	f.Add("team", "NewTeam")
-	f.Add("discipline", "Design")
-	f.Add("managerId", "")
-	f.Add("employmentType", "Contractor")
-	f.Add("additionalTeams", "TeamA,TeamB")
-	f.Add("newRole", "Senior")
-	f.Add("newTeam", "Platform")
-	f.Add("level", "5")
-	f.Add("level", "not-a-number")
-	f.Add("publicNote", "a note")
-	f.Add("privateNote", "secret")
-	f.Add("pod", "alpha")
-	f.Add("", "")
+	f.Add("John", "Engineer", "Design")
+	f.Add("", "", "")
+	f.Add("Alice", "VP", "Eng")
+	f.Add(strings.Repeat("x", 600), "Senior", "SRE")
 
-	f.Fuzz(func(t *testing.T, field, value string) {
+	f.Fuzz(func(t *testing.T, name, role, disc string) {
 		svc := NewOrgService(NewMemorySnapshotStore())
 		csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n")
 		resp, err := svc.Upload(context.Background(), "test.csv", csv)
@@ -150,7 +136,9 @@ func FuzzUpdateFields(f *testing.F) {
 		if len(people) == 0 {
 			return
 		}
-		// Should never panic; errors are expected for unknown fields or invalid values
-		_, _ = svc.Update(context.Background(), people[0].Id, map[string]string{field: value})
+		// Should never panic; errors are expected for invalid values
+		_, _ = svc.Update(context.Background(), people[0].Id, PersonUpdate{
+			Name: &name, Role: &role, Discipline: &disc,
+		})
 	})
 }

@@ -22,6 +22,26 @@ type Person struct {
 	Extra           map[string]string `json:"extra,omitempty"`
 }
 
+// PersonUpdate carries optional field updates for a person.
+// Pointer fields: nil = not sent, zero value = set to empty/zero/false.
+type PersonUpdate struct {
+	Name            *string `json:"name,omitempty"`
+	Role            *string `json:"role,omitempty"`
+	Discipline      *string `json:"discipline,omitempty"`
+	Team            *string `json:"team,omitempty"`
+	ManagerId       *string `json:"managerId,omitempty"`
+	Status          *string `json:"status,omitempty"`
+	EmploymentType  *string `json:"employmentType,omitempty"`
+	AdditionalTeams *string `json:"additionalTeams,omitempty"`
+	NewRole         *string `json:"newRole,omitempty"`
+	NewTeam         *string `json:"newTeam,omitempty"`
+	Level           *int    `json:"level,omitempty"`
+	Pod             *string `json:"pod,omitempty"`
+	PublicNote      *string `json:"publicNote,omitempty"`
+	PrivateNote     *string `json:"privateNote,omitempty"`
+	Private         *bool   `json:"private,omitempty"`
+}
+
 type Pod struct {
 	Id          string `json:"id"`
 	Name        string `json:"name"`
@@ -29,6 +49,13 @@ type Pod struct {
 	ManagerId   string `json:"managerId"`
 	PublicNote  string `json:"publicNote,omitempty"`
 	PrivateNote string `json:"privateNote,omitempty"`
+}
+
+// PodUpdate carries optional field updates for a pod.
+type PodUpdate struct {
+	Name        *string `json:"name,omitempty"`
+	PublicNote  *string `json:"publicNote,omitempty"`
+	PrivateNote *string `json:"privateNote,omitempty"`
 }
 
 type PodInfo struct {

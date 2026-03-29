@@ -130,7 +130,7 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 			t.Fatalf("person %s not found", name)
 		}
 		newRole := fmt.Sprintf("Senior Engineer %d", i)
-		_, err := svc.Update(context.Background(), p.Id, map[string]string{"role": newRole})
+		_, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr(newRole)})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
@@ -255,7 +255,7 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(context.Background(), p.Id, map[string]string{"role": "Mutated"})
+		_, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr("Mutated")})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
@@ -362,7 +362,7 @@ func TestLargeOrg_500People(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(context.Background(), p.Id, map[string]string{"role": "Staff Engineer"})
+		_, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr("Staff Engineer")})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}

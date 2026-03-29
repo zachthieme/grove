@@ -161,9 +161,15 @@ export default function DetailSidebar() {
         if (key === 'private') continue
         const apiKey = key === 'otherTeams' ? 'additionalTeams' : key
         const val = form[key as keyof FormFields]
-        if (val !== MIXED_VALUE) (fields as Record<string, string>)[apiKey] = String(val)
+        if (val !== MIXED_VALUE) {
+          if (apiKey === 'level') {
+            ;(fields as Record<string, string | number>)[apiKey] = parseInt(String(val), 10) || 0
+          } else {
+            ;(fields as Record<string, string>)[apiKey] = String(val)
+          }
+        }
       }
-      if (batchDirty.has('private')) { (fields as Record<string, string>).private = form.private ? 'true' : 'false' }
+      if (batchDirty.has('private')) { fields.private = form.private }
       let failedCount = 0
       if (managerChanged) {
         for (const p of selectedPeople) {
@@ -190,11 +196,11 @@ export default function DetailSidebar() {
           status: form.status, employmentType: form.employmentType, additionalTeams: form.otherTeams,
         }
         if (!managerChanged) { fields.team = form.team; fields.managerId = form.managerId }
-        if (form.level !== String(person.level ?? 0)) fields.level = form.level
+        if (form.level !== String(person.level ?? 0)) fields.level = parseInt(form.level, 10) || 0
         if (form.pod !== (person.pod ?? '')) fields.pod = form.pod
         if (form.publicNote !== (person.publicNote ?? '')) fields.publicNote = form.publicNote
         if (form.privateNote !== (person.privateNote ?? '')) fields.privateNote = form.privateNote
-        if (form.private !== (person.private ?? false)) fields.private = form.private ? 'true' : 'false'
+        if (form.private !== (person.private ?? false)) fields.private = form.private
         await update(person.id, fields, corrId)
         markSaved()
       } catch {

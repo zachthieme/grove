@@ -115,7 +115,7 @@ func TestConcurrentUpdates(t *testing.T) {
 			defer wg.Done()
 			for range iterations {
 				role := fmt.Sprintf("Role-%d", g)
-				_, _ = svc.Update(context.Background(), bobID, map[string]string{"role": role})
+				_, _ = svc.Update(context.Background(), bobID, PersonUpdate{Role: ptr(role)})
 			}
 		}()
 	}
@@ -279,7 +279,7 @@ func TestConcurrentMixedOperations(t *testing.T) {
 					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
 				case 2:
 					// Update Bob's role
-					_, _ = svc.Update(context.Background(), bobID, map[string]string{"role": fmt.Sprintf("Role-%d-%d", g, i)})
+					_, _ = svc.Update(context.Background(), bobID, PersonUpdate{Role: ptr(fmt.Sprintf("Role-%d-%d", g, i))})
 				case 3:
 					// Add a new person
 					_, _, _, _ = svc.Add(context.Background(), Person{

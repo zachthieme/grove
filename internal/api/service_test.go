@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+func ptr[T any](v T) *T { return &v }
+
 func newTestService(t *testing.T) *OrgService {
 	t.Helper()
 	svc := NewOrgService(NewMemorySnapshotStore())
@@ -116,7 +118,7 @@ func TestOrgService_Update(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"role": "Senior Engineer", "discipline": "SRE"})
+	result, err := svc.Update(context.Background(), bob.Id, PersonUpdate{Role: ptr("Senior Engineer"), Discipline: ptr("SRE")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -527,17 +529,17 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 
 	// Update every supported field
-	result, err := svc.Update(context.Background(), bob.Id, map[string]string{
-		"name":            "Robert",
-		"role":            "Staff Engineer",
-		"discipline":      "SRE",
-		"team":            "Infra",
-		"status":          "Transfer In",
-		"managerId":       alice.Id,
-		"employmentType":  "Contractor",
-		"additionalTeams": "Platform, Eng",
-		"newRole":         "Principal",
-		"newTeam":         "Cloud",
+	result, err := svc.Update(context.Background(), bob.Id, PersonUpdate{
+		Name:            ptr("Robert"),
+		Role:            ptr("Staff Engineer"),
+		Discipline:      ptr("SRE"),
+		Team:            ptr("Infra"),
+		Status:          ptr("Transfer In"),
+		ManagerId:       ptr(alice.Id),
+		EmploymentType:  ptr("Contractor"),
+		AdditionalTeams: ptr("Platform, Eng"),
+		NewRole:         ptr("Principal"),
+		NewTeam:         ptr("Cloud"),
 	})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
@@ -580,7 +582,7 @@ func TestOrgService_Update_InvalidStatus(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"status": "INVALID"})
+	_, err := svc.Update(context.Background(), bob.Id, PersonUpdate{Status: ptr("INVALID")})
 	if err == nil {
 		t.Fatal("expected error for invalid status, got nil")
 	}
@@ -594,31 +596,18 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// First set additional teams
-	if _, err := svc.Update(context.Background(), bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, PersonUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 
 	// Then clear them
-	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"additionalTeams": ""})
+	result, err := svc.Update(context.Background(), bob.Id, PersonUpdate{AdditionalTeams: ptr("")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 	updated := findById(result.Working, bob.Id)
 	if updated.AdditionalTeams != nil {
 		t.Errorf("expected nil additional teams, got %v", updated.AdditionalTeams)
-	}
-}
-
-// Scenarios: ORG-007
-func TestOrgService_Update_UnknownField(t *testing.T) {
-	t.Parallel()
-	svc := newTestService(t)
-	data := svc.GetOrg(context.Background())
-	bob := findByName(data.Working, "Bob")
-
-	_, err := svc.Update(context.Background(), bob.Id, map[string]string{"unknownField": "value"})
-	if err == nil {
-		t.Fatal("expected error for unknown field")
 	}
 }
 
@@ -630,43 +619,23 @@ func TestOrgService_Update_Private(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Set private to true
-	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"private": "true"})
+	result, err := svc.Update(context.Background(), bob.Id, PersonUpdate{Private: ptr(true)})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 	updated := findById(result.Working, bob.Id)
 	if !updated.Private {
-		t.Error("expected Private to be true after setting 'true'")
+		t.Error("expected Private to be true")
 	}
 
 	// Set private to false
-	result, err = svc.Update(context.Background(), bob.Id, map[string]string{"private": "false"})
+	result, err = svc.Update(context.Background(), bob.Id, PersonUpdate{Private: ptr(false)})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 	updated = findById(result.Working, bob.Id)
 	if updated.Private {
-		t.Error("expected Private to be false after setting 'false'")
-	}
-
-	// Set private via "1"
-	result, err = svc.Update(context.Background(), bob.Id, map[string]string{"private": "1"})
-	if err != nil {
-		t.Fatalf("update failed: %v", err)
-	}
-	updated = findById(result.Working, bob.Id)
-	if !updated.Private {
-		t.Error("expected Private to be true after setting '1'")
-	}
-
-	// Set private via "yes"
-	result, err = svc.Update(context.Background(), bob.Id, map[string]string{"private": "yes"})
-	if err != nil {
-		t.Fatalf("update failed: %v", err)
-	}
-	updated = findById(result.Working, bob.Id)
-	if !updated.Private {
-		t.Error("expected Private to be true after setting 'yes'")
+		t.Error("expected Private to be false")
 	}
 }
 
@@ -674,7 +643,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 func TestOrgService_Update_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Update(context.Background(), "nonexistent", map[string]string{"role": "VP"})
+	_, err := svc.Update(context.Background(), "nonexistent", PersonUpdate{Role: ptr("VP")})
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -763,7 +732,7 @@ func TestOrgService_Update_CycleDetection(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 
 	// Alice -> Bob -> Carol; setting Alice's manager to Carol creates cycle
-	_, err := svc.Update(context.Background(), alice.Id, map[string]string{"managerId": carol.Id})
+	_, err := svc.Update(context.Background(), alice.Id, PersonUpdate{ManagerId: ptr(carol.Id)})
 	if err == nil {
 		t.Fatal("expected error when creating circular manager chain via Update")
 	}
@@ -878,7 +847,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Set additional teams on Bob
-	if _, err := svc.Update(context.Background(), bob.Id, map[string]string{"additionalTeams": "Platform, Eng"}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, PersonUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 
@@ -915,7 +884,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 	longStr := string(make([]byte, maxFieldLen+1))
 
 	t.Run("[ORG-009] Update rejects long field", func(t *testing.T) {
-		_, err := svc.Update(context.Background(), alice.Id, map[string]string{"name": longStr})
+		_, err := svc.Update(context.Background(), alice.Id, PersonUpdate{Name: ptr(longStr)})
 		if err == nil {
 			t.Error("expected error for field too long")
 		}
@@ -923,7 +892,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 
 	t.Run("[ORG-009] Update accepts max-length field", func(t *testing.T) {
 		okStr := string(make([]byte, maxFieldLen))
-		_, err := svc.Update(context.Background(), alice.Id, map[string]string{"name": okStr})
+		_, err := svc.Update(context.Background(), alice.Id, PersonUpdate{Name: ptr(okStr)})
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -957,7 +926,7 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 	})
 
 	t.Run("[ORG-002] self-reference via Update", func(t *testing.T) {
-		_, err := svc.Update(context.Background(), bob.Id, map[string]string{"managerId": bob.Id})
+		_, err := svc.Update(context.Background(), bob.Id, PersonUpdate{ManagerId: ptr(bob.Id)})
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
@@ -1221,7 +1190,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	}
 
 	// Update should work on restored data
-	updateResult, err := svc.Update(context.Background(), "2", map[string]string{"role": "Staff Engineer"})
+	updateResult, err := svc.Update(context.Background(), "2", PersonUpdate{Role: ptr("Staff Engineer")})
 	if err != nil {
 		t.Fatalf("update after restore failed: %v", err)
 	}
@@ -1352,7 +1321,7 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 	dave := findByName(data.Working, "Dave")
 
-	result, err := svc.Update(context.Background(), bob.Id, map[string]string{"team": "Infra"})
+	result, err := svc.Update(context.Background(), bob.Id, PersonUpdate{Team: ptr("Infra")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1382,7 +1351,7 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
-	result, err := svc.Update(context.Background(), alice.Id, map[string]string{"team": "NewTeam"})
+	result, err := svc.Update(context.Background(), alice.Id, PersonUpdate{Team: ptr("NewTeam")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1412,7 +1381,7 @@ func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Setting a new pod name should auto-create the pod
-	result, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": "Alpha"})
+	result, err := svc.Update(context.Background(), carol.Id, PersonUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1442,7 +1411,7 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Create pod "Alpha" first by setting it on Carol
-	_, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": "Alpha"})
+	_, err := svc.Update(context.Background(), carol.Id, PersonUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("first pod update failed: %v", err)
 	}
@@ -1456,7 +1425,7 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 		t.Fatalf("add failed: %v", err)
 	}
 
-	result, err := svc.Update(context.Background(), added.Id, map[string]string{"pod": "Alpha"})
+	result, err := svc.Update(context.Background(), added.Id, PersonUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("second pod update failed: %v", err)
 	}
@@ -1481,13 +1450,13 @@ func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 
 	// Set pod first
-	_, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": "Alpha"})
+	_, err := svc.Update(context.Background(), carol.Id, PersonUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("set pod failed: %v", err)
 	}
 
 	// Clear pod
-	result, err := svc.Update(context.Background(), carol.Id, map[string]string{"pod": ""})
+	result, err := svc.Update(context.Background(), carol.Id, PersonUpdate{Pod: ptr("")})
 	if err != nil {
 		t.Fatalf("clear pod failed: %v", err)
 	}
@@ -1637,7 +1606,7 @@ func TestOrgService_ListPods_MemberCounts(t *testing.T) {
 		t.Fatalf("create pod: %v", err)
 	}
 	// Assign Bob to the pod
-	_, err = svc.Update(ctx, bob.Id, map[string]string{"pod": "Alpha"})
+	_, err = svc.Update(ctx, bob.Id, PersonUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("assign pod: %v", err)
 	}
@@ -1664,33 +1633,12 @@ func TestOrgService_ListPods_MemberCounts(t *testing.T) {
 func TestOrgService_UpdatePod_NotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.UpdatePod(context.Background(), "nonexistent-pod-id", map[string]string{"publicNote": "hello"})
+	_, err := svc.UpdatePod(context.Background(), "nonexistent-pod-id", PodUpdate{PublicNote: ptr("hello")})
 	if err == nil {
 		t.Fatal("expected error for nonexistent pod")
 	}
 	if !isNotFound(err) {
 		t.Errorf("expected NotFoundError, got %T: %v", err, err)
-	}
-}
-
-// Scenarios: ORG-018
-func TestOrgService_UpdatePod_UnknownField(t *testing.T) {
-	t.Parallel()
-	svc := newTestService(t)
-	ctx := context.Background()
-
-	alice := findByName(svc.GetWorking(ctx), "Alice")
-	_, err := svc.CreatePod(ctx, alice.Id, "Alpha", "Eng")
-	if err != nil {
-		t.Fatalf("create pod: %v", err)
-	}
-	pods := svc.ListPods(ctx)
-	_, err = svc.UpdatePod(ctx, pods[0].Id, map[string]string{"badField": "value"})
-	if err == nil {
-		t.Fatal("expected error for unknown pod field")
-	}
-	if !isValidation(err) {
-		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
 
@@ -1708,7 +1656,7 @@ func TestOrgService_UpdatePod_NoteTooLong(t *testing.T) {
 	pods := svc.ListPods(ctx)
 
 	longNote := string(make([]byte, maxNoteLen+1))
-	_, err = svc.UpdatePod(ctx, pods[0].Id, map[string]string{"publicNote": longNote})
+	_, err = svc.UpdatePod(ctx, pods[0].Id, PodUpdate{PublicNote: ptr(longNote)})
 	if err == nil {
 		t.Fatal("expected error for oversized note")
 	}

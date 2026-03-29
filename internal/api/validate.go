@@ -48,6 +48,28 @@ const (
 	maxNoteLen  = 2000
 )
 
+// validatePersonUpdate checks field lengths on a PersonUpdate struct.
+// Short fields use maxFieldLen; note fields use maxNoteLen.
+func validatePersonUpdate(u *PersonUpdate) error {
+	shortFields := []*string{
+		u.Name, u.Role, u.Discipline, u.Team, u.ManagerId,
+		u.Status, u.EmploymentType, u.AdditionalTeams,
+		u.NewRole, u.NewTeam, u.Pod,
+	}
+	for _, v := range shortFields {
+		if v != nil && len(*v) > maxFieldLen {
+			return errValidation("field value too long (max %d characters)", maxFieldLen)
+		}
+	}
+	noteFields := []*string{u.PublicNote, u.PrivateNote}
+	for _, v := range noteFields {
+		if v != nil && len(*v) > maxNoteLen {
+			return errValidation("note too long (max %d characters)", maxNoteLen)
+		}
+	}
+	return nil
+}
+
 // validateFieldLengths checks that all string values in fields don't exceed maxFieldLen.
 func validateFieldLengths(fields map[string]string) error {
 	for _, v := range fields {

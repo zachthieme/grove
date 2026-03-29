@@ -132,7 +132,7 @@ func BenchmarkUpdate(b *testing.B) {
 	for b.Loop() {
 		role := roles[i%len(roles)]
 		i++
-		if _, err := svc.Update(context.Background(), personID, map[string]string{"role": role}); err != nil {
+		if _, err := svc.Update(context.Background(), personID, PersonUpdate{Role: ptr(role)}); err != nil {
 			b.Fatal(err)
 		}
 	}

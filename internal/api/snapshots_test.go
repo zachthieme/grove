@@ -45,7 +45,7 @@ func TestSnapshot_Load(t *testing.T) {
 		t.Fatalf("save snapshot: %v", err)
 	}
 	bob := findByName(svc.GetWorking(context.Background()), "Bob")
-	if _, err := svc.Update(context.Background(), bob.Id, map[string]string{"role": "Senior Engineer"}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, PersonUpdate{Role: ptr("Senior Engineer")}); err != nil {
 		t.Fatalf("update: %v", err)
 	}
 

@@ -5,7 +5,7 @@ import "context"
 // PersonService handles people mutations (move, update, add, delete, restore, reorder).
 type PersonService interface {
 	Move(ctx context.Context, personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error)
-	Update(ctx context.Context, personId string, fields map[string]string) (*MoveResult, error)
+	Update(ctx context.Context, personId string, fields PersonUpdate) (*MoveResult, error)
 	Add(ctx context.Context, p Person) (Person, []Person, []Pod, error)
 	Delete(ctx context.Context, personId string) (*MutationResult, error)
 	Restore(ctx context.Context, personId string) (*MutationResult, error)
@@ -41,7 +41,7 @@ type ImportService interface {
 // PodService manages pods and pod export data.
 type PodService interface {
 	ListPods(ctx context.Context) []PodInfo
-	UpdatePod(ctx context.Context, podID string, fields map[string]string) (*MoveResult, error)
+	UpdatePod(ctx context.Context, podID string, fields PodUpdate) (*MoveResult, error)
 	CreatePod(ctx context.Context, managerID, name, team string) (*MoveResult, error)
 	GetPodExportData(ctx context.Context) ([]Pod, []Person)
 }

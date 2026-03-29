@@ -66,11 +66,11 @@ export interface PersonUpdatePayload {
   additionalTeams?: string
   newRole?: string
   newTeam?: string
-  level?: string
+  level?: number
   pod?: string
   publicNote?: string
   privateNote?: string
-  private?: string
+  private?: boolean
 }
 
 export interface PodUpdatePayload {

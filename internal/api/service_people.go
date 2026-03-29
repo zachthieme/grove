@@ -2,8 +2,6 @@ package api
 
 import (
 	"context"
-	"maps"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -34,95 +32,85 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam s
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
-// longValueFields are fields that use the higher note-length limit (not the 500-char field limit).
-var longValueFields = map[string]bool{"publicNote": true, "privateNote": true, "pod": true}
-
-func (s *OrgService) Update(ctx context.Context, personId string, fields map[string]string) (*MoveResult, error) {
+func (s *OrgService) Update(ctx context.Context, personId string, fields PersonUpdate) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// Extract long-value fields so they don't hit the 500-char limit
-	longFields := map[string]string{}
-	for key := range longValueFields {
-		if v, ok := fields[key]; ok {
-			longFields[key] = v
-			delete(fields, key)
-		}
-	}
-	if err := validateFieldLengths(fields); err != nil {
+
+	if err := validatePersonUpdate(&fields); err != nil {
 		return nil, err
 	}
-	maps.Copy(fields, longFields)
+
 	_, p := s.findWorking(personId)
 	if p == nil {
 		return nil, errNotFound("person %s not found", personId)
 	}
-	// Clear warning on any edit — the user is actively fixing the data
-	p.Warning = ""
-	for k, v := range fields {
-		if applySimpleField(p, k, v) {
-			continue
-		}
-		switch k {
-		case "team":
-			s.applyTeamChange(p, personId, v)
-		case "status":
-			if !model.ValidStatuses[v] {
-				return nil, errValidation("invalid status '%s'", v)
-			}
-			p.Status = v
-		case "managerId":
-			if err := s.applyManagerChange(p, personId, v, fields); err != nil {
-				return nil, err
-			}
-		case "publicNote":
-			if err := validateNoteLen(v); err != nil {
-				return nil, err
-			}
-			p.PublicNote = v
-		case "privateNote":
-			if err := validateNoteLen(v); err != nil {
-				return nil, err
-			}
-			p.PrivateNote = v
-		case "level":
-			n, err := strconv.Atoi(v)
-			if err != nil {
-				return nil, errValidation("invalid level: %s", v)
-			}
-			p.Level = n
-		case "pod":
-			s.applyPodChange(p, v)
-		default:
-			return nil, errValidation("unknown field: %s", k)
-		}
-	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
-}
 
-// applySimpleField handles direct-assignment fields that need no validation or service state.
-// Returns true if the field was handled.
-func applySimpleField(p *Person, key, value string) bool {
-	switch key {
-	case "name":
-		p.Name = value
-	case "role":
-		p.Role = value
-	case "discipline":
-		p.Discipline = value
-	case "employmentType":
-		p.EmploymentType = value
-	case "newRole":
-		p.NewRole = value
-	case "newTeam":
-		p.NewTeam = value
-	case "additionalTeams":
-		p.AdditionalTeams = parseAdditionalTeams(value)
-	case "private":
-		p.Private = value == "true" || value == "1" || value == "yes"
-	default:
-		return false
+	// Clear warning on any edit
+	p.Warning = ""
+
+	// Simple fields
+	if fields.Name != nil {
+		p.Name = *fields.Name
 	}
-	return true
+	if fields.Role != nil {
+		p.Role = *fields.Role
+	}
+	if fields.Discipline != nil {
+		p.Discipline = *fields.Discipline
+	}
+	if fields.EmploymentType != nil {
+		p.EmploymentType = *fields.EmploymentType
+	}
+	if fields.NewRole != nil {
+		p.NewRole = *fields.NewRole
+	}
+	if fields.NewTeam != nil {
+		p.NewTeam = *fields.NewTeam
+	}
+	if fields.AdditionalTeams != nil {
+		p.AdditionalTeams = parseAdditionalTeams(*fields.AdditionalTeams)
+	}
+	if fields.Private != nil {
+		p.Private = *fields.Private
+	}
+	if fields.Level != nil {
+		p.Level = *fields.Level
+	}
+
+	// Status — requires validation
+	if fields.Status != nil {
+		if !model.ValidStatuses[*fields.Status] {
+			return nil, errValidation("invalid status '%s'", *fields.Status)
+		}
+		p.Status = *fields.Status
+	}
+
+	// Notes — length already validated by validatePersonUpdate
+	if fields.PublicNote != nil {
+		p.PublicNote = *fields.PublicNote
+	}
+	if fields.PrivateNote != nil {
+		p.PrivateNote = *fields.PrivateNote
+	}
+
+	// Manager change — requires cycle detection and team inheritance
+	if fields.ManagerId != nil {
+		if err := s.applyManagerChange(p, personId, *fields.ManagerId, fields.Team != nil); err != nil {
+			return nil, err
+		}
+	}
+
+	// Team change — cascades to ICs of front-line managers
+	if fields.Team != nil {
+		s.applyTeamChange(p, personId, *fields.Team)
+	}
+
+	// Pod change — may auto-create pod
+	if fields.Pod != nil {
+		s.applyPodChange(p, *fields.Pod)
+	}
+
+	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
@@ -240,12 +228,12 @@ func (s *OrgService) applyTeamChange(p *Person, personId, team string) {
 
 // applyManagerChange validates and applies a manager reassignment.
 // Must be called with s.mu held.
-func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string, fields map[string]string) error {
+func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string, hasTeamField bool) error {
 	if newManagerId != "" {
 		if err := validateManagerChange(s.working, personId, newManagerId); err != nil {
 			return err
 		}
-		if _, hasTeam := fields["team"]; !hasTeam {
+		if !hasTeamField {
 			if _, mgr := s.findWorking(newManagerId); mgr != nil {
 				p.Team = mgr.Team
 			}

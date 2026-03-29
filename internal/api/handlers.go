@@ -163,8 +163,8 @@ func handleMove(svc PersonService) http.HandlerFunc {
 
 func handleUpdate(svc PersonService) http.HandlerFunc {
 	type req struct {
-		PersonId string            `json:"personId"`
-		Fields   map[string]string `json:"fields"`
+		PersonId string       `json:"personId"`
+		Fields   PersonUpdate `json:"fields"`
 	}
 	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
 		result, err := svc.Update(ctx, r.PersonId, r.Fields)
@@ -336,8 +336,8 @@ func handleListPods(svc PodService) http.HandlerFunc {
 
 func handleUpdatePod(svc PodService) http.HandlerFunc {
 	type req struct {
-		PodId  string            `json:"podId"`
-		Fields map[string]string `json:"fields"`
+		PodId  string    `json:"podId"`
+		Fields PodUpdate `json:"fields"`
 	}
 	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
 		result, err := svc.UpdatePod(ctx, r.PodId, r.Fields)

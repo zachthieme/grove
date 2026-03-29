@@ -167,7 +167,7 @@ func TestUpdateHandler(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]any{
 		"personId": bob.Id,
-		"fields":   map[string]string{"role": "Senior Engineer"},
+		"fields":   map[string]any{"role": "Senior Engineer"},
 	})
 
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
@@ -596,7 +596,7 @@ func TestResetHandler(t *testing.T) {
 	// Mutate: update Bob's role
 	body, _ := json.Marshal(map[string]any{
 		"personId": bob.Id,
-		"fields":   map[string]string{"role": "Senior Engineer"},
+		"fields":   map[string]any{"role": "Senior Engineer"},
 	})
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -729,7 +729,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 	body, _ = json.Marshal(map[string]any{
 		"personId": bob.Id,
-		"fields":   map[string]string{"role": "Senior Engineer"},
+		"fields":   map[string]any{"role": "Senior Engineer"},
 	})
 	req = httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -888,7 +888,7 @@ func TestUpdateHandler_PersonNotFound(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]any{
 		"personId": "nonexistent",
-		"fields":   map[string]string{"role": "VP"},
+		"fields":   map[string]any{"role": "VP"},
 	})
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
