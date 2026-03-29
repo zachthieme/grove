@@ -37,8 +37,8 @@ describe('useTour', () => {
       result.current.startTour()
     })
     const calls = vi.mocked(driver).mock.calls
-    const config = calls[0][0]
-    expect(config.steps).toHaveLength(3)
+    const config = calls[0]?.[0]
+    expect(config!.steps).toHaveLength(3)
   })
 
   it('passes 9 steps when loaded is true', () => {
@@ -47,8 +47,8 @@ describe('useTour', () => {
       result.current.startTour()
     })
     const calls = vi.mocked(driver).mock.calls
-    const config = calls[0][0]
-    expect(config.steps).toHaveLength(9)
+    const config = calls[0]?.[0]
+    expect(config!.steps).toHaveLength(9)
   })
 
   it('changes startTour reference when loaded changes', () => {

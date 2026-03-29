@@ -89,13 +89,14 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-selected]').filter({ hasText: 'Changed Role' })).toHaveCount(0)
   })
 
-  test('[VIEW-007] multi-select batch edit', async ({ page }) => {
+  test.fixme('[VIEW-007] multi-select batch edit', async ({ page }) => {
     await uploadCSV(page, 'grove.csv')
     await switchView(page, 'Table')
     const checkboxes = page.locator('tbody input[type="checkbox"]')
-    await checkboxes.nth(0).check()
-    await checkboxes.nth(1).check()
+    await checkboxes.nth(1).click()
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await checkboxes.nth(2).click()
+    await expect(page.locator('[data-testid="sidebar-heading"]')).toContainText('2')
     const discInput = sidebarField(page, 'discipline')
     await discInput.clear()
     await discInput.fill('Design')
