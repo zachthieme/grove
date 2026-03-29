@@ -100,7 +100,7 @@ function AppContent() {
       <Breadcrumbs />
       <AutosaveBanner />
       <div className={styles.body}>
-        <main className={styles.main} ref={mainRef} data-tour="main-content">
+        <main className={styles.main} ref={mainRef} data-tour="main-content" onClick={(e) => { if (e.target === e.currentTarget && selectedIds.size > 0) clearSelection() }}>
           {!loaded ? (
             <UploadPrompt />
           ) : viewMode === 'table' ? (

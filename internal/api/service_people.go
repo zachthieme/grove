@@ -21,14 +21,15 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam s
 		}
 	}
 	p.ManagerId = newManagerId
-	if newTeam != "" {
-		p.Team = newTeam
-	}
 	if len(newPod) > 0 && newPod[0] != "" {
 		p.Pod = newPod[0]
 	}
-	s.podMgr.Reassign(p)
-	s.podMgr.Cleanup(s.working)
+	if newTeam != "" {
+		s.applyTeamChange(p, personId, newTeam)
+	} else {
+		s.podMgr.Reassign(p)
+		s.podMgr.Cleanup(s.working)
+	}
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
