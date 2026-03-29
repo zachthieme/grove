@@ -10,7 +10,7 @@ import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
 function SubtreeNode({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, onInlineEdit } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, onInlineEdit } = useChart()
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -49,12 +49,13 @@ function SubtreeNode({ node }: { node: OrgNode }) {
         onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
         onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
         onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
+        onEditMode={onEditMode ? () => onEditMode(child.person.id) : undefined}
         onSelect={(e) => onSelect(child.person.id, e)}
         onInlineEdit={onInlineEdit ? (field: string, value: string) => onInlineEdit(child.person.id, field, value) : undefined}
         nodeRef={setNodeRef(child.person.id)}
       />
     </div>
-  ), [selectedIds, changes, managerSet, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onSelect, onInlineEdit, setNodeRef])
+  ), [selectedIds, changes, managerSet, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onSelect, onInlineEdit, setNodeRef])
 
   const icPodListElements = useMemo((): ReactNode => {
     if (!allICs) return null
@@ -177,6 +178,7 @@ function SubtreeNode({ node }: { node: OrgNode }) {
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
+          onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
           onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
           onInlineEdit={onInlineEdit ? (field: string, value: string) => onInlineEdit(node.person.id, field, value) : undefined}

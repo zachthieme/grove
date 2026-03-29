@@ -22,7 +22,6 @@
 
 .manager {
   border-left: 3.5px solid var(--grove-green);
-  background: linear-gradient(135deg, var(--surface-raised) 0%, #f9faf8 100%);
 }
 
 .manager .name {

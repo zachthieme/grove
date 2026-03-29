@@ -100,3 +100,22 @@
   accent-color: var(--grove-green);
   cursor: pointer;
 }
+
+.themeGroup {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.themeOption {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.themeOption input[type="radio"] {
+  accent-color: var(--grove-green);
+  cursor: pointer;
+}

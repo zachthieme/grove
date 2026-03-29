@@ -1,6 +1,5 @@
 import type { Person } from '../api/types'
 import { computeOrgMetrics } from '../hooks/useOrgMetrics'
-import { useEscapeKey } from '../hooks/useEscapeKey'
 import styles from './ManagerInfoPopover.module.css'
 
 interface Props {
@@ -12,8 +11,6 @@ interface Props {
 export default function ManagerInfoPopover({ personId, working, onClose }: Props) {
   const metrics = computeOrgMetrics(personId, working)
   const person = working.find((p) => p.id === personId)
-
-  useEscapeKey(onClose, true)
 
   return (
     <div className={styles.overlay} onMouseDown={onClose}>

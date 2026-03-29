@@ -111,4 +111,13 @@ describe('DetailSidebar golden', () => {
     })
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/detail-sidebar-whitespace.golden')
   })
+
+  it('single person in edit mode', () => {
+    const { container } = renderWithOrg(<DetailSidebar mode="edit" onSetMode={vi.fn()} />, {
+      ...baseCtx,
+      selectedId: 'b2',
+      selectedIds: new Set(['b2']),
+    })
+    expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/detail-sidebar-edit.golden')
+  })
 })

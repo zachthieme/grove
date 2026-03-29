@@ -118,9 +118,8 @@ input, select, button {
   border: 0;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Dark mode — activated by data-theme attribute (set via JS) */
+:root[data-theme="dark"] {
     --grove-green: #4a8c3f;
     --grove-green-light: #5a9c4f;
     --grove-green-soft: rgba(74, 140, 63, 0.12);
@@ -159,13 +158,12 @@ input, select, button {
     --diff-title: rgba(138, 126, 111, 0.12);
     --diff-reorg: rgba(212, 152, 59, 0.12);
     --diff-pod: rgba(122, 154, 111, 0.12);
-  }
+}
 
-  body {
+:root[data-theme="dark"] body {
     background-image: radial-gradient(ellipse at 50% 0%, rgba(74, 140, 63, 0.04) 0%, transparent 60%);
-  }
+}
 
-  body::before {
+:root[data-theme="dark"] body::before {
     opacity: 0.03;
-  }
 }

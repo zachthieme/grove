@@ -31,7 +31,7 @@ const carol = makePerson({
 describe('DetailSidebar — branch coverage', () => {
   describe('status info popover', () => {
     function renderSingle() {
-      return renderWithOrg(<DetailSidebar />, {
+      return renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
@@ -72,7 +72,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('closes popover when mouseDown on overlay', () => {
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
@@ -96,7 +96,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('does not close popover when mouseDown on inner content (stopPropagation)', () => {
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
@@ -156,7 +156,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'ic1', name: 'IC Person', role: 'Eng',
         managerId: 'prv1', team: 'Secret',
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [privateMgr, ic],
         selectedId: 'ic1',
         selectedIds: new Set(['ic1']),
@@ -178,7 +178,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'ic1', name: 'IC Person', role: 'Eng',
         managerId: 'prv1', team: 'Secret',
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [privateMgr, ic],
         selectedId: 'ic1',
         selectedIds: new Set(['ic1']),
@@ -199,7 +199,7 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithLevel = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', level: 3,
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithLevel],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -220,7 +220,7 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithPod = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', pod: 'Alpha',
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithPod],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -241,7 +241,7 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithNote = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', publicNote: 'Old note',
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithNote],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -261,7 +261,7 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithNote = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', privateNote: 'Secret',
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithNote],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -281,7 +281,7 @@ describe('DetailSidebar — branch coverage', () => {
       const personNotPrivate = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', private: false,
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personNotPrivate],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -301,7 +301,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'p1', name: 'Person', managerId: '', team: 'T',
         level: 3, pod: 'Alpha', publicNote: 'Note', privateNote: 'Secret', private: true,
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithDefaults],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -322,7 +322,7 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
@@ -353,7 +353,7 @@ describe('DetailSidebar — branch coverage', () => {
         private: undefined,
         additionalTeams: undefined as unknown as string[],
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [barebones],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -373,7 +373,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'p1', name: 'Multi', managerId: '', team: 'T',
         additionalTeams: ['TeamA', 'TeamB'],
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [withTeams],
         selectedId: 'p1',
         selectedIds: new Set(['p1']),
@@ -394,7 +394,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic = makePerson({ id: 'ic1', name: 'IC', managerId: 'm1', team: 'TeamA' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'TeamB' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [mgr1, mgr2, ic, ic2],
         selectedId: 'ic1',
         selectedIds: new Set(['ic1']),
@@ -739,7 +739,7 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
@@ -758,7 +758,7 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),

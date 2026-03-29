@@ -2,13 +2,17 @@ import { useState, useCallback } from 'react'
 import { useOrgData } from '../store/OrgContext'
 import styles from './SettingsModal.module.css'
 
+type ThemePref = 'system' | 'light' | 'dark'
+
 interface SettingsModalProps {
   onClose: () => void
   vimMode?: boolean
   onToggleVimMode?: (on: boolean) => void
+  themePref?: ThemePref
+  onChangeTheme?: (pref: ThemePref) => void
 }
 
-export default function SettingsModal({ onClose, vimMode, onToggleVimMode }: SettingsModalProps) {
+export default function SettingsModal({ onClose, vimMode, onToggleVimMode, themePref, onChangeTheme }: SettingsModalProps) {
   const { working, settings, updateSettings } = useOrgData()
 
   const allDisciplines = Array.from(new Set(
@@ -66,6 +70,21 @@ export default function SettingsModal({ onClose, vimMode, onToggleVimMode }: Set
         {order.length === 0 && (
           <p className={styles.hint}>No disciplines found in current data.</p>
         )}
+
+        <h4 className={styles.sectionTitle}>Appearance</h4>
+        <div className={styles.themeGroup}>
+          {(['system', 'light', 'dark'] as const).map((opt) => (
+            <label key={opt} className={styles.themeOption}>
+              <input
+                type="radio"
+                name="theme"
+                checked={themePref === opt}
+                onChange={() => onChangeTheme?.(opt)}
+              />
+              <span>{opt === 'system' ? 'System' : opt === 'light' ? 'Light' : 'Dark'}</span>
+            </label>
+          ))}
+        </div>
 
         <h4 className={styles.sectionTitle}>Keyboard</h4>
         <label className={styles.toggle}>

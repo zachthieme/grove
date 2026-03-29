@@ -253,3 +253,49 @@
   margin-bottom: 2px;
   font-style: italic;
 }
+
+.viewBody {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.viewField {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.viewLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.viewValue {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.editBtn {
+  background: var(--surface-raised);
+  color: var(--grove-green);
+  border: 1px solid var(--grove-green);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.editBtn:hover {
+  background: var(--grove-green);
+  color: #fff;
+}

@@ -37,6 +37,7 @@ interface Props {
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
+  onEditMode?: () => void
   onToggleCollapse?: () => void
   onClick?: (e?: React.MouseEvent) => void
   onInlineEdit?: (field: string, value: string) => void
@@ -44,7 +45,7 @@ interface Props {
 
 type EditingField = 'name' | 'role' | 'team' | null
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onInlineEdit }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onInlineEdit }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [editingField, setEditingField] = useState<EditingField>(null)
@@ -70,6 +71,10 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       onInlineEdit?.(editingField, editValue.trim())
     }
     setEditingField(null)
+    // Return focus to document body so vim keys resume working
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   }
 
   const getOriginal = (field: EditingField): string => {
@@ -80,6 +85,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
   }
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation()
     if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
     if (e.key === 'Escape') { setEditingField(null) }
     if (e.key === 'Tab') { e.preventDefault(); commitEdit() }
@@ -112,7 +118,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
   const statusLabel = isRecruiting ? 'Recruiting' : isFuture ? 'Planned' : isTransfer ? 'Transfer' : null
-  const showActions = !ghost && !isPlaceholder && (onAdd || onAddParent || onDelete || onInfo || onFocus)
+  const showActions = !ghost && !isPlaceholder && (onAdd || onAddParent || onDelete || onInfo || onFocus || onEditMode)
 
   const nodeStyle = empColor ? { '--emp-color': empColor } as React.CSSProperties : undefined
 
@@ -131,7 +137,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
           onAdd={(e) => { e.stopPropagation(); onAdd?.() }}
           onAddParent={onAddParent ? (e) => { e.stopPropagation(); onAddParent() } : undefined}
           onDelete={(e) => { e.stopPropagation(); onDelete?.() }}
-          onEdit={(e) => { e.stopPropagation(); onClick?.(e) }}
+          onEdit={onEditMode ? (e) => { e.stopPropagation(); onEditMode() } : undefined}
           onInfo={(e) => { e.stopPropagation(); onInfo?.() }}
           onFocus={onFocus ? (e) => { e.stopPropagation(); onFocus() } : undefined}
         />
@@ -142,7 +148,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       {isPrivate && !isPlaceholder && (
         <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
-      <div className={classNames} style={nodeStyle} onClick={(e) => onClick?.(e)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
+      <div className={classNames} style={nodeStyle} onClick={(e) => { onClick?.(e); (e.currentTarget as HTMLElement).blur() }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
         <div className={styles.name} onDoubleClick={startEdit('name', person.name)}>
           {editingField === 'name' ? (
             <input ref={editRef} className={styles.inlineEdit} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />

@@ -10,7 +10,7 @@ interface Props {
   onAdd: (e: React.MouseEvent) => void
   onAddParent?: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
-  onEdit: (e: React.MouseEvent) => void
+  onEdit?: (e: React.MouseEvent) => void
   onInfo: (e: React.MouseEvent) => void
   onFocus?: (e: React.MouseEvent) => void
 }
@@ -30,7 +30,7 @@ export default function NodeActions({ showAdd, showAddParent, showInfo, showFocu
       {showInfo && (
         <button className={styles.btn} onClick={onInfo} title="Org metrics" aria-label="Org metrics">{'\u2139'}</button>
       )}
-      {showEdit && (
+      {showEdit && onEdit && (
         <button className={styles.btn} onClick={onEdit} title="Edit" aria-label="Edit">{'\u270E'}</button>
       )}
       {showDelete && (

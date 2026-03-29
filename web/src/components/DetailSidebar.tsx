@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useOrgData, useUI, useSelection } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { Person, PersonUpdatePayload } from '../api/types'
@@ -79,7 +79,12 @@ function formFromBatch(people: Person[]): FormFields {
   }
 }
 
-export default function DetailSidebar() {
+interface DetailSidebarProps {
+  mode?: 'view' | 'edit'
+  onSetMode?: (mode: 'view' | 'edit') => void
+}
+
+export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSidebarProps) {
   const { working, update, remove, reparent } = useOrgData()
   const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection } = useSelection()
 
@@ -96,6 +101,14 @@ export default function DetailSidebar() {
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
 
   const { showPrivate } = useUI()
+
+  const firstInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (mode === 'edit' && firstInputRef.current) {
+      firstInputRef.current.focus()
+    }
+  }, [mode])
 
   const managers = useMemo(() => {
     const managerIds = new Set(working.filter((p) => p.managerId).map((p) => p.managerId))
@@ -204,6 +217,7 @@ export default function DetailSidebar() {
         if (form.private !== (person.private ?? false)) fields.private = form.private
         await update(person.id, fields, corrId)
         markSaved()
+        onSetMode?.('view')
       } catch {
         markError('Save failed')
       }
@@ -226,6 +240,80 @@ export default function DetailSidebar() {
   if (isBatch && selectedPeople.length === 0) return null
   if (!isBatch && !person) return null
 
+  // View mode: single person, read-only display
+  if (!isBatch && person && mode === 'view') {
+    const manager = working.find(p => p.id === person.managerId)
+    return (
+      <aside className={styles.sidebar}>
+        <div className={styles.header}>
+          <h3 data-testid="sidebar-heading">{person.name || '(unnamed)'}</h3>
+          <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close" title="Close">
+            &times;
+          </button>
+        </div>
+        <div className={styles.viewBody}>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Role</span>
+            <span className={styles.viewValue}>{person.role || 'TBD'}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Discipline</span>
+            <span className={styles.viewValue}>{person.discipline || '\u2014'}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Team</span>
+            <span className={styles.viewValue}>{person.team || '\u2014'}</span>
+          </div>
+          {person.additionalTeams && person.additionalTeams.length > 0 && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Other Teams</span>
+              <span className={styles.viewValue}>{person.additionalTeams.join(', ')}</span>
+            </div>
+          )}
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Manager</span>
+            <span className={styles.viewValue}>{manager?.name || '(none)'}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Status</span>
+            <span className={styles.viewValue}>{person.status}</span>
+          </div>
+          {person.pod && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Pod</span>
+              <span className={styles.viewValue}>{person.pod}</span>
+            </div>
+          )}
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Employment</span>
+            <span className={styles.viewValue}>{person.employmentType || 'FTE'}</span>
+          </div>
+          {(person.level ?? 0) > 0 && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Level</span>
+              <span className={styles.viewValue}>{person.level}</span>
+            </div>
+          )}
+          {person.publicNote && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Note</span>
+              <span className={styles.viewValue}>{person.publicNote}</span>
+            </div>
+          )}
+          {person.private && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Visibility</span>
+              <span className={styles.viewValue}>Private</span>
+            </div>
+          )}
+        </div>
+        <div className={styles.actions}>
+          <button className={styles.editBtn} onClick={() => onSetMode?.('edit')}>Edit</button>
+        </div>
+      </aside>
+    )
+  }
+
   type StringField = { [K in keyof FormFields]: FormFields[K] extends string ? K : never }[keyof FormFields]
   const mixed = (field: StringField) => form[field] === MIXED_VALUE
   const val = (field: StringField) => mixed(field) ? '' : form[field]
@@ -243,7 +331,7 @@ export default function DetailSidebar() {
         {!isBatch && (
           <div className={styles.field}>
             <label>Name</label>
-            <input data-testid="field-name" value={form.name} onChange={(e) => handleChange('name', e.target.value)} />
+            <input data-testid="field-name" ref={firstInputRef} value={form.name} onChange={(e) => handleChange('name', e.target.value)} />
           </div>
         )}
         <div className={styles.field}>

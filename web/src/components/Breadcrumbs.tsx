@@ -18,13 +18,15 @@ export default function Breadcrumbs() {
     return path
   }, [headPersonId, working])
 
-  if (!headPersonId) return null
-
   return (
     <div className={styles.bar}>
-      <button onClick={() => setHead(null)} className={styles.navBtn} title="Show full org chart">
-        All
-      </button>
+      {headPersonId ? (
+        <button onClick={() => setHead(null)} className={styles.navBtn} title="Show full org chart">
+          All
+        </button>
+      ) : (
+        <span className={styles.current}>All</span>
+      )}
       {breadcrumbs.map((crumb, i) => {
         const isLast = i === breadcrumbs.length - 1
         return (

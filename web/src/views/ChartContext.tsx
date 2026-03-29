@@ -15,6 +15,7 @@ export interface ChartContextValue {
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
+  onEditMode?: (id: string) => void
   onPodSelect?: (podId: string) => void
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
   collapsedIds?: Set<string>

@@ -38,9 +38,11 @@ interface ToolbarProps {
   canRedo?: boolean
   vimMode?: boolean
   onToggleVimMode?: (on: boolean) => void
+  themePref?: 'system' | 'light' | 'dark'
+  onChangeTheme?: (pref: 'system' | 'light' | 'dark') => void
 }
 
-export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, onUndo, onRedo, canUndo, canRedo, vimMode, onToggleVimMode }: ToolbarProps) {
+export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, onUndo, onRedo, canUndo, canRedo, vimMode, onToggleVimMode, themePref, onChangeTheme }: ToolbarProps) {
   const { upload, loaded } = useOrgData()
   const { viewMode, dataView, setViewMode, setDataView, reflow } = useUI()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -265,7 +267,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
         )}
       </div>
 
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} vimMode={vimMode} onToggleVimMode={onToggleVimMode} />}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} vimMode={vimMode} onToggleVimMode={onToggleVimMode} themePref={themePref} onChangeTheme={onChangeTheme} />}
     </header>
   )
 }

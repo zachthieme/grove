@@ -9,6 +9,7 @@ interface VimNavOptions {
   onAddReport?: (id: string) => void
   onAddParent?: (childId: string) => void
   onReparent?: (personId: string, newManagerId: string) => void
+  onSidebarEdit?: () => void
   enabled: boolean
 }
 
@@ -19,6 +20,7 @@ interface VimNavOptions {
  * h   — go to parent (manager)
  * l   — go to first child (direct report)
  * i   — inline edit selected node
+ * I   — open sidebar in edit mode
  * o   — add report under selected
  * O   — add parent above selected (root nodes only)
  * d   — delete selected (sends to recycle bin)
@@ -27,8 +29,9 @@ interface VimNavOptions {
  * /   — focus search
  * Esc — cancel cut / deselect
  */
-export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddReport, onAddParent, onReparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddReport, onAddParent, onReparent, onSidebarEdit, enabled }: VimNavOptions) {
   const [cutId, setCutId] = useState<string | null>(null)
+  const cancelCut = useCallback(() => setCutId(null), [])
 
   // Clear cut if the person was deleted or no longer exists
   useEffect(() => {
@@ -141,12 +144,6 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
       if (el?.isContentEditable) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
 
-      if (e.key === 'Escape' && cutId) {
-        e.preventDefault()
-        setCutId(null)
-        return
-      }
-
       if (e.key === '/') {
         e.preventDefault()
         const searchInput = document.querySelector<HTMLInputElement>('[data-tour="search"] input, [placeholder*="Search"]')
@@ -162,14 +159,24 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         return
       }
 
+      if (e.key === 'I' && selectedId) {
+        e.preventDefault()
+        onSidebarEdit?.()
+        return
+      }
+
       if (['j', 'k', 'h', 'l', 'o', 'O', 'd', 'x', 'p'].includes(e.key)) {
         e.preventDefault()
         navigate(e.key)
+        // Ensure focus returns to document body so subsequent vim keys work
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur()
+        }
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [enabled, navigate, cutId, selectedId, working])
 
-  return { cutId }
+  return { cutId, cancelCut }
 }

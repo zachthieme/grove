@@ -5,7 +5,7 @@ import { ViewDataProvider, useActions } from './store/ViewDataContext'
 import { useExport } from './hooks/useExport'
 import { useSnapshotExport } from './hooks/useSnapshotExport'
 import { useAutosave } from './hooks/useAutosave'
-import { useEscapeKey } from './hooks/useEscapeKey'
+import { useUnifiedEscape } from './hooks/useUnifiedEscape'
 import { useDeepLink } from './hooks/useDeepLink'
 import { useVimNav } from './hooks/useVimNav'
 import UploadPrompt from './components/UploadPrompt'
@@ -24,7 +24,10 @@ import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
-function AppContent() {
+function AppContent({ sidebarMode, setSidebarMode }: {
+  sidebarMode: 'view' | 'edit'
+  setSidebarMode: (mode: 'view' | 'edit') => void
+}) {
   const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo, remove, add, reparent } = useOrgData()
   const { viewMode, layoutKey, error, clearError, headPersonId, setHead, showAllEmploymentTypes, setViewMode } = useUI()
   const { selectedIds, selectedPodId, clearSelection, setSelectedId } = useSelection()
@@ -53,8 +56,11 @@ function AppContent() {
   const { serverSaveError } = useAutosave({ original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded, suppressAutosaveRef })
 
   const clearHead = useCallback(() => setHead(null), [setHead])
-  useEscapeKey(clearHead, !!headPersonId)
-  useEscapeKey(clearSelection, selectedIds.size > 0)
+
+  // Reset sidebar to view mode when selection changes
+  useEffect(() => {
+    setSidebarMode('view')
+  }, [selectedIds, setSidebarMode])
 
   const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
   const vimAddReport = useCallback((parentId: string) => {
@@ -69,7 +75,33 @@ function AppContent() {
     localStorage.setItem('grove-vim-mode', on ? '1' : '0')
   }, [])
 
-  const { cutId } = useVimNav({
+  type ThemePref = 'system' | 'light' | 'dark'
+  const [themePref, setThemePref] = useState<ThemePref>(() => (localStorage.getItem('grove-theme') as ThemePref) || 'system')
+
+  useEffect(() => {
+    const apply = (pref: ThemePref) => {
+      if (pref === 'system') {
+        const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+      } else {
+        document.documentElement.setAttribute('data-theme', pref)
+      }
+    }
+    apply(themePref)
+    if (themePref === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const handler = () => apply('system')
+      mq.addEventListener('change', handler)
+      return () => mq.removeEventListener('change', handler)
+    }
+  }, [themePref])
+
+  const changeTheme = useCallback((pref: ThemePref) => {
+    setThemePref(pref)
+    localStorage.setItem('grove-theme', pref)
+  }, [])
+
+  const { cutId, cancelCut } = useVimNav({
     working,
     selectedId,
     setSelectedId,
@@ -77,7 +109,22 @@ function AppContent() {
     onAddReport: vimAddReport,
     onAddParent: handleAddParent,
     onReparent: reparent,
+    onSidebarEdit: () => setSidebarMode('edit'),
     enabled: vimMode && loaded && viewMode !== 'table',
+  })
+
+  useUnifiedEscape({
+    infoPopoverOpen: !!infoPopoverId,
+    onCloseInfoPopover: clearInfoPopover,
+    cutActive: !!cutId,
+    onCancelCut: cancelCut,
+    sidebarEditMode: sidebarMode === 'edit',
+    onExitSidebarEdit: () => { setSidebarMode('view'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur() },
+    hasSelection: selectedIds.size > 0,
+    onClearSelection: clearSelection,
+    hasHead: !!headPersonId,
+    onClearHead: clearHead,
+    enabled: true,
   })
 
   const [loggingEnabled, setLoggingEnabled] = useState(false)
@@ -124,6 +171,8 @@ function AppContent() {
         canRedo={canRedo}
         vimMode={vimMode}
         onToggleVimMode={toggleVimMode}
+        themePref={themePref}
+        onChangeTheme={changeTheme}
       />
       {cutId && (() => {
         const cutPerson = working.find(p => p.id === cutId)
@@ -172,7 +221,7 @@ function AppContent() {
             </div>
           )}
         </main>
-        {hasSidebarSelection && <DetailSidebar />}
+        {hasSidebarSelection && <DetailSidebar mode={sidebarMode} onSetMode={setSidebarMode} />}
         <RecycleBinDrawer />
       </div>
       {infoPopoverId && (
@@ -196,13 +245,24 @@ function AppContent() {
   )
 }
 
+function AppShell() {
+  const [sidebarMode, setSidebarMode] = useState<'view' | 'edit'>('view')
+  const handleEditMode = useCallback((_id: string) => {
+    setSidebarMode('edit')
+  }, [])
+
+  return (
+    <ViewDataProvider onEditMode={handleEditMode}>
+      <AppContent sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
+    </ViewDataProvider>
+  )
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <OrgProvider>
-        <ViewDataProvider>
-          <AppContent />
-        </ViewDataProvider>
+        <AppShell />
       </OrgProvider>
     </ErrorBoundary>
   )
