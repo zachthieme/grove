@@ -25,3 +25,10 @@ func (s *OrgService) CreatePod(ctx context.Context, managerID, name, team string
 	}
 	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
+
+// GetPodExportData returns a copy of pods and working people for export.
+func (s *OrgService) GetPodExportData(ctx context.Context) ([]Pod, []Person) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return CopyPods(s.podMgr.GetPods()), deepCopyPeople(s.working)
+}

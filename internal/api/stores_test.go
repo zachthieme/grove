@@ -122,7 +122,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 	store := NewMemoryAutosaveStore()
 	store.SetWriteErr("disk full")
 	svc := NewOrgService(NewMemorySnapshotStore())
-	handler := NewRouter(svc, nil, store)
+	handler := NewRouter(NewServices(svc), nil, store)
 
 	body := `{"original":[],"working":[],"recycled":[],"snapshotName":"","timestamp":"now"}`
 	req := httptest.NewRequest("POST", "/api/autosave", strings.NewReader(body))
@@ -148,7 +148,7 @@ func TestAutosaveHandler_ReadError(t *testing.T) {
 	store := NewMemoryAutosaveStore()
 	store.SetReadErr("corrupted file")
 	svc := NewOrgService(NewMemorySnapshotStore())
-	handler := NewRouter(svc, nil, store)
+	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("GET", "/api/autosave", nil)
 	rec := httptest.NewRecorder()
@@ -165,7 +165,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 	store := NewMemoryAutosaveStore()
 	store.SetDeleteErr("permission denied")
 	svc := NewOrgService(NewMemorySnapshotStore())
-	handler := NewRouter(svc, nil, store)
+	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
 	rec := httptest.NewRecorder()
@@ -181,7 +181,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryAutosaveStore()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	handler := NewRouter(svc, nil, store)
+	handler := NewRouter(NewServices(svc), nil, store)
 
 	// Write
 	body := `{"original":[{"id":"1","name":"Alice"}],"working":[],"recycled":[],"snapshotName":"v1","timestamp":"2026-01-01T00:00:00Z"}`
@@ -232,7 +232,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
-	handler := NewRouter(svc, nil, NewMemoryAutosaveStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 
 	// Upload data first
 	uploadCSV(t, handler)
@@ -256,7 +256,7 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
-	handler := NewRouter(svc, nil, NewMemoryAutosaveStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 
 	uploadCSV(t, handler)
 

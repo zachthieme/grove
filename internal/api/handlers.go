@@ -10,45 +10,45 @@ import (
 	"strings"
 )
 
-func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http.Handler {
+func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
 	})
 
-	mux.HandleFunc("POST /api/upload", handleUpload(svc))
-	mux.HandleFunc("POST /api/upload/confirm", handleConfirmMapping(svc))
-	mux.HandleFunc("POST /api/upload/zip", handleUploadZip(svc))
-	mux.HandleFunc("GET /api/org", handleGetOrg(svc))
-	mux.HandleFunc("POST /api/move", handleMove(svc))
-	mux.HandleFunc("POST /api/update", handleUpdate(svc))
-	mux.HandleFunc("POST /api/add", handleAdd(svc))
-	mux.HandleFunc("POST /api/delete", handleDelete(svc))
-	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svc))
-	mux.HandleFunc("POST /api/restore", handleRestore(svc))
-	mux.HandleFunc("POST /api/empty-bin", handleEmptyBin(svc))
-	mux.HandleFunc("GET /api/export/pods-sidecar", handleExportPodsSidecar(svc))
-	mux.HandleFunc("GET /api/export/snapshot", handleExportSnapshot(svc))
-	mux.HandleFunc("GET /api/export/{format}", handleExport(svc))
+	mux.HandleFunc("POST /api/upload", handleUpload(svcs.Import))
+	mux.HandleFunc("POST /api/upload/confirm", handleConfirmMapping(svcs.Import))
+	mux.HandleFunc("POST /api/upload/zip", handleUploadZip(svcs.Import))
+	mux.HandleFunc("GET /api/org", handleGetOrg(svcs.Org))
+	mux.HandleFunc("POST /api/move", handleMove(svcs.People))
+	mux.HandleFunc("POST /api/update", handleUpdate(svcs.People))
+	mux.HandleFunc("POST /api/add", handleAdd(svcs.People))
+	mux.HandleFunc("POST /api/delete", handleDelete(svcs.People))
+	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svcs.Org))
+	mux.HandleFunc("POST /api/restore", handleRestore(svcs.People))
+	mux.HandleFunc("POST /api/empty-bin", handleEmptyBin(svcs.People))
+	mux.HandleFunc("GET /api/export/pods-sidecar", handleExportPodsSidecar(svcs.Pods))
+	mux.HandleFunc("GET /api/export/snapshot", handleExportSnapshot(svcs.Snaps))
+	mux.HandleFunc("GET /api/export/{format}", handleExport(svcs.Org))
 
-	mux.HandleFunc("GET /api/snapshots", handleListSnapshots(svc))
-	mux.HandleFunc("POST /api/snapshots/save", handleSaveSnapshot(svc))
-	mux.HandleFunc("POST /api/snapshots/load", handleLoadSnapshot(svc))
-	mux.HandleFunc("POST /api/snapshots/delete", handleDeleteSnapshot(svc))
+	mux.HandleFunc("GET /api/snapshots", handleListSnapshots(svcs.Snaps))
+	mux.HandleFunc("POST /api/snapshots/save", handleSaveSnapshot(svcs.Snaps))
+	mux.HandleFunc("POST /api/snapshots/load", handleLoadSnapshot(svcs.Snaps))
+	mux.HandleFunc("POST /api/snapshots/delete", handleDeleteSnapshot(svcs.Snaps))
 
-	mux.HandleFunc("GET /api/pods", handleListPods(svc))
-	mux.HandleFunc("POST /api/pods/update", handleUpdatePod(svc))
-	mux.HandleFunc("POST /api/pods/create", handleCreatePod(svc))
+	mux.HandleFunc("GET /api/pods", handleListPods(svcs.Pods))
+	mux.HandleFunc("POST /api/pods/update", handleUpdatePod(svcs.Pods))
+	mux.HandleFunc("POST /api/pods/create", handleCreatePod(svcs.Pods))
 
-	mux.HandleFunc("POST /api/reset", handleReset(svc))
-	mux.HandleFunc("POST /api/reorder", handleReorder(svc))
+	mux.HandleFunc("POST /api/reset", handleReset(svcs.Org))
+	mux.HandleFunc("POST /api/reorder", handleReorder(svcs.People))
 
-	mux.HandleFunc("GET /api/settings", handleGetSettings(svc))
-	mux.HandleFunc("POST /api/settings", handleUpdateSettings(svc))
-	mux.HandleFunc("GET /api/export/settings-sidecar", handleExportSettingsSidecar(svc))
+	mux.HandleFunc("GET /api/settings", handleGetSettings(svcs.Settings))
+	mux.HandleFunc("POST /api/settings", handleUpdateSettings(svcs.Settings))
+	mux.HandleFunc("GET /api/export/settings-sidecar", handleExportSettingsSidecar(svcs.Settings))
 
-	mux.HandleFunc("POST /api/restore-state", handleRestoreState(svc))
+	mux.HandleFunc("POST /api/restore-state", handleRestoreState(svcs.Org))
 	mux.HandleFunc("POST /api/autosave", handleWriteAutosave(autoStore))
 	mux.HandleFunc("GET /api/autosave", handleReadAutosave(autoStore))
 	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave(autoStore))
@@ -68,7 +68,7 @@ func NewRouter(svc *OrgService, logBuf *LogBuffer, autoStore AutosaveStore) http
 	return mux
 }
 
-func handleUpload(svc *OrgService) http.HandlerFunc {
+func handleUpload(svc ImportService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
 		file, header, err := r.FormFile("file")
@@ -93,7 +93,7 @@ func handleUpload(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleUploadZip(svc *OrgService) http.HandlerFunc {
+func handleUploadZip(svc ImportService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
 		file, _, err := r.FormFile("file")
@@ -118,7 +118,7 @@ func handleUploadZip(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleConfirmMapping(svc *OrgService) http.HandlerFunc {
+func handleConfirmMapping(svc ImportService) http.HandlerFunc {
 	type req struct {
 		Mapping map[string]string `json:"mapping"`
 	}
@@ -127,7 +127,7 @@ func handleConfirmMapping(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleGetOrg(svc *OrgService) http.HandlerFunc {
+func handleGetOrg(svc OrgStateService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := svc.GetOrg(r.Context())
 		if data == nil {
@@ -138,14 +138,14 @@ func handleGetOrg(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleRestoreState(svc *OrgService) http.HandlerFunc {
+func handleRestoreState(svc OrgStateService) http.HandlerFunc {
 	return jsonHandlerCtx(func(ctx context.Context, data AutosaveData) (HealthResponse, error) {
 		svc.RestoreState(ctx, data)
 		return HealthResponse{Status: "ok"}, nil
 	})
 }
 
-func handleMove(svc *OrgService) http.HandlerFunc {
+func handleMove(svc PersonService) http.HandlerFunc {
 	type req struct {
 		PersonId     string `json:"personId"`
 		NewManagerId string `json:"newManagerId"`
@@ -161,7 +161,7 @@ func handleMove(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleUpdate(svc *OrgService) http.HandlerFunc {
+func handleUpdate(svc PersonService) http.HandlerFunc {
 	type req struct {
 		PersonId string            `json:"personId"`
 		Fields   map[string]string `json:"fields"`
@@ -175,7 +175,7 @@ func handleUpdate(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleAdd(svc *OrgService) http.HandlerFunc {
+func handleAdd(svc PersonService) http.HandlerFunc {
 	return jsonHandlerCtx(func(ctx context.Context, p Person) (*AddResponse, error) {
 		created, working, pods, err := svc.Add(ctx, p)
 		if err != nil {
@@ -185,7 +185,7 @@ func handleAdd(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleDelete(svc *OrgService) http.HandlerFunc {
+func handleDelete(svc PersonService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
@@ -198,13 +198,13 @@ func handleDelete(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleGetRecycled(svc *OrgService) http.HandlerFunc {
+func handleGetRecycled(svc OrgStateService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, svc.GetRecycled(r.Context()))
 	}
 }
 
-func handleRestore(svc *OrgService) http.HandlerFunc {
+func handleRestore(svc PersonService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
@@ -217,7 +217,7 @@ func handleRestore(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleEmptyBin(svc *OrgService) http.HandlerFunc {
+func handleEmptyBin(svc PersonService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		recycled := svc.EmptyBin(r.Context())
@@ -225,12 +225,9 @@ func handleEmptyBin(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
+func handleExportPodsSidecar(svc PodService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		svc.mu.RLock()
-		pods := CopyPods(svc.podMgr.GetPods())
-		people := deepCopyPeople(svc.working)
-		svc.mu.RUnlock()
+		pods, people := svc.GetPodExportData(r.Context())
 		if len(pods) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -244,7 +241,7 @@ func handleExportPodsSidecar(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleExport(svc *OrgService) http.HandlerFunc {
+func handleExport(svc OrgStateService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		format := r.PathValue("format")
 		working := svc.GetWorking(r.Context())
@@ -267,7 +264,7 @@ func handleExport(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
+func handleExportSnapshot(svc SnapshotService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		format := r.URL.Query().Get("format")
@@ -292,13 +289,13 @@ func handleExportSnapshot(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleListSnapshots(svc *OrgService) http.HandlerFunc {
+func handleListSnapshots(svc SnapshotService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, svc.ListSnapshots(r.Context()))
 	}
 }
 
-func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
+func handleSaveSnapshot(svc SnapshotService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
@@ -310,7 +307,7 @@ func handleSaveSnapshot(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
+func handleLoadSnapshot(svc SnapshotService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
@@ -319,7 +316,7 @@ func handleLoadSnapshot(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
+func handleDeleteSnapshot(svc SnapshotService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
@@ -331,13 +328,13 @@ func handleDeleteSnapshot(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleListPods(svc *OrgService) http.HandlerFunc {
+func handleListPods(svc PodService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, svc.ListPods(r.Context()))
 	}
 }
 
-func handleUpdatePod(svc *OrgService) http.HandlerFunc {
+func handleUpdatePod(svc PodService) http.HandlerFunc {
 	type req struct {
 		PodId  string            `json:"podId"`
 		Fields map[string]string `json:"fields"`
@@ -351,7 +348,7 @@ func handleUpdatePod(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleCreatePod(svc *OrgService) http.HandlerFunc {
+func handleCreatePod(svc PodService) http.HandlerFunc {
 	type req struct {
 		ManagerId string `json:"managerId"`
 		Name      string `json:"name"`
@@ -366,7 +363,7 @@ func handleCreatePod(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleReset(svc *OrgService) http.HandlerFunc {
+func handleReset(svc OrgStateService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		orgData := svc.ResetToOriginal(r.Context())
@@ -374,7 +371,7 @@ func handleReset(svc *OrgService) http.HandlerFunc {
 	}
 }
 
-func handleReorder(svc *OrgService) http.HandlerFunc {
+func handleReorder(svc PersonService) http.HandlerFunc {
 	type req struct {
 		PersonIds []string `json:"personIds"`
 	}
@@ -387,19 +384,19 @@ func handleReorder(svc *OrgService) http.HandlerFunc {
 	})
 }
 
-func handleGetSettings(svc *OrgService) http.HandlerFunc {
+func handleGetSettings(svc SettingsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, svc.GetSettings(r.Context()))
 	}
 }
 
-func handleUpdateSettings(svc *OrgService) http.HandlerFunc {
+func handleUpdateSettings(svc SettingsService) http.HandlerFunc {
 	return jsonHandlerCtx(func(ctx context.Context, settings Settings) (Settings, error) {
 		return svc.UpdateSettings(ctx, settings)
 	})
 }
 
-func handleExportSettingsSidecar(svc *OrgService) http.HandlerFunc {
+func handleExportSettingsSidecar(svc SettingsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		settings := svc.GetSettings(r.Context())
 		if len(settings.DisciplineOrder) == 0 {

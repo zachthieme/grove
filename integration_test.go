@@ -180,7 +180,7 @@ func TestIntegration_ErrorResponses(t *testing.T) {
 
 	// Export with no data loaded → use fresh service
 	freshSvc := api.NewOrgService(api.NewMemorySnapshotStore())
-	freshHandler := api.NewRouter(freshSvc, nil, api.NewMemoryAutosaveStore())
+	freshHandler := api.NewRouter(api.NewServices(freshSvc), nil, api.NewMemoryAutosaveStore())
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/api/export/csv", nil)
 	freshHandler.ServeHTTP(rec, req)
@@ -221,7 +221,7 @@ func TestIntegration_CycleDetection(t *testing.T) {
 func uploadTestCSV(t *testing.T) (handler http.Handler, data *api.OrgData) {
 	t.Helper()
 	svc := api.NewOrgService(api.NewMemorySnapshotStore())
-	handler = api.NewRouter(svc, nil, api.NewMemoryAutosaveStore())
+	handler = api.NewRouter(api.NewServices(svc), nil, api.NewMemoryAutosaveStore())
 
 	csvData, err := os.ReadFile("testdata/simple.csv")
 	if err != nil {

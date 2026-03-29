@@ -34,7 +34,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	if serveLog {
 		logBuf = api.NewLogBuffer(1000)
 	}
-	apiRouter := api.NewRouter(svc, logBuf, autoStore)
+	apiRouter := api.NewRouter(api.NewServices(svc), logBuf, autoStore)
 	if logBuf != nil {
 		mux.Handle("/api/", api.LoggingMiddleware(logBuf)(apiRouter))
 	} else {

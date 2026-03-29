@@ -165,7 +165,7 @@ func BenchmarkSnapshotSaveLoad(b *testing.B) {
 
 func BenchmarkGetOrgHandler(b *testing.B) {
 	svc := benchService(b, 200)
-	router := NewRouter(svc, nil, NewMemoryAutosaveStore())
+	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 	for b.Loop() {
 		req := httptest.NewRequest(http.MethodGet, "/api/org", nil)
 		rec := httptest.NewRecorder()
