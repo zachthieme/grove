@@ -163,12 +163,14 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     }
   }, [setError, applyOrgData])
 
-  const createOrg = useCallback(async (name: string) => {
+  const createOrg = useCallback(async (name: string): Promise<string | undefined> => {
     try {
       const data = await api.createOrg(name)
       applyOrgData(data, { autosaveAvailable: null, snapshots: [] })
+      return data.working[0]?.id
     } catch (err) {
       setError(`Create failed: ${err instanceof Error ? err.message : String(err)}`)
+      return undefined
     }
   }, [setError, applyOrgData])
 

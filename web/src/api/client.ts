@@ -29,6 +29,15 @@ function postLogEntry(entry: Record<string, unknown>): void {
   }).catch(() => {})
 }
 
+const MAX_RETRIES = 1
+
+function isRetryable(err: unknown): boolean {
+  if (err instanceof DOMException && err.name === 'AbortError') return true
+  if (err instanceof DOMException && err.name === 'TimeoutError') return true
+  if (err instanceof TypeError) return true // network error (connection refused, etc.)
+  return false
+}
+
 function fetchWithTimeout(
   input: RequestInfo | URL,
   init?: RequestInit & { timeoutMs?: number; correlationId?: string },
@@ -48,14 +57,39 @@ function fetchWithTimeout(
   }
   headers['X-Correlation-ID'] = cid
 
-  const timeoutSignal = AbortSignal.timeout(timeoutMs)
-  const finalInit: RequestInit = { ...fetchInit, headers, signal: timeoutSignal }
+  const path = typeof input === 'string' ? input : input instanceof URL ? input.pathname : input.url
+  const method = fetchInit.method ?? 'GET'
 
-  if (fetchInit.signal) {
-    finalInit.signal = AbortSignal.any([fetchInit.signal, timeoutSignal])
+  async function attempt(retriesLeft: number): Promise<Response> {
+    const startTime = Date.now()
+    const timeoutSignal = AbortSignal.timeout(timeoutMs)
+    const finalInit: RequestInit = { ...fetchInit, headers, signal: timeoutSignal }
+    if (fetchInit.signal) {
+      finalInit.signal = AbortSignal.any([fetchInit.signal, timeoutSignal])
+    }
+
+    try {
+      return await fetch(input, finalInit)
+    } catch (err: unknown) {
+      const durationMs = Date.now() - startTime
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      postLogEntry({
+        timestamp: new Date().toISOString(),
+        correlationId: cid,
+        source: 'web',
+        method,
+        path,
+        durationMs,
+        error: `fetch failed (retries left: ${retriesLeft}): ${errorMsg}`,
+      })
+      if (retriesLeft > 0 && isRetryable(err)) {
+        return attempt(retriesLeft - 1)
+      }
+      throw err
+    }
   }
 
-  return fetch(input, finalInit)
+  return attempt(MAX_RETRIES)
 }
 
 const BASE = '/api'

@@ -44,6 +44,16 @@ export default function LogPanel({ onClose }: LogPanelProps) {
     } catch { /* ignore */ }
   }
 
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async () => {
+    try {
+      const resp = await getLogs()
+      await navigator.clipboard.writeText(JSON.stringify(resp, null, 2))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* ignore */ }
+  }
+
   const handleFilterCorrelation = (id: string) => {
     setFilter((f) => f.correlationId === id ? {} : { ...f, correlationId: id })
   }
@@ -75,6 +85,7 @@ export default function LogPanel({ onClose }: LogPanelProps) {
           )}
           <button onClick={refresh}>Refresh</button>
           <button onClick={handleClear}>Clear</button>
+          <button onClick={handleCopy}>{copied ? 'Copied!' : 'Copy'}</button>
           <button onClick={handleDownload}>Download</button>
           <button onClick={onClose} aria-label="Close">×</button>
         </div>

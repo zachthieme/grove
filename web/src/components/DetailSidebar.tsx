@@ -334,21 +334,21 @@ export default function DetailSidebar() {
           </label>
           <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Hidden when private toggle is off</span>
         </div>
-        {saveError && <div className={styles.saveError}>{saveError}</div>}
-        <div className={styles.actions}>
-          <button
-            className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
-            onClick={handleSave}
-            disabled={isBatch ? batchDirty.size === 0 || saveStatus === 'saving' : saveStatus === 'saving'}
-          >
-            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
-          </button>
-          {isBatch ? (
-            <button className={styles.deleteBtn} onClick={clearSelection}>Clear selection</button>
-          ) : (
-            <button className={styles.deleteBtn} onClick={handleDelete}>Delete</button>
-          )}
-        </div>
+      </div>
+      {saveError && <div className={styles.saveError} style={{ padding: '4px 16px' }}>{saveError}</div>}
+      <div className={styles.actions}>
+        <button
+          className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
+          onClick={handleSave}
+          disabled={isBatch ? batchDirty.size === 0 || saveStatus === 'saving' : saveStatus === 'saving'}
+        >
+          {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
+        </button>
+        {isBatch ? (
+          <button className={styles.deleteBtn} onClick={clearSelection}>Clear selection</button>
+        ) : (
+          <button className={styles.deleteBtn} onClick={handleDelete}>Delete</button>
+        )}
       </div>
     </aside>
   )

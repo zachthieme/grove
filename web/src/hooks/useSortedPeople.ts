@@ -6,7 +6,8 @@ function employmentTier(empType: string | undefined): number {
   return 1
 }
 
-function disciplineRank(discipline: string, order: string[]): number {
+function disciplineRank(discipline: string, order: string[] | null): number {
+  if (!order) return 0
   const idx = order.indexOf(discipline)
   if (idx >= 0) return idx
   return order.length // unknown disciplines sort after known

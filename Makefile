@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all cover bench fuzz mutate check-scenarios lint ci
+.PHONY: frontend build dev clean e2e test test-all typecheck cover bench fuzz mutate check-scenarios lint ci
 
 frontend:
 	cd web && npm run build
@@ -23,6 +23,9 @@ test:
 
 test-all: test
 	cd web && npm test
+
+typecheck:
+	cd web && npx tsc --noEmit
 
 cover:
 	go test -race -coverprofile=coverage.out ./...
@@ -51,7 +54,7 @@ lint: frontend
 	golangci-lint run ./...
 	cd web && npx eslint src/ --max-warnings 0 2>/dev/null || true
 
-ci: lint test-all e2e bench fuzz check-scenarios
+ci: typecheck lint test-all e2e bench fuzz check-scenarios
 	@echo "CI checks passed."
 
 check-scenarios:

@@ -224,7 +224,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	s.resetState(people, people, nil)
-	s.settings = Settings{DisciplineOrder: nil}
+	s.settings = Settings{DisciplineOrder: []string{}}
 
 	return &OrgData{
 		Original:           deepCopyPeople(s.original),

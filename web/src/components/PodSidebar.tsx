@@ -92,16 +92,16 @@ export default function PodSidebar() {
             placeholder="Only visible in this panel"
           />
         </div>
-        {saveError && <div className={styles.saveError}>{saveError}</div>}
-        <div className={styles.actions}>
-          <button
-            className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
-            onClick={handleSave}
-            disabled={!isDirty || saveStatus === 'saving'}
-          >
-            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
-          </button>
-        </div>
+      </div>
+      {saveError && <div className={styles.saveError} style={{ padding: '4px 16px' }}>{saveError}</div>}
+      <div className={styles.actions}>
+        <button
+          className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
+          onClick={handleSave}
+          disabled={!isDirty || saveStatus === 'saving'}
+        >
+          {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
+        </button>
       </div>
     </aside>
   )

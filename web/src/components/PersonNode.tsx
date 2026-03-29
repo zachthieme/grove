@@ -82,7 +82,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
     >
       {showActions && hovered && (
         <NodeActions
-          showAdd={!!isManager}
+          showAdd={!!onAdd}
           showAddParent={!!onAddParent}
           showInfo={!!onInfo}
           showFocus={!!onFocus}

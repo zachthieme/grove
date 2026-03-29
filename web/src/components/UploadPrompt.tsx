@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, type ChangeEvent, type FormEvent } from 'react'
-import { useOrgData } from '../store/OrgContext'
+import { useOrgData, useSelection } from '../store/OrgContext'
 import styles from './UploadPrompt.module.css'
 
 export default function UploadPrompt() {
   const { upload, createOrg } = useOrgData()
+  const { setSelectedId } = useSelection()
   const inputRef = useRef<HTMLInputElement>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [name, setName] = useState('')
@@ -23,10 +24,11 @@ export default function UploadPrompt() {
       e.preventDefault()
       const trimmed = name.trim()
       if (trimmed) {
-        await createOrg(trimmed)
+        const id = await createOrg(trimmed)
+        if (id) setSelectedId(id)
       }
     },
-    [name, createOrg],
+    [name, createOrg, setSelectedId],
   )
 
   return (
