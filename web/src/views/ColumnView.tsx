@@ -1,91 +1,13 @@
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react'
-import { DndContext, useDroppable } from '@dnd-kit/core'
+import { useMemo, useCallback, type ReactNode } from 'react'
 import type { Pod } from '../api/types'
-import { useChartLayout } from '../hooks/useChartLayout'
-import { useLassoSelect } from '../hooks/useLassoSelect'
-import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
-import { OrphanGroup } from './OrphanGroup'
 import { computeEdges } from './columnEdges'
 import { computeRenderItems } from './columnLayout'
+import { DraggableNode, type OrgNode } from './shared'
 import { buildPodDropId } from '../utils/ids'
-import { ChartProvider, useChart } from './ChartContext'
-import { DragBadgeOverlay } from './DragBadgeOverlay'
-import { LassoSvgOverlay } from './LassoSvgOverlay'
-import { useViewData } from '../store/ViewDataContext'
-import { useOrg } from '../store/OrgContext'
-import NodeActions from '../components/NodeActions'
+import { useChart } from './ChartContext'
+import { PodHeaderNode } from './PodHeaderNode'
+import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
-
-function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef, podNodeId }: {
-  podName: string
-  memberCount: number
-  publicNote?: string
-  onAdd?: () => void
-  onClick?: () => void
-  nodeRef?: (el: HTMLDivElement | null) => void
-  podNodeId?: string
-}) {
-  const [hovered, setHovered] = useState(false)
-  const [noteOpen, setNoteOpen] = useState(false)
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: podNodeId ?? podName,
-    disabled: !podNodeId,
-  })
-
-  return (
-    <div
-      ref={(node) => {
-        setDropRef(node)
-        nodeRef?.(node)
-      }}
-      className={styles.teamHeaderWrapper}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        outline: isOver ? '2px solid var(--grove-green, #3d6b35)' : undefined,
-        outlineOffset: isOver ? 2 : undefined,
-        background: isOver ? 'var(--grove-green-soft, #e8f0e6)' : undefined,
-        borderRadius: 6,
-        transition: 'outline 0.15s, background 0.15s',
-      }}
-    >
-      {hovered && onAdd && (
-        <NodeActions
-          showAdd={true}
-          showInfo={true}
-          showEdit={false}
-          showDelete={false}
-          onAdd={(e) => { e.stopPropagation(); onAdd() }}
-          onDelete={(e) => { e.stopPropagation() }}
-          onEdit={(e) => { e.stopPropagation() }}
-          onInfo={(e) => { e.stopPropagation(); onClick?.() }}
-        />
-      )}
-      <div
-        className={`${styles.teamHeader}${onClick ? ` ${styles.teamHeaderClickable}` : ''}`}
-        onClick={onClick}
-      >
-        <div className={styles.teamHeaderName}>{podName}</div>
-        <div className={styles.teamHeaderCount}>{memberCount} {memberCount === 1 ? 'person' : 'people'}</div>
-      </div>
-      {publicNote && (
-        <button
-          className={`${styles.podNoteIcon} ${noteOpen ? styles.podNoteIconActive : ''}`}
-          onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
-          aria-label="Toggle pod notes"
-          aria-expanded={noteOpen}
-        >
-          {'\u{1F4CB}'}
-        </button>
-      )}
-      {noteOpen && publicNote && (
-        <div className={styles.podNotePanel}>
-          <div className={styles.podNoteText}>{publicNote}</div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function SubtreeNode({ node }: { node: OrgNode }) {
   const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddToTeam, onDeletePerson, onInfo, onFocus, onPodSelect, setNodeRef } = useChart()
@@ -264,73 +186,15 @@ function SubtreeNode({ node }: { node: OrgNode }) {
 }
 
 export default function ColumnView() {
-  const { people, ghostPeople, changes, managerSet, pods, handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus } = useViewData()
-  const { selectedIds, batchSelect, selectPod } = useOrg()
-
-  const roots = useMemo(() => buildOrgTree(people), [people])
-  const edges = useMemo(() => computeEdges(people), [people])
-
-  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
-
-  // Auto-scroll to keep selected node visible (e.g. when sidebar opens and shrinks the chart)
-  useEffect(() => {
-    if (selectedIds.size !== 1) return
-    const id = [...selectedIds][0]
-    const el = nodeRefs.current.get(id)
-    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-  }, [selectedIds, nodeRefs])
-
-  const handleLassoSelect = useCallback((ids: Set<string>) => {
-    batchSelect?.(ids)
-  }, [batchSelect])
-
-  const { lassoRect } = useLassoSelect({
-    containerRef,
-    nodeRefs,
-    onSelect: handleLassoSelect,
-    enabled: true,
-  })
-
-  const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
-
-  const chartValue = useMemo(() => ({
-    selectedIds, changes, managerSet, pods,
-    onSelect: handleSelect, onBatchSelect: batchSelect, onAddReport: handleAddReport, onAddToTeam: handleAddToTeam, onDeletePerson: handleDeletePerson, onInfo: handleShowInfo, onFocus: handleFocus, onPodSelect: selectPod,
-    setNodeRef,
-  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
-
-  if (people.length === 0 && (ghostPeople ?? []).length === 0) {
-    return <div className={styles.container}>No people to display.</div>
-  }
-
   return (
-    <ChartProvider value={chartValue}>
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className={styles.container} ref={containerRef} data-role="chart-container">
-          <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} dashedEdges />
-          <div className={styles.forest} data-role="forest">
-            {roots.filter((r) => r.children.length > 0).map((root) => (
-              <SubtreeNode key={root.person.id} node={root} />
-            ))}
-            <OrphanGroup
-              orphans={roots.filter((r) => r.children.length === 0)}
-              roots={roots}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              changes={changes}
-              setNodeRef={setNodeRef}
-              managerSet={managerSet}
-              onAddReport={handleAddReport}
-              onDeletePerson={handleDeletePerson}
-              onInfo={handleShowInfo}
-              styles={styles}
-              renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
-              renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}
-            />
-          </div>
-        </div>
-        <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selectedIds} />
-      </DndContext>
-    </ChartProvider>
+    <ChartShell
+      computeEdges={(people) => computeEdges(people)}
+      renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
+      renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}
+      viewStyles={styles}
+      dashedEdges
+      useGhostPeople
+      includeAddToTeam
+    />
   )
 }

@@ -1,19 +1,29 @@
 // Scenarios: VIEW-002
-import { useEffect, useMemo, useCallback } from 'react'
-import { DndContext } from '@dnd-kit/core'
+import { useMemo } from 'react'
 import type { Person, Pod } from '../api/types'
+import type { ChartEdge } from '../hooks/useChartLayout'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
-import { useViewData } from '../store/ViewDataContext'
-import { useOrg } from '../store/OrgContext'
-import { useChartLayout } from '../hooks/useChartLayout'
-import { useLassoSelect } from '../hooks/useLassoSelect'
-import { DraggableNode, buildOrgTree, type OrgNode } from './shared'
-import { OrphanGroup } from './OrphanGroup'
-import { ChartProvider, useChart } from './ChartContext'
-import { DragBadgeOverlay } from './DragBadgeOverlay'
-import { LassoSvgOverlay } from './LassoSvgOverlay'
+import { useChart } from './ChartContext'
+import { DraggableNode, type OrgNode } from './shared'
+import ChartShell from './ChartShell'
 import styles from './ManagerView.module.css'
 
+
+function computeManagerEdges(_people: Person[], roots: OrgNode[]): ChartEdge[] {
+  const result: ChartEdge[] = []
+  function collectEdges(nodes: OrgNode[]) {
+    for (const n of nodes) {
+      for (const child of n.children) {
+        if (child.children.length > 0) {
+          result.push({ fromId: n.person.id, toId: child.person.id })
+        }
+      }
+      collectEdges(n.children)
+    }
+  }
+  collectEdges(roots)
+  return result
+}
 
 /** Build summary groups from a list of people, bucketing by status. */
 function buildStatusGroups(people: Person[]): { label: string; count: number }[] {
@@ -165,104 +175,12 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
 }
 
 export default function ManagerView() {
-  const { people, changes, managerSet, pods, handleSelect, handleAddReport, handleDeletePerson, handleShowInfo, handleFocus } = useViewData()
-  const { selectedIds, batchSelect, selectPod } = useOrg()
-
-  const roots = useMemo(() => buildOrgTree(people), [people])
-
-  const edges = useMemo(() => {
-    const managerIds = new Set<string>()
-    function collectManagers(nodes: OrgNode[]) {
-      for (const n of nodes) {
-        if (n.children.length > 0) {
-          managerIds.add(n.person.id)
-          collectManagers(n.children)
-        }
-      }
-    }
-    collectManagers(roots)
-
-    for (const r of roots) {
-      managerIds.add(r.person.id)
-    }
-
-    const result: { fromId: string; toId: string }[] = []
-    function collectEdges(nodes: OrgNode[]) {
-      for (const n of nodes) {
-        for (const child of n.children) {
-          if (child.children.length > 0) {
-            result.push({ fromId: n.person.id, toId: child.person.id })
-          }
-        }
-        collectEdges(n.children)
-      }
-    }
-    collectEdges(roots)
-
-    return result
-  }, [roots])
-
-  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
-
-  // Auto-scroll to keep selected node visible (e.g. when sidebar opens and shrinks the chart)
-  useEffect(() => {
-    if (selectedIds.size !== 1) return
-    const id = [...selectedIds][0]
-    const el = nodeRefs.current.get(id)
-    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-  }, [selectedIds, nodeRefs])
-
-  const handleLassoSelect = useCallback((ids: Set<string>) => {
-    batchSelect?.(ids)
-  }, [batchSelect])
-
-  const { lassoRect } = useLassoSelect({
-    containerRef,
-    nodeRefs,
-    onSelect: handleLassoSelect,
-    enabled: true,
-  })
-
-  const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
-
-  const chartValue = useMemo(() => ({
-    selectedIds, changes, managerSet, pods,
-    onSelect: handleSelect, onBatchSelect: batchSelect, onAddReport: handleAddReport, onDeletePerson: handleDeletePerson, onInfo: handleShowInfo, onFocus: handleFocus, onPodSelect: selectPod,
-    setNodeRef,
-  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleDeletePerson, handleShowInfo, handleFocus, selectPod, setNodeRef])
-
-  if (people.length === 0) {
-    return <div className={styles.container}>No people to display.</div>
-  }
-
   return (
-    <ChartProvider value={chartValue}>
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className={styles.container} ref={containerRef} data-role="chart-container">
-          <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} />
-          <div className={styles.forest} data-role="forest">
-            {roots.filter((r) => r.children.length > 0).map((root) => (
-              <ManagerSubtree key={root.person.id} node={root} />
-            ))}
-            <OrphanGroup
-              orphans={roots.filter((r) => r.children.length === 0)}
-              roots={roots}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
-              changes={changes}
-              setNodeRef={setNodeRef}
-              managerSet={managerSet}
-              onAddReport={handleAddReport}
-              onDeletePerson={handleDeletePerson}
-              onInfo={handleShowInfo}
-              styles={styles}
-              wrapInIcStack={false}
-              renderSubtree={(node) => <ManagerSubtree key={node.person.id} node={node} />}
-            />
-          </div>
-        </div>
-        <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selectedIds} />
-      </DndContext>
-    </ChartProvider>
+    <ChartShell
+      computeEdges={computeManagerEdges}
+      renderSubtree={(node) => <ManagerSubtree key={node.person.id} node={node} />}
+      viewStyles={styles}
+      wrapOrphansInIcStack={false}
+    />
   )
 }
