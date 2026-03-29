@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -1615,6 +1616,73 @@ func TestWriteFileResponse_SanitizedHeader(t *testing.T) {
 	// No injected headers should appear
 	if rec.Result().Header.Get("X-Injected") != "" {
 		t.Error("header injection succeeded: X-Injected header found in response")
+	}
+}
+
+// --- Content-Type validation tests ---
+
+// Scenarios: CONTRACT-014
+func TestContentTypeValidation(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	// Pick a representative JSON endpoint
+	working := svc.GetWorking(context.Background())
+	personId := working[0].Id
+	body := fmt.Sprintf(`{"personId":"%s","fields":{"role":"Staff"}}`, personId)
+
+	cases := []struct {
+		name        string
+		contentType string
+		wantStatus  int
+	}{
+		{"application/json", "application/json", 200},
+		{"application/json with charset", "application/json; charset=utf-8", 200},
+		{"empty content-type", "", 200},
+		{"text/plain rejected", "text/plain", 415},
+		{"text/html rejected", "text/html", 415},
+		{"multipart/form-data rejected", "multipart/form-data", 415},
+		{"application/xml rejected", "application/xml", 415},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest("POST", "/api/update", strings.NewReader(body))
+			if tc.contentType != "" {
+				req.Header.Set("Content-Type", tc.contentType)
+			}
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != tc.wantStatus {
+				t.Errorf("Content-Type %q: expected %d, got %d: %s", tc.contentType, tc.wantStatus, rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+// Scenarios: CONTRACT-014
+func TestContentTypeValidation_ErrorShape(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	req := httptest.NewRequest("POST", "/api/update", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "text/plain")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != 415 {
+		t.Fatalf("expected 415, got %d", rec.Code)
+	}
+	var errResp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
+		t.Fatalf("error response not valid JSON: %v", err)
+	}
+	if errResp["error"] == "" {
+		t.Error("expected non-empty error message")
 	}
 }
 

@@ -53,3 +53,26 @@ Operations on large orgs (200-500 people) complete correctly. Performance is tra
 
 ## Edge cases
 - 500-person org with all operations
+
+---
+
+# Scenario: Large org frontend rendering
+
+**ID**: CONC-003
+**Area**: concurrency
+**Tests**:
+- `web/e2e/performance.spec.ts` → "renders detail view with 200 people"
+- `web/e2e/performance.spec.ts` → "switches views without hanging"
+- `web/e2e/performance.spec.ts` → "exports CSV with all 200 people"
+
+## Behavior
+The frontend renders a 200-person org chart without errors or hangs. All three view modes (Detail, Manager, Table) display correctly. CSV export produces a file containing all people.
+
+## Invariants
+- Detail view renders person nodes after upload
+- Switching between Detail, Manager, and Table views completes within 10 seconds each
+- Table view renders all 200 rows
+- CSV export produces a downloadable file
+
+## Edge cases
+- None

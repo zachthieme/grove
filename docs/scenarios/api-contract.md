@@ -286,3 +286,52 @@ Export response filenames are sanitized to prevent HTTP header injection. Contro
 ## Edge cases
 - CRLF injection attempt produces clean filename
 - All-control-char filename falls back to "download"
+
+---
+
+# Scenario: Response shape validation
+
+**ID**: CONTRACT-013
+**Area**: api-contract
+**Tests**:
+- `internal/api/contract_test.go` → "TestContractPersonFieldTypes"
+- `internal/api/contract_test.go` → "TestContractErrorResponseShape"
+- `internal/api/contract_test.go` → "TestContractGetOrgResponseShape"
+- `internal/api/contract_test.go` → "TestContractUploadResponseShape"
+
+## Behavior
+API responses conform to expected JSON shapes. Person fields have correct types, error responses always have `{"error": "message"}` structure, and endpoint responses contain required keys with correct types.
+
+## Invariants
+- Person string fields serialize as JSON strings
+- Person array fields serialize as JSON arrays (never null)
+- Person numeric fields serialize as JSON numbers
+- All error responses have single "error" key with non-empty string value
+- GET /api/org returns object with original, working, pods, settings keys
+- POST /api/upload returns status string and orgData object on success
+
+## Edge cases
+- Zero-value omitempty fields may be absent from JSON
+
+---
+
+# Scenario: Content-Type validation on JSON endpoints
+
+**ID**: CONTRACT-014
+**Area**: api-contract
+**Tests**:
+- `internal/api/handlers_test.go` → "TestContentTypeValidation"
+- `internal/api/handlers_test.go` → "TestContentTypeValidation_ErrorShape"
+
+## Behavior
+POST endpoints that expect JSON validate the Content-Type header. Non-JSON Content-Types are rejected with 415 Unsupported Media Type.
+
+## Invariants
+- `application/json` accepted
+- `application/json; charset=utf-8` accepted
+- Empty Content-Type accepted (backwards compatibility)
+- All other Content-Types return 415
+- 415 response has standard `{"error": "message"}` shape
+
+## Edge cases
+- File upload endpoints (multipart) are not affected
