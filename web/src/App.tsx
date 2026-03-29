@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import styles from './App.module.css'
 import { OrgProvider, useOrg } from './store/OrgContext'
-import { ViewDataProvider, useViewData } from './store/ViewDataContext'
+import { ViewDataProvider, useActions } from './store/ViewDataContext'
 import { useExport } from './hooks/useExport'
 import { useSnapshotExport } from './hooks/useSnapshotExport'
 import { useAutosave } from './hooks/useAutosave'
@@ -25,7 +25,7 @@ import TableView from './views/TableView'
 
 function AppContent() {
   const { loaded, viewMode, selectedIds, selectedPodId, clearSelection, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, layoutKey, error, clearError, headPersonId, setHead, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, showAllEmploymentTypes, setViewMode, setSelectedId } = useOrg()
-  const { infoPopoverId, clearInfoPopover } = useViewData()
+  const { infoPopoverId, clearInfoPopover } = useActions()
 
   useDeepLink({
     viewMode,

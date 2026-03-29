@@ -9,7 +9,7 @@ import { OrphanGroup } from './OrphanGroup'
 import { ChartProvider } from './ChartContext'
 import { DragBadgeOverlay } from './DragBadgeOverlay'
 import { LassoSvgOverlay } from './LassoSvgOverlay'
-import { useViewData } from '../store/ViewDataContext'
+import { usePeople, useChanges, useActions } from '../store/ViewDataContext'
 import { useOrg } from '../store/OrgContext'
 import styles from './ChartShell.module.css'
 
@@ -37,10 +37,9 @@ export default function ChartShell({
   includeAddToTeam,
   wrapOrphansInIcStack = true,
 }: ChartShellProps) {
-  const {
-    people, ghostPeople, changes, managerSet, pods,
-    handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus,
-  } = useViewData()
+  const { people, ghostPeople, managerSet, pods } = usePeople()
+  const { changes } = useChanges()
+  const { handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus } = useActions()
   const { selectedIds, batchSelect, selectPod } = useOrg()
 
   const roots = useMemo(() => buildOrgTree(people), [people])

@@ -1,50 +1,65 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
-import type { ColumnDef } from '../views/tableColumns'
 import { useOrg } from './OrgContext'
 import { useOrgDiff } from '../hooks/useOrgDiff'
 import { useManagerSet } from '../hooks/useIsManager'
 import { useHeadSubtree } from '../hooks/useHeadSubtree'
 import { useFilteredPeople } from '../hooks/useFilteredPeople'
 import { useSortedPeople } from '../hooks/useSortedPeople'
-import { buildExtraColumns } from '../views/tableColumns'
 import { DEFAULT_STATUS } from '../constants'
 
-export interface ViewDataContextValue {
-  // Derived data
+export interface PeopleContextValue {
   people: Person[]
   ghostPeople: Person[]
-  changes: Map<string, PersonChange> | undefined
-  showChanges: boolean
   managerSet: Set<string>
   readOnly: boolean
   pods: Pod[]
+  showChanges: boolean
+}
 
-  // Actions
+export interface ChangesContextValue {
+  changes: Map<string, PersonChange> | undefined
+}
+
+export interface ActionsContextValue {
   handleSelect: (id: string, event?: React.MouseEvent) => void
   handleAddReport: (parentId: string) => Promise<void>
   handleAddToTeam: (parentId: string, team: string, podName?: string) => Promise<void>
   handleDeletePerson: (personId: string) => Promise<void>
   handleShowInfo: (personId: string) => void
   handleFocus: (personId: string) => void
-
-  // Info popover
   infoPopoverId: string | null
   clearInfoPopover: () => void
-
-  // Column configuration
-  extraColumns: ColumnDef[]
-  visibleColumns: Set<string>
-  toggleColumnVisibility: (key: string) => void
 }
 
-const ViewDataContext = createContext<ViewDataContextValue | null>(null)
+// Backward compat — union of all 3
+export type ViewDataContextValue = PeopleContextValue & ChangesContextValue & ActionsContextValue
+
+const PeopleCtx = createContext<PeopleContextValue | null>(null)
+const ChangesCtx = createContext<ChangesContextValue | null>(null)
+const ActionsCtx = createContext<ActionsContextValue | null>(null)
+
+export function usePeople(): PeopleContextValue {
+  const ctx = useContext(PeopleCtx)
+  if (!ctx) throw new Error('usePeople must be used within a ViewDataProvider')
+  return ctx
+}
+
+export function useChanges(): ChangesContextValue {
+  const ctx = useContext(ChangesCtx)
+  if (!ctx) throw new Error('useChanges must be used within a ViewDataProvider')
+  return ctx
+}
+
+export function useActions(): ActionsContextValue {
+  const ctx = useContext(ActionsCtx)
+  if (!ctx) throw new Error('useActions must be used within a ViewDataProvider')
+  return ctx
+}
 
 export function useViewData(): ViewDataContextValue {
-  const ctx = useContext(ViewDataContext)
-  if (!ctx) throw new Error('useViewData must be used within a ViewDataProvider')
-  return ctx
+  return { ...usePeople(), ...useChanges(), ...useActions() }
 }
 
 export function ViewDataProvider({ children }: { children: ReactNode }) {
@@ -129,58 +144,27 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     setHead(personId)
   }, [setHead])
 
-  // Column configuration
-  const extraColumns = useMemo(() => buildExtraColumns(working), [working])
+  const peopleValue: PeopleContextValue = useMemo(() => ({
+    people, ghostPeople, managerSet, readOnly, pods, showChanges,
+  }), [people, ghostPeople, managerSet, readOnly, pods, showChanges])
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => new Set())
-
-  // Initialize visible columns when extra columns change
-  useEffect(() => {
-    if (extraColumns.length > 0) {
-      setVisibleColumns((prev) => {
-        const next = new Set(prev)
-        for (const col of extraColumns) {
-          if (!next.has(col.key)) next.add(col.key)
-        }
-        return next
-      })
-    }
-  }, [extraColumns])
-
-  const toggleColumnVisibility = useCallback((key: string) => {
-    setVisibleColumns((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }, [])
-
-  const value: ViewDataContextValue = useMemo(() => ({
-    people,
-    ghostPeople,
+  const changesValue: ChangesContextValue = useMemo(() => ({
     changes: showChanges ? changes : undefined,
-    showChanges,
-    managerSet,
-    readOnly,
-    pods,
-    handleSelect,
-    handleAddReport,
-    handleAddToTeam,
-    handleDeletePerson,
-    handleShowInfo,
-    handleFocus,
-    infoPopoverId,
-    clearInfoPopover,
-    extraColumns,
-    visibleColumns,
-    toggleColumnVisibility,
-  }), [
-    people, ghostPeople, changes, showChanges, managerSet, readOnly, pods,
+  }), [showChanges, changes])
+
+  const actionsValue: ActionsContextValue = useMemo(() => ({
     handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson,
     handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
-    extraColumns, visibleColumns, toggleColumnVisibility,
-  ])
+  }), [handleSelect, handleAddReport, handleAddToTeam, handleDeletePerson,
+       handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover])
 
-  return <ViewDataContext.Provider value={value}>{children}</ViewDataContext.Provider>
+  return (
+    <PeopleCtx.Provider value={peopleValue}>
+      <ChangesCtx.Provider value={changesValue}>
+        <ActionsCtx.Provider value={actionsValue}>
+          {children}
+        </ActionsCtx.Provider>
+      </ChangesCtx.Provider>
+    </PeopleCtx.Provider>
+  )
 }

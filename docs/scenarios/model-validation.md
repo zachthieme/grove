@@ -136,25 +136,6 @@ Setting a status to a value not in the valid statuses set returns a ValidationEr
 
 ---
 
-# Scenario: Unknown field rejected
-
-**ID**: ORG-007
-**Area**: model-validation
-**Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update_UnknownField"
-
-## Behavior
-Updating with an unrecognized field name returns a ValidationError.
-
-## Invariants
-- HTTP 422 returned
-- Error message includes the unknown field name
-
-## Edge cases
-- None
-
----
-
 # Scenario: Person not found on update
 
 **ID**: ORG-008
