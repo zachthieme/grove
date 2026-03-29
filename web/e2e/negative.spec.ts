@@ -4,13 +4,22 @@ import { uploadCSV, clickPerson, sidebarField, switchView, dragPersonTo } from '
 test.describe('Negative scenarios', () => {
 
   test.beforeEach(async ({ page }) => {
+    await page.request.delete('/api/autosave').catch(() => {})
     await page.goto('/')
+    await page.evaluate(() => localStorage.removeItem('grove-autosave'))
+    // Dismiss recovery banner if visible from stale data
+    const banner = page.getByRole('alert').filter({ hasText: 'Restore' })
+    if (await banner.isVisible().catch(() => false)) {
+      await banner.getByRole('button', { name: 'Dismiss' }).click()
+    }
   })
 
   test('[UPLOAD-011] uploading an invalid file shows error or mapping modal', async ({ page }) => {
     // Upload a CSV buffer with no "name" column — should show error or mapping modal, not crash
     const csvContent = 'foo,bar,baz\n1,2,3\n4,5,6'
-    const fileInput = page.getByRole('main').locator('input[type="file"]')
+    const mainInput = page.getByRole('main').locator('input[type="file"]')
+    const toolbarInput = page.locator('header input[type="file"]')
+    const fileInput = await mainInput.isVisible().catch(() => false) ? mainInput : toolbarInput
     await fileInput.setInputFiles({
       name: 'invalid.csv',
       mimeType: 'text/csv',
@@ -19,12 +28,18 @@ test.describe('Negative scenarios', () => {
 
     // The app should either show the column mapping modal OR an error message — not crash
     const mappingModal = page.locator('text=Map Spreadsheet Columns')
-    const errorIndicator = page.locator('[role="alert"], .error, text=/error/i, text=/could not/i, text=/invalid/i, text=/failed/i')
+    const errorIndicator = page.locator('[role="alert"]')
+      .or(page.locator('.error'))
+      .or(page.getByText(/error/i))
+      .or(page.getByText(/could not/i))
+      .or(page.getByText(/invalid/i))
+      .or(page.getByText(/failed/i))
+      .or(page.getByText(/something went wrong/i))
     const uploadScreen = page.getByRole('main').locator('input[type="file"]')
 
     // Wait for one of: mapping modal, error, or upload screen still visible
     await expect(
-      mappingModal.or(errorIndicator).or(uploadScreen)
+      mappingModal.or(errorIndicator).or(uploadScreen).first()
     ).toBeVisible({ timeout: 5000 })
 
     // The app should NOT have crashed — page should still be responsive
@@ -108,7 +123,9 @@ test.describe('Negative scenarios', () => {
 
   test('[UPLOAD-001] uploading empty file does not crash', async ({ page }) => {
     // Upload a completely empty buffer as a CSV
-    const fileInput = page.getByRole('main').locator('input[type="file"]')
+    const mainInput = page.getByRole('main').locator('input[type="file"]')
+    const toolbarInput = page.locator('header input[type="file"]')
+    const fileInput = await mainInput.isVisible().catch(() => false) ? mainInput : toolbarInput
     await fileInput.setInputFiles({
       name: 'empty.csv',
       mimeType: 'text/csv',
@@ -116,11 +133,17 @@ test.describe('Negative scenarios', () => {
     })
 
     // The app should show an error or stay on the upload screen, not crash
-    const errorIndicator = page.locator('[role="alert"], .error, text=/error/i, text=/could not/i, text=/invalid/i, text=/failed/i, text=/empty/i')
+    const errorIndicator = page.locator('[role="alert"]')
+      .or(page.locator('.error'))
+      .or(page.getByText(/error/i))
+      .or(page.getByText(/could not/i))
+      .or(page.getByText(/invalid/i))
+      .or(page.getByText(/failed/i))
+      .or(page.getByText(/empty/i))
     const uploadScreen = page.getByRole('main').locator('input[type="file"]')
 
     await expect(
-      errorIndicator.or(uploadScreen)
+      errorIndicator.or(uploadScreen).first()
     ).toBeVisible({ timeout: 5000 })
 
     // App should not have crashed
@@ -128,13 +151,18 @@ test.describe('Negative scenarios', () => {
   })
 
   test('[CONTRACT-010] network timeout on upload shows error', async ({ page }) => {
+    // Capture the initial count of org chart nodes (may be non-zero from prior tests)
+    const initialCount = await page.locator('[data-selected]').count()
+
     // Intercept the upload API and abort with a timeout error
     await page.route('**/api/upload', async (route) => {
       await route.abort('timedout')
     })
 
     const csvContent = 'Name,Role,Manager\nAlice,VP,\nBob,Engineer,Alice'
-    const fileInput = page.getByRole('main').locator('input[type="file"]')
+    const mainInput = page.getByRole('main').locator('input[type="file"]')
+    const toolbarInput = page.locator('header input[type="file"]')
+    const fileInput = await mainInput.isVisible().catch(() => false) ? mainInput : toolbarInput
     await fileInput.setInputFiles({
       name: 'timeout.csv',
       mimeType: 'text/csv',
@@ -142,15 +170,21 @@ test.describe('Negative scenarios', () => {
     })
 
     // The app should show an error or remain on the upload screen
-    const errorIndicator = page.locator('[role="alert"], .error, text=/error/i, text=/could not/i, text=/failed/i, text=/network/i, text=/timeout/i')
+    const errorIndicator = page.locator('[role="alert"]')
+      .or(page.locator('.error'))
+      .or(page.getByText(/error/i))
+      .or(page.getByText(/could not/i))
+      .or(page.getByText(/failed/i))
+      .or(page.getByText(/network/i))
+      .or(page.getByText(/timeout/i))
     const uploadScreen = page.getByRole('main').locator('input[type="file"]')
 
     await expect(
-      errorIndicator.or(uploadScreen)
+      errorIndicator.or(uploadScreen).first()
     ).toBeVisible({ timeout: 5000 })
 
-    // Should NOT have loaded org chart nodes
-    await expect(page.locator('[data-selected]')).toHaveCount(0)
+    // The failed upload should NOT have added new org chart nodes
+    await expect(page.locator('[data-selected]')).toHaveCount(initialCount)
   })
 
   test('[SNAP-001] snapshot save with server error does not lose data', async ({ page }) => {

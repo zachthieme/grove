@@ -65,7 +65,9 @@ test.describe('Feature tests', () => {
 
   test('[UPLOAD-002] column mapping modal', async ({ page }) => {
     const absPath = path.resolve(__dirname, '../../testdata', 'unmapped.csv')
-    const fileInput = page.getByRole('main').locator('input[type="file"]')
+    const mainInput = page.getByRole('main').locator('input[type="file"]')
+    const toolbarInput = page.locator('header input[type="file"]')
+    const fileInput = await mainInput.isVisible().catch(() => false) ? mainInput : toolbarInput
     await fileInput.setInputFiles(absPath)
     await expect(page.locator('text=Map Spreadsheet Columns')).toBeVisible({ timeout: 5000 })
     const nameRow = page.locator('span').filter({ hasText: /^Name$/ }).locator('xpath=../select')
@@ -116,7 +118,7 @@ test.describe('Feature tests', () => {
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
     await page.keyboard.press('Escape')
-    const noteIcon = page.getByTitle('Toggle notes')
+    const noteIcon = page.getByLabel('Toggle notes')
     await expect(noteIcon).toBeVisible()
     await noteIcon.click()
     await expect(page.locator('text=This is a test note')).toBeVisible()

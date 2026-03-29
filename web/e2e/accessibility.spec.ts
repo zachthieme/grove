@@ -6,6 +6,9 @@ test.describe('Accessibility', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
+    await page.evaluate(() => localStorage.removeItem('grove-autosave'))
+    await page.request.delete('/api/autosave').catch(() => {})
+    await page.goto('/')
   })
 
   test('[CONTRACT-011] upload prompt has no critical a11y violations', async ({ page }) => {

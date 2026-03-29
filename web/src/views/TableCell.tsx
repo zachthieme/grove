@@ -11,9 +11,10 @@ interface TableCellProps {
   onTab?: (shift: boolean) => void
   onEnter?: () => void
   cellRef?: (el: HTMLTableCellElement | null) => void
+  ariaLabel?: string
 }
 
-export default function TableCell({ value, cellType, readOnly, options, onSave, onTab, onEnter, cellRef }: TableCellProps) {
+export default function TableCell({ value, cellType, readOnly, options, onSave, onTab, onEnter, cellRef, ariaLabel }: TableCellProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const [flash, setFlash] = useState<'success' | 'error' | null>(null)
@@ -64,6 +65,7 @@ export default function TableCell({ value, cellType, readOnly, options, onSave, 
           type="checkbox"
           checked={value === 'true'}
           disabled={readOnly}
+          aria-label={ariaLabel}
           onChange={async (e) => {
             try {
               await onSave(e.target.checked ? 'true' : 'false')

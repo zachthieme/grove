@@ -7,7 +7,10 @@ const __dirname = path.dirname(__filename)
 
 export async function uploadCSV(page: Page, csvPath: string) {
   const absPath = path.resolve(__dirname, '../../testdata', csvPath)
-  const fileInput = page.getByRole('main').locator('input[type="file"]')
+  // Use the upload prompt file input (in main) if visible, otherwise fall back to the toolbar's hidden input
+  const mainInput = page.getByRole('main').locator('input[type="file"]')
+  const toolbarInput = page.locator('header input[type="file"]')
+  const fileInput = await mainInput.isVisible().catch(() => false) ? mainInput : toolbarInput
   await fileInput.setInputFiles(absPath)
   await page.locator('[data-selected], tbody tr').first().waitFor({ timeout: 10000 })
 }

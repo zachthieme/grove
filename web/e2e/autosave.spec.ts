@@ -5,9 +5,14 @@ test.describe('Autosave recovery', () => {
 
   test.beforeEach(async ({ page }) => {
     // Clear any existing autosave state before each test
+    await page.request.delete('/api/autosave').catch(() => {})
     await page.goto('/')
     await page.evaluate(() => localStorage.removeItem('grove-autosave'))
-    await page.request.delete('/api/autosave')
+    // Dismiss recovery banner if visible from stale data
+    const banner = page.getByRole('alert').filter({ hasText: 'Restore' })
+    if (await banner.isVisible().catch(() => false)) {
+      await banner.getByRole('button', { name: 'Dismiss' }).click()
+    }
   })
 
   test('[AUTO-001] autosave is triggered after editing a person', async ({ page }) => {
@@ -154,8 +159,7 @@ test.describe('Autosave recovery', () => {
 
     // The app should show the upload prompt (clean state), not the org chart
     await expect(page.locator('[data-selected]')).toHaveCount(0)
-    const fileInput = page.getByRole('main').locator('input[type="file"]')
-    await expect(fileInput).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Choose File' })).toBeVisible()
 
     // Step 4: Verify autosave was deleted — reloading should NOT show the banner
     await page.goto('/')

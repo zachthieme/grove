@@ -71,6 +71,7 @@ export default function TableRow({ person, columns, managers, change, readOnly, 
           onSave={async (v) => onUpdate(person.id, col.key, v)}
           onTab={(shift) => handleTab(i, shift)}
           cellRef={(el) => { cellRefs.current[i] = el }}
+          ariaLabel={col.cellType === 'checkbox' ? `${col.label} for ${person.name}` : undefined}
         />
       ))}
       <td className={styles.actionCell}>
