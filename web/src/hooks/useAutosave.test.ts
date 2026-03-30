@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAutosave } from './useAutosave'
 import type { Person, Pod, Settings } from '../api/types'
-import type { OrgDataContextValue } from '../store/orgTypes'
+import type { OrgDataStateValue } from '../store/orgTypes'
 
 vi.mock('../api/client', () => ({
   writeAutosave: vi.fn(),
@@ -34,7 +34,7 @@ function makePerson(overrides: Partial<Person> = {}): Person {
 
 const defaultSettings: Settings = { disciplineOrder: [] }
 
-function mockOrgData(overrides: Partial<Pick<OrgDataContextValue, 'original' | 'working' | 'recycled' | 'pods' | 'originalPods' | 'settings' | 'currentSnapshotName' | 'loaded'>> = {}) {
+function mockOrgData(overrides: Partial<Pick<OrgDataStateValue, 'original' | 'working' | 'recycled' | 'pods' | 'originalPods' | 'settings' | 'currentSnapshotName' | 'loaded'>> = {}) {
   const data = {
     original: [makePerson()],
     working: [makePerson()],
@@ -46,7 +46,7 @@ function mockOrgData(overrides: Partial<Pick<OrgDataContextValue, 'original' | '
     loaded: true,
     ...overrides,
   }
-  mockedUseOrgData.mockReturnValue(data as unknown as OrgDataContextValue)
+  mockedUseOrgData.mockReturnValue(data as unknown as OrgDataStateValue)
   return data
 }
 
