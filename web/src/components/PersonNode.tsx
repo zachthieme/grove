@@ -164,46 +164,48 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       {isPrivate && !isPlaceholder && (
         <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
-      <div className={classNames} style={nodeStyle} onClick={(e) => { onClick?.(e); (e.currentTarget as HTMLElement).blur() }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
-        <div className={styles.name} onDoubleClick={handleDoubleClick('name')}>
-          {editing && editBuffer ? (
-            <input ref={nameRef} className={styles.inlineEdit} value={editBuffer.name} onChange={(e) => onUpdateBuffer?.('name', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
-          ) : (
-            <>{statusLabel && <span className="sr-only">{statusLabel}: </span>}{prefix}{person.name}</>
-          )}
-        </div>
-        {showTeam && (
-          <div className={styles.team} onDoubleClick={handleDoubleClick('team')}>
+      <div className={styles.cardArea}>
+        <div className={classNames} style={nodeStyle} onClick={(e) => { onClick?.(e); (e.currentTarget as HTMLElement).blur() }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
+          <div className={styles.name} onDoubleClick={handleDoubleClick('name')}>
             {editing && editBuffer ? (
-              <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
+              <input ref={nameRef} className={styles.inlineEdit} value={editBuffer.name} onChange={(e) => onUpdateBuffer?.('name', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
             ) : (
-              person.team || '\u00A0'
+              <>{statusLabel && <span className="sr-only">{statusLabel}: </span>}{prefix}{person.name}</>
             )}
           </div>
-        )}
-        <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
-          {editing && editBuffer ? (
-            <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
-          ) : (
-            <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
+          {showTeam && (
+            <div className={styles.team} onDoubleClick={handleDoubleClick('team')}>
+              {editing && editBuffer ? (
+                <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
+              ) : (
+                person.team || '\u00A0'
+              )}
+            </div>
           )}
+          <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
+            {editing && editBuffer ? (
+              <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
+            ) : (
+              <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
+            )}
+          </div>
         </div>
+        {hasNotes && (
+          <button
+            className={`${styles.noteIcon} ${noteOpen ? styles.noteIconActive : ''}`}
+            onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
+            aria-label="Toggle notes"
+            aria-expanded={noteOpen}
+          >
+            {'\u{1F4CB}'}
+          </button>
+        )}
+        {noteOpen && hasNotes && (
+          <div className={styles.notePanel}>
+            <div className={styles.notePanelText}>{person.publicNote}</div>
+          </div>
+        )}
       </div>
-      {hasNotes && (
-        <button
-          className={`${styles.noteIcon} ${noteOpen ? styles.noteIconActive : ''}`}
-          onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
-          aria-label="Toggle notes"
-          aria-expanded={noteOpen}
-        >
-          {'\u{1F4CB}'}
-        </button>
-      )}
-      {noteOpen && hasNotes && (
-        <div className={styles.notePanel}>
-          <div className={styles.notePanelText}>{person.publicNote}</div>
-        </div>
-      )}
       {onToggleCollapse && (
         <button
           className={styles.collapseToggle}
