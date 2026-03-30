@@ -50,9 +50,10 @@ interface Props {
   onEnterEditing?: () => void
   onUpdateBuffer?: (field: string, value: string) => void
   onCommitEdits?: () => void
+  cardRef?: (el: HTMLDivElement | null) => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -164,7 +165,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       {isPrivate && !isPlaceholder && (
         <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
-      <div className={styles.cardArea}>
+      <div className={styles.cardArea} ref={cardRef}>
         <div className={classNames} style={nodeStyle} onClick={(e) => { onClick?.(e); (e.currentTarget as HTMLElement).blur() }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
           <div className={styles.name} onDoubleClick={handleDoubleClick('name')}>
             {editing && editBuffer ? (

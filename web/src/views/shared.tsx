@@ -65,10 +65,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
 
   return (
     <div
-      ref={(node) => {
-        setDropRef(node)
-        nodeRef?.(node)
-      }}
+      ref={setDropRef}
       data-person-id={person.id}
       style={{
         outline: isOver && !isDragging ? '2px solid var(--grove-green, #3d6b35)' : 'none',
@@ -112,6 +109,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
           onEnterEditing={onEnterEditing}
           onUpdateBuffer={onUpdateBuffer}
           onCommitEdits={onCommitEdits}
+          cardRef={nodeRef}
         />
       </div>
     </div>
