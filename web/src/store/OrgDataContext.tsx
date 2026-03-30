@@ -58,14 +58,17 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     autosaveAvailable: null,
   })
 
-  // Ref to access latest state in callbacks without re-creating them
-  const stateRef = useRef(state)
-  stateRef.current = state
+  // Ref for synchronous latest-state access in reparent (needs to read working to find manager)
+  const workingRef = useRef(state.working)
+  workingRef.current = state.working
 
   const { undoStack, redoStack, pushUndo, canUndo, canRedo, setUndoStack, setRedoStack } = useUndoRedo()
 
   const captureForUndo = useCallback(() => {
-    pushUndo({ working: stateRef.current.working, pods: stateRef.current.pods })
+    setState(s => {
+      pushUndo({ working: s.working, pods: s.pods })
+      return s
+    })
   }, [pushUndo])
 
   // On mount: check for autosave first, then fall back to loading org data
@@ -196,28 +199,28 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const mutations = useOrgMutations({ setState, stateRef, handleError, setError, captureForUndo })
+  const mutations = useOrgMutations({ setState, workingRef, handleError, setError, captureForUndo })
 
   const restoreAutosave = useCallback(() => {
-    const ad = stateRef.current.autosaveAvailable
-    if (!ad) return
-    // Sync restored state to backend so mutations work
-    api.restoreState(ad).catch(() => {
-      // If backend sync fails, data is still shown but mutations may fail
-      console.warn('Failed to sync restored state to backend')
+    setState(s => {
+      const ad = s.autosaveAvailable
+      if (!ad) return s
+      api.restoreState(ad).catch(() => {
+        console.warn('Failed to sync restored state to backend')
+      })
+      return {
+        ...s,
+        original: ad.original,
+        working: ad.working,
+        recycled: ad.recycled,
+        pods: ad.pods ?? [],
+        originalPods: ad.originalPods ?? [],
+        settings: ad.settings ?? { disciplineOrder: [] },
+        currentSnapshotName: ad.snapshotName || null,
+        loaded: true,
+        autosaveAvailable: null,
+      }
     })
-    setState((s) => ({
-      ...s,
-      original: ad.original,
-      working: ad.working,
-      recycled: ad.recycled,
-      pods: ad.pods ?? [],
-      originalPods: ad.originalPods ?? [],
-      settings: ad.settings ?? { disciplineOrder: [] },
-      currentSnapshotName: ad.snapshotName || null,
-      loaded: true,
-      autosaveAvailable: null,
-    }))
   }, [])
 
   const dismissAutosave = useCallback(async () => {
@@ -245,46 +248,46 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   const undo = useCallback(() => {
     if (undoStack.length === 0) return
     const prev = undoStack[undoStack.length - 1]
-    const current = { working: stateRef.current.working, pods: stateRef.current.pods }
     setUndoStack(s => s.slice(0, -1))
-    setRedoStack(s => [...s, current])
-    setState(s => ({ ...s, working: prev.working, pods: prev.pods, currentSnapshotName: null }))
-    const autosaveData: AutosaveData = {
-      original: stateRef.current.original,
-      working: prev.working,
-      recycled: stateRef.current.recycled,
-      pods: prev.pods,
-      originalPods: stateRef.current.originalPods,
-      settings: stateRef.current.settings,
-      snapshotName: '',
-      timestamp: new Date().toISOString(),
-    }
-    api.restoreState(autosaveData).catch(() => {
-      console.warn('Failed to sync undo state to backend')
+    setState(s => {
+      setRedoStack(r => [...r, { working: s.working, pods: s.pods }])
+      api.restoreState({
+        original: s.original,
+        working: prev.working,
+        recycled: s.recycled,
+        pods: prev.pods,
+        originalPods: s.originalPods,
+        settings: s.settings,
+        snapshotName: '',
+        timestamp: new Date().toISOString(),
+      }).catch(() => {
+        console.warn('Failed to sync undo state to backend')
+      })
+      return { ...s, working: prev.working, pods: prev.pods, currentSnapshotName: null }
     })
-  }, [undoStack, setUndoStack, setRedoStack, setState])
+  }, [undoStack, setUndoStack, setRedoStack])
 
   const redo = useCallback(() => {
     if (redoStack.length === 0) return
     const next = redoStack[redoStack.length - 1]
-    const current = { working: stateRef.current.working, pods: stateRef.current.pods }
     setRedoStack(s => s.slice(0, -1))
-    setUndoStack(s => [...s, current])
-    setState(s => ({ ...s, working: next.working, pods: next.pods, currentSnapshotName: null }))
-    const autosaveData: AutosaveData = {
-      original: stateRef.current.original,
-      working: next.working,
-      recycled: stateRef.current.recycled,
-      pods: next.pods,
-      originalPods: stateRef.current.originalPods,
-      settings: stateRef.current.settings,
-      snapshotName: '',
-      timestamp: new Date().toISOString(),
-    }
-    api.restoreState(autosaveData).catch(() => {
-      console.warn('Failed to sync redo state to backend')
+    setState(s => {
+      setUndoStack(u => [...u, { working: s.working, pods: s.pods }])
+      api.restoreState({
+        original: s.original,
+        working: next.working,
+        recycled: s.recycled,
+        pods: next.pods,
+        originalPods: s.originalPods,
+        settings: s.settings,
+        snapshotName: '',
+        timestamp: new Date().toISOString(),
+      }).catch(() => {
+        console.warn('Failed to sync redo state to backend')
+      })
+      return { ...s, working: next.working, pods: next.pods, currentSnapshotName: null }
     })
-  }, [redoStack, setUndoStack, setRedoStack, setState])
+  }, [redoStack, setUndoStack, setRedoStack])
 
   const value: OrgDataContextValue = useMemo(() => ({
     original: state.original,

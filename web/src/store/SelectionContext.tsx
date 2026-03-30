@@ -117,7 +117,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     commitEdits: interaction.commitEdits,
     revertEdits: interaction.revertEdits,
     updateBuffer: interaction.updateBuffer,
-  }), [selectedIds, selectedId, selectedPodId, interaction.mode, interaction.editBuffer, interaction.editingPersonId, setSelectedId, toggleSelect, clearSelection, selectPod, batchSelect, enterEditing, interaction.commitEdits, interaction.revertEdits, interaction.updateBuffer])
+  }), [selectedIds, selectedId, selectedPodId, interaction, setSelectedId, toggleSelect, clearSelection, selectPod, batchSelect, enterEditing])
 
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>
 }

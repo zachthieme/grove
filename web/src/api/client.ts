@@ -20,6 +20,12 @@ export function setOnApiError(handler: (message: string) => void): () => void {
   return () => { if (onApiError === handler) onApiError = null }
 }
 
+/** Reset all module-level mutable state. Use in tests to prevent cross-test leakage. */
+export function resetClient(): void {
+  loggingEnabled = false
+  onApiError = null
+}
+
 function postLogEntry(entry: Record<string, unknown>): void {
   if (!loggingEnabled) return
   fetch(`${BASE}/logs`, {

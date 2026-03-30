@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import type { Person } from '../api/types'
 
 export type InteractionMode = 'idle' | 'selected' | 'editing'
@@ -102,7 +102,7 @@ export function useInteractionState() {
     originalRef.current = null
   }, [])
 
-  return {
+  return useMemo(() => ({
     mode,
     editBuffer,
     editingPersonId,
@@ -112,5 +112,5 @@ export function useInteractionState() {
     commitEdits,
     revertEdits,
     exitToIdle,
-  }
+  }), [mode, editBuffer, editingPersonId, enterSelected, enterEditing, updateBuffer, commitEdits, revertEdits, exitToIdle])
 }

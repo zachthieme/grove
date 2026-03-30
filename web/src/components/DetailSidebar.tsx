@@ -132,11 +132,10 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
 
   // Sync batch form when batch selection changes
   useEffect(() => {
-    if (isBatch) {
-      setBatchForm(formFromBatch(selectedPeople))
-      setBatchDirty(new Set())
-    }
-  }, [isBatch ? selectedIds.size : null])
+    if (!isBatch) return
+    setBatchForm(formFromBatch(selectedPeople))
+    setBatchDirty(new Set())
+  }, [isBatch, selectedIds.size])
 
   const handleSidebarChange = (field: keyof FormFields, value: string | boolean) => {
     if (field === 'managerId') {

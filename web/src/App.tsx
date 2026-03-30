@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import styles from './App.module.css'
 import { OrgProvider, useOrgData, useUI, useSelection } from './store/OrgContext'
 import { ViewDataProvider, useActions } from './store/ViewDataContext'
@@ -8,6 +8,10 @@ import { useAutosave } from './hooks/useAutosave'
 import { useUnifiedEscape } from './hooks/useUnifiedEscape'
 import { useDeepLink } from './hooks/useDeepLink'
 import { useVimNav } from './hooks/useVimNav'
+import { useTheme } from './hooks/useTheme'
+import { useVimMode } from './hooks/useVimMode'
+import { useUndoRedoKeys } from './hooks/useUndoRedoKeys'
+import { useLogging } from './hooks/useLogging'
 import UploadPrompt from './components/UploadPrompt'
 import Toolbar from './components/Toolbar'
 import DetailSidebar from './components/DetailSidebar'
@@ -18,7 +22,6 @@ import Breadcrumbs from './components/Breadcrumbs'
 import ColumnMappingModal from './components/ColumnMappingModal'
 import ManagerInfoPopover from './components/ManagerInfoPopover'
 import LogPanel from './components/LogPanel'
-import { getConfig, setLoggingEnabled as setClientLogging } from './api/client'
 import ErrorBoundary from './components/ErrorBoundary'
 import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
@@ -29,6 +32,11 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
   const { viewMode, layoutKey, error, clearError, headPersonId, setHead, showAllEmploymentTypes, setViewMode } = useUI()
   const { selectedIds, selectedPodId, clearSelection, setSelectedId, interactionMode, revertEdits } = useSelection()
   const { infoPopoverId, clearInfoPopover, handleAddParent } = useActions()
+
+  const { themePref, changeTheme } = useTheme()
+  const { vimMode, toggleVimMode } = useVimMode()
+  const { loggingEnabled, logPanelOpen, toggleLogs, setLogPanelOpen } = useLogging()
+  useUndoRedoKeys(canUndo, canRedo, undo, redo)
 
   useDeepLink({
     viewMode,
@@ -68,38 +76,6 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
     add({ name: 'New Person', role: '', discipline: '', team: parent.team, managerId: parent.id, status: 'Active' as const, additionalTeams: [] })
   }, [working, add])
 
-  const [vimMode, setVimMode] = useState(() => localStorage.getItem('grove-vim-mode') === '1')
-  const toggleVimMode = useCallback((on: boolean) => {
-    setVimMode(on)
-    localStorage.setItem('grove-vim-mode', on ? '1' : '0')
-  }, [])
-
-  type ThemePref = 'system' | 'light' | 'dark'
-  const [themePref, setThemePref] = useState<ThemePref>(() => (localStorage.getItem('grove-theme') as ThemePref) || 'system')
-
-  useEffect(() => {
-    const apply = (pref: ThemePref) => {
-      if (pref === 'system') {
-        const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
-      } else {
-        document.documentElement.setAttribute('data-theme', pref)
-      }
-    }
-    apply(themePref)
-    if (themePref === 'system') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const handler = () => apply('system')
-      mq.addEventListener('change', handler)
-      return () => mq.removeEventListener('change', handler)
-    }
-  }, [themePref])
-
-  const changeTheme = useCallback((pref: ThemePref) => {
-    setThemePref(pref)
-    localStorage.setItem('grove-theme', pref)
-  }, [])
-
   const { cutId, cancelCut } = useVimNav({
     working,
     selectedId,
@@ -129,31 +105,6 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
     enabled: true,
   })
 
-  const [loggingEnabled, setLoggingEnabled] = useState(false)
-  const [logPanelOpen, setLogPanelOpen] = useState(false)
-
-  useEffect(() => {
-    getConfig().then((cfg) => {
-      setLoggingEnabled(cfg.logging)
-      setClientLogging(cfg.logging)
-    }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        if (canUndo) undo()
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault()
-        if (canRedo) redo()
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [canUndo, canRedo, undo, redo])
-
   const hasSidebarSelection = selectedIds.size > 0 || !!selectedPodId
 
   return (
@@ -165,12 +116,8 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
         hasSnapshots={snapshots.length > 0}
         onExportAllSnapshots={exportAllSnapshots}
         loggingEnabled={loggingEnabled}
-        onToggleLogs={() => setLogPanelOpen((o) => !o)}
+        onToggleLogs={toggleLogs}
         logPanelOpen={logPanelOpen}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
         vimMode={vimMode}
         onToggleVimMode={toggleVimMode}
         themePref={themePref}

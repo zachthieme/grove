@@ -41,8 +41,8 @@ export default function ChartShell({
 }: ChartShellProps) {
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
-  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, addParentTargetId, setAddParentTargetId, submitAddParent, deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit, handleCommitEdits } = useActions()
-  const { selectedIds, batchSelect, selectPod, interactionMode, editingPersonId, editBuffer, enterEditing, updateBuffer } = useSelection()
+  const actions = useActions()
+  const selection = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people, roots), [computeEdges, people, roots])
@@ -63,15 +63,15 @@ export default function ChartShell({
 
   // Auto-scroll to keep selected node visible
   useEffect(() => {
-    if (selectedIds.size !== 1) return
-    const id = [...selectedIds][0]
+    if (selection.selectedIds.size !== 1) return
+    const id = [...selection.selectedIds][0]
     const el = nodeRefs.current.get(id)
     el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-  }, [selectedIds, nodeRefs])
+  }, [selection.selectedIds, nodeRefs])
 
   const handleLassoSelect = useCallback((ids: Set<string>) => {
-    batchSelect?.(ids)
-  }, [batchSelect])
+    selection.batchSelect?.(ids)
+  }, [selection])
 
   const { lassoRect } = useLassoSelect({
     containerRef,
@@ -83,28 +83,28 @@ export default function ChartShell({
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
   const chartValue = useMemo(() => ({
-    selectedIds, changes, managerSet, pods,
-    interactionMode,
-    editingPersonId,
-    editBuffer,
-    onSelect: handleSelect,
-    onBatchSelect: batchSelect,
-    onAddReport: handleAddReport,
-    onAddParent: handleAddParent,
-    onAddToTeam: includeAddToTeam ? handleAddToTeam : undefined,
-    onDeletePerson: handleDeletePerson,
-    onInfo: handleShowInfo,
-    onFocus: handleFocus,
-    onEditMode: handleEditMode,
-    onPodSelect: selectPod,
-    onEnterEditing: enterEditing,
-    onUpdateBuffer: updateBuffer,
-    onCommitEdits: handleCommitEdits,
+    selectedIds: selection.selectedIds, changes, managerSet, pods,
+    interactionMode: selection.interactionMode,
+    editingPersonId: selection.editingPersonId,
+    editBuffer: selection.editBuffer,
+    onSelect: actions.handleSelect,
+    onBatchSelect: selection.batchSelect,
+    onAddReport: actions.handleAddReport,
+    onAddParent: actions.handleAddParent,
+    onAddToTeam: includeAddToTeam ? actions.handleAddToTeam : undefined,
+    onDeletePerson: actions.handleDeletePerson,
+    onInfo: actions.handleShowInfo,
+    onFocus: actions.handleFocus,
+    onEditMode: actions.handleEditMode,
+    onPodSelect: selection.selectPod,
+    onEnterEditing: selection.enterEditing,
+    onUpdateBuffer: selection.updateBuffer,
+    onCommitEdits: actions.handleCommitEdits,
     setNodeRef,
     collapsedIds,
     onToggleCollapse: handleToggleCollapse,
-    onInlineEdit: handleInlineEdit,
-  }), [selectedIds, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, selectPod, enterEditing, updateBuffer, handleCommitEdits, setNodeRef, collapsedIds, handleToggleCollapse, handleInlineEdit])
+    onInlineEdit: actions.handleInlineEdit,
+  }), [selection, actions, changes, managerSet, pods, includeAddToTeam, setNodeRef, collapsedIds, handleToggleCollapse])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>
@@ -122,14 +122,14 @@ export default function ChartShell({
             <OrphanGroup
               orphans={roots.filter((r) => r.children.length === 0)}
               roots={roots}
-              selectedIds={selectedIds}
-              onSelect={handleSelect}
+              selectedIds={selection.selectedIds}
+              onSelect={actions.handleSelect}
               changes={changes}
               setNodeRef={setNodeRef}
               managerSet={managerSet}
-              onAddReport={handleAddReport}
-              onDeletePerson={handleDeletePerson}
-              onInfo={handleShowInfo}
+              onAddReport={actions.handleAddReport}
+              onDeletePerson={actions.handleDeletePerson}
+              onInfo={actions.handleShowInfo}
               styles={viewStyles}
               wrapInIcStack={wrapOrphansInIcStack}
               renderSubtree={renderOrphanSubtree ?? renderSubtree}
@@ -142,24 +142,24 @@ export default function ChartShell({
             </div>
           )}
         </div>
-        <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selectedIds} />
+        <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selection.selectedIds} />
       </DndContext>
-      {addParentTargetId != null && (
+      {actions.addParentTargetId != null && (
         <AddParentPopover
-          onSubmit={submitAddParent}
-          onCancel={() => setAddParentTargetId(null)}
+          onSubmit={actions.submitAddParent}
+          onCancel={() => actions.setAddParentTargetId(null)}
         />
       )}
-      {deleteTargetId != null && (() => {
-        const person = people.find(p => p.id === deleteTargetId)
+      {actions.deleteTargetId != null && (() => {
+        const person = people.find(p => p.id === actions.deleteTargetId)
         if (!person) return null
-        const reportCount = people.filter(p => p.managerId === deleteTargetId).length
+        const reportCount = people.filter(p => p.managerId === actions.deleteTargetId).length
         return (
           <DeleteConfirmPopover
             personName={person.name}
             reportCount={reportCount}
-            onConfirm={confirmDelete}
-            onCancel={cancelDelete}
+            onConfirm={actions.confirmDelete}
+            onCancel={actions.cancelDelete}
           />
         )
       })()}

@@ -1,0 +1,71 @@
+Name,Role,Discipline,Manager,Team,Additional Teams,Status,Employment Type,New Role,New Team,Level,Pod,Public Note,Private Note,Private
+Huot Ta,systems analyst II - ST,TPM,,Transfer,,Transfer Out,FTE,,,,,,,true
+Jay Hooton,technical product manager - ST,TPM,TBH,DDP,,Active,FTE,,,,DDP,,,false
+Ross Gressick,technical product manager - ST,TPM,,Transfer,,Transfer Out,FTE,,,,,,,true
+Van Jensen,technical product manager sr - ST,TPM,TBH,IOT,,Active,FTE,,,,IOT,,,false
+Uday Munisamy,Systems Engineer sr - ST,Engineering,,Transfer,,Transfer Out,FTE,,,,,,,true
+Ian Brown,technical product manager sr - ST,TPM,Chris Vasquez,SEC,,Active,FTE,,,,,,,false
+Ricky Eser Jose,Systems Engineer sr - ST,Engineering,TBH,IOT,,Active,FTE,,,,IOT,,,false
+Kevin Zhang,technical product manager sr - ST,TPM,TBH,SEC-2,,Active,FTE,,,,,,,false
+Paulette Zorrilla Bautista,Engineer II,Engineering,Chris Vasquez,SEC,,Active,FTE,,,,,,,false
+Dexter Park,Engineer lead,Engineering,Chris Vasquez,SEC,,Active,FTE,,,,,,,false
+KIRAN KUMAR Surapathi,Engineer sr,Engineering,Chris Vasquez,SEC,,Active,FTE,,,,,,,false
+Tim Meanor,engineer sr - ST,Engineering,Chris Vasquez,SEC,,Active,FTE,,,,,,,false
+John Frear,engineer sr - ST,Engineering,Chris Vasquez,SEC,,Active,FTE,,,,,,,false
+Joe Wolf,Engineer II,Engineering,TBH,DDP,,Active,FTE,,,,DDP,,,false
+Vidya Kannimangalam Viswanathan,engineer II,Engineering,TBH,IOT,,Active,FTE,,,,IOT,,,false
+Ryan Truran,engineer lead,Engineering,TBH,IOT,,Active,FTE,,,,IOT,,,false
+Nguyen Lai,engineer sr,Engineering,TBH,IOT,,Active,FTE,,,,IOT,,,false
+Angel Santiago,engineer II - ST,Engineering,TBH,IOT,,Active,FTE,,,,IOT,,,false
+Michael Murray,engineer lead - ST,Engineering,TBH,DDP,,Active,FTE,,,,DDP,,,false
+Chris Launey,engineer principal - ST,Engineering,Zach Thieme,SEC & IOT,"SEC,SEC-2,SEC-Support",Active,FTE,,,,SEC & IOT,,,false
+Mark Quilling,engineer principal - ST,Engineering,Zach Thieme,SEC & IOT,IOT,Active,FTE,,,,SEC & IOT,,,false
+Phil Scott,engineer sr - ST,Engineering,TBH,DDP,,Active,FTE,,,,DDP,,,false
+Gordon Wells,engineer sr - ST,Engineering,TBH,DDP,,Active,FTE,,,,DDP,,,false
+Saransh Lamba,mgr Engineering,Engineering,Zach Thieme,SEC-Support,,Active,FTE,,,,SEC Support,,,false
+Zach Thieme,Director Engineering,Engineering,,SEC & IOT,,Active,FTE,,,,,,,false
+Travis Miller,Support,Ops,TBH,DDP,,Active,PSP,,,,DDP-Support,,,false
+Jeremy Palenchar,Engineer Principle,Engineering,TBH,DDP,,Active,PSP,,,,DDP,,,false
+Lucie Roy,Support,Ops,TBH,DDP,,Active,PSP,,,,DDP-Support,,,false
+Kevin Titco,Lab Manager,Engineering,TBH,IOT,,Active,PSP,,,,IOT,,,false
+Logan Warren,Support,Ops,TBH,DDP,,Active,PSP,,,,DDP-Support,,,false
+Johnathon Biersack,Engineer,Engineering,Chris Vasquez,SEC,,Active,PSP,,,,,,,false
+Matt Gutierrez,Engineer,Engineering,Chris Vasquez,SEC,,Active,PSP,,,,,,,false
+Pramod Sharma,Engineer,Engineering,TBH,SEC-2,,Active,PSP,,,,,,,false
+Saroj Priyadarshi,Engineer,Engineering,Chris Vasquez,SEC,,Active,PSP,,,,,,,false
+Chandani Joshi,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+Poonam Kumari,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+David Luksenberg,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+Gaurav Naik,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+James Scribner,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+Mohit Singh,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+Martin Wellard,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+Oleg Zvonarov,Support,Support,Zach Thieme,SEC & IOT,,Active,PSP,,,,MachineQ,,,false
+Dylan Han,Engineer,TPM,TBH,SEC-2,,Active,PSP,,,,,,,false
+TBH,Engineering Manager,Engineering,Zach Thieme,IOT,,Backfill,FTE,,,,IOT,,,false
+TBH,Engineer Lead,Engineering,Chris Vasquez,SEC,,Backfill,FTE,,,,,,,false
+TBH,Engineer Sr,Engineering,TBH,SEC-2,,Backfill,FTE,,,,,,,false
+TBH,Engineer II,Engineering,TBH,SEC-2,,Backfill,FTE,,,,,,,false
+TBH,Systems Engineer Sr,Engineering,TBH,IOT,,Backfill,FTE,,,,IOT,,,false
+TBH,Engineering Manager,Engineering,Zach Thieme,SEC-2,,Backfill,FTE,,,,SEC-2,,,false
+TBT,Engineer,Engineering,TBH,SEC-2,,Transfer In,FTE,,,,,,,false
+TBT,Engineer,Engineering,TBH,SEC-2,,Transfer In,FTE,,,,,,,false
+TBT,Engineer,Engineering,TBH,SEC-2,,Transfer In,FTE,,,,,,,false
+Kurt Wilhelmsen,Technical Product Manager - Principle,TPM,Zach Thieme,SEC & IOT,IOT,Transfer In,FTE,,,,SEC & IOT,"Pitch trading him for others (Huot, Ross, Uday)",,true
+Pradeep R,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Gopal Parab,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Raymond Surya E M,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Tasbiya,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Venkata Swarna,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Tungala Umamaheswara Rao,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Sarang Mahajan,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Patel Narendra Reddy,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Kalyan U,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Althaf Shaik,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Bharat Pal Singh,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Sowjanya Ravipatti,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Kamalakar mudigonda,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Aurelio Vazquez Alejo,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Laxman Channappa Kasle,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Jaya Kumar Panneru,,,Saransh Lamba,SEC-Support,,Active,PSP,,,,,,,false
+Chris Vasquez,Engineering Manager,Engineering,Zach Thieme,SEC,,Backfill,,,,,,,,false

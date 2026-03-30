@@ -38,19 +38,19 @@ describe('computeRenderItems', () => {
     expect(items[1].type).toBe('ic')
   })
 
-  it('[VIEW-001] places affiliated IC after the highest-indexed connected manager', () => {
+  it('[VIEW-001] places affiliated IC before the highest-indexed connected manager', () => {
     const managers = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
       makeNode({ id: '2', name: 'Bob', team: 'Design' }),
     ]
     const ics = [makeNode({ id: '3', name: 'Carol', team: 'Eng', additionalTeams: ['Design'] })]
     const items = computeRenderItems(managers, ics)
-    // Carol should be after Bob (Design is index 1, which is highest)
+    // Carol should be before Bob (Design is index 1, which is highest)
     expect(items[0].type).toBe('manager') // Alice
-    expect(items[1].type).toBe('manager') // Bob
-    expect(items[2].type).toBe('ic')      // Carol (after Design manager)
-    if (items[2].type === 'ic') {
-      expect(items[2].node.person.name).toBe('Carol')
+    expect(items[1].type).toBe('ic')      // Carol (before Design manager)
+    expect(items[2].type).toBe('manager') // Bob
+    if (items[1].type === 'ic') {
+      expect(items[1].node.person.name).toBe('Carol')
     }
   })
 
@@ -97,7 +97,7 @@ describe('computeRenderItems', () => {
       makeNode({ id: '4', name: 'Chris Launey', team: 'SEC and IOT', additionalTeams: ['SEC', 'SEC-2'] }),
     ]
     const items = computeRenderItems(managers, ics)
-    // SEC and SEC-2 managers should be adjacent, with Chris Launey after SEC-2
+    // SEC and SEC-2 managers should be adjacent, with Chris Launey before SEC-2
     const managerTeams = items
       .filter((i): i is { type: 'manager'; node: OrgNode } => i.type === 'manager')
       .map((i) => i.node.person.team)

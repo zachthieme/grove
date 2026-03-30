@@ -8,13 +8,13 @@ type SetState = React.Dispatch<React.SetStateAction<OrgDataState>>
 
 interface MutationDeps {
   setState: SetState
-  stateRef: MutableRefObject<OrgDataState>
+  workingRef: MutableRefObject<Person[]>
   handleError: (err: unknown) => void
   setError: (msg: string | null) => void
   captureForUndo: () => void
 }
 
-export function useOrgMutations({ setState, stateRef, handleError, setError, captureForUndo }: MutationDeps) {
+export function useOrgMutations({ setState, workingRef, handleError, setError, captureForUndo }: MutationDeps) {
   const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => {
     captureForUndo()
     try {
@@ -32,8 +32,7 @@ export function useOrgMutations({ setState, stateRef, handleError, setError, cap
       } catch (err) { handleError(err) }
       return
     }
-    const currentWorking = stateRef.current.working
-    const newManager = currentWorking.find((p) => p.id === newManagerId)
+    const newManager = workingRef.current.find((p) => p.id === newManagerId)
     if (!newManager) {
       setError('Manager not found (may have been deleted)')
       return
@@ -42,7 +41,7 @@ export function useOrgMutations({ setState, stateRef, handleError, setError, cap
       const resp = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setError, setState, stateRef])
+  }, [captureForUndo, handleError, setError, setState, workingRef])
 
   const reorder = useCallback(async (personIds: string[]) => {
     captureForUndo()

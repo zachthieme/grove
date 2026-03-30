@@ -93,9 +93,10 @@ export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderI
     managerIndex.set(managers[i].person.id, i)
   }
 
-  // For each IC with additionalTeams, find the highest-indexed manager they connect to
-  // Place them after that manager — keeps them between the teams they serve
-  const afterManager = new Map<number, OrgNode[]>() // manager index → ICs to place after
+  // For each IC with additionalTeams, find the highest-indexed manager they connect to.
+  // Place them BEFORE that manager so they render adjacent to the manager node rather
+  // than after the manager's entire (potentially wide) subtree.
+  const beforeManager = new Map<number, OrgNode[]>() // manager index → ICs to place before
   const unaffiliated: OrgNode[] = []
 
   for (const ic of ics) {
@@ -111,24 +112,24 @@ export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderI
       }
     }
     if (bestIdx >= 0) {
-      const list = afterManager.get(bestIdx) || []
+      const list = beforeManager.get(bestIdx) || []
       list.push(ic)
-      afterManager.set(bestIdx, list)
+      beforeManager.set(bestIdx, list)
     } else {
       unaffiliated.push(ic)
     }
   }
 
-  // Build: emit each manager, then any affiliated ICs that belong after it
+  // Build: emit affiliated ICs before their manager, then the manager subtree
   const items: RenderItem[] = []
   for (let i = 0; i < managers.length; i++) {
-    items.push({ type: 'manager', node: managers[i] })
-    const affIcs = afterManager.get(i)
+    const affIcs = beforeManager.get(i)
     if (affIcs) {
       for (const ic of affIcs) {
         items.push({ type: 'ic', node: ic })
       }
     }
+    items.push({ type: 'manager', node: managers[i] })
   }
 
   // Unaffiliated ICs: grouped by pod (if available) or team
