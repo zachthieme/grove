@@ -61,6 +61,15 @@ export function sidebarField(page: Page, field: string) {
   return page.locator(`[data-testid="field-${field}"]`)
 }
 
+/**
+ * Click the Edit button in the sidebar to enter edit mode.
+ * The sidebar defaults to view mode; call this before accessing form fields.
+ */
+export async function enterSidebarEdit(page: Page) {
+  const editBtn = page.locator('aside button:has-text("Edit")')
+  await editBtn.click()
+}
+
 export async function lassoSelect(page: Page, startX: number, startY: number, endX: number, endY: number) {
   const container = page.locator('[data-role="chart-container"]')
   const box = await container.boundingBox()

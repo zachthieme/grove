@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { uploadCSV, switchView, clickPerson, sidebarField, dragPersonTo, lassoSelect } from './helpers'
+import { uploadCSV, switchView, clickPerson, sidebarField, enterSidebarEdit, dragPersonTo, lassoSelect } from './helpers'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -20,6 +20,7 @@ test.describe('Feature tests', () => {
     await page.waitForTimeout(200)
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const managerSelect = sidebarField(page, 'manager')
     const selectedText = await managerSelect.locator('option:checked').textContent()
     expect(selectedText).toContain('Alice')
@@ -36,18 +37,20 @@ test.describe('Feature tests', () => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const podInput = sidebarField(page, 'pod')
     await podInput.clear()
     await podInput.fill('NewPod')
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(page.locator('text=NewPod')).toBeVisible()
+    await expect(page.locator('[data-role="chart-container"]').locator('text=NewPod')).toBeVisible()
   })
 
   test('[UI-003] pod sidebar via info button', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
+    await enterSidebarEdit(page)
     const podInput = sidebarField(page, 'pod')
     await podInput.clear()
     await podInput.fill('TestPod')
@@ -80,6 +83,7 @@ test.describe('Feature tests', () => {
   test('[VIEW-004] diff mode shows changes', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Changed Title')
@@ -113,6 +117,7 @@ test.describe('Feature tests', () => {
   test('[SELECT-006] note icon toggle', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
+    await enterSidebarEdit(page)
     const noteField = sidebarField(page, 'publicNote')
     await noteField.fill('This is a test note')
     await page.getByRole('button', { name: 'Save' }).click()
@@ -121,9 +126,9 @@ test.describe('Feature tests', () => {
     const noteIcon = page.getByLabel('Toggle notes')
     await expect(noteIcon).toBeVisible()
     await noteIcon.click()
-    await expect(page.locator('text=This is a test note')).toBeVisible()
+    await expect(page.locator('[data-role="chart-container"]').locator('text=This is a test note')).toBeVisible()
     await noteIcon.click()
-    await expect(page.locator('text=This is a test note')).toHaveCount(0)
+    await expect(page.locator('[data-role="chart-container"]').locator('text=This is a test note')).toHaveCount(0)
   })
 
   test('[VIEW-003] table paste', async ({ page }) => {
@@ -172,6 +177,7 @@ test.describe('Feature tests', () => {
   test('[ORG-017] team cascade for front-line manager', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
+    await enterSidebarEdit(page)
     const teamInput = sidebarField(page, 'team')
     await teamInput.clear()
     await teamInput.fill('NewTeam')

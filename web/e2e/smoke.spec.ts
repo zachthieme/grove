@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { uploadCSV, switchView, clickPerson, sidebarField } from './helpers'
+import { uploadCSV, switchView, clickPerson, sidebarField, enterSidebarEdit } from './helpers'
 
 test.describe('Smoke tests', () => {
 
@@ -29,6 +29,7 @@ test.describe('Smoke tests', () => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
@@ -55,6 +56,7 @@ test.describe('Smoke tests', () => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     await page.getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('[data-testid="person-Carol"]')).toHaveCount(0)
     await page.getByRole('button', { name: /Recycle bin/ }).click()
@@ -77,6 +79,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('button[aria-label*="baseline"]')).toBeVisible({ timeout: 3000 }).catch(() => {})
     // Edit Bob's role
     await clickPerson(page, 'Bob')
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Changed Role')
@@ -103,6 +106,7 @@ test.describe('Smoke tests', () => {
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     await checkboxes.nth(2).click()
     await expect(page.locator('[data-testid="sidebar-heading"]')).toContainText('2')
+    await enterSidebarEdit(page)
     const discInput = sidebarField(page, 'discipline')
     await discInput.clear()
     await discInput.fill('Design')

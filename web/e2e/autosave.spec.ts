@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { uploadCSV, clickPerson, sidebarField } from './helpers'
+import { uploadCSV, clickPerson, sidebarField, enterSidebarEdit } from './helpers'
 
 test.describe('Autosave recovery', () => {
 
@@ -28,6 +28,7 @@ test.describe('Autosave recovery', () => {
     // Edit Bob's role via sidebar
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
@@ -54,6 +55,7 @@ test.describe('Autosave recovery', () => {
 
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Principal Engineer')
@@ -93,6 +95,7 @@ test.describe('Autosave recovery', () => {
 
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Distinguished Engineer')
@@ -130,6 +133,7 @@ test.describe('Autosave recovery', () => {
 
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
@@ -173,6 +177,7 @@ test.describe('Autosave recovery', () => {
 
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Tech Lead')

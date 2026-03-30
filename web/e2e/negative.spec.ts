@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { uploadCSV, clickPerson, sidebarField, switchView, dragPersonTo } from './helpers'
+import { uploadCSV, clickPerson, sidebarField, enterSidebarEdit, switchView, dragPersonTo } from './helpers'
 
 test.describe('Negative scenarios', () => {
 
@@ -50,6 +50,7 @@ test.describe('Negative scenarios', () => {
     await uploadCSV(page, 'simple.csv')
     await clickPerson(page, 'Bob')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
+    await enterSidebarEdit(page)
 
     // Intercept the update API to return a 500
     await page.route('**/api/update', async (route) => {
@@ -88,6 +89,7 @@ test.describe('Negative scenarios', () => {
       })
     })
 
+    await enterSidebarEdit(page)
     await page.getByRole('button', { name: 'Delete' }).click()
 
     // Wait a moment for any async processing

@@ -107,7 +107,6 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     if (mode === 'edit' && person && !isBatch) {
       setSidebarForm(formFromPerson(person))
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, person?.id])
   const [showStatusInfo, setShowStatusInfo] = useState(false)
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
@@ -137,7 +136,6 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
       setBatchForm(formFromBatch(selectedPeople))
       setBatchDirty(new Set())
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBatch ? selectedIds.size : null])
 
   const handleSidebarChange = (field: keyof FormFields, value: string | boolean) => {
@@ -174,7 +172,7 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
         dirty[key] = sidebarForm[key]
       }
     }
-    if (Object.keys(dirty).length === 0) { markSaved(); onSetMode?.('view'); return }
+    if (Object.keys(dirty).length === 0) { markSaved(); return }
 
     const corrId = generateCorrelationId()
     try {
@@ -198,7 +196,6 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
         await update(person.id, fields, corrId)
       }
       markSaved()
-      onSetMode?.('view')
     } catch {
       markError('Save failed')
     }
