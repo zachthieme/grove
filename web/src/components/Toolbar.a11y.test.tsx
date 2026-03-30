@@ -41,7 +41,9 @@ describe('Toolbar a11y', () => {
       />,
       { loaded: false },
     )
-    const results = await axe(container)
+    // Exclude landmark-no-duplicate-banner: test renders <header> in isolation,
+    // but the test document may already have a banner landmark from the environment
+    const results = await axe(container, { rules: { 'landmark-no-duplicate-banner': { enabled: false } } })
     expect(results).toHaveNoViolations()
   })
 })
