@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core'
 import NodeActions from '../components/NodeActions'
 import styles from './PodHeaderNode.module.css'
 
-export function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef, podNodeId }: {
+export function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick, nodeRef, podNodeId, collapsed, onToggleCollapse }: {
   podName: string
   memberCount: number
   publicNote?: string
@@ -11,6 +11,8 @@ export function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick
   onClick?: () => void
   nodeRef?: (el: HTMLDivElement | null) => void
   podNodeId?: string
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
@@ -70,6 +72,17 @@ export function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick
         <div className={styles.podNotePanel}>
           <div className={styles.podNoteText}>{publicNote}</div>
         </div>
+      )}
+      {onToggleCollapse && (
+        <button
+          className={styles.collapseToggle}
+          onClick={(e) => { e.stopPropagation(); onToggleCollapse() }}
+          aria-label={collapsed ? 'Expand pod' : 'Collapse pod'}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          {collapsed ? '\u25B8' : '\u25BE'}
+        </button>
       )}
     </div>
   )

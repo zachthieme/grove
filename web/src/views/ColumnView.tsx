@@ -22,9 +22,15 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
 
+  const isPodCollapsed = useCallback((managerId: string, podName: string) => {
+    const podNodeId = buildPodDropId(managerId, podName)
+    return collapsedIds?.has(podNodeId) ?? false
+  }, [collapsedIds])
+
   const renderPodHeader = useCallback((managerId: string, podName: string, memberCount: number) => {
     const pod = findPod(managerId, podName)
     const podNodeId = buildPodDropId(managerId, podName)
+    const podCollapsed = collapsedIds?.has(podNodeId) ?? false
     return (
       <PodHeaderNode
         podName={podName}
@@ -34,9 +40,11 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
         onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
         nodeRef={setNodeRef(podNodeId)}
         podNodeId={podNodeId}
+        collapsed={podCollapsed}
+        onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(podNodeId) : undefined}
       />
     )
-  }, [pods, onAddToTeam, onPodSelect, setNodeRef])
+  }, [pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse])
 
   const renderIC = useCallback((child: OrgNode) => {
     const isEditing = interactionMode === 'editing' && editingPersonId === child.person.id
@@ -101,22 +109,25 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
         )}
         {podOrder.map((podName) => {
           const members = podMap.get(podName)!
+          const podCollapsed = isPodCollapsed(node.person.id, podName)
           return (
             <div key={podName} className={styles.subtree}>
               <div className={styles.nodeSlot}>
                 {renderPodHeader(node.person.id, podName, members.length)}
               </div>
-              <div className={styles.children}>
-                <div className={styles.icStack}>
-                  {members.map((child) => renderIC(child))}
+              {!podCollapsed && (
+                <div className={styles.children}>
+                  <div className={styles.icStack}>
+                    {members.map((child) => renderIC(child))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )
         })}
       </>
     )
-  }, [allICs, ics, node.person.id, renderPodHeader, renderIC])
+  }, [allICs, ics, node.person.id, renderPodHeader, renderIC, isPodCollapsed])
 
   const mixedChildrenElements = useMemo((): ReactNode[] => {
     if (allICs) return []
@@ -151,16 +162,20 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
             <SubtreeNode key={item.node.person.id} node={item.node} crossTeamICs={item.crossTeamICs} />
           )
         } else if (item.type === 'icGroup') {
+          const groupKey = item.podName ?? item.team
+          const groupCollapsed = isPodCollapsed(node.person.id, groupKey)
           elements.push(
             <div key={`group-${item.podName ? 'pod' : 'team'}-${item.team}`} className={styles.subtree}>
               <div className={styles.nodeSlot}>
-                {renderPodHeader(node.person.id, item.podName ?? item.team, item.members.length)}
+                {renderPodHeader(node.person.id, groupKey, item.members.length)}
               </div>
-              <div className={styles.children}>
-                <div className={styles.icStack}>
-                  {item.members.map((child) => renderIC(child))}
+              {!groupCollapsed && (
+                <div className={styles.children}>
+                  <div className={styles.icStack}>
+                    {item.members.map((child) => renderIC(child))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )
         }
@@ -168,7 +183,7 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
     }
     flushIcBatch()
     return elements
-  }, [allICs, renderItems, renderIC, renderPodHeader, node.person.id])
+  }, [allICs, renderItems, renderIC, renderPodHeader, isPodCollapsed, node.person.id])
 
   const isCollapsed = collapsedIds?.has(node.person.id) ?? false
   const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id

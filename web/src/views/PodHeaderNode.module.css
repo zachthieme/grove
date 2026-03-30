@@ -84,3 +84,27 @@
   letter-spacing: 0.05em;
   margin-top: 2px;
 }
+
+.collapseToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4px auto 0;
+  width: 24px;
+  height: 16px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-toolbar);
+  border: 1px solid var(--border-soft);
+  border-radius: 0 0 6px 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  z-index: 2;
+}
+
+.collapseToggle:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-medium);
+  background: var(--surface-raised);
+}
