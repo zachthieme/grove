@@ -43,12 +43,16 @@ interface ToolbarProps {
 }
 
 export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, onUndo, onRedo, canUndo, canRedo, vimMode, onToggleVimMode, themePref, onChangeTheme }: ToolbarProps) {
-  const { upload, loaded } = useOrgData()
+  const { upload, loaded, createOrg } = useOrgData()
   const { viewMode, dataView, setViewMode, setDataView, reflow } = useUI()
   const inputRef = useRef<HTMLInputElement>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [newOrgOpen, setNewOrgOpen] = useState(false)
+  const [newOrgName, setNewOrgName] = useState('')
+  const newOrgRef = useRef<HTMLDivElement>(null)
+  const newOrgInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const { startTour } = useTour(loaded)
@@ -65,6 +69,15 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
 
   useOutsideClick(dropdownRef, useCallback(() => setExportOpen(false), []), exportOpen)
   useOutsideClick(menuRef, useCallback(() => setMenuOpen(false), []), menuOpen)
+  useOutsideClick(newOrgRef, useCallback(() => setNewOrgOpen(false), []), newOrgOpen)
+
+  const handleNewOrg = useCallback(async () => {
+    const trimmed = newOrgName.trim()
+    if (!trimmed) return
+    await createOrg(trimmed)
+    setNewOrgOpen(false)
+    setNewOrgName('')
+  }, [newOrgName, createOrg])
 
   return (
     <header className={styles.toolbar}>
@@ -81,6 +94,29 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
       <button className={styles.uploadBtn} onClick={() => inputRef.current?.click()} aria-label="Upload file" data-tour="upload">
         Upload
       </button>
+      <div ref={newOrgRef} style={{ position: 'relative' }}>
+        <button className={styles.uploadBtn} onClick={() => { setNewOrgOpen(o => !o); setTimeout(() => newOrgInputRef.current?.focus(), 0) }} aria-label="New org chart">
+          New
+        </button>
+        {newOrgOpen && (
+          <div className={styles.newOrgPopover}>
+            <form onSubmit={(e) => { e.preventDefault(); handleNewOrg() }} style={{ display: 'flex', gap: 4 }}>
+              <input
+                ref={newOrgInputRef}
+                type="text"
+                value={newOrgName}
+                onChange={(e) => setNewOrgName(e.target.value)}
+                placeholder="First person's name"
+                className={styles.newOrgInput}
+                autoFocus
+              />
+              <button type="submit" className={styles.newOrgSubmit} disabled={!newOrgName.trim()}>
+                Create
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
 
       {loaded && (
         <>
