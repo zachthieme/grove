@@ -205,7 +205,7 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     markSaving()
     const corrId = generateCorrelationId()
 
-    if (batchDirty.size === 0) return
+    if (batchDirty.size === 0) { markSaved(); return }
     const managerChanged = batchDirty.has('managerId') && batchForm.managerId !== MIXED_VALUE
     const fields: PersonUpdatePayload = {}
     for (const key of batchDirty) {

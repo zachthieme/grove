@@ -52,33 +52,59 @@ interface Props {
   onCommitEdits?: () => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
   const roleRef = useRef<HTMLInputElement>(null)
   const teamRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (!editing) return
-    const ref = focusField === 'role' ? roleRef : focusField === 'team' ? teamRef : nameRef
-    ref.current?.focus()
-    ref.current?.select()
-  }, [editing, focusField])
+  const [activeField, setActiveField] = useState<'name' | 'role' | 'team'>('name')
+  const cyclingRef = useRef(false)
 
-  const handleDoubleClick = (_field: 'name' | 'role' | 'team') => (e: React.MouseEvent) => {
+  const handleDoubleClick = (field: 'name' | 'role' | 'team') => (e: React.MouseEvent) => {
     if (!onEnterEditing || ghost || isPlaceholder) return
     e.stopPropagation()
+    setActiveField(field)
     onEnterEditing()
   }
 
+  // Focus the correct field when entering edit mode or switching fields
+  useEffect(() => {
+    if (!editing) return
+    const ref = activeField === 'role' ? roleRef : activeField === 'team' ? teamRef : nameRef
+    ref.current?.focus()
+    ref.current?.select()
+  }, [editing, activeField])
+
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation()
-    if (e.key === 'Enter' || e.key === 'Tab') {
+    if (e.key === 'Enter') {
       e.preventDefault()
-      ;(e.target as HTMLElement).blur()
+      onCommitEdits?.()
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      cyclingRef.current = true
+      // Cycle: name → role → team → name (skip team if not shown)
+      if (activeField === 'name') {
+        setActiveField(showTeam ? 'team' : 'role')
+      } else if (activeField === 'team') {
+        setActiveField('role')
+      } else {
+        setActiveField('name')
+      }
     }
     // Escape is handled by useUnifiedEscape at app level
+  }
+
+  const handleEditBlur = () => {
+    // Don't commit when Tab-cycling between fields
+    if (cyclingRef.current) {
+      cyclingRef.current = false
+      return
+    }
+    onCommitEdits?.()
   }
   const hasNotes = !!person.publicNote
   const isPrivate = !!person.private
@@ -141,7 +167,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       <div className={classNames} style={nodeStyle} onClick={(e) => { onClick?.(e); (e.currentTarget as HTMLElement).blur() }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
         <div className={styles.name} onDoubleClick={handleDoubleClick('name')}>
           {editing && editBuffer ? (
-            <input ref={nameRef} className={styles.inlineEdit} value={editBuffer.name} onChange={(e) => onUpdateBuffer?.('name', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={onCommitEdits} />
+            <input ref={nameRef} className={styles.inlineEdit} value={editBuffer.name} onChange={(e) => onUpdateBuffer?.('name', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
           ) : (
             <>{statusLabel && <span className="sr-only">{statusLabel}: </span>}{prefix}{person.name}</>
           )}
@@ -149,7 +175,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
         {showTeam && (
           <div className={styles.team} onDoubleClick={handleDoubleClick('team')}>
             {editing && editBuffer ? (
-              <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={onCommitEdits} />
+              <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
             ) : (
               person.team || '\u00A0'
             )}
@@ -157,7 +183,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
         )}
         <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
           {editing && editBuffer ? (
-            <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={onCommitEdits} />
+            <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
           ) : (
             <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
           )}
