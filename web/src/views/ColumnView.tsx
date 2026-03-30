@@ -173,39 +173,44 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
   const isCollapsed = collapsedIds?.has(node.person.id) ?? false
   const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
 
+  const hasCrossTeam = !!(crossTeamICs && crossTeamICs.length > 0 && !isCollapsed)
+
+  const managerNodeEl = (
+    <div className={styles.nodeSlot}>
+      <DraggableNode
+        person={node.person}
+        selected={selectedIds.has(node.person.id)}
+        changes={changes?.get(node.person.id)}
+        showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
+        isManager={managerSet?.has(node.person.id)}
+        collapsed={node.children.length > 0 ? isCollapsed : undefined}
+        editing={isNodeEditing}
+        editBuffer={isNodeEditing ? editBuffer : null}
+        focusField={isNodeEditing ? 'name' : null}
+        onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
+        onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
+        onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
+        onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
+        onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
+        onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
+        onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
+        onSelect={(e) => onSelect(node.person.id, e)}
+        onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
+        onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
+        onCommitEdits={onCommitEdits}
+        nodeRef={setNodeRef(node.person.id)}
+      />
+    </div>
+  )
+
   return (
     <div className={styles.subtree}>
-      <div className={styles.nodeSlot}>
-        <DraggableNode
-          person={node.person}
-          selected={selectedIds.has(node.person.id)}
-          changes={changes?.get(node.person.id)}
-          showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
-          isManager={managerSet?.has(node.person.id)}
-          collapsed={node.children.length > 0 ? isCollapsed : undefined}
-          editing={isNodeEditing}
-          editBuffer={isNodeEditing ? editBuffer : null}
-          focusField={isNodeEditing ? 'name' : null}
-          onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
-          onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
-          onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
-          onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
-          onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
-          onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
-          onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
-          onSelect={(e) => onSelect(node.person.id, e)}
-          onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
-          onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
-          onCommitEdits={onCommitEdits}
-          nodeRef={setNodeRef(node.person.id)}
-        />
-      </div>
-
-      {crossTeamICs && crossTeamICs.length > 0 && !isCollapsed && (
-        <div className={styles.crossTeamRow}>
+      {hasCrossTeam ? (
+        <div className={styles.managerWithCrossTeam}>
+          {managerNodeEl}
           {crossTeamICs.map(ic => renderIC(ic))}
         </div>
-      )}
+      ) : managerNodeEl}
       {node.children.length > 0 && !isCollapsed && (
         <div className={styles.children}>
           {allICs ? icPodListElements : mixedChildrenElements}

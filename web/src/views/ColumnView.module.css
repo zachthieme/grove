@@ -22,11 +22,10 @@
   align-items: center;
 }
 
-.crossTeamRow {
+.managerWithCrossTeam {
   display: flex;
   gap: 6px;
-  justify-content: center;
-  margin-top: 10px;
+  align-items: flex-start;
 }
 
 .collapsedCount {
