@@ -79,6 +79,7 @@
   cursor: pointer;
   border: 1px solid var(--border-soft);
   background: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .saveBtn {

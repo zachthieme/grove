@@ -75,18 +75,20 @@
   font-size: inherit;
   font-family: inherit;
   outline: none;
+  background: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .flashSuccess {
-  background-color: rgba(61, 107, 53, 0.15);
+  background-color: var(--grove-green-soft);
 }
 
 .flashError {
-  background-color: rgba(161, 59, 45, 0.15);
+  background-color: var(--grove-red-light);
 }
 
 .row:nth-child(even) {
-  background: rgba(0, 0, 0, 0.015);
+  background: var(--surface-sunken);
 }
 
 .row:hover {
@@ -105,7 +107,7 @@
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding: 2px 4px;
   border-radius: 2px;
 }
@@ -113,8 +115,8 @@
 .expandBtn:hover { color: var(--grove-green); }
 .deleteBtn:hover { color: var(--grove-red); }
 
-.rowSelected { background: rgba(61, 107, 53, 0.1); }
-.rowSelected:hover { background: rgba(61, 107, 53, 0.15); }
+.rowSelected { background: var(--grove-green-soft); }
+.rowSelected:hover { background: var(--grove-green-soft); }
 
 .selectCheckbox {
   cursor: pointer;
@@ -216,6 +218,8 @@
   font-size: 0.8rem;
   margin-bottom: 6px;
   outline: none;
+  background: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .filterList {

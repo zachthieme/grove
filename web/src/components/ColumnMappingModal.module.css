@@ -137,7 +137,7 @@
   cursor: pointer;
   border: 1px solid var(--border-medium);
   background: var(--surface-raised);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   transition: all var(--transition-fast);
 }
 
