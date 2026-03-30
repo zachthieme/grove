@@ -1,47 +1,17 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import type { Person } from '../api/types'
+import { type PersonFormValues, personToForm, computeDirtyFields } from '../utils/personFormUtils'
 
 export type InteractionMode = 'idle' | 'selected' | 'editing'
 
-export interface EditBuffer {
-  name: string
-  role: string
-  discipline: string
-  team: string
-  managerId: string
-  status: string
-  employmentType: string
-  level: string
-  pod: string
-  publicNote: string
-  privateNote: string
-  private: boolean
-  otherTeams: string
-}
-
-function bufferFromPerson(p: Person): EditBuffer {
-  return {
-    name: p.name,
-    role: p.role,
-    discipline: p.discipline,
-    team: p.team,
-    managerId: p.managerId,
-    status: p.status,
-    employmentType: p.employmentType || 'FTE',
-    level: String(p.level ?? 0),
-    pod: p.pod ?? '',
-    publicNote: p.publicNote ?? '',
-    privateNote: p.privateNote ?? '',
-    private: p.private ?? false,
-    otherTeams: (p.additionalTeams || []).join(', '),
-  }
-}
+/** @deprecated Use PersonFormValues from utils/personFormUtils instead */
+export type EditBuffer = PersonFormValues
 
 export function useInteractionState() {
   const [mode, setMode] = useState<InteractionMode>('idle')
-  const [editBuffer, setEditBuffer] = useState<EditBuffer | null>(null)
+  const [editBuffer, setEditBuffer] = useState<PersonFormValues | null>(null)
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null)
-  const originalRef = useRef<EditBuffer | null>(null)
+  const originalRef = useRef<PersonFormValues | null>(null)
 
   const enterSelected = useCallback(() => {
     setMode('selected')
@@ -51,14 +21,14 @@ export function useInteractionState() {
   }, [])
 
   const enterEditing = useCallback((person: Person) => {
-    const buf = bufferFromPerson(person)
+    const buf = personToForm(person)
     setMode('editing')
     setEditBuffer(buf)
     setEditingPersonId(person.id)
     originalRef.current = { ...buf }
   }, [])
 
-  const updateBuffer = useCallback((field: keyof EditBuffer, value: string | boolean) => {
+  const updateBuffer = useCallback((field: keyof PersonFormValues, value: string | boolean) => {
     setEditBuffer(prev => prev ? { ...prev, [field]: value } : prev)
   }, [])
 
@@ -73,19 +43,14 @@ export function useInteractionState() {
       return null
     }
 
-    const dirty: Record<string, string | boolean | number> = {}
-    for (const key of Object.keys(orig) as (keyof EditBuffer)[]) {
-      if (buf[key] !== orig[key]) {
-        dirty[key] = buf[key]
-      }
-    }
+    const dirty = computeDirtyFields(orig, buf)
 
     setMode('selected')
     setEditBuffer(null)
     setEditingPersonId(null)
     originalRef.current = null
 
-    return Object.keys(dirty).length > 0 ? dirty : null
+    return dirty
   }, [editBuffer])
 
   const revertEdits = useCallback(() => {

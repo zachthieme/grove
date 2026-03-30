@@ -195,7 +195,7 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
   const { themePref, changeTheme } = useTheme()
   const { vimMode, toggleVimMode } = useVimMode()
   const { loggingEnabled, logPanelOpen, toggleLogs, setLogPanelOpen } = useLogging()
-  useUndoRedoKeys(canUndo, canRedo, undo, redo)
+  useUndoRedoKeys({ canUndo, canRedo, undo, redo })
   useDeepLink()
 
   const mainRef = useRef<HTMLElement>(null)

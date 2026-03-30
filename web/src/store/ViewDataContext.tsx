@@ -8,6 +8,7 @@ import { useHeadSubtree } from '../hooks/useHeadSubtree'
 import { useFilteredPeople } from '../hooks/useFilteredPeople'
 import { useSortedPeople } from '../hooks/useSortedPeople'
 import { DEFAULT_STATUS } from '../constants'
+import { dirtyToApiPayload } from '../utils/personFormUtils'
 
 export interface PeopleContextValue {
   people: Person[]
@@ -187,22 +188,11 @@ export function ViewDataProvider({ children, onEditMode: onEditModeProp }: { chi
     if (!personId) return
     const dirty = commitEdits()
     if (!dirty) return
-    const person = working.find(p => p.id === personId)
-    if (!person) return
+    if (!working.some(p => p.id === personId)) return
 
-    const fields: Record<string, unknown> = {}
-    for (const [key, val] of Object.entries(dirty)) {
-      if (key === 'managerId') continue // reparent not supported from inline edit
-      if (key === 'otherTeams') {
-        fields.additionalTeams = val
-      } else if (key === 'level') {
-        fields.level = parseInt(String(val), 10) || 0
-      } else {
-        fields[key] = val
-      }
-    }
+    const fields = dirtyToApiPayload(dirty)
     if (Object.keys(fields).length > 0) {
-      void update(personId, fields as Record<string, string | number | boolean>)
+      void update(personId, fields)
     }
   }, [editingPersonId, commitEdits, working, update])
 

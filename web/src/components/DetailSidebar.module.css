@@ -254,6 +254,17 @@
   font-style: italic;
 }
 
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.privateHint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
 .viewBody {
   padding: 14px 16px;
   display: flex;

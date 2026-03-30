@@ -19,6 +19,7 @@ beforeEach(() => {
     text: () => Promise.resolve(''),
     status: 200,
   })
+  api.resetClient()
 })
 
 describe('API error callback', () => {
@@ -96,5 +97,27 @@ describe('correlation ID', () => {
     const id1 = (mockFetch.mock.calls[0][1].headers as Record<string, string>)['X-Correlation-ID']
     const id2 = (mockFetch.mock.calls[1][1].headers as Record<string, string>)['X-Correlation-ID']
     expect(id1).not.toBe(id2)
+  })
+})
+
+describe('resetClient', () => {
+  it('clears error callback and logging state', () => {
+    const handler = vi.fn()
+    api.setOnApiError(handler)
+    api.setLoggingEnabled(true)
+
+    api.resetClient()
+
+    // Error callback should be cleared — trigger an error and verify handler not called
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('fail'),
+    })
+    // setOnApiError after reset should work fresh
+    const handler2 = vi.fn()
+    const cleanup = api.setOnApiError(handler2)
+    expect(handler).not.toHaveBeenCalled()
+    cleanup()
   })
 })

@@ -16,7 +16,7 @@ export interface SelectionContextValue {
   selectedId: string | null
   selectedPodId: string | null
   interactionMode: InteractionMode
-  editBuffer: import('./useInteractionState').EditBuffer | null
+  editBuffer: import('../utils/personFormUtils').PersonFormValues | null
   editingPersonId: string | null
   setSelectedId: (id: string | null) => void
   toggleSelect: (id: string, multi: boolean) => void
@@ -26,7 +26,7 @@ export interface SelectionContextValue {
   enterEditing: (person: import('../api/types').Person) => void
   commitEdits: () => Record<string, string | boolean | number> | null
   revertEdits: () => void
-  updateBuffer: (field: keyof import('./useInteractionState').EditBuffer, value: string | boolean) => void
+  updateBuffer: (field: keyof import('../utils/personFormUtils').PersonFormValues, value: string | boolean) => void
 }
 
 export interface UIContextValue {

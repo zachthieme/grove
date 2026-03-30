@@ -4,7 +4,7 @@ import BaseNode from './BaseNode'
 import type { BaseNodeActions } from './BaseNode'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
-import type { EditBuffer } from '../store/useInteractionState'
+import type { PersonFormValues } from '../utils/personFormUtils'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 
 function getEmpAbbrev(empType: string | undefined): string {
@@ -37,7 +37,7 @@ interface Props {
   /** When true, the card is in editing mode (driven by interaction state) */
   editing?: boolean
   /** Shared edit buffer from interaction state */
-  editBuffer?: EditBuffer | null
+  editBuffer?: PersonFormValues | null
   /** Which field to auto-focus when entering edit mode */
   focusField?: 'name' | 'role' | 'team' | null
   onAdd?: () => void

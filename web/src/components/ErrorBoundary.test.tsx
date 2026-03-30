@@ -40,6 +40,48 @@ describe('ErrorBoundary', () => {
     consoleSpy.mockRestore()
   })
 
+  it('[UI-007] inline mode shows compact fallback with custom label', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    render(
+      <ErrorBoundary label="chart view" inline>
+        <ThrowingComponent error={new Error('Render failed')} />
+      </ErrorBoundary>
+    )
+
+    expect(screen.getByText('Error rendering chart view')).toBeTruthy()
+    expect(screen.getByText('Render failed')).toBeTruthy()
+    expect(screen.getByText('Retry')).toBeTruthy()
+    // Should NOT show the full-page heading
+    expect(screen.queryByText('Something went wrong')).toBeNull()
+
+    consoleSpy.mockRestore()
+  })
+
+  it('[UI-007] inline recovery button resets error state', async () => {
+    const user = userEvent.setup()
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    let shouldThrow = true
+    function ConditionalThrower() {
+      if (shouldThrow) throw new Error('Temp')
+      return <div>Fixed</div>
+    }
+
+    render(
+      <ErrorBoundary label="sidebar" inline>
+        <ConditionalThrower />
+      </ErrorBoundary>
+    )
+
+    expect(screen.getByText('Error rendering sidebar')).toBeTruthy()
+    shouldThrow = false
+    await user.click(screen.getByText('Retry'))
+    expect(screen.getByText('Fixed')).toBeTruthy()
+
+    consoleSpy.mockRestore()
+  })
+
   it('[UI-007] recovery button resets error state and re-renders children', async () => {
     const user = userEvent.setup()
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})

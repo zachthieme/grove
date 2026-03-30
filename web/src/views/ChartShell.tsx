@@ -82,11 +82,15 @@ export default function ChartShell({
 
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
-  const chartValue = useMemo(() => ({
+  const chartData = useMemo(() => ({
     selectedIds: selection.selectedIds, selectedPodId: selection.selectedPodId, changes, managerSet, pods,
     interactionMode: selection.interactionMode,
     editingPersonId: selection.editingPersonId,
     editBuffer: selection.editBuffer,
+    collapsedIds,
+  }), [selection.selectedIds, selection.selectedPodId, selection.interactionMode, selection.editingPersonId, selection.editBuffer, changes, managerSet, pods, collapsedIds])
+
+  const chartActions = useMemo(() => ({
     onSelect: actions.handleSelect,
     onBatchSelect: selection.batchSelect,
     onAddReport: actions.handleAddReport,
@@ -101,17 +105,16 @@ export default function ChartShell({
     onUpdateBuffer: selection.updateBuffer,
     onCommitEdits: actions.handleCommitEdits,
     setNodeRef,
-    collapsedIds,
     onToggleCollapse: handleToggleCollapse,
     onInlineEdit: actions.handleInlineEdit,
-  }), [selection, actions, changes, managerSet, pods, includeAddToTeam, setNodeRef, collapsedIds, handleToggleCollapse])
+  }), [selection, actions, includeAddToTeam, setNodeRef, handleToggleCollapse])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>
   }
 
   return (
-    <ChartProvider value={chartValue}>
+    <ChartProvider data={chartData} actions={chartActions}>
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className={styles.container} ref={containerRef} data-role="chart-container">
           <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} dashedEdges={dashedEdges} />

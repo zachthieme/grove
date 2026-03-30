@@ -1,10 +1,11 @@
 import { createContext, useContext } from 'react'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
-import type { EditBuffer } from '../store/useInteractionState'
+import type { PersonFormValues } from '../utils/personFormUtils'
 import type { InteractionMode } from '../store/orgTypes'
 
-export interface ChartContextValue {
+/** Data that changes on mutations, selections, and edits. */
+export interface ChartDataContextValue {
   selectedIds: Set<string>
   selectedPodId?: string | null
   changes?: Map<string, PersonChange>
@@ -12,7 +13,12 @@ export interface ChartContextValue {
   pods?: Pod[]
   interactionMode?: InteractionMode
   editingPersonId?: string | null
-  editBuffer?: EditBuffer | null
+  editBuffer?: PersonFormValues | null
+  collapsedIds?: Set<string>
+}
+
+/** Stable callback refs that rarely change. */
+export interface ChartActionsContextValue {
   onSelect: (id: string, event?: React.MouseEvent) => void
   onBatchSelect?: (ids: Set<string>) => void
   onAddReport?: (id: string) => void
@@ -24,20 +30,46 @@ export interface ChartContextValue {
   onEditMode?: (id: string) => void
   onPodSelect?: (podId: string) => void
   onEnterEditing?: (person: Person) => void
-  onUpdateBuffer?: (field: keyof EditBuffer, value: string | boolean) => void
+  onUpdateBuffer?: (field: keyof PersonFormValues, value: string | boolean) => void
   onCommitEdits?: () => void
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
-  collapsedIds?: Set<string>
   onToggleCollapse?: (id: string) => void
   onInlineEdit?: (personId: string, field: string, value: string) => void
 }
 
-const ChartContext = createContext<ChartContextValue | null>(null)
+/** Combined type for convenience — used by consumers that need both. */
+export type ChartContextValue = ChartDataContextValue & ChartActionsContextValue
 
-export const ChartProvider = ChartContext.Provider
+const ChartDataCtx = createContext<ChartDataContextValue | null>(null)
+const ChartActionsCtx = createContext<ChartActionsContextValue | null>(null)
 
-export function useChart(): ChartContextValue {
-  const ctx = useContext(ChartContext)
-  if (!ctx) throw new Error('useChart must be used within a ChartProvider')
+export function ChartProvider({ data, actions, children }: {
+  data: ChartDataContextValue
+  actions: ChartActionsContextValue
+  children: React.ReactNode
+}) {
+  return (
+    <ChartDataCtx.Provider value={data}>
+      <ChartActionsCtx.Provider value={actions}>
+        {children}
+      </ChartActionsCtx.Provider>
+    </ChartDataCtx.Provider>
+  )
+}
+
+export function useChartData(): ChartDataContextValue {
+  const ctx = useContext(ChartDataCtx)
+  if (!ctx) throw new Error('useChartData must be used within a ChartProvider')
   return ctx
+}
+
+export function useChartActions(): ChartActionsContextValue {
+  const ctx = useContext(ChartActionsCtx)
+  if (!ctx) throw new Error('useChartActions must be used within a ChartProvider')
+  return ctx
+}
+
+/** Convenience hook that returns both data and actions merged. */
+export function useChart(): ChartContextValue {
+  return { ...useChartData(), ...useChartActions() }
 }

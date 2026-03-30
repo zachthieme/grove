@@ -2,6 +2,10 @@ import { Component, type ReactNode, type ErrorInfo } from 'react'
 
 interface Props {
   children: ReactNode
+  /** Contextual label shown in the fallback UI (e.g. "chart view", "sidebar"). */
+  label?: string
+  /** Use compact inline styling instead of the full-page fallback. */
+  inline?: boolean
 }
 
 interface State {
@@ -21,6 +25,40 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error) {
+      const label = this.props.label ?? 'this section'
+      if (this.props.inline) {
+        return (
+          <div style={{
+            padding: '16px 20px',
+            color: 'var(--text-secondary)',
+            fontSize: 13,
+            border: '1px solid var(--border-soft)',
+            borderRadius: 6,
+            background: 'var(--surface-raised)',
+            margin: 8,
+          }}>
+            <strong style={{ color: 'var(--grove-red)' }}>Error rendering {label}</strong>
+            <p style={{ margin: '6px 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+              {this.state.error.message}
+            </p>
+            <button
+              onClick={() => this.setState({ error: null })}
+              style={{
+                padding: '4px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 4,
+                border: '1px solid var(--grove-green)',
+                background: 'var(--grove-green)',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )
+      }
       return (
         <div style={{
           padding: 40,

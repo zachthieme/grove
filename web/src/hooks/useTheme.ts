@@ -1,6 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 export type ThemePref = 'system' | 'light' | 'dark'
+
+function applyTheme(pref: ThemePref) {
+  if (pref === 'system') {
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+  } else {
+    document.documentElement.setAttribute('data-theme', pref)
+  }
+}
 
 export function useTheme() {
   const [themePref, setThemePref] = useState<ThemePref>(
@@ -8,18 +17,10 @@ export function useTheme() {
   )
 
   useEffect(() => {
-    const apply = (pref: ThemePref) => {
-      if (pref === 'system') {
-        const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
-      } else {
-        document.documentElement.setAttribute('data-theme', pref)
-      }
-    }
-    apply(themePref)
+    applyTheme(themePref)
     if (themePref === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const handler = () => apply('system')
+      const handler = () => applyTheme('system')
       mq.addEventListener('change', handler)
       return () => mq.removeEventListener('change', handler)
     }

@@ -3,7 +3,7 @@ import { render, type RenderOptions } from '@testing-library/react'
 import { OrgOverrideProvider } from './store/OrgContext'
 import { ViewDataProvider } from './store/ViewDataContext'
 import type { Person } from './api/types'
-import type { EditBuffer } from './store/useInteractionState'
+import { type PersonFormValues, personToForm } from './utils/personFormUtils'
 import type { OrgDataContextValue, UIContextValue, SelectionContextValue } from './store/orgTypes'
 
 type OrgTestContext = OrgDataContextValue & UIContextValue & SelectionContextValue
@@ -30,23 +30,9 @@ export function makePerson(overrides: Partial<Person> = {}): Person {
   }
 }
 
-/** Create an EditBuffer from a Person, mirroring useInteractionState.bufferFromPerson. */
-export function makeEditBuffer(p: Person): EditBuffer {
-  return {
-    name: p.name,
-    role: p.role,
-    discipline: p.discipline,
-    team: p.team,
-    managerId: p.managerId,
-    status: p.status,
-    employmentType: p.employmentType || 'FTE',
-    level: String(p.level ?? 0),
-    pod: p.pod ?? '',
-    publicNote: p.publicNote ?? '',
-    privateNote: p.privateNote ?? '',
-    private: p.private ?? false,
-    otherTeams: (p.additionalTeams || []).join(', '),
-  }
+/** Create a PersonFormValues from a Person for test assertions. */
+export function makeEditBuffer(p: Person): PersonFormValues {
+  return personToForm(p)
 }
 
 const noop = () => {}

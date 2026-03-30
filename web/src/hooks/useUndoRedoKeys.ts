@@ -1,6 +1,16 @@
 import { useEffect } from 'react'
 
-export function useUndoRedoKeys(canUndo: boolean, canRedo: boolean, undo: () => void, redo: () => void) {
+export function useUndoRedoKeys({
+  canUndo,
+  canRedo,
+  undo,
+  redo,
+}: {
+  canUndo: boolean
+  canRedo: boolean
+  undo: () => void
+  redo: () => void
+}) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
