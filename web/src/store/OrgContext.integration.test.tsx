@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, cleanup } from '@testing-library/react'
-import { OrgProvider, useOrgData, useUI, useSelection } from './OrgContext'
-import type { OrgDataContextValue, UIContextValue, SelectionContextValue } from './orgTypes'
+import { OrgProvider, useOrgData, useOrgMutations, useUI, useSelection } from './OrgContext'
+import type { OrgDataStateValue, OrgMutationsValue, UIContextValue, SelectionContextValue } from './orgTypes'
 import type { Person, OrgData, UploadResponse, SnapshotInfo } from '../api/types'
 
 // Mock the API client
@@ -53,13 +53,14 @@ const threePersonOrgData: OrgData = {
 }
 
 // Helper component that exposes context for assertions
-type CapturedContext = OrgDataContextValue & UIContextValue & SelectionContextValue
+type CapturedContext = OrgDataStateValue & OrgMutationsValue & UIContextValue & SelectionContextValue
 let captured: CapturedContext | null = null
 function Harness() {
   const data = useOrgData()
+  const mutations = useOrgMutations()
   const ui = useUI()
   const selection = useSelection()
-  captured = { ...data, ...ui, ...selection }
+  captured = { ...data, ...mutations, ...ui, ...selection }
   return <div data-testid="loaded">{data.loaded ? 'yes' : 'no'}</div>
 }
 

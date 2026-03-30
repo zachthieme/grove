@@ -2,11 +2,11 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, u
 import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
 import * as api from '../api/client'
 import { setOnApiError } from '../api/client'
-import type { OrgDataContextValue } from './orgTypes'
+import type { OrgDataStateValue, OrgMutationsValue } from './orgTypes'
 import { AUTOSAVE_STORAGE_KEY } from '../constants'
 import { useUI } from './UIContext'
 import { useDirtyTracking } from './useDirtyTracking'
-import { useOrgMutations } from './useOrgMutations'
+import { useOrgMutations as useMutationCallbacks } from './useOrgMutations'
 import { useUndoRedo } from '../hooks/useUndoRedo'
 
 export interface OrgDataState {
@@ -27,13 +27,17 @@ export interface OrgDataState {
   autosaveAvailable: AutosaveData | null
 }
 
-export const OrgDataContext = createContext<OrgDataContextValue | null>(null)
+export const OrgDataStateContext = createContext<OrgDataStateValue | null>(null)
+export const OrgMutationsContext = createContext<OrgMutationsValue | null>(null)
 
-export function useOrgData(): OrgDataContextValue {
-  const ctx = useContext(OrgDataContext)
-  if (!ctx) {
-    throw new Error('useOrgData must be used within an OrgDataProvider')
-  }
+export function useOrgData(): OrgDataStateValue {
+  const ctx = useContext(OrgDataStateContext)
+  if (!ctx) throw new Error('useOrgData must be used within an OrgDataProvider')
+  return ctx
+}
+export function useOrgMutations(): OrgMutationsValue {
+  const ctx = useContext(OrgMutationsContext)
+  if (!ctx) throw new Error('useOrgMutations must be used within an OrgDataProvider')
   return ctx
 }
 
@@ -199,7 +203,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const mutations = useOrgMutations({ setState, workingRef, handleError, setError, captureForUndo })
+  const mutations = useMutationCallbacks({ setState, workingRef, handleError, setError, captureForUndo })
 
   const restoreAutosave = useCallback(() => {
     setState(s => {
@@ -289,35 +293,25 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     })
   }, [redoStack, setUndoStack, setRedoStack])
 
-  const value: OrgDataContextValue = useMemo(() => ({
-    original: state.original,
-    working: state.working,
-    recycled: state.recycled,
-    pods: state.pods,
-    originalPods: state.originalPods,
-    settings: state.settings,
-    loaded: state.loaded,
-    pendingMapping: state.pendingMapping,
-    snapshots: state.snapshots,
-    currentSnapshotName: state.currentSnapshotName,
+  const stateValue: OrgDataStateValue = useMemo(() => ({
+    original: state.original, working: state.working, recycled: state.recycled,
+    pods: state.pods, originalPods: state.originalPods, settings: state.settings,
+    loaded: state.loaded, pendingMapping: state.pendingMapping,
+    snapshots: state.snapshots, currentSnapshotName: state.currentSnapshotName,
     autosaveAvailable: state.autosaveAvailable,
-    upload,
-    createOrg,
-    ...mutations,
-    confirmMapping,
-    cancelMapping,
-    restoreAutosave,
-    dismissAutosave,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-  }), [
-    state, upload, createOrg, mutations,
-    confirmMapping, cancelMapping,
-    restoreAutosave, dismissAutosave,
-    undo, redo, canUndo, canRedo,
-  ])
+  }), [state])
 
-  return <OrgDataContext.Provider value={value}>{children}</OrgDataContext.Provider>
+  const mutationsValue: OrgMutationsValue = useMemo(() => ({
+    upload, createOrg, ...mutations, confirmMapping, cancelMapping,
+    restoreAutosave, dismissAutosave, undo, redo, canUndo, canRedo,
+  }), [upload, createOrg, mutations, confirmMapping, cancelMapping,
+       restoreAutosave, dismissAutosave, undo, redo, canUndo, canRedo])
+
+  return (
+    <OrgDataStateContext.Provider value={stateValue}>
+      <OrgMutationsContext.Provider value={mutationsValue}>
+        {children}
+      </OrgMutationsContext.Provider>
+    </OrgDataStateContext.Provider>
+  )
 }

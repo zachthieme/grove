@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef, type ChangeEvent, type FormEvent } from 'react'
-import { useOrgData, useSelection } from '../store/OrgContext'
+import { useOrgMutations, useSelection } from '../store/OrgContext'
 import styles from './UploadPrompt.module.css'
 
 export default function UploadPrompt() {
-  const { upload, createOrg } = useOrgData()
+  const { upload, createOrg } = useOrgMutations()
   const { setSelectedId } = useSelection()
   const inputRef = useRef<HTMLInputElement>(null)
   const [showCreate, setShowCreate] = useState(false)

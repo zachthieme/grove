@@ -1,9 +1,10 @@
 import { useCallback } from 'react'
-import { useOrgData, useUI, useSelection } from '../store/OrgContext'
+import { useOrgData, useOrgMutations, useUI, useSelection } from '../store/OrgContext'
 import styles from './RecycleBinDrawer.module.css'
 
 export default function RecycleBinDrawer() {
-  const { recycled, restore, emptyBin } = useOrgData()
+  const { recycled } = useOrgData()
+  const { restore, emptyBin } = useOrgMutations()
   const { binOpen, setBinOpen: rawSetBinOpen, showPrivate } = useUI()
   const { clearSelection } = useSelection()
   const setBinOpen = useCallback((open: boolean) => {

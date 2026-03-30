@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react'
-import { useOrgData, useUI } from '../store/OrgContext'
+import { useOrgData, useOrgMutations, useUI } from '../store/OrgContext'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
@@ -39,7 +39,8 @@ interface ToolbarProps {
 }
 
 export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapshots, onExportAllSnapshots, loggingEnabled, onToggleLogs, logPanelOpen, vimMode, onToggleVimMode, themePref, onChangeTheme }: ToolbarProps) {
-  const { upload, loaded, createOrg, undo, redo, canUndo, canRedo } = useOrgData()
+  const { loaded } = useOrgData()
+  const { upload, createOrg, undo, redo, canUndo, canRedo } = useOrgMutations()
   const { viewMode, dataView, setViewMode, setDataView, reflow } = useUI()
   const inputRef = useRef<HTMLInputElement>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)

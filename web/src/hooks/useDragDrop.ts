@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import type { DragEndEvent } from '@dnd-kit/core'
-import { useOrgData, useSelection } from '../store/OrgContext'
+import { useOrgData, useOrgMutations, useSelection } from '../store/OrgContext'
 import { parseTeamDropId, parsePodDropId } from '../utils/ids'
 
 function resolveManagerId(id: string): string {
@@ -11,7 +11,8 @@ function resolveManagerId(id: string): string {
 }
 
 export function useDragDrop() {
-  const { move, reparent, pods } = useOrgData()
+  const { pods } = useOrgData()
+  const { move, reparent } = useOrgMutations()
   const { selectedIds } = useSelection()
 
   const onDragEnd = useCallback(async (event: DragEndEvent) => {

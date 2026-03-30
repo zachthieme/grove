@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useOrgData } from '../store/OrgContext'
+import { useOrgData, useOrgMutations } from '../store/OrgContext'
 import styles from './SettingsModal.module.css'
 
 type ThemePref = 'system' | 'light' | 'dark'
@@ -13,7 +13,8 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ onClose, vimMode, onToggleVimMode, themePref, onChangeTheme }: SettingsModalProps) {
-  const { working, settings, updateSettings } = useOrgData()
+  const { working, settings } = useOrgData()
+  const { updateSettings } = useOrgMutations()
 
   const allDisciplines = Array.from(new Set(
     working.filter(p => p.discipline).map(p => p.discipline)

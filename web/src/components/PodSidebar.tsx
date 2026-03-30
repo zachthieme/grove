@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useOrgData, useSelection } from '../store/OrgContext'
+import { useOrgData, useOrgMutations, useSelection } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { PodUpdatePayload } from '../api/types'
 import styles from './DetailSidebar.module.css'
 
 export default function PodSidebar() {
-  const { pods, working, updatePod } = useOrgData()
+  const { pods, working } = useOrgData()
+  const { updatePod } = useOrgMutations()
   const { selectedPodId, selectPod } = useSelection()
   const pod = pods.find(p => p.id === selectedPodId)
 

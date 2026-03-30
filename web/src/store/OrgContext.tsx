@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
-import { OrgDataProvider, OrgDataContext, useOrgData as useOrgDataDirect } from './OrgDataContext'
+import { OrgDataProvider, OrgDataStateContext, OrgMutationsContext, useOrgData as useOrgDataDirect } from './OrgDataContext'
 import { UIProvider, UIContext } from './UIContext'
 import { SelectionProvider, SelectionContext, useSelection as useSelectionDirect } from './SelectionContext'
-import type { OrgDataContextValue, UIContextValue, SelectionContextValue } from './orgTypes'
+import type { OrgDataStateValue, OrgMutationsValue, UIContextValue, SelectionContextValue } from './orgTypes'
 
-interface OrgOverrideValue extends OrgDataContextValue, UIContextValue, SelectionContextValue {}
+interface OrgOverrideValue extends OrgDataStateValue, OrgMutationsValue, UIContextValue, SelectionContextValue {}
 const OrgOverrideContext = createContext<OrgOverrideValue | null>(null)
 
 /** Test-only provider: bypasses real sub-contexts, supplies all context values directly. */
@@ -53,15 +53,27 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Granular hook: OrgData state and actions.
+ * Granular hook: OrgData state (read-only fields).
  * Falls back to OrgOverrideContext (test provider) when no OrgDataProvider is present.
  */
-export function useOrgData(): OrgDataContextValue {
+export function useOrgData(): OrgDataStateValue {
   const override = useContext(OrgOverrideContext)
-  const real = useContext(OrgDataContext)
+  const real = useContext(OrgDataStateContext)
   if (real) return real
   if (override) return override
   throw new Error('useOrgData must be used within an OrgDataProvider or OrgOverrideProvider')
+}
+
+/**
+ * Granular hook: OrgData mutation functions.
+ * Falls back to OrgOverrideContext (test provider) when no OrgDataProvider is present.
+ */
+export function useOrgMutations(): OrgMutationsValue {
+  const override = useContext(OrgOverrideContext)
+  const real = useContext(OrgMutationsContext)
+  if (real) return real
+  if (override) return override
+  throw new Error('useOrgMutations must be used within an OrgDataProvider or OrgOverrideProvider')
 }
 
 /** Granular hook: UI state and actions. */

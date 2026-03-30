@@ -4,9 +4,9 @@ import { OrgOverrideProvider } from './store/OrgContext'
 import { ViewDataProvider } from './store/ViewDataContext'
 import type { Person } from './api/types'
 import { type PersonFormValues, personToForm } from './utils/personFormUtils'
-import type { OrgDataContextValue, UIContextValue, SelectionContextValue } from './store/orgTypes'
+import type { OrgDataStateValue, OrgMutationsValue, UIContextValue, SelectionContextValue } from './store/orgTypes'
 
-type OrgTestContext = OrgDataContextValue & UIContextValue & SelectionContextValue
+type OrgTestContext = OrgDataStateValue & OrgMutationsValue & UIContextValue & SelectionContextValue
 
 export function normalizeHTML(html: string): string {
   return html

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
-import { OrgDataProvider, useOrgData } from './OrgDataContext'
+import { OrgDataProvider, useOrgData, useOrgMutations } from './OrgDataContext'
 import { UIProvider, useUI } from './UIContext'
 import type { Person, OrgData, UploadResponse, SnapshotInfo, AutosaveData, Settings } from '../api/types'
 import type { ReactNode } from 'react'
@@ -61,8 +61,9 @@ function wrapper({ children }: { children: ReactNode }) {
 // Helper to capture the UI context error alongside OrgData
 function useOrgDataWithError() {
   const orgData = useOrgData()
+  const mutations = useOrgMutations()
   const ui = useUI()
-  return { ...orgData, error: ui.error }
+  return { ...orgData, ...mutations, error: ui.error }
 }
 
 beforeEach(() => {

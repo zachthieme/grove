@@ -51,7 +51,7 @@ export interface UIContextValue {
   setShowPrivate: (show: boolean) => void
 }
 
-export interface OrgDataContextValue {
+export interface OrgDataStateValue {
   original: Person[]
   working: Person[]
   recycled: Person[]
@@ -63,6 +63,9 @@ export interface OrgDataContextValue {
   snapshots: SnapshotInfo[]
   currentSnapshotName: string | null
   autosaveAvailable: AutosaveData | null
+}
+
+export interface OrgMutationsValue {
   upload: (file: File) => Promise<void>
   createOrg: (name: string) => Promise<string | undefined>
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>

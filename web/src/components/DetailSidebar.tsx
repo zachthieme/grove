@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useOrgData, useUI, useSelection } from '../store/OrgContext'
+import { useOrgData, useOrgMutations, useUI, useSelection } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import { generateCorrelationId } from '../api/client'
 import {
@@ -22,7 +22,8 @@ interface DetailSidebarProps {
 }
 
 export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSidebarProps) {
-  const { working, update, remove, reparent } = useOrgData()
+  const { working } = useOrgData()
+  const { update, remove, reparent } = useOrgMutations()
   const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection } = useSelection()
 
   const isBatch = selectedIds.size > 1

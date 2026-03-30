@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type { Person, Pod } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
-import { useOrgData, useUI, useSelection } from './OrgContext'
+import { useOrgData, useOrgMutations, useUI, useSelection } from './OrgContext'
 import { useOrgDiff } from '../hooks/useOrgDiff'
 import { useManagerSet } from '../hooks/useIsManager'
 import { useHeadSubtree } from '../hooks/useHeadSubtree'
@@ -67,7 +67,8 @@ export function useActions(): ActionsContextValue {
 }
 
 export function ViewDataProvider({ children, onEditMode: onEditModeProp }: { children: ReactNode; onEditMode?: (personId: string) => void }) {
-  const { original, working, pods, settings, add, addParent, remove, update } = useOrgData()
+  const { original, working, pods, settings } = useOrgData()
+  const { add, addParent, remove, update } = useOrgMutations()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
   const { toggleSelect, setSelectedId, commitEdits, editingPersonId } = useSelection()
 

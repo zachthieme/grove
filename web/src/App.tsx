@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import styles from './App.module.css'
-import { OrgProvider, useOrgData, useUI, useSelection } from './store/OrgContext'
+import { OrgProvider, useOrgData, useOrgMutations, useUI, useSelection } from './store/OrgContext'
 import { ViewDataProvider, useActions } from './store/ViewDataContext'
 import { useExport } from './hooks/useExport'
 import { useSnapshotExport } from './hooks/useSnapshotExport'
@@ -160,7 +160,8 @@ function AppOverlays({ logPanelOpen, setLogPanelOpen }: {
   logPanelOpen: boolean
   setLogPanelOpen: (open: boolean) => void
 }) {
-  const { working, pendingMapping, confirmMapping, cancelMapping } = useOrgData()
+  const { working, pendingMapping } = useOrgData()
+  const { confirmMapping, cancelMapping } = useOrgMutations()
   const { infoPopoverId, clearInfoPopover } = useActions()
   return (
     <>
@@ -187,7 +188,8 @@ function AppOverlays({ logPanelOpen, setLogPanelOpen }: {
 
 /** Thin layout shell — coordinates cross-cutting hooks, delegates rendering to sub-components. */
 function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boolean; setSidebarEditing: (v: boolean) => void }) {
-  const { working, remove, add, reparent, canUndo, canRedo, undo, redo, loaded, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgData()
+  const { working, loaded, snapshots } = useOrgData()
+  const { remove, add, reparent, canUndo, canRedo, undo, redo, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgMutations()
   const { viewMode, headPersonId, setHead, showAllEmploymentTypes } = useUI()
   const { selectedIds, setSelectedId, clearSelection, batchSelect, interactionMode, revertEdits } = useSelection()
   const { infoPopoverId, clearInfoPopover, handleAddParent } = useActions()

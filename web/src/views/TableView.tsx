@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Person, PersonUpdatePayload } from '../api/types'
-import { useOrgData, useSelection } from '../store/OrgContext'
+import { useOrgData, useOrgMutations, useSelection } from '../store/OrgContext'
 import { usePeople, useChanges } from '../store/ViewDataContext'
 import type { ColumnDef } from './tableColumns'
 import { TABLE_COLUMNS, getPersonValue, buildExtraColumns } from './tableColumns'
@@ -36,7 +36,8 @@ function draftToPerson(values: Record<string, string>): Omit<Person, 'id'> {
 export default function TableView() {
   const { people, readOnly } = usePeople()
   const { changes } = useChanges()
-  const { update, remove, working, add } = useOrgData()
+  const { working } = useOrgData()
+  const { update, remove, add } = useOrgMutations()
   const { toggleSelect, selectedIds, clearSelection } = useSelection()
 
   const [sortKey, setSortKey] = useState<string | null>(null)
