@@ -139,7 +139,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           isManager={managerSet?.has(node.person.id)}
           collapsed={node.children.length > 0 ? isCollapsed : undefined}
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
-          onAddParent={!node.person.managerId && onAddParent ? () => onAddParent(node.person.id) : undefined}
+          onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}

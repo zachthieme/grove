@@ -1,5 +1,6 @@
 import { useMemo, useCallback, type ReactNode } from 'react'
 import type { Pod } from '../api/types'
+import type { EditBuffer } from '../store/useInteractionState'
 import { computeEdges } from './columnEdges'
 import { computeRenderItems } from './columnLayout'
 import { DraggableNode, type OrgNode } from './shared'
@@ -10,7 +11,7 @@ import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
 function SubtreeNode({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, onInlineEdit } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -37,25 +38,32 @@ function SubtreeNode({ node }: { node: OrgNode }) {
     )
   }, [pods, onAddToTeam, onPodSelect, setNodeRef])
 
-  const renderIC = useCallback((child: OrgNode) => (
-    <div key={child.person.id} className={styles.nodeSlot}>
-      <DraggableNode
-        person={child.person}
-        selected={selectedIds.has(child.person.id)}
-        changes={changes?.get(child.person.id)}
-        isManager={managerSet?.has(child.person.id)}
-        onAdd={onAddReport ? () => onAddReport(child.person.id) : undefined}
-        onAddParent={!child.person.managerId && onAddParent ? () => onAddParent(child.person.id) : undefined}
-        onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
-        onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
-        onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
-        onEditMode={onEditMode ? () => onEditMode(child.person.id) : undefined}
-        onSelect={(e) => onSelect(child.person.id, e)}
-        onInlineEdit={onInlineEdit ? (field: string, value: string) => onInlineEdit(child.person.id, field, value) : undefined}
-        nodeRef={setNodeRef(child.person.id)}
-      />
-    </div>
-  ), [selectedIds, changes, managerSet, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onSelect, onInlineEdit, setNodeRef])
+  const renderIC = useCallback((child: OrgNode) => {
+    const isEditing = interactionMode === 'editing' && editingPersonId === child.person.id
+    return (
+      <div key={child.person.id} className={styles.nodeSlot}>
+        <DraggableNode
+          person={child.person}
+          selected={selectedIds.has(child.person.id)}
+          changes={changes?.get(child.person.id)}
+          isManager={managerSet?.has(child.person.id)}
+          editing={isEditing}
+          editBuffer={isEditing ? editBuffer : null}
+          focusField={isEditing ? 'name' : null}
+          onAdd={onAddReport ? () => onAddReport(child.person.id) : undefined}
+          onAddParent={onAddParent ? () => onAddParent(child.person.id) : undefined}
+          onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
+          onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
+          onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
+          onEditMode={onEditMode ? () => onEditMode(child.person.id) : undefined}
+          onSelect={(e) => onSelect(child.person.id, e)}
+          onEnterEditing={onEnterEditing ? () => onEnterEditing(child.person) : undefined}
+          onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
+          nodeRef={setNodeRef(child.person.id)}
+        />
+      </div>
+    )
+  }, [selectedIds, changes, managerSet, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onSelect, onEnterEditing, onUpdateBuffer, setNodeRef])
 
   const icPodListElements = useMemo((): ReactNode => {
     if (!allICs) return null
@@ -162,6 +170,7 @@ function SubtreeNode({ node }: { node: OrgNode }) {
   }, [allICs, renderItems, renderIC, renderPodHeader, node.person.id])
 
   const isCollapsed = collapsedIds?.has(node.person.id) ?? false
+  const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
 
   return (
     <div className={styles.subtree}>
@@ -173,15 +182,19 @@ function SubtreeNode({ node }: { node: OrgNode }) {
           showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
           isManager={managerSet?.has(node.person.id)}
           collapsed={node.children.length > 0 ? isCollapsed : undefined}
+          editing={isNodeEditing}
+          editBuffer={isNodeEditing ? editBuffer : null}
+          focusField={isNodeEditing ? 'name' : null}
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
-          onAddParent={!node.person.managerId && onAddParent ? () => onAddParent(node.person.id) : undefined}
+          onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
           onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
           onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
-          onInlineEdit={onInlineEdit ? (field: string, value: string) => onInlineEdit(node.person.id, field, value) : undefined}
+          onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
+          onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
           nodeRef={setNodeRef(node.person.id)}
         />
       </div>
