@@ -219,7 +219,7 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
   )
 
   return (
-    <div className={styles.subtree}>
+    <div className={`${styles.subtree} ${hasCrossTeam ? styles.subtreeLeftAligned : ''}`}>
       {hasCrossTeam ? (
         <div className={styles.managerWithCrossTeam}>
           {managerNodeEl}
@@ -243,7 +243,7 @@ export default function ColumnView() {
     <ChartShell
       computeEdges={(people) => computeEdges(people)}
       renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
-      renderTeamHeader={(team, count) => <PodHeaderNode podName={team} memberCount={count} />}
+      renderTeamHeader={(team, count, opts) => <PodHeaderNode podName={team} memberCount={count} collapsed={opts?.collapsed} onToggleCollapse={opts?.onToggleCollapse} />}
       viewStyles={styles}
       dashedEdges
       useGhostPeople

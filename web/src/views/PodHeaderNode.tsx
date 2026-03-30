@@ -51,28 +51,30 @@ export function PodHeaderNode({ podName, memberCount, publicNote, onAdd, onClick
           onInfo={(e) => { e.stopPropagation(); onClick?.() }}
         />
       )}
-      <div
-        className={`${styles.teamHeader}${onClick ? ` ${styles.teamHeaderClickable}` : ''}`}
-        onClick={onClick}
-      >
-        <div className={styles.teamHeaderName}>{podName}</div>
-        <div className={styles.teamHeaderCount}>{memberCount} {memberCount === 1 ? 'person' : 'people'}</div>
-      </div>
-      {publicNote && (
-        <button
-          className={`${styles.podNoteIcon} ${noteOpen ? styles.podNoteIconActive : ''}`}
-          onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
-          aria-label="Toggle pod notes"
-          aria-expanded={noteOpen}
+      <div className={styles.cardArea}>
+        <div
+          className={`${styles.teamHeader}${onClick ? ` ${styles.teamHeaderClickable}` : ''}`}
+          onClick={onClick}
         >
-          {'\u{1F4CB}'}
-        </button>
-      )}
-      {noteOpen && publicNote && (
-        <div className={styles.podNotePanel}>
-          <div className={styles.podNoteText}>{publicNote}</div>
+          <div className={styles.teamHeaderName}>{podName}</div>
+          <div className={styles.teamHeaderCount}>{memberCount} {memberCount === 1 ? 'person' : 'people'}</div>
         </div>
-      )}
+        {publicNote && (
+          <button
+            className={`${styles.podNoteIcon} ${noteOpen ? styles.podNoteIconActive : ''}`}
+            onClick={(e) => { e.stopPropagation(); setNoteOpen(v => !v) }}
+            aria-label="Toggle pod notes"
+            aria-expanded={noteOpen}
+          >
+            {'\u{1F4CB}'}
+          </button>
+        )}
+        {noteOpen && publicNote && (
+          <div className={styles.podNotePanel}>
+            <div className={styles.podNoteText}>{publicNote}</div>
+          </div>
+        )}
+      </div>
       {onToggleCollapse && (
         <button
           className={styles.collapseToggle}

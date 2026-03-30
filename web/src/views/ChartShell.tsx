@@ -19,7 +19,7 @@ export interface ChartShellProps {
   computeEdges: (people: Person[], roots: OrgNode[]) => ChartEdge[]
   renderSubtree: (node: OrgNode) => ReactNode
   renderOrphanSubtree?: (node: OrgNode) => ReactNode
-  renderTeamHeader?: (team: string, count: number) => ReactNode
+  renderTeamHeader?: (team: string, count: number, options?: { collapsed?: boolean; onToggleCollapse?: () => void }) => ReactNode
   /** View-specific styles for OrphanGroup (subtree, nodeSlot, children, icStack, teamHeader) */
   viewStyles: Record<string, string>
   dashedEdges?: boolean
@@ -134,6 +134,8 @@ export default function ChartShell({
               wrapInIcStack={wrapOrphansInIcStack}
               renderSubtree={renderOrphanSubtree ?? renderSubtree}
               renderTeamHeader={renderTeamHeader}
+              collapsedIds={collapsedIds}
+              onToggleCollapse={handleToggleCollapse}
             />
           </div>
           {people.length === 1 && roots.length === 1 && roots[0].children.length === 0 && (

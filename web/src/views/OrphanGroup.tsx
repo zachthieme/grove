@@ -15,14 +15,17 @@ interface OrphanGroupProps {
   onInfo?: (id: string) => void
   styles: Record<string, string>
   renderSubtree: (node: OrgNode) => React.ReactNode
-  renderTeamHeader?: (team: string, memberCount: number) => React.ReactNode
+  renderTeamHeader?: (team: string, memberCount: number, options?: { collapsed?: boolean; onToggleCollapse?: () => void }) => React.ReactNode
   wrapInIcStack?: boolean
+  collapsedIds?: Set<string>
+  onToggleCollapse?: (id: string) => void
 }
 
 export function OrphanGroup({
   orphans, roots, selectedIds, onSelect, changes, setNodeRef,
   managerSet, onAddReport, onDeletePerson, onInfo,
   styles, renderSubtree, renderTeamHeader, wrapInIcStack = true,
+  collapsedIds, onToggleCollapse,
 }: OrphanGroupProps) {
   if (orphans.length === 0) return null
 
@@ -63,10 +66,15 @@ export function OrphanGroup({
     <>
       {teamOrder.map((team) => {
         const members = teamMap.get(team)!
+        const collapseKey = `orphan:${team}`
+        const isCollapsed = collapsedIds?.has(collapseKey) ?? false
         return (
           <div key={`orphan-${team}`} className={styles.subtree}>
             <div className={styles.nodeSlot}>
-              {renderTeamHeader ? renderTeamHeader(team, members.length) : (
+              {renderTeamHeader ? renderTeamHeader(team, members.length, {
+                collapsed: isCollapsed,
+                onToggleCollapse: onToggleCollapse ? () => onToggleCollapse(collapseKey) : undefined,
+              }) : (
                 <div className={styles.teamHeader}>
                   <strong>{team}</strong>
                   <div style={{ opacity: 0.6, fontSize: 11 }}>
@@ -75,15 +83,17 @@ export function OrphanGroup({
                 </div>
               )}
             </div>
-            <div className={styles.children}>
-              {wrapInIcStack ? (
-                <div className={styles.icStack}>
-                  {members.map((child) => renderOrphanNode(child))}
-                </div>
-              ) : (
-                members.map((child) => renderOrphanNode(child))
-              )}
-            </div>
+            {!isCollapsed && (
+              <div className={styles.children}>
+                {wrapInIcStack ? (
+                  <div className={styles.icStack}>
+                    {members.map((child) => renderOrphanNode(child))}
+                  </div>
+                ) : (
+                  members.map((child) => renderOrphanNode(child))
+                )}
+              </div>
+            )}
           </div>
         )
       })}

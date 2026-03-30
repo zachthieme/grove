@@ -2,6 +2,10 @@
   position: relative;
 }
 
+.cardArea {
+  position: relative;
+}
+
 .teamHeader {
   border: 1.5px solid var(--border-medium);
   border-left: 3.5px solid var(--grove-green);

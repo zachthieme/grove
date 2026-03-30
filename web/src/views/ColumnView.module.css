@@ -22,6 +22,10 @@
   align-items: center;
 }
 
+.subtreeLeftAligned {
+  align-items: flex-start;
+}
+
 .managerWithCrossTeam {
   display: flex;
   gap: 6px;
