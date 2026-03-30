@@ -1,37 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Person, Pod, AutosaveData, Settings } from '../api/types'
+import type { AutosaveData } from '../api/types'
 import { AUTOSAVE_STORAGE_KEY } from '../constants'
+import { useOrgData } from '../store/OrgContext'
 import * as api from '../api/client'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
-export function useAutosave(state: {
-  original: Person[]
-  working: Person[]
-  recycled: Person[]
-  pods: Pod[]
-  originalPods: Pod[]
-  settings: Settings
-  currentSnapshotName: string | null
-  loaded: boolean
-  suppressAutosaveRef?: React.RefObject<boolean>
-}) {
+export function useAutosave(suppressAutosaveRef?: React.RefObject<boolean>) {
+  const { original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded } = useOrgData()
   const timerRef = useRef<number>(undefined)
   const [serverSaveError, setServerSaveError] = useState(false)
 
   useEffect(() => {
-    if (!state.loaded || state.working.length === 0 || state.suppressAutosaveRef?.current) return
+    if (!loaded || working.length === 0 || suppressAutosaveRef?.current) return
 
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = window.setTimeout(() => {
       const data: AutosaveData = {
-        original: state.original,
-        working: state.working,
-        recycled: state.recycled,
-        pods: state.pods,
-        originalPods: state.originalPods,
-        settings: state.settings,
-        snapshotName: state.currentSnapshotName ?? '',
+        original,
+        working,
+        recycled,
+        pods,
+        originalPods,
+        settings,
+        snapshotName: currentSnapshotName ?? '',
         timestamp: new Date().toISOString(),
       }
       try {
@@ -50,7 +42,7 @@ export function useAutosave(state: {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [state.original, state.working, state.recycled, state.pods, state.originalPods, state.settings, state.currentSnapshotName, state.loaded])
+  }, [original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded])
 
   return { serverSaveError }
 }

@@ -7,81 +7,95 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useDeepLink } from './useDeepLink'
 
+const mockSetViewMode = vi.fn()
+const mockSetSelectedId = vi.fn()
+const mockSetHead = vi.fn()
+
+vi.mock('../store/OrgContext', () => ({
+  useUI: vi.fn(() => ({
+    viewMode: 'detail',
+    headPersonId: null,
+    setViewMode: mockSetViewMode,
+    setHead: mockSetHead,
+  })),
+  useSelection: vi.fn(() => ({
+    selectedId: null,
+    setSelectedId: mockSetSelectedId,
+  })),
+}))
+
+import { useUI, useSelection } from '../store/OrgContext'
+
+const mockedUseUI = vi.mocked(useUI)
+const mockedUseSelection = vi.mocked(useSelection)
+
 describe('useDeepLink — additional branches', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/')
+    mockSetViewMode.mockClear()
+    mockSetSelectedId.mockClear()
+    mockSetHead.mockClear()
+    mockedUseUI.mockReturnValue({
+      viewMode: 'detail',
+      headPersonId: null,
+      setViewMode: mockSetViewMode,
+      setHead: mockSetHead,
+    } as unknown as ReturnType<typeof useUI>)
+    mockedUseSelection.mockReturnValue({
+      selectedId: null,
+      setSelectedId: mockSetSelectedId,
+    } as unknown as ReturnType<typeof useSelection>)
   })
 
   it('ignores invalid view param in URL', () => {
     window.history.replaceState({}, '', '/?view=invalid')
-    const setViewMode = vi.fn()
-
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode,
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
-
-    expect(setViewMode).not.toHaveBeenCalled()
+    renderHook(() => useDeepLink())
+    expect(mockSetViewMode).not.toHaveBeenCalled()
   })
 
   it('reads table view from URL', () => {
     window.history.replaceState({}, '', '/?view=table')
-    const setViewMode = vi.fn()
-
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode,
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
-
-    expect(setViewMode).toHaveBeenCalledWith('table')
+    renderHook(() => useDeepLink())
+    expect(mockSetViewMode).toHaveBeenCalledWith('table')
   })
 
   it('writes selectedId to URL when not null', () => {
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
+    mockedUseSelection.mockReturnValue({
       selectedId: 'person-abc',
-      headPersonId: null,
-      setViewMode: vi.fn(),
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
+      setSelectedId: mockSetSelectedId,
+    } as unknown as ReturnType<typeof useSelection>)
 
+    renderHook(() => useDeepLink())
     const params = new URLSearchParams(window.location.search)
     expect(params.get('selected')).toBe('person-abc')
   })
 
   it('writes headPersonId to URL when not null', () => {
-    renderHook(() => useDeepLink({
+    mockedUseUI.mockReturnValue({
       viewMode: 'detail',
-      selectedId: null,
       headPersonId: 'head-xyz',
-      setViewMode: vi.fn(),
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
+      setViewMode: mockSetViewMode,
+      setHead: mockSetHead,
+    } as unknown as ReturnType<typeof useUI>)
 
+    renderHook(() => useDeepLink())
     const params = new URLSearchParams(window.location.search)
     expect(params.get('head')).toBe('head-xyz')
   })
 
   it('writes multiple params to URL', () => {
-    renderHook(() => useDeepLink({
+    mockedUseUI.mockReturnValue({
       viewMode: 'manager',
-      selectedId: 'sel-1',
       headPersonId: 'head-1',
-      setViewMode: vi.fn(),
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
+      setViewMode: mockSetViewMode,
+      setHead: mockSetHead,
+    } as unknown as ReturnType<typeof useUI>)
+    mockedUseSelection.mockReturnValue({
+      selectedId: 'sel-1',
+      setSelectedId: mockSetSelectedId,
+    } as unknown as ReturnType<typeof useSelection>)
 
+    renderHook(() => useDeepLink())
     const params = new URLSearchParams(window.location.search)
     expect(params.get('view')).toBe('manager')
     expect(params.get('selected')).toBe('sel-1')
@@ -90,21 +104,9 @@ describe('useDeepLink — additional branches', () => {
 
   it('reads all three params from URL simultaneously', () => {
     window.history.replaceState({}, '', '/?view=table&selected=sel-1&head=head-1')
-    const setViewMode = vi.fn()
-    const setSelectedId = vi.fn()
-    const setHead = vi.fn()
-
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode,
-      setSelectedId,
-      setHead,
-    }))
-
-    expect(setViewMode).toHaveBeenCalledWith('table')
-    expect(setSelectedId).toHaveBeenCalledWith('sel-1')
-    expect(setHead).toHaveBeenCalledWith('head-1')
+    renderHook(() => useDeepLink())
+    expect(mockSetViewMode).toHaveBeenCalledWith('table')
+    expect(mockSetSelectedId).toHaveBeenCalledWith('sel-1')
+    expect(mockSetHead).toHaveBeenCalledWith('head-1')
   })
 })

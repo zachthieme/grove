@@ -2,14 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAutosave } from './useAutosave'
 import type { Person, Pod, Settings } from '../api/types'
+import type { OrgDataContextValue } from '../store/orgTypes'
 
 vi.mock('../api/client', () => ({
   writeAutosave: vi.fn(),
 }))
 
+vi.mock('../store/OrgContext', () => ({
+  useOrgData: vi.fn(),
+}))
+
 import * as api from '../api/client'
+import { useOrgData } from '../store/OrgContext'
 
 const mockedWriteAutosave = vi.mocked(api.writeAutosave)
+const mockedUseOrgData = vi.mocked(useOrgData)
 
 function makePerson(overrides: Partial<Person> = {}): Person {
   return {
@@ -27,18 +34,20 @@ function makePerson(overrides: Partial<Person> = {}): Person {
 
 const defaultSettings: Settings = { disciplineOrder: [] }
 
-function makeState(overrides: Partial<Parameters<typeof useAutosave>[0]> = {}) {
-  return {
+function mockOrgData(overrides: Partial<Pick<OrgDataContextValue, 'original' | 'working' | 'recycled' | 'pods' | 'originalPods' | 'settings' | 'currentSnapshotName' | 'loaded'>> = {}) {
+  const data = {
     original: [makePerson()],
     working: [makePerson()],
     recycled: [] as Person[],
     pods: [] as Pod[],
     originalPods: [] as Pod[],
     settings: defaultSettings,
-    currentSnapshotName: null,
+    currentSnapshotName: null as string | null,
     loaded: true,
     ...overrides,
   }
+  mockedUseOrgData.mockReturnValue(data as unknown as OrgDataContextValue)
+  return data
 }
 
 describe('useAutosave', () => {
@@ -54,7 +63,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] saves to localStorage and calls writeAutosave after debounce', async () => {
-    renderHook(() => useAutosave(makeState()))
+    mockOrgData()
+    renderHook(() => useAutosave())
 
     // Advance past the 2000ms debounce
     await act(async () => {
@@ -76,25 +86,21 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] debounces multiple rapid changes into a single save', async () => {
-    const state1 = makeState({ working: [makePerson({ name: 'Alice' })] })
-    const state2 = makeState({ working: [makePerson({ name: 'Bob' })] })
-    const state3 = makeState({ working: [makePerson({ name: 'Charlie' })] })
-
-    const { rerender } = renderHook(
-      (props: Parameters<typeof useAutosave>[0]) => useAutosave(props),
-      { initialProps: state1 },
-    )
+    mockOrgData({ working: [makePerson({ name: 'Alice' })] })
+    const { rerender } = renderHook(() => useAutosave())
 
     // Rapid re-renders before debounce fires
     await act(async () => {
       vi.advanceTimersByTime(500)
     })
-    rerender(state2)
+    mockOrgData({ working: [makePerson({ name: 'Bob' })] })
+    rerender()
 
     await act(async () => {
       vi.advanceTimersByTime(500)
     })
-    rerender(state3)
+    mockOrgData({ working: [makePerson({ name: 'Charlie' })] })
+    rerender()
 
     // Now let the debounce fire from the last update
     await act(async () => {
@@ -108,7 +114,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] does not save when loaded is false', async () => {
-    renderHook(() => useAutosave(makeState({ loaded: false })))
+    mockOrgData({ loaded: false })
+    renderHook(() => useAutosave())
 
     await act(async () => {
       vi.advanceTimersByTime(3000)
@@ -119,7 +126,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] does not save when working array is empty', async () => {
-    renderHook(() => useAutosave(makeState({ working: [] })))
+    mockOrgData({ working: [] })
+    renderHook(() => useAutosave())
 
     await act(async () => {
       vi.advanceTimersByTime(3000)
@@ -130,10 +138,9 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] does not save when suppressAutosaveRef is true', async () => {
+    mockOrgData()
     const suppressRef = { current: true }
-    renderHook(() =>
-      useAutosave(makeState({ suppressAutosaveRef: suppressRef })),
-    )
+    renderHook(() => useAutosave(suppressRef))
 
     await act(async () => {
       vi.advanceTimersByTime(3000)
@@ -144,9 +151,10 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-002] sets serverSaveError to true when writeAutosave rejects', async () => {
+    mockOrgData()
     mockedWriteAutosave.mockRejectedValueOnce(new Error('network error'))
 
-    const { result } = renderHook(() => useAutosave(makeState()))
+    const { result } = renderHook(() => useAutosave())
 
     // Advance past the debounce to trigger the save
     await act(async () => {
@@ -159,15 +167,10 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-002] clears serverSaveError on a subsequent successful save', async () => {
+    mockOrgData({ working: [makePerson({ name: 'Alice' })] })
     mockedWriteAutosave.mockRejectedValueOnce(new Error('network error'))
 
-    const state1 = makeState({ working: [makePerson({ name: 'Alice' })] })
-    const state2 = makeState({ working: [makePerson({ name: 'Bob' })] })
-
-    const { result, rerender } = renderHook(
-      (props: Parameters<typeof useAutosave>[0]) => useAutosave(props),
-      { initialProps: state1 },
-    )
+    const { result, rerender } = renderHook(() => useAutosave())
 
     // First save fails
     await act(async () => {
@@ -179,7 +182,8 @@ describe('useAutosave', () => {
 
     // Second save succeeds
     mockedWriteAutosave.mockResolvedValueOnce(undefined)
-    rerender(state2)
+    mockOrgData({ working: [makePerson({ name: 'Bob' })] })
+    rerender()
 
     await act(async () => {
       vi.advanceTimersByTime(2000)
@@ -190,11 +194,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] triggers a new save when working data changes', async () => {
-    const state1 = makeState({ working: [makePerson({ name: 'Alice' })] })
-    const { rerender } = renderHook(
-      (props: Parameters<typeof useAutosave>[0]) => useAutosave(props),
-      { initialProps: state1 },
-    )
+    mockOrgData({ working: [makePerson({ name: 'Alice' })] })
+    const { rerender } = renderHook(() => useAutosave())
 
     // Let first save fire
     await act(async () => {
@@ -204,8 +205,8 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave).toHaveBeenCalledTimes(1)
 
     // Change the working data
-    const state2 = makeState({ working: [makePerson({ name: 'Bob' })] })
-    rerender(state2)
+    mockOrgData({ working: [makePerson({ name: 'Bob' })] })
+    rerender()
 
     // Let second save fire
     await act(async () => {
@@ -217,9 +218,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] stores the currentSnapshotName in autosave data', async () => {
-    renderHook(() =>
-      useAutosave(makeState({ currentSnapshotName: 'My Snapshot' })),
-    )
+    mockOrgData({ currentSnapshotName: 'My Snapshot' })
+    renderHook(() => useAutosave())
 
     await act(async () => {
       vi.advanceTimersByTime(2000)
@@ -230,9 +230,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] uses empty string for snapshotName when currentSnapshotName is null', async () => {
-    renderHook(() =>
-      useAutosave(makeState({ currentSnapshotName: null })),
-    )
+    mockOrgData({ currentSnapshotName: null })
+    renderHook(() => useAutosave())
 
     await act(async () => {
       vi.advanceTimersByTime(2000)
@@ -245,10 +244,9 @@ describe('useAutosave', () => {
   it('[AUTO-001] includes pods and settings in the autosave data', async () => {
     const pods: Pod[] = [{ id: 'p1', name: 'Pod A', team: 'Platform', managerId: '1' }]
     const settings: Settings = { disciplineOrder: ['Engineering', 'Design'] }
+    mockOrgData({ pods, settings })
 
-    renderHook(() =>
-      useAutosave(makeState({ pods, settings })),
-    )
+    renderHook(() => useAutosave())
 
     await act(async () => {
       vi.advanceTimersByTime(2000)
@@ -260,7 +258,8 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] cleans up the timer on unmount', async () => {
-    const { unmount } = renderHook(() => useAutosave(makeState()))
+    mockOrgData()
+    const { unmount } = renderHook(() => useAutosave())
 
     unmount()
 

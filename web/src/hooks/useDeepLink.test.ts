@@ -2,86 +2,81 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useDeepLink } from './useDeepLink'
 
+const mockSetViewMode = vi.fn()
+const mockSetSelectedId = vi.fn()
+const mockSetHead = vi.fn()
+
+vi.mock('../store/OrgContext', () => ({
+  useUI: vi.fn(() => ({
+    viewMode: 'detail',
+    headPersonId: null,
+    setViewMode: mockSetViewMode,
+    setHead: mockSetHead,
+  })),
+  useSelection: vi.fn(() => ({
+    selectedId: null,
+    setSelectedId: mockSetSelectedId,
+  })),
+}))
+
+import { useUI, useSelection } from '../store/OrgContext'
+
+const mockedUseUI = vi.mocked(useUI)
+const mockedUseSelection = vi.mocked(useSelection)
+
 // Scenarios: UI-011
 describe('useDeepLink', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/')
+    mockSetViewMode.mockClear()
+    mockSetSelectedId.mockClear()
+    mockSetHead.mockClear()
+    mockedUseUI.mockReturnValue({
+      viewMode: 'detail',
+      headPersonId: null,
+      setViewMode: mockSetViewMode,
+      setHead: mockSetHead,
+    } as unknown as ReturnType<typeof useUI>)
+    mockedUseSelection.mockReturnValue({
+      selectedId: null,
+      setSelectedId: mockSetSelectedId,
+    } as unknown as ReturnType<typeof useSelection>)
   })
 
   it('[SELECT-005] reads viewMode from URL on mount', () => {
     window.history.replaceState({}, '', '/?view=manager')
-    const setViewMode = vi.fn()
-    const setSelectedId = vi.fn()
-    const setHead = vi.fn()
-
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode,
-      setSelectedId,
-      setHead,
-    }))
-
-    expect(setViewMode).toHaveBeenCalledWith('manager')
+    renderHook(() => useDeepLink())
+    expect(mockSetViewMode).toHaveBeenCalledWith('manager')
   })
 
   it('[SELECT-005] writes viewMode to URL when it changes', () => {
-    renderHook(() => useDeepLink({
+    mockedUseUI.mockReturnValue({
       viewMode: 'manager',
-      selectedId: null,
       headPersonId: null,
-      setViewMode: vi.fn(),
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
+      setViewMode: mockSetViewMode,
+      setHead: mockSetHead,
+    } as unknown as ReturnType<typeof useUI>)
+
+    renderHook(() => useDeepLink())
 
     const params = new URLSearchParams(window.location.search)
     expect(params.get('view')).toBe('manager')
   })
 
   it('[SELECT-005] omits default values from URL', () => {
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode: vi.fn(),
-      setSelectedId: vi.fn(),
-      setHead: vi.fn(),
-    }))
-
+    renderHook(() => useDeepLink())
     expect(window.location.search).toBe('')
   })
 
   it('[SELECT-005] reads selectedId from URL', () => {
     window.history.replaceState({}, '', '/?selected=abc-123')
-    const setSelectedId = vi.fn()
-
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode: vi.fn(),
-      setSelectedId,
-      setHead: vi.fn(),
-    }))
-
-    expect(setSelectedId).toHaveBeenCalledWith('abc-123')
+    renderHook(() => useDeepLink())
+    expect(mockSetSelectedId).toHaveBeenCalledWith('abc-123')
   })
 
   it('[SELECT-005] reads headPersonId from URL', () => {
     window.history.replaceState({}, '', '/?head=xyz-456')
-    const setHead = vi.fn()
-
-    renderHook(() => useDeepLink({
-      viewMode: 'detail',
-      selectedId: null,
-      headPersonId: null,
-      setViewMode: vi.fn(),
-      setSelectedId: vi.fn(),
-      setHead,
-    }))
-
-    expect(setHead).toHaveBeenCalledWith('xyz-456')
+    renderHook(() => useDeepLink())
+    expect(mockSetHead).toHaveBeenCalledWith('xyz-456')
   })
 })

@@ -1,22 +1,14 @@
 import { useEffect, useRef } from 'react'
 import type { ViewMode } from '../store/orgTypes'
+import { useUI, useSelection } from '../store/OrgContext'
 
 const VALID_VIEWS = new Set<ViewMode>(['detail', 'manager', 'table'])
 const DEFAULT_VIEW: ViewMode = 'detail'
 
-interface DeepLinkProps {
-  viewMode: ViewMode
-  selectedId: string | null
-  headPersonId: string | null
-  setViewMode: (mode: ViewMode) => void
-  setSelectedId: (id: string | null) => void
-  setHead: (id: string | null) => void
-}
+export function useDeepLink() {
+  const { viewMode, headPersonId, setViewMode, setHead } = useUI()
+  const { selectedId, setSelectedId } = useSelection()
 
-export function useDeepLink({
-  viewMode, selectedId, headPersonId,
-  setViewMode, setSelectedId, setHead,
-}: DeepLinkProps) {
   const initialized = useRef(false)
   // Track whether state has settled after reading URL params.
   // Prevents the write effect from overwriting the URL with stale
