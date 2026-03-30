@@ -11,13 +11,13 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        groveVersion = "0.9.0";
+        groveVersion = "0.10.0";
 
         hashes = {
-          x86_64-linux = "sha256-sxvW42RomRptVW4/ZvOfUDycslPlkOMv04VJE4dtpBU=";
-          aarch64-linux = "sha256-VINCa5pTbMxr5u+b2jMunLwmDfwJdmfY72SED9G+w+E=";
-          x86_64-darwin = "sha256-0qi9FTrel5AgjiHTAJnSZBqM5DKkiuQbKxFmLDrM/rg=";
-          aarch64-darwin = "sha256-moQ7dOmCCc5gyJxAnmr0I2Fgnjjh3uNkpMeAO4wZTqg=";
+          x86_64-linux = "sha256-6/Tw56MKRRKyTRA5tOjvuiN72/1Mfp/bCxkvdblDB1Y=";
+          aarch64-linux = "sha256-Unbk7cNjjy2VuIA25lWAPiyGVUhxggFZobio6lvAaqU=";
+          x86_64-darwin = "sha256-+oTivXHw5ZTLXuotrp/XsAGEGGiyicQO3+JW8qalEew=";
+          aarch64-darwin = "sha256-E+rPMZn/JbqD91oKIw3Dj1Yh0b3nX5kGYCjRFi/ub0Y=";
         };
 
         platformMap = {
