@@ -10,7 +10,7 @@ import { PodHeaderNode } from './PodHeaderNode'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
-function SubtreeNode({ node }: { node: OrgNode }) {
+function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: OrgNode[] }) {
   const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
   const managers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
@@ -148,7 +148,7 @@ function SubtreeNode({ node }: { node: OrgNode }) {
         flushIcBatch()
         if (item.type === 'manager') {
           elements.push(
-            <SubtreeNode key={item.node.person.id} node={item.node} />
+            <SubtreeNode key={item.node.person.id} node={item.node} crossTeamICs={item.crossTeamICs} />
           )
         } else if (item.type === 'icGroup') {
           elements.push(
@@ -201,6 +201,11 @@ function SubtreeNode({ node }: { node: OrgNode }) {
         />
       </div>
 
+      {crossTeamICs && crossTeamICs.length > 0 && !isCollapsed && (
+        <div className={styles.crossTeamRow}>
+          {crossTeamICs.map(ic => renderIC(ic))}
+        </div>
+      )}
       {node.children.length > 0 && !isCollapsed && (
         <div className={styles.children}>
           {allICs ? icPodListElements : mixedChildrenElements}

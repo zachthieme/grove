@@ -1,7 +1,7 @@
 import type { OrgNode } from './shared'
 
 export type RenderItem =
-  | { type: 'manager'; node: OrgNode }
+  | { type: 'manager'; node: OrgNode; crossTeamICs?: OrgNode[] }
   | { type: 'ic'; node: OrgNode }
   | { type: 'icGroup'; team: string; members: OrgNode[]; podName?: string }
 
@@ -79,8 +79,14 @@ function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode
 /**
  * Build an ordered list of render items.
  * Managers form the spine, reordered so cross-team-connected teams are adjacent.
- * Affiliated ICs are inserted after the last manager they connect to, keeping
- * them close to the teams they support without pushing unrelated managers apart.
+ *
+ * Cross-team IC placement uses two strategies:
+ * - Single-affiliation ICs (additionalTeams matches exactly one manager) are attached
+ *   to that manager's render item via `crossTeamICs`. The view renders them inside the
+ *   manager's subtree, above its children, so they visually span the fan-out.
+ * - Multi-affiliation ICs (match 2+ managers) are placed after the highest-indexed
+ *   manager in the horizontal flow, between the grouped managers they serve.
+ *
  * Unaffiliated ICs go last, grouped by team if multiple teams.
  */
 export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderItem[] {
@@ -93,43 +99,56 @@ export function computeRenderItems(managers: OrgNode[], ics: OrgNode[]): RenderI
     managerIndex.set(managers[i].person.id, i)
   }
 
-  // For each IC with additionalTeams, find the highest-indexed manager they connect to.
-  // Place them BEFORE that manager so they render adjacent to the manager node rather
-  // than after the manager's entire (potentially wide) subtree.
-  const beforeManager = new Map<number, OrgNode[]>() // manager index → ICs to place before
+  // Single-affiliation ICs → rendered within manager subtree (above children)
+  const withinManager = new Map<number, OrgNode[]>()
+  // Multi-affiliation ICs → rendered after highest-indexed manager in flow
+  const afterManager = new Map<number, OrgNode[]>()
   const unaffiliated: OrgNode[] = []
 
   for (const ic of ics) {
     const addlTeams = ic.person.additionalTeams || []
-    let bestIdx = -1
-    if (addlTeams.length > 0) {
-      for (const at of addlTeams) {
-        const mgr = managerByTeam.get(at)
-        if (mgr) {
-          const idx = managerIndex.get(mgr.person.id) ?? -1
-          if (idx > bestIdx) bestIdx = idx
+    if (addlTeams.length === 0) {
+      unaffiliated.push(ic)
+      continue
+    }
+
+    const matchedIndices: number[] = []
+    for (const at of addlTeams) {
+      const mgr = managerByTeam.get(at)
+      if (mgr) {
+        const idx = managerIndex.get(mgr.person.id)
+        if (idx !== undefined && !matchedIndices.includes(idx)) {
+          matchedIndices.push(idx)
         }
       }
     }
-    if (bestIdx >= 0) {
-      const list = beforeManager.get(bestIdx) || []
-      list.push(ic)
-      beforeManager.set(bestIdx, list)
-    } else {
+
+    if (matchedIndices.length === 0) {
       unaffiliated.push(ic)
+    } else if (matchedIndices.length === 1) {
+      const idx = matchedIndices[0]
+      const list = withinManager.get(idx) || []
+      list.push(ic)
+      withinManager.set(idx, list)
+    } else {
+      const bestIdx = Math.max(...matchedIndices)
+      const list = afterManager.get(bestIdx) || []
+      list.push(ic)
+      afterManager.set(bestIdx, list)
     }
   }
 
-  // Build: emit affiliated ICs before their manager, then the manager subtree
+  // Build: emit each manager (with single-affiliation ICs attached), then
+  // any multi-affiliation ICs after their highest-indexed manager
   const items: RenderItem[] = []
   for (let i = 0; i < managers.length; i++) {
-    const affIcs = beforeManager.get(i)
+    items.push({ type: 'manager', node: managers[i], crossTeamICs: withinManager.get(i) })
+    const affIcs = afterManager.get(i)
     if (affIcs) {
       for (const ic of affIcs) {
         items.push({ type: 'ic', node: ic })
       }
     }
-    items.push({ type: 'manager', node: managers[i] })
   }
 
   // Unaffiliated ICs: grouped by pod (if available) or team

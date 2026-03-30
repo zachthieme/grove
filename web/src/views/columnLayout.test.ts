@@ -38,19 +38,38 @@ describe('computeRenderItems', () => {
     expect(items[1].type).toBe('ic')
   })
 
-  it('[VIEW-001] places affiliated IC before the highest-indexed connected manager', () => {
+  it('[VIEW-001] attaches single-affiliation IC to manager via crossTeamICs', () => {
     const managers = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
       makeNode({ id: '2', name: 'Bob', team: 'Design' }),
     ]
     const ics = [makeNode({ id: '3', name: 'Carol', team: 'Eng', additionalTeams: ['Design'] })]
     const items = computeRenderItems(managers, ics)
-    // Carol should be before Bob (Design is index 1, which is highest)
+    // Carol has one matching manager (Design) → attached to Bob's crossTeamICs
+    expect(items).toHaveLength(2) // just the two managers
     expect(items[0].type).toBe('manager') // Alice
-    expect(items[1].type).toBe('ic')      // Carol (before Design manager)
-    expect(items[2].type).toBe('manager') // Bob
-    if (items[1].type === 'ic') {
-      expect(items[1].node.person.name).toBe('Carol')
+    expect(items[1].type).toBe('manager') // Bob
+    if (items[1].type === 'manager') {
+      expect(items[1].crossTeamICs).toHaveLength(1)
+      expect(items[1].crossTeamICs![0].person.name).toBe('Carol')
+    }
+  })
+
+  it('[VIEW-001] places multi-affiliation IC after highest-indexed manager', () => {
+    const managers = [
+      makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
+      makeNode({ id: '2', name: 'Bob', team: 'Design' }),
+      makeNode({ id: '3', name: 'Dan', team: 'Ops' }),
+    ]
+    const ics = [makeNode({ id: '4', name: 'Carol', team: 'Eng', additionalTeams: ['Eng', 'Design'] })]
+    const items = computeRenderItems(managers, ics)
+    // Carol matches two managers (Eng + Design) → placed after Design (index 1)
+    expect(items[0].type).toBe('manager') // Alice
+    expect(items[1].type).toBe('manager') // Bob
+    expect(items[2].type).toBe('ic')      // Carol (after Bob)
+    expect(items[3].type).toBe('manager') // Dan
+    if (items[2].type === 'ic') {
+      expect(items[2].node.person.name).toBe('Carol')
     }
   })
 
@@ -97,7 +116,7 @@ describe('computeRenderItems', () => {
       makeNode({ id: '4', name: 'Chris Launey', team: 'SEC and IOT', additionalTeams: ['SEC', 'SEC-2'] }),
     ]
     const items = computeRenderItems(managers, ics)
-    // SEC and SEC-2 managers should be adjacent, with Chris Launey before SEC-2
+    // SEC and SEC-2 managers should be adjacent
     const managerTeams = items
       .filter((i): i is { type: 'manager'; node: OrgNode } => i.type === 'manager')
       .map((i) => i.node.person.team)
