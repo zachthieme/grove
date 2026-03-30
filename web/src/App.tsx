@@ -54,12 +54,13 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
 
   const clearHead = useCallback(() => setHead(null), [setHead])
 
+  const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
+
   // Reset sidebar editing when selection changes
+  const selectionKey = selectedId ?? (selectedIds.size > 1 ? `batch-${selectedIds.size}` : '')
   useEffect(() => {
     setSidebarEditing(false)
-  }, [selectedIds, setSidebarEditing])
-
-  const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
+  }, [selectionKey, setSidebarEditing])
   const vimAddReport = useCallback((parentId: string) => {
     const parent = working.find(p => p.id === parentId)
     if (!parent) return
