@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.10.0
+
+### Features
+- **Theme toggle**: Light / Dark / System appearance selector in Settings, CSS migrated from media query to `data-theme` attribute
+- **Vim navigation**: Opt-in vim keybindings (hjkl navigation, o/O add report/parent, d delete, x/p cut/paste, i inline edit, I sidebar edit, / search) with toggle in Settings
+- **Sidebar view/edit modes**: Sidebar defaults to read-only view when selecting a person; Edit button, shift-I, or edit icon enters edit mode; Escape returns to view mode
+- **Inline editing**: Double-click name/role/team on person cards to edit in place; Tab cycles between fields; Enter commits; blur saves
+- **Multi-select view mode**: Shift/cmd-click or lasso to multi-select shows read-only summary with common fields; Edit button enters batch edit
+- **Create from scratch**: "Start from scratch" on upload prompt and "New" button in toolbar to create an org chart without importing a file
+- **Add parent**: Insert a manager above any root-level person via O key or up-arrow icon
+- **Collapse/expand**: Toggle subtree visibility on manager nodes with triangle buttons; edge lines update correctly
+- **Global search**: Cmd+K to focus search bar, / in vim mode
+- **Undo/redo**: Cmd+Z / Cmd+Shift+Z for working state changes
+- **Product tour**: Auto-start guided tour on first visit with driver.js
+- **Breadcrumbs**: Always-visible breadcrumb bar showing current position in org hierarchy
+- **Delete confirmation**: Confirmation popover showing consequences (report reparenting) before deletion
+
+### Bug Fixes
+- **Vim focus**: Fixed vim navigation breaking after one motion — blur active element after selection changes, removed unused dnd-kit KeyboardSensor
+- **Unified escape**: Single prioritized escape handler replaces multiple independent hooks that fired simultaneously; priority: popover > cut > sidebar edit > selection > head
+- **Dark mode readability**: Cancel buttons, table view controls (Paste, Columns, expand/delete), alternating rows, cell inputs, and filter search all use CSS variables for proper dark mode contrast
+- **Autosave restore**: Fixed infinite re-render loop on restore caused by unstable `layoutDeps` array reference in `useChartLayout`
+- **Edge lines on collapse**: Edge lines now recalculate when nodes are collapsed/expanded via stable `collapseKey` counter
+- **Inline edit save**: Inline card edits now commit on Enter/Tab/blur via `onCommitEdits` pipeline
+- **Sidebar/inline isolation**: Sidebar editing uses its own local form state, independent from inline card editing — no dual-edit conflicts
+- **Space key in inline edit**: `stopPropagation` on edit keydown prevents parent div from capturing space
+- **Manager gradient**: Removed hardcoded `#f9faf8` gradient on manager nodes that didn't adapt to dark mode
+- **Batch save guard**: Fixed "Saving..." button getting stuck when clicking Save with no changes in batch mode
+- **A11y contrast**: Upload prompt pronunciation text uses `text-tertiary` for better contrast; tour popover excluded from a11y checks
+- **Spatial vim navigation**: Bucket-based level preference for consistent h/l movement between org chart columns
+
+### Refactoring
+- **ChartShell extraction**: Shared chart rendering shell (hooks, DndContext, edge SVG, lasso overlay) extracted from ColumnView/ManagerView into `ChartShell` component
+- **ViewDataProvider split**: Single ViewDataContext split into 4 granular contexts (People, Changes, Actions, Columns) to reduce unnecessary re-renders
+- **Typed update structs**: `PersonUpdate` and `PodUpdate` Go structs with pointer fields replace `map[string]string`; contract tests verify field name alignment
+- **Service interfaces**: `OrgService` decomposed into 6 domain interfaces (`PersonService`, `OrgReader`, etc.); handlers depend on minimal interfaces
+- **Interaction state**: `useInteractionState` hook manages editing/selected/idle modes with edit buffer and commit/revert
+- **Granular hook migration**: Removed `useOrg()` mega-hook; all consumers use `useOrgData()`, `useUI()`, `useSelection()`
+- **Golden test migration**: 19 components covered by golden file snapshot tests (81 fixtures)
+
 ## v0.9.0
 
 ### Features
