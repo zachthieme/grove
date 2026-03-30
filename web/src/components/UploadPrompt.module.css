@@ -39,7 +39,7 @@
 }
 
 .pronunciation {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-size: 15px;
   font-family: var(--font-body);
   font-weight: 400;
@@ -48,7 +48,7 @@
 
 .partOfSpeech {
   font-style: italic;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-size: 15px;
   font-family: var(--font-body);
   margin-left: 6px;
@@ -109,14 +109,14 @@
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   cursor: pointer;
   letter-spacing: 0.02em;
   transition: color var(--transition-fast);
 }
 
 .scratchBtn:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .createForm {

@@ -28,7 +28,8 @@ test.describe('Feature tests', () => {
 
   test('[VIEW-006] lasso multi-select', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
-    await lassoSelect(page, 10, 10, 800, 600)
+    await page.waitForTimeout(500) // Wait for layout and animations to stabilize
+    await lassoSelect(page, 5, 5, 900, 700)
     const heading = page.locator('[data-testid="sidebar-heading"]')
     await expect(heading).toBeVisible({ timeout: 3000 })
   })
