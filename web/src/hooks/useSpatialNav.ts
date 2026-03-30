@@ -8,12 +8,10 @@ function center(r: DOMRect): { cx: number; cy: number } {
  * Given a map of node IDs to their bounding rects and a direction,
  * find the nearest neighbor in that direction from the current node.
  *
- * For h/l (horizontal): prefer nodes in the same vertical band (within
- * 1.5x node height), pick closest by horizontal distance. Falls back to
- * any candidate with off-axis penalty if no same-band nodes exist.
- *
- * For j/k (vertical): same logic but rotated — prefer same horizontal
- * band (within 1.5x node width), pick closest by vertical distance.
+ * Candidates are sorted by "alignment level" (off-axis distance bucketed
+ * by node size), then by primary-axis distance within each level. This
+ * ensures nodes at roughly the same visual level are preferred over
+ * diagonally closer nodes at a different level.
  */
 export function findSpatialNeighbor(
   currentId: string,
@@ -25,12 +23,10 @@ export function findSpatialNeighbor(
 
   const { cx, cy } = center(currentRect)
   const isHorizontal = direction === 'h' || direction === 'l'
-  // Band tolerance: nodes within this off-axis distance are "same level"
-  const bandTolerance = isHorizontal
-    ? currentRect.height * 1.5
-    : currentRect.width * 1.5
+  // Bucket size: nodes within this off-axis distance are considered "same level"
+  const bucketSize = isHorizontal ? currentRect.height : currentRect.width
 
-  type Candidate = { id: string; primary: number; offAxis: number; inBand: boolean }
+  type Candidate = { id: string; primary: number; offAxis: number; bucket: number }
   const candidates: Candidate[] = []
 
   for (const [id, rect] of nodeRects) {
@@ -51,21 +47,14 @@ export function findSpatialNeighbor(
 
     const primary = isHorizontal ? Math.abs(dx) : Math.abs(dy)
     const offAxis = isHorizontal ? Math.abs(dy) : Math.abs(dx)
-    const inBand = offAxis <= bandTolerance
+    const bucket = Math.floor(offAxis / bucketSize)
 
-    candidates.push({ id, primary, offAxis, inBand })
+    candidates.push({ id, primary, offAxis, bucket })
   }
 
   if (candidates.length === 0) return null
 
-  // Prefer in-band candidates (same visual level), sorted by primary axis distance
-  const inBand = candidates.filter(c => c.inBand)
-  if (inBand.length > 0) {
-    inBand.sort((a, b) => a.primary - b.primary)
-    return inBand[0].id
-  }
-
-  // Fallback: closest by primary axis distance
-  candidates.sort((a, b) => a.primary - b.primary)
+  // Sort by bucket (prefer same level), then by primary distance within bucket
+  candidates.sort((a, b) => a.bucket - b.bucket || a.primary - b.primary)
   return candidates[0].id
 }
