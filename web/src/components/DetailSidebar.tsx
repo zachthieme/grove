@@ -39,6 +39,24 @@ const blankForm: FormFields = {
   private: false,
 }
 
+function formFromPerson(p: Person): FormFields {
+  return {
+    name: p.name,
+    role: p.role,
+    discipline: p.discipline,
+    team: p.team,
+    otherTeams: (p.additionalTeams || []).join(', '),
+    managerId: p.managerId,
+    status: p.status,
+    employmentType: p.employmentType || 'FTE',
+    level: String(p.level ?? 0),
+    pod: p.pod ?? '',
+    publicNote: p.publicNote ?? '',
+    privateNote: p.privateNote ?? '',
+    private: p.private ?? false,
+  }
+}
+
 function formFromBatch(people: Person[]): FormFields {
   if (people.length === 0) return blankForm
   const first = people[0]
@@ -68,7 +86,7 @@ interface DetailSidebarProps {
 
 export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSidebarProps) {
   const { working, update, remove, reparent } = useOrgData()
-  const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection, editBuffer, updateBuffer, commitEdits } = useSelection()
+  const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection } = useSelection()
 
   const isBatch = selectedIds.size > 1
   const person = selectedId ? working.find((p) => p.id === selectedId) : null
@@ -77,9 +95,20 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     [working, selectedIds, isBatch],
   )
 
-  // Local form state used only for batch edits
+  // Local form state for sidebar editing (single and batch)
+  const [sidebarForm, setSidebarForm] = useState<FormFields>(() =>
+    person && mode === 'edit' ? formFromPerson(person) : blankForm
+  )
   const [batchForm, setBatchForm] = useState<FormFields>(blankForm)
   const [batchDirty, setBatchDirty] = useState<Set<string>>(new Set())
+
+  // Re-initialize sidebar form when entering edit mode or person changes
+  useEffect(() => {
+    if (mode === 'edit' && person && !isBatch) {
+      setSidebarForm(formFromPerson(person))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, person?.id])
   const [showStatusInfo, setShowStatusInfo] = useState(false)
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
 
@@ -111,13 +140,15 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBatch ? selectedIds.size : null])
 
-  // For single-person edits, handle manager change auto-updating team via editBuffer
-  const handleSingleManagerChange = (value: string) => {
-    const newManager = working.find((p) => p.id === value)
-    updateBuffer('managerId', value)
-    if (newManager) {
-      updateBuffer('team', newManager.team)
+  const handleSidebarChange = (field: keyof FormFields, value: string | boolean) => {
+    if (field === 'managerId') {
+      const newManager = working.find((p) => p.id === value as string)
+      if (newManager) {
+        setSidebarForm((f) => ({ ...f, managerId: value as string, team: newManager.team }))
+        return
+      }
     }
+    setSidebarForm((f) => ({ ...f, [field]: value }))
   }
 
   const handleBatchChange = (field: keyof FormFields, value: string) => {
@@ -136,19 +167,25 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
   const handleSingleSave = async () => {
     if (!person) return
     markSaving()
-    const dirty = commitEdits()
-    if (!dirty) { markSaved(); return }
+    const orig = formFromPerson(person)
+    const dirty: Record<string, string | boolean | number> = {}
+    for (const key of Object.keys(orig) as (keyof FormFields)[]) {
+      if (sidebarForm[key] !== orig[key]) {
+        dirty[key] = sidebarForm[key]
+      }
+    }
+    if (Object.keys(dirty).length === 0) { markSaved(); onSetMode?.('view'); return }
 
     const corrId = generateCorrelationId()
     try {
-      if (dirty.managerId !== undefined && dirty.managerId !== person.managerId) {
+      const managerChanged = dirty.managerId !== undefined && dirty.managerId !== person.managerId
+      if (managerChanged) {
         await reparent(person.id, dirty.managerId as string, corrId)
       }
       const fields: PersonUpdatePayload = {}
       for (const [key, val] of Object.entries(dirty)) {
         if (key === 'managerId') continue
-        // When manager changed, team is handled by reparent — but if only team changed, include it
-        if (key === 'team' && dirty.managerId !== undefined) continue
+        if (key === 'team' && managerChanged) continue
         if (key === 'otherTeams') {
           fields.additionalTeams = val as string
         } else if (key === 'level') {
@@ -161,6 +198,7 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
         await update(person.id, fields, corrId)
       }
       markSaved()
+      onSetMode?.('view')
     } catch {
       markError('Save failed')
     }
@@ -303,6 +341,68 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     )
   }
 
+  // Batch view mode: read-only display of common fields
+  if (isBatch && selectedPeople.length > 0 && mode === 'view') {
+    const batchView = formFromBatch(selectedPeople)
+    const show = (val: string, fallback = '\u2014') => val === MIXED_VALUE ? 'Mixed' : (val || fallback)
+    const managerIds = new Set(selectedPeople.map(p => p.managerId).filter(Boolean))
+    const managerLabel = managerIds.size === 1
+      ? (working.find(p => p.id === [...managerIds][0])?.name || '(none)')
+      : 'Mixed'
+    return (
+      <aside className={styles.sidebar}>
+        <div className={styles.header}>
+          <h3 data-testid="sidebar-heading">{selectedIds.size} people selected</h3>
+          <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close" title="Close">
+            &times;
+          </button>
+        </div>
+        <div className={styles.viewBody}>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Role</span>
+            <span className={styles.viewValue}>{show(batchView.role, 'TBD')}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Discipline</span>
+            <span className={styles.viewValue}>{show(batchView.discipline)}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Team</span>
+            <span className={styles.viewValue}>{show(batchView.team)}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Manager</span>
+            <span className={styles.viewValue}>{managerLabel}</span>
+          </div>
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Status</span>
+            <span className={styles.viewValue}>{show(batchView.status)}</span>
+          </div>
+          {batchView.pod && batchView.pod !== MIXED_VALUE && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Pod</span>
+              <span className={styles.viewValue}>{batchView.pod}</span>
+            </div>
+          )}
+          {batchView.pod === MIXED_VALUE && (
+            <div className={styles.viewField}>
+              <span className={styles.viewLabel}>Pod</span>
+              <span className={styles.viewValue}>Mixed</span>
+            </div>
+          )}
+          <div className={styles.viewField}>
+            <span className={styles.viewLabel}>Employment</span>
+            <span className={styles.viewValue}>{show(batchView.employmentType, 'FTE')}</span>
+          </div>
+        </div>
+        <div className={styles.actions}>
+          <button className={styles.editBtn} onClick={() => onSetMode?.('edit')}>Edit</button>
+          <button className={styles.deleteBtn} onClick={clearSelection} title="Clear selection">Clear selection</button>
+        </div>
+      </aside>
+    )
+  }
+
   // Batch form helpers for Mixed value display
   type StringField = { [K in keyof FormFields]: FormFields[K] extends string ? K : never }[keyof FormFields]
   const mixed = (field: StringField) => batchForm[field] === MIXED_VALUE
@@ -330,8 +430,8 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     </>
   )
 
-  // Single-person edit form (reads from editBuffer)
-  if (!isBatch && editBuffer) {
+  // Single-person edit form (uses local sidebarForm state)
+  if (!isBatch && person && mode === 'edit') {
     return (
       <aside className={styles.sidebar}>
         <div className={styles.header}>
@@ -343,23 +443,23 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
         <div className={styles.form}>
           <div className={styles.field}>
             <label>Name</label>
-            <input data-testid="field-name" ref={firstInputRef} value={editBuffer.name} onChange={(e) => updateBuffer('name', e.target.value)} />
+            <input data-testid="field-name" ref={firstInputRef} value={sidebarForm.name} onChange={(e) => handleSidebarChange('name', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Role</label>
-            <input data-testid="field-role" value={editBuffer.role} onChange={(e) => updateBuffer('role', e.target.value)} />
+            <input data-testid="field-role" value={sidebarForm.role} onChange={(e) => handleSidebarChange('role', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Discipline</label>
-            <input data-testid="field-discipline" value={editBuffer.discipline} onChange={(e) => updateBuffer('discipline', e.target.value)} />
+            <input data-testid="field-discipline" value={sidebarForm.discipline} onChange={(e) => handleSidebarChange('discipline', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Team</label>
-            <input data-testid="field-team" value={editBuffer.team} onChange={(e) => updateBuffer('team', e.target.value)} />
+            <input data-testid="field-team" value={sidebarForm.team} onChange={(e) => handleSidebarChange('team', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Manager</label>
-            <select data-testid="field-manager" value={editBuffer.managerId} onChange={(e) => handleSingleManagerChange(e.target.value)}>
+            <select data-testid="field-manager" value={sidebarForm.managerId} onChange={(e) => handleSidebarChange('managerId', e.target.value)}>
               <option value="">(No manager)</option>
               {managers.map((m) => (
                 <option key={m.id} value={m.id}>{m.name} — {m.team}</option>
@@ -369,7 +469,7 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
           <div className={styles.field}>
             <label>Pod</label>
             <span className={styles.fieldHint}>Group people within a team — e.g. &quot;Backend&quot;, &quot;Frontend&quot;</span>
-            <input data-testid="field-pod" value={editBuffer.pod} onChange={(e) => updateBuffer('pod', e.target.value)} />
+            <input data-testid="field-pod" value={sidebarForm.pod} onChange={(e) => handleSidebarChange('pod', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>
@@ -379,29 +479,29 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
               </button>
             </label>
             {statusInfoPopover}
-            <select data-testid="field-status" value={editBuffer.status} onChange={(e) => updateBuffer('status', e.target.value)}>
+            <select data-testid="field-status" value={sidebarForm.status} onChange={(e) => handleSidebarChange('status', e.target.value)}>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className={styles.field}>
             <label>Employment Type</label>
-            <input data-testid="field-employmentType" value={editBuffer.employmentType} onChange={(e) => updateBuffer('employmentType', e.target.value)} />
+            <input data-testid="field-employmentType" value={sidebarForm.employmentType} onChange={(e) => handleSidebarChange('employmentType', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Level</label>
-            <input data-testid="field-level" type="number" min="0" value={editBuffer.level} onChange={(e) => updateBuffer('level', e.target.value)} />
+            <input data-testid="field-level" type="number" min="0" value={sidebarForm.level} onChange={(e) => handleSidebarChange('level', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Other Teams</label>
-            <input data-testid="field-otherTeams" value={editBuffer.otherTeams} onChange={(e) => updateBuffer('otherTeams', e.target.value)} />
+            <input data-testid="field-otherTeams" value={sidebarForm.otherTeams} onChange={(e) => handleSidebarChange('otherTeams', e.target.value)} />
           </div>
           <div className={styles.field}>
             <label>Public Note</label>
-            <textarea data-testid="field-publicNote" value={editBuffer.publicNote} placeholder="Visible on the org chart" onChange={(e) => updateBuffer('publicNote', e.target.value)} rows={3} />
+            <textarea data-testid="field-publicNote" value={sidebarForm.publicNote} placeholder="Visible on the org chart" onChange={(e) => handleSidebarChange('publicNote', e.target.value)} rows={3} />
           </div>
           <div className={styles.field}>
             <label>Private Note</label>
-            <textarea data-testid="field-privateNote" value={editBuffer.privateNote} placeholder="Only visible in this panel" onChange={(e) => updateBuffer('privateNote', e.target.value)} rows={3} />
+            <textarea data-testid="field-privateNote" value={sidebarForm.privateNote} placeholder="Only visible in this panel" onChange={(e) => handleSidebarChange('privateNote', e.target.value)} rows={3} />
           </div>
           <div className={styles.field}>
             <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -409,8 +509,8 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
               <input
                 type="checkbox"
                 data-testid="field-private"
-                checked={editBuffer.private}
-                onChange={(e) => updateBuffer('private', e.target.checked)}
+                checked={sidebarForm.private}
+                onChange={(e) => handleSidebarChange('private', e.target.checked)}
               />
             </label>
             <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Hidden when private toggle is off</span>

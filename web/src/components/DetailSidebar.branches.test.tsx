@@ -10,7 +10,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DetailSidebar from './DetailSidebar'
-import { makePerson, makeEditBuffer, renderWithOrg } from '../test-helpers'
+import { makePerson, renderWithOrg } from '../test-helpers'
 import type { Pod } from '../api/types'
 
 afterEach(() => cleanup())
@@ -28,14 +28,11 @@ const carol = makePerson({
   team: 'Design', discipline: 'Design', employmentType: 'Contractor',
 })
 
-/** Helper for single-person edit tests: provides editBuffer context */
+/** Helper for single-person edit tests: provides selection context */
 function singleEditCtx(person: ReturnType<typeof makePerson>, overrides: Record<string, unknown> = {}) {
   return {
     selectedId: person.id,
     selectedIds: new Set([person.id]),
-    interactionMode: 'editing' as const,
-    editBuffer: makeEditBuffer(person),
-    editingPersonId: person.id,
     ...overrides,
   }
 }
@@ -200,19 +197,27 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('single save: optional field diffs', () => {
+    function renderSingleEdit(person: ReturnType<typeof makePerson>, overrides = {}) {
+      const update = vi.fn().mockResolvedValue(undefined)
+      const reparent = vi.fn().mockResolvedValue(undefined)
+      renderWithOrg(<DetailSidebar mode="edit" />, {
+        working: [alice, person],
+        selectedId: person.id,
+        selectedIds: new Set([person.id]),
+        update,
+        reparent,
+        ...overrides,
+      })
+      return { update, reparent }
+    }
+
     it('includes level field when level has changed', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const personWithLevel = makePerson({
-        id: 'p1', name: 'Person', managerId: '', team: 'T', level: 3,
-      })
-      const commitEdits = vi.fn().mockReturnValue({ level: '5' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
-        working: [personWithLevel],
-        ...singleEditCtx(personWithLevel),
-        update,
-        commitEdits,
-      })
+      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', level: 3 })
+      const { update } = renderSingleEdit(person)
+      const levelInput = screen.getByTestId('field-level') as HTMLInputElement
+      await user.clear(levelInput)
+      await user.type(levelInput, '5')
       await user.click(screen.getByText('Save'))
       expect(update).toHaveBeenCalledTimes(1)
       const fields = update.mock.calls[0][1]
@@ -221,36 +226,23 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes pod field when pod has changed', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const personWithPod = makePerson({
-        id: 'p1', name: 'Person', managerId: '', team: 'T', pod: 'Alpha',
-      })
-      const commitEdits = vi.fn().mockReturnValue({ pod: 'Beta' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
-        working: [personWithPod],
-        ...singleEditCtx(personWithPod),
-        update,
-        commitEdits,
-      })
+      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', pod: 'Alpha' })
+      const { update } = renderSingleEdit(person)
+      const podInput = screen.getByTestId('field-pod') as HTMLInputElement
+      await user.clear(podInput)
+      await user.type(podInput, 'Beta')
       await user.click(screen.getByText('Save'))
-      expect(update).toHaveBeenCalledTimes(1)
       const fields = update.mock.calls[0][1]
       expect(fields.pod).toBe('Beta')
     })
 
     it('includes publicNote when changed', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const personWithNote = makePerson({
-        id: 'p1', name: 'Person', managerId: '', team: 'T', publicNote: 'Old note',
-      })
-      const commitEdits = vi.fn().mockReturnValue({ publicNote: 'New note' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
-        working: [personWithNote],
-        ...singleEditCtx(personWithNote),
-        update,
-        commitEdits,
-      })
+      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', publicNote: 'Old note' })
+      const { update } = renderSingleEdit(person)
+      const textarea = screen.getByTestId('field-publicNote') as HTMLTextAreaElement
+      await user.clear(textarea)
+      await user.type(textarea, 'New note')
       await user.click(screen.getByText('Save'))
       const fields = update.mock.calls[0][1]
       expect(fields.publicNote).toBe('New note')
@@ -258,17 +250,11 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes privateNote when changed', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const personWithNote = makePerson({
-        id: 'p1', name: 'Person', managerId: '', team: 'T', privateNote: 'Secret',
-      })
-      const commitEdits = vi.fn().mockReturnValue({ privateNote: 'New secret' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
-        working: [personWithNote],
-        ...singleEditCtx(personWithNote),
-        update,
-        commitEdits,
-      })
+      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', privateNote: 'Secret' })
+      const { update } = renderSingleEdit(person)
+      const textarea = screen.getByTestId('field-privateNote') as HTMLTextAreaElement
+      await user.clear(textarea)
+      await user.type(textarea, 'New secret')
       await user.click(screen.getByText('Save'))
       const fields = update.mock.calls[0][1]
       expect(fields.privateNote).toBe('New secret')
@@ -276,17 +262,10 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes private field when toggled', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const personNotPrivate = makePerson({
-        id: 'p1', name: 'Person', managerId: '', team: 'T', private: false,
-      })
-      const commitEdits = vi.fn().mockReturnValue({ private: true })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
-        working: [personNotPrivate],
-        ...singleEditCtx(personNotPrivate),
-        update,
-        commitEdits,
-      })
+      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', private: false })
+      const { update } = renderSingleEdit(person)
+      const checkbox = screen.getByTestId('field-private') as HTMLInputElement
+      await user.click(checkbox)
       await user.click(screen.getByText('Save'))
       const fields = update.mock.calls[0][1]
       expect(fields.private).toBe(true)
@@ -294,49 +273,36 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('does not include unchanged optional fields', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const personWithDefaults = makePerson({
+      const person = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T',
         level: 3, pod: 'Alpha', publicNote: 'Note', privateNote: 'Secret', private: true,
       })
-      // commitEdits returns null when nothing changed
-      const commitEdits = vi.fn().mockReturnValue(null)
-      renderWithOrg(<DetailSidebar mode="edit" />, {
-        working: [personWithDefaults],
-        ...singleEditCtx(personWithDefaults),
-        update,
-        commitEdits,
-      })
-      // Save without changing anything
+      const { update } = renderSingleEdit(person)
       await user.click(screen.getByText('Save'))
-      // update should NOT be called since commitEdits returned null
       expect(update).not.toHaveBeenCalled()
     })
 
     it('does not include team/managerId when manager changed (reparent handles it)', async () => {
       const user = userEvent.setup()
-      const update = vi.fn().mockResolvedValue(undefined)
-      const reparent = vi.fn().mockResolvedValue(undefined)
-      const commitEdits = vi.fn().mockReturnValue({
-        managerId: '', team: '',
-        name: 'Bob Jones', role: 'Engineer',
-      })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      const { update, reparent } = renderSingleEdit(bob, {
         working: [alice, bob, carol],
-        ...singleEditCtx(bob),
-        update,
-        reparent,
-        commitEdits,
       })
+      const managerSelect = screen.getByTestId('field-manager')
+      await user.selectOptions(managerSelect, '')
+      // Also change name so update gets called
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.clear(nameInput)
+      await user.type(nameInput, 'New Bob')
       await user.click(screen.getByText('Save'))
       expect(reparent).toHaveBeenCalledWith('b2', '', expect.any(String))
       const fields = update.mock.calls[0][1]
       expect(fields.team).toBeUndefined()
       expect(fields.managerId).toBeUndefined()
+      expect(fields.name).toBe('New Bob')
     })
   })
 
-  describe('editBuffer fallbacks', () => {
+  describe('sidebar form fallbacks', () => {
     it('handles person with null/undefined optional fields', () => {
       const barebones = makePerson({
         id: 'p1', name: 'Bare', managerId: '', team: 'T',
@@ -354,7 +320,7 @@ describe('DetailSidebar — branch coverage', () => {
         ...singleEditCtx(barebones),
         update: vi.fn().mockResolvedValue(undefined),
       })
-      // Should render with fallback values from editBuffer
+      // Should render with fallback values from formFromPerson
       const empType = screen.getByTestId('field-employmentType') as HTMLInputElement
       expect(empType.value).toBe('FTE')
       const level = screen.getByTestId('field-level') as HTMLInputElement
@@ -379,11 +345,10 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('manager change auto-updates team', () => {
-    it('sets team to new manager team when manager changes via updateBuffer', async () => {
+    it('sets team to new manager team when manager changes', async () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
-      const updateBuffer = vi.fn()
       const mgr1 = makePerson({ id: 'm1', name: 'Mgr One', managerId: '', team: 'TeamA' })
       const mgr2 = makePerson({ id: 'm2', name: 'Mgr Two', managerId: '', team: 'TeamB' })
       const ic = makePerson({ id: 'ic1', name: 'IC', managerId: 'm1', team: 'TeamA' })
@@ -394,13 +359,12 @@ describe('DetailSidebar — branch coverage', () => {
         ...singleEditCtx(ic),
         update,
         reparent,
-        updateBuffer,
       })
       const managerSelect = screen.getByTestId('field-manager')
       await user.selectOptions(managerSelect, 'm2')
-      // updateBuffer should have been called for managerId and team
-      expect(updateBuffer).toHaveBeenCalledWith('managerId', 'm2')
-      expect(updateBuffer).toHaveBeenCalledWith('team', 'TeamB')
+      // The team field should auto-update to the new manager's team in local form state
+      const teamInput = screen.getByTestId('field-team') as HTMLInputElement
+      expect(teamInput.value).toBe('TeamB')
     })
   })
 
@@ -413,7 +377,7 @@ describe('DetailSidebar — branch coverage', () => {
         update,
         reparent,
         clearSelection,
-        ...renderWithOrg(<DetailSidebar />, {
+        ...renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [alice, bob, carol],
           selectedId: null,
           selectedIds: new Set(['b2', 'c3']),
@@ -452,7 +416,7 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       // bob has discipline 'Eng', carol has 'Design' -> discipline will be MIXED_VALUE
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -479,7 +443,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -503,7 +467,7 @@ describe('DetailSidebar — branch coverage', () => {
         if (callCount === 1) return Promise.reject(new Error('fail'))
         return Promise.resolve(undefined)
       })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -523,7 +487,7 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockResolvedValue(undefined)
       const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'a1', team: 'T', level: 3 })
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'a1', team: 'T', level: 3 })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, ic1, ic2],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -548,7 +512,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -573,7 +537,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -592,7 +556,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for fields with differing employmentType', () => {
       const fte = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
       const contractor = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'Contractor' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, fte, contractor],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -605,7 +569,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows uniform value for matching employmentType', () => {
       const fte1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
       const fte2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'FTE' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, fte1, fte2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -617,7 +581,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing levels', () => {
       const l3 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', level: 3 })
       const l5 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', level: 5 })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, l3, l5],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -630,7 +594,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing pods', () => {
       const podA = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', pod: 'Alpha' })
       const podB = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', pod: 'Beta' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, podA, podB],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -643,7 +607,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing publicNote', () => {
       const note1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', publicNote: 'Note A' })
       const note2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', publicNote: 'Note B' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, note1, note2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -655,7 +619,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing privateNote', () => {
       const note1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', privateNote: 'Secret A' })
       const note2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', privateNote: 'Secret B' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, note1, note2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -667,7 +631,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing additionalTeams', () => {
       const t1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', additionalTeams: ['X'] })
       const t2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', additionalTeams: ['Y'] })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, t1, t2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -681,7 +645,7 @@ describe('DetailSidebar — branch coverage', () => {
       const mgr2 = makePerson({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T' })
       const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T' })
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'T' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [mgr1, mgr2, ic1, ic2],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -695,7 +659,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed option in status select when statuses differ', () => {
       const active = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', status: 'Active' })
       const open = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', status: 'Open' })
-      renderWithOrg(<DetailSidebar />, {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, active, open],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -706,8 +670,8 @@ describe('DetailSidebar — branch coverage', () => {
       expect(texts).toContain('Mixed')
     })
 
-    it('does not show name field in batch mode', () => {
-      renderWithOrg(<DetailSidebar />, {
+    it('does not show name field in batch edit mode', () => {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -717,8 +681,17 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('batch heading', () => {
-    it('shows correct count in heading', () => {
+    it('shows correct count in view mode heading', () => {
       renderWithOrg(<DetailSidebar />, {
+        working: [alice, bob, carol],
+        selectedId: null,
+        selectedIds: new Set(['b2', 'c3']),
+      })
+      expect(screen.getByTestId('sidebar-heading').textContent).toBe('2 people selected')
+    })
+
+    it('shows correct count in edit mode heading', () => {
+      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -729,23 +702,21 @@ describe('DetailSidebar — branch coverage', () => {
 
   describe('save button states', () => {
     it('shows "Saving..." text while saving', async () => {
-      // Create a promise that won't resolve immediately
       let resolveUpdate: () => void
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      const commitEdits = vi.fn().mockReturnValue({ name: 'Bob Jones' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update,
-        commitEdits,
       })
+      // Must change a field to trigger actual save
+      fireEvent.change(screen.getByTestId('field-name'), { target: { value: 'New Name' } })
       fireEvent.click(screen.getByText('Save'))
       await waitFor(() => {
         expect(screen.getByText('Saving...')).toBeTruthy()
       })
-      // Resolve to clean up
       resolveUpdate!()
     })
 
@@ -754,13 +725,12 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      const commitEdits = vi.fn().mockReturnValue({ name: 'Bob Jones' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update,
-        commitEdits,
       })
+      fireEvent.change(screen.getByTestId('field-name'), { target: { value: 'New Name' } })
       fireEvent.click(screen.getByText('Save'))
       await waitFor(() => {
         const btn = screen.getByText('Saving...') as HTMLButtonElement

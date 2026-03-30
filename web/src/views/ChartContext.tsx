@@ -24,6 +24,7 @@ export interface ChartContextValue {
   onPodSelect?: (podId: string) => void
   onEnterEditing?: (person: Person) => void
   onUpdateBuffer?: (field: keyof EditBuffer, value: string | boolean) => void
+  onCommitEdits?: () => void
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
   collapsedIds?: Set<string>
   onToggleCollapse?: (id: string) => void

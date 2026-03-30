@@ -32,7 +32,7 @@ export function buildOrgTree(people: Person[]): OrgNode[] {
   return roots.map(build)
 }
 
-export function DraggableNode({ person, selected, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onSelect, onEnterEditing, onUpdateBuffer, nodeRef }: {
+export function DraggableNode({ person, selected, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, nodeRef }: {
   person: Person
   selected: boolean
   changes?: PersonChange
@@ -52,6 +52,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
   onSelect: (e?: React.MouseEvent) => void
   onEnterEditing?: () => void
   onUpdateBuffer?: (field: string, value: string) => void
+  onCommitEdits?: () => void
   nodeRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
@@ -110,6 +111,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
           onClick={onSelect}
           onEnterEditing={onEnterEditing}
           onUpdateBuffer={onUpdateBuffer}
+          onCommitEdits={onCommitEdits}
         />
       </div>
     </div>

@@ -40,6 +40,7 @@ export interface ActionsContextValue {
   confirmDelete: () => void
   cancelDelete: () => void
   handleInlineEdit: (personId: string, field: string, value: string) => void
+  handleCommitEdits: () => void
 }
 
 const PeopleCtx = createContext<PeopleContextValue | null>(null)
@@ -64,10 +65,10 @@ export function useActions(): ActionsContextValue {
   return ctx
 }
 
-export function ViewDataProvider({ children }: { children: ReactNode }) {
+export function ViewDataProvider({ children, onEditMode: onEditModeProp }: { children: ReactNode; onEditMode?: (personId: string) => void }) {
   const { original, working, pods, settings, add, addParent, remove, update } = useOrgData()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
-  const { toggleSelect, setSelectedId, enterEditing } = useSelection()
+  const { toggleSelect, setSelectedId, commitEdits, editingPersonId } = useSelection()
 
   // Derived data
   const rawPeople = dataView === 'original' ? original : working
@@ -173,15 +174,37 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
   }, [setHead])
 
   const handleEditMode = useCallback((personId: string) => {
-    const person = working.find(p => p.id === personId)
-    if (!person) return
     setSelectedId(personId)
-    enterEditing(person)
-  }, [setSelectedId, enterEditing, working])
+    onEditModeProp?.(personId)
+  }, [setSelectedId, onEditModeProp])
 
   const handleInlineEdit = useCallback((personId: string, field: string, value: string) => {
     void update(personId, { [field]: value })
   }, [update])
+
+  const handleCommitEdits = useCallback(() => {
+    const personId = editingPersonId
+    if (!personId) return
+    const dirty = commitEdits()
+    if (!dirty) return
+    const person = working.find(p => p.id === personId)
+    if (!person) return
+
+    const fields: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(dirty)) {
+      if (key === 'managerId') continue // reparent not supported from inline edit
+      if (key === 'otherTeams') {
+        fields.additionalTeams = val
+      } else if (key === 'level') {
+        fields.level = parseInt(String(val), 10) || 0
+      } else {
+        fields[key] = val
+      }
+    }
+    if (Object.keys(fields).length > 0) {
+      void update(personId, fields as Record<string, string | number | boolean>)
+    }
+  }, [editingPersonId, commitEdits, working, update])
 
   const peopleValue: PeopleContextValue = useMemo(() => ({
     people, ghostPeople, managerSet, readOnly, pods, showChanges,
@@ -197,10 +220,11 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     addParentTargetId, setAddParentTargetId, submitAddParent,
     deleteTargetId, confirmDelete, cancelDelete,
     handleInlineEdit,
+    handleCommitEdits,
   }), [handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
        handleShowInfo, handleFocus, handleEditMode, infoPopoverId, clearInfoPopover,
        addParentTargetId, setAddParentTargetId, submitAddParent,
-       deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit])
+       deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit, handleCommitEdits])
 
   return (
     <PeopleCtx.Provider value={peopleValue}>

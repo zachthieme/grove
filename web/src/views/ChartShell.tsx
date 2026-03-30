@@ -41,7 +41,7 @@ export default function ChartShell({
 }: ChartShellProps) {
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
-  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, addParentTargetId, setAddParentTargetId, submitAddParent, deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit } = useActions()
+  const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, addParentTargetId, setAddParentTargetId, submitAddParent, deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit, handleCommitEdits } = useActions()
   const { selectedIds, batchSelect, selectPod, interactionMode, editingPersonId, editBuffer, enterEditing, updateBuffer } = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
@@ -97,11 +97,12 @@ export default function ChartShell({
     onPodSelect: selectPod,
     onEnterEditing: enterEditing,
     onUpdateBuffer: updateBuffer,
+    onCommitEdits: handleCommitEdits,
     setNodeRef,
     collapsedIds,
     onToggleCollapse: handleToggleCollapse,
     onInlineEdit: handleInlineEdit,
-  }), [selectedIds, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, selectPod, enterEditing, updateBuffer, setNodeRef, collapsedIds, handleToggleCollapse, handleInlineEdit])
+  }), [selectedIds, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, selectPod, enterEditing, updateBuffer, handleCommitEdits, setNodeRef, collapsedIds, handleToggleCollapse, handleInlineEdit])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>

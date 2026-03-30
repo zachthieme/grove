@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen, cleanup } from '@testing-library/react'
+import { screen, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DetailSidebar from './DetailSidebar'
-import { makePerson, makeEditBuffer, renderWithOrg } from '../test-helpers'
+import { makePerson, renderWithOrg } from '../test-helpers'
 
 // --- Test fixtures ---
 
@@ -22,32 +22,19 @@ describe('DetailSidebar', () => {
       const reparent = vi.fn().mockResolvedValue(undefined)
       const clearSelection = vi.fn()
       const setSelectedId = vi.fn()
-      const updateBuffer = vi.fn()
-      // commitEdits returns all fields as dirty by default (simulating all-fields-changed)
-      const commitEdits = vi.fn().mockReturnValue({
-        name: 'Bob Jones', role: 'Engineer', discipline: 'Eng',
-        team: 'Platform', managerId: 'a1', status: 'Active',
-        employmentType: 'FTE', level: '0', pod: '', otherTeams: '',
-        publicNote: '', privateNote: '', private: false,
-      })
       const ctx = {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
-        interactionMode: 'editing' as const,
-        editBuffer: makeEditBuffer(bob),
-        editingPersonId: 'b2',
         update,
         remove,
         reparent,
         clearSelection,
         setSelectedId,
-        updateBuffer,
-        commitEdits,
         ...overrides,
       }
       const result = renderWithOrg(<DetailSidebar mode="edit" />, ctx)
-      return { ...result, update, remove, reparent, clearSelection, setSelectedId, updateBuffer, commitEdits, ...overrides }
+      return { ...result, update, remove, reparent, clearSelection, setSelectedId, ...overrides }
     }
 
     it('[UI-002] calls clearSelection when close button is clicked', async () => {
@@ -58,39 +45,36 @@ describe('DetailSidebar', () => {
       expect(clearSelection).toHaveBeenCalledTimes(1)
     })
 
-    it('[UI-002] calls update with correct fields when Save is clicked', async () => {
+    it('[UI-002] calls update with changed fields when Save is clicked', async () => {
       const user = userEvent.setup()
-      const { update, commitEdits: ce } = renderSingle()
+      const { update } = renderSingle()
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.clear(nameInput)
+      await user.type(nameInput, 'Robert Jones')
       await user.click(screen.getByText('Save'))
-      expect(ce).toHaveBeenCalledTimes(1)
       expect(update).toHaveBeenCalledTimes(1)
       const [personId, fields] = update.mock.calls[0]
       expect(personId).toBe('b2')
-      expect(fields.name).toBe('Bob Jones')
-      expect(fields.role).toBe('Engineer')
-      expect(fields.status).toBe('Active')
-      expect(fields.employmentType).toBe('FTE')
+      expect(fields.name).toBe('Robert Jones')
     })
 
     it('[UI-002] does not call reparent when manager has not changed', async () => {
       const user = userEvent.setup()
-      // commitEdits returns dirty fields but managerId same as person's
-      const { reparent } = renderSingle({
-        commitEdits: vi.fn().mockReturnValue({
-          name: 'Bob Jones', role: 'Engineer',
-        }),
-      })
+      const { reparent, update } = renderSingle()
+      // Change name but not manager
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.clear(nameInput)
+      await user.type(nameInput, 'New Name')
       await user.click(screen.getByText('Save'))
       expect(reparent).not.toHaveBeenCalled()
+      expect(update).toHaveBeenCalled()
     })
 
     it('[UI-002] clears manager via reparent when set to no manager', async () => {
       const user = userEvent.setup()
-      const { reparent } = renderSingle({
-        commitEdits: vi.fn().mockReturnValue({
-          managerId: '',
-        }),
-      })
+      const { reparent } = renderSingle()
+      const managerSelect = screen.getByTestId('field-manager')
+      await user.selectOptions(managerSelect, '')
       await user.click(screen.getByText('Save'))
       expect(reparent).toHaveBeenCalledWith('b2', '', expect.any(String))
     })
@@ -120,8 +104,11 @@ describe('DetailSidebar', () => {
       const user = userEvent.setup()
       renderSingle({
         update: vi.fn().mockRejectedValue(new Error('network error')),
-        commitEdits: vi.fn().mockReturnValue({ name: 'Bob' }),
       })
+      // Must change a field to trigger save
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.clear(nameInput)
+      await user.type(nameInput, 'New Name')
       await user.click(screen.getByText('Save'))
       expect(screen.getByText('Retry')).toBeDefined()
     })
@@ -130,32 +117,27 @@ describe('DetailSidebar', () => {
       const user = userEvent.setup()
       renderSingle({
         update: vi.fn().mockRejectedValue(new Error('network error')),
-        commitEdits: vi.fn().mockReturnValue({ name: 'Bob' }),
       })
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.clear(nameInput)
+      await user.type(nameInput, 'New Name')
       await user.click(screen.getByText('Save'))
       expect(screen.getByText('Save failed')).toBeDefined()
     })
 
     it('[UI-002] name field updates reactively when changed', async () => {
       const user = userEvent.setup()
-      // Set up a mutable editBuffer for this test
-      const editBuffer = makeEditBuffer(bob)
-      const updateBuffer = vi.fn().mockImplementation((field: string, value: string) => {
-        ;(editBuffer as unknown as Record<string, unknown>)[field] = value
-      })
-      renderSingle({ editBuffer, updateBuffer })
-      const nameInput = screen.getByDisplayValue('Bob Jones') as HTMLInputElement
+      renderSingle()
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      expect(nameInput.value).toBe('Bob Jones')
       await user.clear(nameInput)
-      // updateBuffer is called but since React won't re-render with our mock,
-      // verify updateBuffer was called with the expected values
-      expect(updateBuffer).toHaveBeenCalledWith('name', '')
+      await user.type(nameInput, 'Robert')
+      expect(nameInput.value).toBe('Robert')
     })
 
-    it('[UI-002] shows "Saved!" when commitEdits returns null (no changes)', async () => {
+    it('[UI-002] shows "Saved!" when no changes are made', async () => {
       const user = userEvent.setup()
-      renderSingle({
-        commitEdits: vi.fn().mockReturnValue(null),
-      })
+      renderSingle()
       await user.click(screen.getByText('Save'))
       expect(screen.getByText('Saved!')).toBeDefined()
     })
@@ -176,7 +158,7 @@ describe('DetailSidebar', () => {
         clearSelection,
         ...overrides,
       }
-      const result = renderWithOrg(<DetailSidebar />, ctx)
+      const result = renderWithOrg(<DetailSidebar mode="edit" />, ctx)
       return { ...result, update, reparent, clearSelection }
     }
 
@@ -237,19 +219,16 @@ describe('DetailSidebar', () => {
       it('[UI-002] calls update with correct id for second duplicate on save', async () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
-        const commitEdits = vi.fn().mockReturnValue({
-          name: 'Alice Smith', role: 'Designer',
-        })
         renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [alice1, alice2],
           selectedId: 'dup2',
           selectedIds: new Set(['dup2']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(alice2),
-          editingPersonId: 'dup2',
           update,
-          commitEdits,
         })
+        // Change role to make it dirty
+        const roleInput = screen.getByTestId('field-role') as HTMLInputElement
+        await user.clear(roleInput)
+        await user.type(roleInput, 'New Role')
         await user.click(screen.getByText('Save'))
         expect(update).toHaveBeenCalledTimes(1)
         const [personId] = update.mock.calls[0]
@@ -259,63 +238,52 @@ describe('DetailSidebar', () => {
       it('[UI-002] can edit each duplicate independently', async () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
-        const updateBuffer = vi.fn()
         const { unmount } = renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [alice1, alice2],
           selectedId: 'dup1',
           selectedIds: new Set(['dup1']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(alice1),
-          editingPersonId: 'dup1',
           update,
-          updateBuffer,
         })
-        const nameInput = screen.getByDisplayValue('Alice Smith') as HTMLInputElement
+        const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+        expect(nameInput.value).toBe('Alice Smith')
         await user.clear(nameInput)
-        // Verify updateBuffer was called for name field
-        expect(updateBuffer).toHaveBeenCalledWith('name', '')
+        await user.type(nameInput, 'Alice One')
+        expect(nameInput.value).toBe('Alice One')
         unmount()
 
-        const updateBuffer2 = vi.fn()
         renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [alice1, alice2],
           selectedId: 'dup2',
           selectedIds: new Set(['dup2']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(alice2),
-          editingPersonId: 'dup2',
           update,
-          updateBuffer: updateBuffer2,
         })
-        const nameInput2 = screen.getByDisplayValue('Alice Smith') as HTMLInputElement
+        const nameInput2 = screen.getByTestId('field-name') as HTMLInputElement
+        expect(nameInput2.value).toBe('Alice Smith')
         await user.clear(nameInput2)
-        expect(updateBuffer2).toHaveBeenCalledWith('name', '')
+        await user.type(nameInput2, 'Alice Two')
+        expect(nameInput2.value).toBe('Alice Two')
       })
     })
 
     describe('empty string fields', () => {
-      it('[UI-002] calls update with empty fields when saved', async () => {
+      it('[UI-002] renders empty fields correctly in edit form', async () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
-        const emptyPerson = makePerson({ id: 'empty1', name: '', role: '', team: '', discipline: '', employmentType: '' })
-        const commitEdits = vi.fn().mockReturnValue({
-          name: '', role: '', discipline: '',
-        })
+        // Person has a non-empty role so we can clear it to empty to trigger save
+        const emptyPerson = makePerson({ id: 'empty1', name: 'Empty Person', role: 'Engineer', team: '', discipline: '', employmentType: '' })
         renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [emptyPerson],
           selectedId: 'empty1',
           selectedIds: new Set(['empty1']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(emptyPerson),
-          editingPersonId: 'empty1',
           update,
-          commitEdits,
         })
+        // Clear the role field to an empty string (makes it dirty)
+        const roleInput = screen.getByTestId('field-role') as HTMLInputElement
+        await user.clear(roleInput)
         await user.click(screen.getByText('Save'))
         expect(update).toHaveBeenCalledTimes(1)
         const [personId, fields] = update.mock.calls[0]
         expect(personId).toBe('empty1')
-        expect(fields.name).toBe('')
         expect(fields.role).toBe('')
       })
     })
@@ -325,20 +293,18 @@ describe('DetailSidebar', () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
         const longStr = 'A'.repeat(500)
-        const longPerson = makePerson({ id: 'long1', name: longStr, role: longStr, team: longStr, discipline: longStr })
-        const commitEdits = vi.fn().mockReturnValue({
-          name: longStr, role: longStr,
-        })
+        const longPerson = makePerson({ id: 'long1', name: 'Short', role: 'Short', team: 'T', discipline: 'D' })
         renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [longPerson],
           selectedId: 'long1',
           selectedIds: new Set(['long1']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(longPerson),
-          editingPersonId: 'long1',
           update,
-          commitEdits,
         })
+        // Use fireEvent.change to efficiently set long string values (avoids typing 500 chars via userEvent)
+        const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+        const roleInput = screen.getByTestId('field-role') as HTMLInputElement
+        fireEvent.change(nameInput, { target: { value: longStr } })
+        fireEvent.change(roleInput, { target: { value: longStr } })
         await user.click(screen.getByText('Save'))
         expect(update).toHaveBeenCalledTimes(1)
         const [, fields] = update.mock.calls[0]
@@ -352,20 +318,17 @@ describe('DetailSidebar', () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
         const specialName = 'Jos\u00e9 Garc\u00eda-L\u00f3pez'
-        const p = makePerson({ id: 'save-special', name: specialName })
-        const commitEdits = vi.fn().mockReturnValue({
-          name: specialName,
-        })
+        // Start with a plain name so we can change it to specialName (making it dirty)
+        const p = makePerson({ id: 'save-special', name: 'Plain Name' })
         renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [p],
           selectedId: 'save-special',
           selectedIds: new Set(['save-special']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(p),
-          editingPersonId: 'save-special',
           update,
-          commitEdits,
         })
+        // Use fireEvent.change to set the special-character name efficiently
+        const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+        fireEvent.change(nameInput, { target: { value: specialName } })
         await user.click(screen.getByText('Save'))
         expect(update).toHaveBeenCalledTimes(1)
         const [, fields] = update.mock.calls[0]
@@ -377,20 +340,19 @@ describe('DetailSidebar', () => {
       it('[UI-002] calls update with whitespace-only values on save', async () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
-        const wsPerson = makePerson({ id: 'ws1', name: '   ', role: '   ', team: '   ' })
-        const commitEdits = vi.fn().mockReturnValue({
-          name: '   ', role: '   ',
-        })
+        // Start with normal values; change them to whitespace-only to verify whitespace passes through
+        const wsPerson = makePerson({ id: 'ws1', name: 'Real Name', role: 'Real Role', team: 'T' })
         renderWithOrg(<DetailSidebar mode="edit" />, {
           working: [wsPerson],
           selectedId: 'ws1',
           selectedIds: new Set(['ws1']),
-          interactionMode: 'editing' as const,
-          editBuffer: makeEditBuffer(wsPerson),
-          editingPersonId: 'ws1',
           update,
-          commitEdits,
         })
+        // Use fireEvent.change to set whitespace-only values (making fields dirty)
+        const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+        const roleInput = screen.getByTestId('field-role') as HTMLInputElement
+        fireEvent.change(nameInput, { target: { value: '   ' } })
+        fireEvent.change(roleInput, { target: { value: '   ' } })
         await user.click(screen.getByText('Save'))
         expect(update).toHaveBeenCalledTimes(1)
         const [, fields] = update.mock.calls[0]
@@ -413,17 +375,16 @@ describe('DetailSidebar', () => {
     it('[UI-002] shows "Retry" when update rejects', async () => {
       const user = userEvent.setup()
       const update = vi.fn().mockRejectedValueOnce(new Error('Network error'))
-      const commitEdits = vi.fn().mockReturnValue({ name: 'Bob Jones' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
-        interactionMode: 'editing' as const,
-        editBuffer: makeEditBuffer(bob),
-        editingPersonId: 'b2',
         update,
-        commitEdits,
       })
+      // Must change a field to trigger save (no-change save short-circuits to "Saved!")
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.clear(nameInput)
+      await user.type(nameInput, 'New Name')
       await user.click(screen.getByText('Save'))
       expect(screen.getByText('Retry')).toBeDefined()
       expect(screen.getByText('Save failed')).toBeDefined()

@@ -95,7 +95,7 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
 }
 
 function ManagerSubtree({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -153,6 +153,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           onSelect={(e) => onSelect(node.person.id, e)}
           onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
           onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
+          onCommitEdits={onCommitEdits}
           nodeRef={setNodeRef(node.person.id)}
         />
       </div>
