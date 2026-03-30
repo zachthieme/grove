@@ -39,8 +39,8 @@ export function findSpatialNeighbor(
     if (!valid) continue
 
     const isHorizontal = direction === 'h' || direction === 'l'
-    const wx = isHorizontal ? Math.abs(dx) : Math.abs(dx) * 2
-    const wy = isHorizontal ? Math.abs(dy) * 2 : Math.abs(dy)
+    const wx = isHorizontal ? Math.abs(dx) : Math.abs(dx) * 3
+    const wy = isHorizontal ? Math.abs(dy) * 3 : Math.abs(dy)
     const dist = Math.sqrt(wx * wx + wy * wy)
 
     if (dist < bestDist) {

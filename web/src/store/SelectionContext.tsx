@@ -35,6 +35,9 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     setSelectedPodId(null)
     setSelectedIds((prev) => {
       if (multi) {
+        if (interaction.mode === 'editing') {
+          interaction.commitEdits()
+        }
         const next = new Set(prev)
         if (next.has(id)) {
           next.delete(id)
@@ -43,7 +46,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
         }
         if (next.size === 0) {
           interaction.exitToIdle()
-        } else if (interaction.mode !== 'selected') {
+        } else {
           interaction.enterSelected()
         }
         return next
