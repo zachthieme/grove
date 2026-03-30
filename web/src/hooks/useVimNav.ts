@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { Person } from '../api/types'
+import { findSpatialNeighbor } from './useSpatialNav'
 
 interface VimNavOptions {
   working: Person[]
@@ -16,13 +17,12 @@ interface VimNavOptions {
 /**
  * Vim-style keyboard navigation for the org chart.
  *
- * j/k — next/previous sibling
- * h   — go to parent (manager)
- * l   — go to first child (direct report)
- * i   — inline edit selected node
- * I   — open sidebar in edit mode
+ * j/k — move down/up spatially
+ * h   — move left spatially
+ * l   — move right spatially
+ * i/I — enter edit mode (sidebar)
  * o   — add report under selected
- * O   — add parent above selected (root nodes only)
+ * O   — add parent above selected
  * d   — delete selected (sends to recycle bin)
  * x   — cut selected (mark for move)
  * p   — paste (move cut person under selected)
@@ -40,81 +40,41 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
     }
   }, [cutId, working])
 
-  // Build lookup maps once when working changes
-  const { childrenOf, parentOf, siblingIds } = useMemo(() => {
-    const childrenOf = new Map<string, string[]>()
-    const parentOf = new Map<string, string>()
-
-    for (const p of working) {
-      if (p.managerId) {
-        parentOf.set(p.id, p.managerId)
-        if (!childrenOf.has(p.managerId)) childrenOf.set(p.managerId, [])
-        childrenOf.get(p.managerId)!.push(p.id)
-      }
-    }
-
-    const siblingGroups = new Map<string, string[]>()
-    for (const p of working) {
-      const key = p.managerId || '__root__'
-      if (!siblingGroups.has(key)) siblingGroups.set(key, [])
-      siblingGroups.get(key)!.push(p.id)
-    }
-
-    const siblingIds = new Map<string, string[]>()
-    for (const [, group] of siblingGroups) {
-      for (const id of group) {
-        siblingIds.set(id, group)
-      }
-    }
-
-    return { childrenOf, parentOf, siblingIds }
-  }, [working])
-
-  const navigate = useCallback((key: string) => {
+  const navigateSpatial = useCallback((direction: 'h' | 'j' | 'k' | 'l') => {
     if (!selectedId) {
-      if (working.length > 0) {
-        const roots = working.filter(p => !p.managerId)
-        setSelectedId(roots.length > 0 ? roots[0].id : working[0].id)
+      const firstNode = document.querySelector<HTMLElement>('[data-person-id]')
+      if (firstNode) {
+        const id = firstNode.getAttribute('data-person-id')
+        if (id) setSelectedId(id)
       }
       return
     }
 
+    const nodeEls = document.querySelectorAll<HTMLElement>('[data-person-id]')
+    const rects = new Map<string, DOMRect>()
+    nodeEls.forEach(el => {
+      const id = el.getAttribute('data-person-id')
+      if (id) rects.set(id, el.getBoundingClientRect())
+    })
+
+    const targetId = findSpatialNeighbor(selectedId, rects, direction)
+    if (targetId) {
+      setSelectedId(targetId)
+      const targetEl = document.querySelector(`[data-person-id="${targetId}"]`)
+      targetEl?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+    }
+  }, [selectedId, setSelectedId])
+
+  const navigate = useCallback((key: string) => {
+    if (!selectedId) return
+
     switch (key) {
-      case 'j': {
-        const siblings = siblingIds.get(selectedId) ?? []
-        const idx = siblings.indexOf(selectedId)
-        if (idx >= 0 && idx < siblings.length - 1) {
-          setSelectedId(siblings[idx + 1])
-        }
-        break
-      }
-      case 'k': {
-        const siblings = siblingIds.get(selectedId) ?? []
-        const idx = siblings.indexOf(selectedId)
-        if (idx > 0) {
-          setSelectedId(siblings[idx - 1])
-        }
-        break
-      }
-      case 'h': {
-        const parent = parentOf.get(selectedId)
-        if (parent) setSelectedId(parent)
-        break
-      }
-      case 'l': {
-        const children = childrenOf.get(selectedId)
-        if (children && children.length > 0) {
-          setSelectedId(children[0])
-        }
-        break
-      }
       case 'o': {
         if (onAddReport) onAddReport(selectedId)
         break
       }
       case 'O': {
-        const person = working.find(p => p.id === selectedId)
-        if (person && !person.managerId && onAddParent) onAddParent(selectedId)
+        if (onAddParent) onAddParent(selectedId)
         break
       }
       case 'd': {
@@ -133,7 +93,7 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         break
       }
     }
-  }, [selectedId, working, siblingIds, parentOf, childrenOf, setSelectedId, onDelete, onAddReport, onReparent, cutId])
+  }, [selectedId, onDelete, onAddReport, onAddParent, onReparent, cutId])
 
   useEffect(() => {
     if (!enabled) return
@@ -151,24 +111,24 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         return
       }
 
-      if (e.key === 'i' && selectedId) {
-        e.preventDefault()
-        const node = document.querySelector(`[data-testid="person-${working.find(p => p.id === selectedId)?.name}"]`)
-        const nameEl = node?.querySelector('[class*="name"]') as HTMLElement
-        nameEl?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
-        return
-      }
-
-      if (e.key === 'I' && selectedId) {
+      if ((e.key === 'i' || e.key === 'I') && selectedId) {
         e.preventDefault()
         onSidebarEdit?.()
         return
       }
 
-      if (['j', 'k', 'h', 'l', 'o', 'O', 'd', 'x', 'p'].includes(e.key)) {
+      if (['h', 'j', 'k', 'l'].includes(e.key)) {
+        e.preventDefault()
+        navigateSpatial(e.key as 'h' | 'j' | 'k' | 'l')
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur()
+        }
+        return
+      }
+
+      if (['o', 'O', 'd', 'x', 'p'].includes(e.key)) {
         e.preventDefault()
         navigate(e.key)
-        // Ensure focus returns to document body so subsequent vim keys work
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur()
         }
@@ -176,7 +136,7 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [enabled, navigate, cutId, selectedId, working])
+  }, [enabled, navigate, navigateSpatial, selectedId])
 
   return { cutId, cancelCut }
 }

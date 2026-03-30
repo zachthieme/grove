@@ -24,13 +24,10 @@ import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
 
-function AppContent({ sidebarMode, setSidebarMode }: {
-  sidebarMode: 'view' | 'edit'
-  setSidebarMode: (mode: 'view' | 'edit') => void
-}) {
+function AppContent() {
   const { loaded, original, working, recycled, pods, originalPods, settings, currentSnapshotName, pendingMapping, confirmMapping, cancelMapping, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot, undo, redo, canUndo, canRedo, remove, add, reparent } = useOrgData()
   const { viewMode, layoutKey, error, clearError, headPersonId, setHead, showAllEmploymentTypes, setViewMode } = useUI()
-  const { selectedIds, selectedPodId, clearSelection, setSelectedId } = useSelection()
+  const { selectedIds, selectedPodId, clearSelection, setSelectedId, interactionMode, enterEditing, revertEdits } = useSelection()
   const { infoPopoverId, clearInfoPopover, handleAddParent } = useActions()
 
   useDeepLink({
@@ -56,11 +53,6 @@ function AppContent({ sidebarMode, setSidebarMode }: {
   const { serverSaveError } = useAutosave({ original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded, suppressAutosaveRef })
 
   const clearHead = useCallback(() => setHead(null), [setHead])
-
-  // Reset sidebar to view mode when selection changes
-  useEffect(() => {
-    setSidebarMode('view')
-  }, [selectedIds, setSidebarMode])
 
   const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
   const vimAddReport = useCallback((parentId: string) => {
@@ -109,7 +101,10 @@ function AppContent({ sidebarMode, setSidebarMode }: {
     onAddReport: vimAddReport,
     onAddParent: handleAddParent,
     onReparent: reparent,
-    onSidebarEdit: () => setSidebarMode('edit'),
+    onSidebarEdit: () => {
+      const person = selectedId ? working.find(p => p.id === selectedId) : null
+      if (person) enterEditing(person)
+    },
     enabled: vimMode && loaded && viewMode !== 'table',
   })
 
@@ -118,8 +113,8 @@ function AppContent({ sidebarMode, setSidebarMode }: {
     onCloseInfoPopover: clearInfoPopover,
     cutActive: !!cutId,
     onCancelCut: cancelCut,
-    sidebarEditMode: sidebarMode === 'edit',
-    onExitSidebarEdit: () => { setSidebarMode('view'); if (document.activeElement instanceof HTMLElement) document.activeElement.blur() },
+    sidebarEditMode: interactionMode === 'editing',
+    onExitSidebarEdit: () => { revertEdits(); if (document.activeElement instanceof HTMLElement) document.activeElement.blur() },
     hasSelection: selectedIds.size > 0,
     onClearSelection: clearSelection,
     hasHead: !!headPersonId,
@@ -221,7 +216,19 @@ function AppContent({ sidebarMode, setSidebarMode }: {
             </div>
           )}
         </main>
-        {hasSidebarSelection && <DetailSidebar mode={sidebarMode} onSetMode={setSidebarMode} />}
+        {hasSidebarSelection && (
+          <DetailSidebar
+            mode={interactionMode === 'editing' ? 'edit' : 'view'}
+            onSetMode={(mode) => {
+              if (mode === 'edit') {
+                const person = working.find(p => p.id === selectedId)
+                if (person) enterEditing(person)
+              } else {
+                revertEdits()
+              }
+            }}
+          />
+        )}
         <RecycleBinDrawer />
       </div>
       {infoPopoverId && (
@@ -246,14 +253,9 @@ function AppContent({ sidebarMode, setSidebarMode }: {
 }
 
 function AppShell() {
-  const [sidebarMode, setSidebarMode] = useState<'view' | 'edit'>('view')
-  const handleEditMode = useCallback((_id: string) => {
-    setSidebarMode('edit')
-  }, [])
-
   return (
-    <ViewDataProvider onEditMode={handleEditMode}>
-      <AppContent sidebarMode={sidebarMode} setSidebarMode={setSidebarMode} />
+    <ViewDataProvider>
+      <AppContent />
     </ViewDataProvider>
   )
 }

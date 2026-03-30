@@ -305,7 +305,7 @@ describe('OrgContext integration', () => {
   })
 
   describe('selection', () => {
-    it('[SELECT-001] toggleSelect single selects and deselects', async () => {
+    it('[SELECT-001] toggleSelect single selects and replaces', async () => {
       const resp: UploadResponse = { status: 'ready', orgData }
       vi.mocked(api.uploadFile).mockResolvedValue(resp)
       renderWithProvider()
@@ -316,9 +316,16 @@ describe('OrgContext integration', () => {
       expect(captured!.selectedIds.has('a1')).toBe(true)
       expect(captured!.selectedId).toBe('a1')
 
+      // [SELECT-002] clicking same node is a no-op (does not deselect)
       act(() => { captured!.toggleSelect('a1', false) })
-      expect(captured!.selectedIds.size).toBe(0)
-      expect(captured!.selectedId).toBeNull()
+      expect(captured!.selectedIds.has('a1')).toBe(true)
+      expect(captured!.selectedId).toBe('a1')
+
+      // Selecting a different node replaces the selection
+      act(() => { captured!.toggleSelect('b2', false) })
+      expect(captured!.selectedIds.has('b2')).toBe(true)
+      expect(captured!.selectedIds.has('a1')).toBe(false)
+      expect(captured!.selectedId).toBe('b2')
     })
 
     it('[SELECT-001] multi-select adds to selection', async () => {

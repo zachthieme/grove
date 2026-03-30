@@ -42,7 +42,7 @@ export default function ChartShell({
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
   const { handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, addParentTargetId, setAddParentTargetId, submitAddParent, deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit } = useActions()
-  const { selectedIds, batchSelect, selectPod } = useSelection()
+  const { selectedIds, batchSelect, selectPod, interactionMode, editingPersonId, editBuffer, enterEditing, updateBuffer } = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people, roots), [computeEdges, people, roots])
@@ -82,6 +82,9 @@ export default function ChartShell({
 
   const chartValue = useMemo(() => ({
     selectedIds, changes, managerSet, pods,
+    interactionMode,
+    editingPersonId,
+    editBuffer,
     onSelect: handleSelect,
     onBatchSelect: batchSelect,
     onAddReport: handleAddReport,
@@ -92,11 +95,13 @@ export default function ChartShell({
     onFocus: handleFocus,
     onEditMode: handleEditMode,
     onPodSelect: selectPod,
+    onEnterEditing: enterEditing,
+    onUpdateBuffer: updateBuffer,
     setNodeRef,
     collapsedIds,
     onToggleCollapse: handleToggleCollapse,
     onInlineEdit: handleInlineEdit,
-  }), [selectedIds, changes, managerSet, pods, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, selectPod, setNodeRef, collapsedIds, handleToggleCollapse, handleInlineEdit])
+  }), [selectedIds, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, handleSelect, batchSelect, handleAddReport, handleAddParent, includeAddToTeam, handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus, handleEditMode, selectPod, enterEditing, updateBuffer, setNodeRef, collapsedIds, handleToggleCollapse, handleInlineEdit])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>

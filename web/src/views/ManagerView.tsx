@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 import type { Person, Pod } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
+import type { EditBuffer } from '../store/useInteractionState'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChart } from './ChartContext'
 import { DraggableNode, type OrgNode } from './shared'
@@ -94,7 +95,7 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
 }
 
 function ManagerSubtree({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, onInlineEdit } = useChart()
+  const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
   const subManagers = node.children.filter((c) => c.children.length > 0)
   const ics = node.children.filter((c) => c.children.length === 0)
 
@@ -127,6 +128,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
   }, [ics, pods, node.person.id])
 
   const isCollapsed = collapsedIds?.has(node.person.id) ?? false
+  const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
 
   return (
     <div className={styles.subtree}>
@@ -138,6 +140,9 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
           isManager={managerSet?.has(node.person.id)}
           collapsed={node.children.length > 0 ? isCollapsed : undefined}
+          editing={isNodeEditing}
+          editBuffer={isNodeEditing ? editBuffer : null}
+          focusField={isNodeEditing ? 'name' : null}
           onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
           onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
           onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
@@ -146,7 +151,8 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
           onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
           onSelect={(e) => onSelect(node.person.id, e)}
-          onInlineEdit={onInlineEdit ? (field: string, value: string) => onInlineEdit(node.person.id, field, value) : undefined}
+          onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
+          onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
           nodeRef={setNodeRef(node.person.id)}
         />
       </div>

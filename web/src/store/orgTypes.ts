@@ -2,6 +2,7 @@ import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings, P
 
 export type ViewMode = 'detail' | 'manager' | 'table'
 export type DataView = 'original' | 'working' | 'diff'
+export type InteractionMode = 'idle' | 'selected' | 'editing'
 
 export type PendingMapping = {
   headers: string[]
@@ -14,11 +15,18 @@ export interface SelectionContextValue {
   /** Backward compat: returns the single selected ID when exactly one is selected, null otherwise */
   selectedId: string | null
   selectedPodId: string | null
+  interactionMode: InteractionMode
+  editBuffer: import('./useInteractionState').EditBuffer | null
+  editingPersonId: string | null
   setSelectedId: (id: string | null) => void
   toggleSelect: (id: string, multi: boolean) => void
   clearSelection: () => void
   selectPod: (id: string | null) => void
   batchSelect: (ids: Set<string>) => void
+  enterEditing: (person: import('../api/types').Person) => void
+  commitEdits: () => Record<string, string | boolean | number> | null
+  revertEdits: () => void
+  updateBuffer: (field: keyof import('./useInteractionState').EditBuffer, value: string | boolean) => void
 }
 
 export interface UIContextValue {

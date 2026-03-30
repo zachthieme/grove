@@ -128,6 +128,37 @@ describe('SelectionContext', () => {
     expect(captured!.selectedId).toBe('b2')
   })
 
+  it('[SELECT-002] toggleSelect(id, false) on already-selected person is a no-op', () => {
+    renderWithProvider()
+
+    act(() => { captured!.toggleSelect('a1', false) })
+    expect(captured!.selectedIds.has('a1')).toBe(true)
+
+    // Clicking the same person again should NOT deselect
+    act(() => { captured!.toggleSelect('a1', false) })
+    expect(captured!.selectedIds.has('a1')).toBe(true)
+    expect(captured!.selectedId).toBe('a1')
+  })
+
+  it('[SELECT-002] interaction mode starts as idle', () => {
+    renderWithProvider()
+    expect(captured!.interactionMode).toBe('idle')
+  })
+
+  it('[SELECT-002] selecting a person transitions interaction to selected', () => {
+    renderWithProvider()
+    act(() => { captured!.toggleSelect('a1', false) })
+    expect(captured!.interactionMode).toBe('selected')
+  })
+
+  it('[SELECT-002] clearSelection transitions interaction to idle', () => {
+    renderWithProvider()
+    act(() => { captured!.toggleSelect('a1', false) })
+    expect(captured!.interactionMode).toBe('selected')
+    act(() => { captured!.clearSelection() })
+    expect(captured!.interactionMode).toBe('idle')
+  })
+
   it('[SELECT-001] useSelection throws when used outside provider', () => {
     function BadComponent() {
       useSelection()

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, memo } from 'react'
 import styles from './PersonNode.module.css'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
+import type { EditBuffer } from '../store/useInteractionState'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import NodeActions from './NodeActions'
 
@@ -32,6 +33,12 @@ interface Props {
   showTeam?: boolean
   isManager?: boolean
   collapsed?: boolean
+  /** When true, the card is in editing mode (driven by interaction state) */
+  editing?: boolean
+  /** Shared edit buffer from interaction state */
+  editBuffer?: EditBuffer | null
+  /** Which field to auto-focus when entering edit mode */
+  focusField?: 'name' | 'role' | 'team' | null
   onAdd?: () => void
   onAddParent?: () => void
   onDelete?: () => void
@@ -40,55 +47,37 @@ interface Props {
   onEditMode?: () => void
   onToggleCollapse?: () => void
   onClick?: (e?: React.MouseEvent) => void
-  onInlineEdit?: (field: string, value: string) => void
+  onEnterEditing?: () => void
+  onUpdateBuffer?: (field: string, value: string) => void
 }
 
-type EditingField = 'name' | 'role' | 'team' | null
-
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onInlineEdit }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer }: Props) {
   const [hovered, setHovered] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
-  const [editingField, setEditingField] = useState<EditingField>(null)
-  const [editValue, setEditValue] = useState('')
-  const editRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const roleRef = useRef<HTMLInputElement>(null)
+  const teamRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (editingField && editRef.current) {
-      editRef.current.focus()
-      editRef.current.select()
-    }
-  }, [editingField])
+    if (!editing) return
+    const ref = focusField === 'role' ? roleRef : focusField === 'team' ? teamRef : nameRef
+    ref.current?.focus()
+    ref.current?.select()
+  }, [editing, focusField])
 
-  const startEdit = (field: EditingField, currentValue: string) => (e: React.MouseEvent) => {
-    if (!onInlineEdit || ghost || isPlaceholder) return
+  const handleDoubleClick = (_field: 'name' | 'role' | 'team') => (e: React.MouseEvent) => {
+    if (!onEnterEditing || ghost || isPlaceholder) return
     e.stopPropagation()
-    setEditingField(field)
-    setEditValue(currentValue)
-  }
-
-  const commitEdit = () => {
-    if (editingField && editValue.trim() !== getOriginal(editingField)) {
-      onInlineEdit?.(editingField, editValue.trim())
-    }
-    setEditingField(null)
-    // Return focus to document body so vim keys resume working
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
-  }
-
-  const getOriginal = (field: EditingField): string => {
-    if (field === 'name') return person.name
-    if (field === 'role') return person.role
-    if (field === 'team') return person.team
-    return ''
+    onEnterEditing()
   }
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation()
-    if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
-    if (e.key === 'Escape') { setEditingField(null) }
-    if (e.key === 'Tab') { e.preventDefault(); commitEdit() }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      ;(e.target as HTMLElement).blur()
+    }
+    // Escape is handled by useUnifiedEscape at app level
   }
   const hasNotes = !!person.publicNote
   const isPrivate = !!person.private
@@ -149,25 +138,25 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
         <div className={styles.privateIcon} title="Private" role="img" aria-label="Private">{'\u{1F512}'}</div>
       )}
       <div className={classNames} style={nodeStyle} onClick={(e) => { onClick?.(e); (e.currentTarget as HTMLElement).blur() }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }} role="button" tabIndex={0} data-selected={selected || false} data-testid={`person-${person.name}`} aria-label={person.name}>
-        <div className={styles.name} onDoubleClick={startEdit('name', person.name)}>
-          {editingField === 'name' ? (
-            <input ref={editRef} className={styles.inlineEdit} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />
+        <div className={styles.name} onDoubleClick={handleDoubleClick('name')}>
+          {editing && editBuffer ? (
+            <input ref={nameRef} className={styles.inlineEdit} value={editBuffer.name} onChange={(e) => onUpdateBuffer?.('name', e.target.value)} onKeyDown={handleEditKeyDown} />
           ) : (
             <>{statusLabel && <span className="sr-only">{statusLabel}: </span>}{prefix}{person.name}</>
           )}
         </div>
         {showTeam && (
-          <div className={styles.team} onDoubleClick={startEdit('team', person.team)}>
-            {editingField === 'team' ? (
-              <input ref={editRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />
+          <div className={styles.team} onDoubleClick={handleDoubleClick('team')}>
+            {editing && editBuffer ? (
+              <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} />
             ) : (
               person.team || '\u00A0'
             )}
           </div>
         )}
-        <div className={styles.role} onDoubleClick={startEdit('role', person.role)}>
-          {editingField === 'role' ? (
-            <input ref={editRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={commitEdit} />
+        <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
+          {editing && editBuffer ? (
+            <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} />
           ) : (
             <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
           )}

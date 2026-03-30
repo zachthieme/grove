@@ -167,16 +167,18 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Perso
 	if child == nil {
 		return Person{}, nil, nil, errNotFound("person %s not found", childId)
 	}
-	if child.ManagerId != "" {
-		return Person{}, nil, nil, errConflict("person %s already has a manager", childId)
-	}
 
 	parent := Person{
 		Id:     uuid.NewString(),
 		Name:   name,
 		Status: "Active",
 	}
+
+	// Insert between child and its existing manager (if any)
+	parent.ManagerId = child.ManagerId
+	parent.Team = child.Team
 	child.ManagerId = parent.Id
+
 	s.working = append(s.working, parent)
 	s.rebuildIndex()
 	s.podMgr.Reassign(&s.working[len(s.working)-1])

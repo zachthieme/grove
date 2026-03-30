@@ -3,6 +3,7 @@ import { render, type RenderOptions } from '@testing-library/react'
 import { OrgOverrideProvider } from './store/OrgContext'
 import { ViewDataProvider } from './store/ViewDataContext'
 import type { Person } from './api/types'
+import type { EditBuffer } from './store/useInteractionState'
 import type { OrgDataContextValue, UIContextValue, SelectionContextValue } from './store/orgTypes'
 
 type OrgTestContext = OrgDataContextValue & UIContextValue & SelectionContextValue
@@ -26,6 +27,25 @@ export function makePerson(overrides: Partial<Person> = {}): Person {
     additionalTeams: [],
     status: 'Active',
     ...overrides,
+  }
+}
+
+/** Create an EditBuffer from a Person, mirroring useInteractionState.bufferFromPerson. */
+export function makeEditBuffer(p: Person): EditBuffer {
+  return {
+    name: p.name,
+    role: p.role,
+    discipline: p.discipline,
+    team: p.team,
+    managerId: p.managerId,
+    status: p.status,
+    employmentType: p.employmentType || 'FTE',
+    level: String(p.level ?? 0),
+    pod: p.pod ?? '',
+    publicNote: p.publicNote ?? '',
+    privateNote: p.privateNote ?? '',
+    private: p.private ?? false,
+    otherTeams: (p.additionalTeams || []).join(', '),
   }
 }
 
@@ -95,11 +115,18 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     selectedIds: new Set(),
     selectedId: null,
     selectedPodId: null,
+    interactionMode: 'idle' as const,
+    editBuffer: null,
+    editingPersonId: null,
     setSelectedId: noop,
     toggleSelect: noop,
     clearSelection: noop,
     selectPod: noop,
     batchSelect: noop,
+    enterEditing: noop,
+    commitEdits: () => null,
+    revertEdits: noop,
+    updateBuffer: noop,
     ...overrides,
   }
 }

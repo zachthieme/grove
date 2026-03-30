@@ -1796,14 +1796,14 @@ func TestAddParentHandler_ChildHasManager(t *testing.T) {
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob") // Bob reports to Alice
 
-	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":"CEO"}`, bob.Id))
+	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":"Middle"}`, bob.Id))
 	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected 409, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

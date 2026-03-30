@@ -4,13 +4,13 @@
  * batch save with partial failures, manager change auto-updating team,
  * showPrivate filtering managers, level/pod/note diff fields on single save,
  * PodSidebar delegation, batch save skipping MIXED_VALUE fields,
- * handleDelete with null person guard, formFromPerson fallbacks.
+ * handleDelete with null person guard, editBuffer fallbacks.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DetailSidebar from './DetailSidebar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makePerson, makeEditBuffer, renderWithOrg } from '../test-helpers'
 import type { Pod } from '../api/types'
 
 afterEach(() => cleanup())
@@ -28,13 +28,24 @@ const carol = makePerson({
   team: 'Design', discipline: 'Design', employmentType: 'Contractor',
 })
 
+/** Helper for single-person edit tests: provides editBuffer context */
+function singleEditCtx(person: ReturnType<typeof makePerson>, overrides: Record<string, unknown> = {}) {
+  return {
+    selectedId: person.id,
+    selectedIds: new Set([person.id]),
+    interactionMode: 'editing' as const,
+    editBuffer: makeEditBuffer(person),
+    editingPersonId: person.id,
+    ...overrides,
+  }
+}
+
 describe('DetailSidebar — branch coverage', () => {
   describe('status info popover', () => {
     function renderSingle() {
       return renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
-        selectedId: 'b2',
-        selectedIds: new Set(['b2']),
+        ...singleEditCtx(bob),
         update: vi.fn().mockResolvedValue(undefined),
       })
     }
@@ -74,8 +85,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('closes popover when mouseDown on overlay', () => {
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
-        selectedId: 'b2',
-        selectedIds: new Set(['b2']),
+        ...singleEditCtx(bob),
         update: vi.fn().mockResolvedValue(undefined),
       })
       // Open the popover
@@ -98,8 +108,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('does not close popover when mouseDown on inner content (stopPropagation)', () => {
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
-        selectedId: 'b2',
-        selectedIds: new Set(['b2']),
+        ...singleEditCtx(bob),
         update: vi.fn().mockResolvedValue(undefined),
       })
       fireEvent.click(screen.getByLabelText('Show status descriptions'))
@@ -158,8 +167,7 @@ describe('DetailSidebar — branch coverage', () => {
       })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [privateMgr, ic],
-        selectedId: 'ic1',
-        selectedIds: new Set(['ic1']),
+        ...singleEditCtx(ic),
         showPrivate: false,
         update: vi.fn().mockResolvedValue(undefined),
       })
@@ -180,8 +188,7 @@ describe('DetailSidebar — branch coverage', () => {
       })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [privateMgr, ic],
-        selectedId: 'ic1',
-        selectedIds: new Set(['ic1']),
+        ...singleEditCtx(ic),
         showPrivate: true,
         update: vi.fn().mockResolvedValue(undefined),
       })
@@ -199,15 +206,13 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithLevel = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', level: 3,
       })
+      const commitEdits = vi.fn().mockReturnValue({ level: '5' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithLevel],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(personWithLevel),
         update,
+        commitEdits,
       })
-      const levelInput = screen.getByTestId('field-level') as HTMLInputElement
-      await user.clear(levelInput)
-      await user.type(levelInput, '5')
       await user.click(screen.getByText('Save'))
       expect(update).toHaveBeenCalledTimes(1)
       const fields = update.mock.calls[0][1]
@@ -220,15 +225,13 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithPod = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', pod: 'Alpha',
       })
+      const commitEdits = vi.fn().mockReturnValue({ pod: 'Beta' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithPod],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(personWithPod),
         update,
+        commitEdits,
       })
-      const podInput = screen.getByTestId('field-pod') as HTMLInputElement
-      await user.clear(podInput)
-      await user.type(podInput, 'Beta')
       await user.click(screen.getByText('Save'))
       expect(update).toHaveBeenCalledTimes(1)
       const fields = update.mock.calls[0][1]
@@ -241,15 +244,13 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithNote = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', publicNote: 'Old note',
       })
+      const commitEdits = vi.fn().mockReturnValue({ publicNote: 'New note' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithNote],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(personWithNote),
         update,
+        commitEdits,
       })
-      const textarea = screen.getByTestId('field-publicNote') as HTMLTextAreaElement
-      await user.clear(textarea)
-      await user.type(textarea, 'New note')
       await user.click(screen.getByText('Save'))
       const fields = update.mock.calls[0][1]
       expect(fields.publicNote).toBe('New note')
@@ -261,15 +262,13 @@ describe('DetailSidebar — branch coverage', () => {
       const personWithNote = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', privateNote: 'Secret',
       })
+      const commitEdits = vi.fn().mockReturnValue({ privateNote: 'New secret' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithNote],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(personWithNote),
         update,
+        commitEdits,
       })
-      const textarea = screen.getByTestId('field-privateNote') as HTMLTextAreaElement
-      await user.clear(textarea)
-      await user.type(textarea, 'New secret')
       await user.click(screen.getByText('Save'))
       const fields = update.mock.calls[0][1]
       expect(fields.privateNote).toBe('New secret')
@@ -281,14 +280,13 @@ describe('DetailSidebar — branch coverage', () => {
       const personNotPrivate = makePerson({
         id: 'p1', name: 'Person', managerId: '', team: 'T', private: false,
       })
+      const commitEdits = vi.fn().mockReturnValue({ private: true })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personNotPrivate],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(personNotPrivate),
         update,
+        commitEdits,
       })
-      const checkbox = screen.getByTestId('field-private') as HTMLInputElement
-      await user.click(checkbox)
       await user.click(screen.getByText('Save'))
       const fields = update.mock.calls[0][1]
       expect(fields.private).toBe(true)
@@ -301,37 +299,35 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'p1', name: 'Person', managerId: '', team: 'T',
         level: 3, pod: 'Alpha', publicNote: 'Note', privateNote: 'Secret', private: true,
       })
+      // commitEdits returns null when nothing changed
+      const commitEdits = vi.fn().mockReturnValue(null)
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [personWithDefaults],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(personWithDefaults),
         update,
+        commitEdits,
       })
       // Save without changing anything
       await user.click(screen.getByText('Save'))
-      const fields = update.mock.calls[0][1]
-      // These fields should NOT be present because they haven't changed
-      expect(fields.level).toBeUndefined()
-      expect(fields.pod).toBeUndefined()
-      expect(fields.publicNote).toBeUndefined()
-      expect(fields.privateNote).toBeUndefined()
-      expect(fields.private).toBeUndefined()
+      // update should NOT be called since commitEdits returned null
+      expect(update).not.toHaveBeenCalled()
     })
 
     it('does not include team/managerId when manager changed (reparent handles it)', async () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
+      const commitEdits = vi.fn().mockReturnValue({
+        managerId: '', team: '',
+        name: 'Bob Jones', role: 'Engineer',
+      })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
-        selectedId: 'b2',
-        selectedIds: new Set(['b2']),
+        ...singleEditCtx(bob),
         update,
         reparent,
+        commitEdits,
       })
-      // Change manager to none
-      const managerSelect = screen.getByTestId('field-manager')
-      await user.selectOptions(managerSelect, '')
       await user.click(screen.getByText('Save'))
       expect(reparent).toHaveBeenCalledWith('b2', '', expect.any(String))
       const fields = update.mock.calls[0][1]
@@ -340,7 +336,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
   })
 
-  describe('formFromPerson fallbacks', () => {
+  describe('editBuffer fallbacks', () => {
     it('handles person with null/undefined optional fields', () => {
       const barebones = makePerson({
         id: 'p1', name: 'Bare', managerId: '', team: 'T',
@@ -355,11 +351,10 @@ describe('DetailSidebar — branch coverage', () => {
       })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [barebones],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(barebones),
         update: vi.fn().mockResolvedValue(undefined),
       })
-      // Should render with fallback values
+      // Should render with fallback values from editBuffer
       const empType = screen.getByTestId('field-employmentType') as HTMLInputElement
       expect(empType.value).toBe('FTE')
       const level = screen.getByTestId('field-level') as HTMLInputElement
@@ -375,8 +370,7 @@ describe('DetailSidebar — branch coverage', () => {
       })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [withTeams],
-        selectedId: 'p1',
-        selectedIds: new Set(['p1']),
+        ...singleEditCtx(withTeams),
         update: vi.fn().mockResolvedValue(undefined),
       })
       const otherTeams = screen.getByTestId('field-otherTeams') as HTMLInputElement
@@ -385,10 +379,11 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('manager change auto-updates team', () => {
-    it('sets team to new manager team when manager changes', async () => {
+    it('sets team to new manager team when manager changes via updateBuffer', async () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
+      const updateBuffer = vi.fn()
       const mgr1 = makePerson({ id: 'm1', name: 'Mgr One', managerId: '', team: 'TeamA' })
       const mgr2 = makePerson({ id: 'm2', name: 'Mgr Two', managerId: '', team: 'TeamB' })
       const ic = makePerson({ id: 'ic1', name: 'IC', managerId: 'm1', team: 'TeamA' })
@@ -396,16 +391,16 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'TeamB' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [mgr1, mgr2, ic, ic2],
-        selectedId: 'ic1',
-        selectedIds: new Set(['ic1']),
+        ...singleEditCtx(ic),
         update,
         reparent,
+        updateBuffer,
       })
       const managerSelect = screen.getByTestId('field-manager')
       await user.selectOptions(managerSelect, 'm2')
-      // Team should auto-update
-      const teamInput = screen.getByTestId('field-team') as HTMLInputElement
-      expect(teamInput.value).toBe('TeamB')
+      // updateBuffer should have been called for managerId and team
+      expect(updateBuffer).toHaveBeenCalledWith('managerId', 'm2')
+      expect(updateBuffer).toHaveBeenCalledWith('team', 'TeamB')
     })
   })
 
@@ -739,11 +734,12 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
+      const commitEdits = vi.fn().mockReturnValue({ name: 'Bob Jones' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
-        selectedId: 'b2',
-        selectedIds: new Set(['b2']),
+        ...singleEditCtx(bob),
         update,
+        commitEdits,
       })
       fireEvent.click(screen.getByText('Save'))
       await waitFor(() => {
@@ -758,11 +754,12 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
+      const commitEdits = vi.fn().mockReturnValue({ name: 'Bob Jones' })
       renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob],
-        selectedId: 'b2',
-        selectedIds: new Set(['b2']),
+        ...singleEditCtx(bob),
         update,
+        commitEdits,
       })
       fireEvent.click(screen.getByText('Save'))
       await waitFor(() => {

@@ -39,24 +39,6 @@ const blankForm: FormFields = {
   private: false,
 }
 
-function formFromPerson(p: Person): FormFields {
-  return {
-    name: p.name,
-    role: p.role,
-    discipline: p.discipline,
-    team: p.team,
-    otherTeams: (p.additionalTeams || []).join(', '),
-    managerId: p.managerId,
-    status: p.status,
-    employmentType: p.employmentType || 'FTE',
-    level: String(p.level ?? 0),
-    pod: p.pod ?? '',
-    publicNote: p.publicNote ?? '',
-    privateNote: p.privateNote ?? '',
-    private: p.private ?? false,
-  }
-}
-
 function formFromBatch(people: Person[]): FormFields {
   if (people.length === 0) return blankForm
   const first = people[0]
@@ -86,7 +68,7 @@ interface DetailSidebarProps {
 
 export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSidebarProps) {
   const { working, update, remove, reparent } = useOrgData()
-  const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection } = useSelection()
+  const { selectedId, selectedIds, selectedPodId, setSelectedId, clearSelection, editBuffer, updateBuffer, commitEdits } = useSelection()
 
   const isBatch = selectedIds.size > 1
   const person = selectedId ? working.find((p) => p.id === selectedId) : null
@@ -95,7 +77,8 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     [working, selectedIds, isBatch],
   )
 
-  const [form, setForm] = useState<FormFields>(blankForm)
+  // Local form state used only for batch edits
+  const [batchForm, setBatchForm] = useState<FormFields>(blankForm)
   const [batchDirty, setBatchDirty] = useState<Set<string>>(new Set())
   const [showStatusInfo, setShowStatusInfo] = useState(false)
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
@@ -119,108 +102,114 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     return mgrs.sort((a, b) => a.name.localeCompare(b.name))
   }, [working, showPrivate])
 
-  // Sync form when selection or person data changes.
-  // useMemo with explicit deps replaces the fragile personDataKey string concatenation.
-  // If a new Person field is added, add it here to trigger re-sync.
-  const personSnapshot = useMemo(() => {
-    if (!person) return null
-    return {
-      id: person.id, name: person.name, role: person.role,
-      discipline: person.discipline, team: person.team,
-      managerId: person.managerId, status: person.status,
-      employmentType: person.employmentType, level: person.level,
-      pod: person.pod, publicNote: person.publicNote,
-      privateNote: person.privateNote, private: person.private,
-      additionalTeams: (person.additionalTeams ?? []).join(','),
-    }
-  }, [person?.id, person?.name, person?.role, person?.discipline,
-      person?.team, person?.managerId, person?.status,
-      person?.employmentType, person?.level, person?.pod,
-      person?.publicNote, person?.privateNote, person?.private,
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      (person?.additionalTeams ?? []).join(',')])
-
+  // Sync batch form when batch selection changes
   useEffect(() => {
     if (isBatch) {
-      setForm(formFromBatch(selectedPeople))
+      setBatchForm(formFromBatch(selectedPeople))
       setBatchDirty(new Set())
-    } else if (person) {
-      setForm(formFromPerson(person))
     }
-  }, [isBatch ? selectedIds.size : personSnapshot])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBatch ? selectedIds.size : null])
 
-  const handleChange = (field: keyof FormFields, value: string) => {
+  // For single-person edits, handle manager change auto-updating team via editBuffer
+  const handleSingleManagerChange = (value: string) => {
+    const newManager = working.find((p) => p.id === value)
+    updateBuffer('managerId', value)
+    if (newManager) {
+      updateBuffer('team', newManager.team)
+    }
+  }
+
+  const handleBatchChange = (field: keyof FormFields, value: string) => {
     if (field === 'managerId') {
       const newManager = working.find((p) => p.id === value)
       if (newManager) {
-        setForm((f) => ({ ...f, managerId: value, team: newManager.team }))
-        if (isBatch) setBatchDirty((d) => { const n = new Set(d); n.add('managerId'); n.add('team'); return n })
+        setBatchForm((f) => ({ ...f, managerId: value, team: newManager.team }))
+        setBatchDirty((d) => { const n = new Set(d); n.add('managerId'); n.add('team'); return n })
         return
       }
     }
-    setForm((f) => ({ ...f, [field]: value }))
-    if (isBatch) setBatchDirty((d) => new Set(d).add(field))
+    setBatchForm((f) => ({ ...f, [field]: value }))
+    setBatchDirty((d) => new Set(d).add(field))
   }
 
-  const handleSave = async () => {
+  const handleSingleSave = async () => {
+    if (!person) return
     markSaving()
-    const corrId = generateCorrelationId()
+    const dirty = commitEdits()
+    if (!dirty) { markSaved(); return }
 
-    if (isBatch) {
-      if (batchDirty.size === 0) return
-      const managerChanged = batchDirty.has('managerId') && form.managerId !== MIXED_VALUE
-      const fields: PersonUpdatePayload = {}
-      for (const key of batchDirty) {
-        if (managerChanged && (key === 'managerId' || key === 'team')) continue
-        if (key === 'private') continue
-        const apiKey = key === 'otherTeams' ? 'additionalTeams' : key
-        const val = form[key as keyof FormFields]
-        if (val !== MIXED_VALUE) {
-          if (apiKey === 'level') {
-            ;(fields as Record<string, string | number>)[apiKey] = parseInt(String(val), 10) || 0
-          } else {
-            ;(fields as Record<string, string>)[apiKey] = String(val)
-          }
-        }
+    const corrId = generateCorrelationId()
+    try {
+      if (dirty.managerId !== undefined && dirty.managerId !== person.managerId) {
+        await reparent(person.id, dirty.managerId as string, corrId)
       }
-      if (batchDirty.has('private')) { fields.private = form.private }
-      let failedCount = 0
-      if (managerChanged) {
-        for (const p of selectedPeople) {
-          try { await reparent(p.id, form.managerId, corrId) } catch { failedCount++ }
+      const fields: PersonUpdatePayload = {}
+      for (const [key, val] of Object.entries(dirty)) {
+        if (key === 'managerId') continue
+        // When manager changed, team is handled by reparent — but if only team changed, include it
+        if (key === 'team' && dirty.managerId !== undefined) continue
+        if (key === 'otherTeams') {
+          fields.additionalTeams = val as string
+        } else if (key === 'level') {
+          fields.level = parseInt(String(val), 10) || 0
+        } else {
+          (fields as Record<string, unknown>)[key] = val
         }
       }
       if (Object.keys(fields).length > 0) {
-        for (const p of selectedPeople) {
-          try { await update(p.id, fields, corrId) } catch { failedCount++ }
-        }
-      }
-      if (failedCount > 0) {
-        markError(`${failedCount} of ${selectedPeople.length} updates failed`)
-      } else {
-        markSaved()
-      }
-    } else {
-      if (!person) return
-      try {
-        const managerChanged = form.managerId !== person.managerId
-        if (managerChanged) await reparent(person.id, form.managerId, corrId)
-        const fields: PersonUpdatePayload = {
-          name: form.name, role: form.role, discipline: form.discipline,
-          status: form.status, employmentType: form.employmentType, additionalTeams: form.otherTeams,
-        }
-        if (!managerChanged) { fields.team = form.team; fields.managerId = form.managerId }
-        if (form.level !== String(person.level ?? 0)) fields.level = parseInt(form.level, 10) || 0
-        if (form.pod !== (person.pod ?? '')) fields.pod = form.pod
-        if (form.publicNote !== (person.publicNote ?? '')) fields.publicNote = form.publicNote
-        if (form.privateNote !== (person.privateNote ?? '')) fields.privateNote = form.privateNote
-        if (form.private !== (person.private ?? false)) fields.private = form.private
         await update(person.id, fields, corrId)
-        markSaved()
-        onSetMode?.('view')
-      } catch {
-        markError('Save failed')
       }
+      markSaved()
+    } catch {
+      markError('Save failed')
+    }
+  }
+
+  const handleBatchSave = async () => {
+    markSaving()
+    const corrId = generateCorrelationId()
+
+    if (batchDirty.size === 0) return
+    const managerChanged = batchDirty.has('managerId') && batchForm.managerId !== MIXED_VALUE
+    const fields: PersonUpdatePayload = {}
+    for (const key of batchDirty) {
+      if (managerChanged && (key === 'managerId' || key === 'team')) continue
+      if (key === 'private') continue
+      const apiKey = key === 'otherTeams' ? 'additionalTeams' : key
+      const val = batchForm[key as keyof FormFields]
+      if (val !== MIXED_VALUE) {
+        if (apiKey === 'level') {
+          ;(fields as Record<string, string | number>)[apiKey] = parseInt(String(val), 10) || 0
+        } else {
+          ;(fields as Record<string, string>)[apiKey] = String(val)
+        }
+      }
+    }
+    if (batchDirty.has('private')) { fields.private = batchForm.private }
+    let failedCount = 0
+    if (managerChanged) {
+      for (const p of selectedPeople) {
+        try { await reparent(p.id, batchForm.managerId, corrId) } catch { failedCount++ }
+      }
+    }
+    if (Object.keys(fields).length > 0) {
+      for (const p of selectedPeople) {
+        try { await update(p.id, fields, corrId) } catch { failedCount++ }
+      }
+    }
+    if (failedCount > 0) {
+      markError(`${failedCount} of ${selectedPeople.length} updates failed`)
+    } else {
+      markSaved()
+    }
+  }
+
+  const handleSave = async () => {
+    if (isBatch) {
+      await handleBatchSave()
+    } else {
+      await handleSingleSave()
     }
   }
 
@@ -314,41 +303,160 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
     )
   }
 
+  // Batch form helpers for Mixed value display
   type StringField = { [K in keyof FormFields]: FormFields[K] extends string ? K : never }[keyof FormFields]
-  const mixed = (field: StringField) => form[field] === MIXED_VALUE
-  const val = (field: StringField) => mixed(field) ? '' : form[field]
+  const mixed = (field: StringField) => batchForm[field] === MIXED_VALUE
+  const batchVal = (field: StringField) => mixed(field) ? '' : batchForm[field]
   const ph = (field: StringField, fallback = '') => mixed(field) ? 'Mixed' : fallback
 
+  // Status info popover (shared between single and batch)
+  const statusInfoPopover = (
+    <>
+      {showStatusInfo && (
+        <div className={styles.infoOverlay} onMouseDown={() => setShowStatusInfo(false)}>
+          <div className={styles.infoPop} onMouseDown={(e) => e.stopPropagation()}>
+            <div className={styles.infoHeader}>
+              <span>Status Types</span>
+              <button className={styles.infoClose} onClick={() => setShowStatusInfo(false)} title="Close" aria-label="Close">x</button>
+            </div>
+            {STATUSES.map((s) => (
+              <div key={s} className={styles.infoRow}>
+                <strong>{s}</strong> — {STATUS_DESCRIPTIONS[s]}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  )
+
+  // Single-person edit form (reads from editBuffer)
+  if (!isBatch && editBuffer) {
+    return (
+      <aside className={styles.sidebar}>
+        <div className={styles.header}>
+          <h3 data-testid="sidebar-heading">Edit Person</h3>
+          <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close" title="Close">
+            &times;
+          </button>
+        </div>
+        <div className={styles.form}>
+          <div className={styles.field}>
+            <label>Name</label>
+            <input data-testid="field-name" ref={firstInputRef} value={editBuffer.name} onChange={(e) => updateBuffer('name', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Role</label>
+            <input data-testid="field-role" value={editBuffer.role} onChange={(e) => updateBuffer('role', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Discipline</label>
+            <input data-testid="field-discipline" value={editBuffer.discipline} onChange={(e) => updateBuffer('discipline', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Team</label>
+            <input data-testid="field-team" value={editBuffer.team} onChange={(e) => updateBuffer('team', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Manager</label>
+            <select data-testid="field-manager" value={editBuffer.managerId} onChange={(e) => handleSingleManagerChange(e.target.value)}>
+              <option value="">(No manager)</option>
+              {managers.map((m) => (
+                <option key={m.id} value={m.id}>{m.name} — {m.team}</option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label>Pod</label>
+            <span className={styles.fieldHint}>Group people within a team — e.g. &quot;Backend&quot;, &quot;Frontend&quot;</span>
+            <input data-testid="field-pod" value={editBuffer.pod} onChange={(e) => updateBuffer('pod', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>
+              Status
+              <button className={styles.infoIcon} aria-label="Show status descriptions" onClick={() => setShowStatusInfo((v) => !v)}>
+                &#8505;
+              </button>
+            </label>
+            {statusInfoPopover}
+            <select data-testid="field-status" value={editBuffer.status} onChange={(e) => updateBuffer('status', e.target.value)}>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label>Employment Type</label>
+            <input data-testid="field-employmentType" value={editBuffer.employmentType} onChange={(e) => updateBuffer('employmentType', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Level</label>
+            <input data-testid="field-level" type="number" min="0" value={editBuffer.level} onChange={(e) => updateBuffer('level', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Other Teams</label>
+            <input data-testid="field-otherTeams" value={editBuffer.otherTeams} onChange={(e) => updateBuffer('otherTeams', e.target.value)} />
+          </div>
+          <div className={styles.field}>
+            <label>Public Note</label>
+            <textarea data-testid="field-publicNote" value={editBuffer.publicNote} placeholder="Visible on the org chart" onChange={(e) => updateBuffer('publicNote', e.target.value)} rows={3} />
+          </div>
+          <div className={styles.field}>
+            <label>Private Note</label>
+            <textarea data-testid="field-privateNote" value={editBuffer.privateNote} placeholder="Only visible in this panel" onChange={(e) => updateBuffer('privateNote', e.target.value)} rows={3} />
+          </div>
+          <div className={styles.field}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Private</span>
+              <input
+                type="checkbox"
+                data-testid="field-private"
+                checked={editBuffer.private}
+                onChange={(e) => updateBuffer('private', e.target.checked)}
+              />
+            </label>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Hidden when private toggle is off</span>
+          </div>
+        </div>
+        {saveError && <div className={styles.saveError} style={{ padding: '4px 16px' }}>{saveError}</div>}
+        <div className={styles.actions}>
+          <button
+            className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
+            onClick={handleSave}
+            disabled={saveStatus === 'saving'}
+            title="Save changes"
+          >
+            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
+          </button>
+          <button className={styles.deleteBtn} onClick={handleDelete} title="Delete this person">Delete</button>
+        </div>
+      </aside>
+    )
+  }
+
+  // Batch edit form (uses local batchForm state)
   return (
     <aside className={styles.sidebar}>
       <div className={styles.header}>
-        <h3 data-testid="sidebar-heading">{isBatch ? `Edit ${selectedIds.size} people` : 'Edit Person'}</h3>
+        <h3 data-testid="sidebar-heading">Edit {selectedIds.size} people</h3>
         <button className={styles.closeBtn} onClick={clearSelection} aria-label="Close" title="Close">
           &times;
         </button>
       </div>
       <div className={styles.form}>
-        {!isBatch && (
-          <div className={styles.field}>
-            <label>Name</label>
-            <input data-testid="field-name" ref={firstInputRef} value={form.name} onChange={(e) => handleChange('name', e.target.value)} />
-          </div>
-        )}
         <div className={styles.field}>
           <label>Role</label>
-          <input data-testid="field-role" value={val('role')} placeholder={ph('role')} onChange={(e) => handleChange('role', e.target.value)} />
+          <input data-testid="field-role" value={batchVal('role')} placeholder={ph('role')} onChange={(e) => handleBatchChange('role', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Discipline</label>
-          <input data-testid="field-discipline" value={val('discipline')} placeholder={ph('discipline')} onChange={(e) => handleChange('discipline', e.target.value)} />
+          <input data-testid="field-discipline" value={batchVal('discipline')} placeholder={ph('discipline')} onChange={(e) => handleBatchChange('discipline', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Team</label>
-          <input data-testid="field-team" value={val('team')} placeholder={ph('team')} onChange={(e) => handleChange('team', e.target.value)} />
+          <input data-testid="field-team" value={batchVal('team')} placeholder={ph('team')} onChange={(e) => handleBatchChange('team', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Manager</label>
-          <select data-testid="field-manager" value={val('managerId')} onChange={(e) => handleChange('managerId', e.target.value)}>
+          <select data-testid="field-manager" value={batchVal('managerId')} onChange={(e) => handleBatchChange('managerId', e.target.value)}>
             {mixed('managerId') && <option value="">Mixed</option>}
             <option value="">(No manager)</option>
             {managers.map((m) => (
@@ -359,7 +467,7 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
         <div className={styles.field}>
           <label>Pod</label>
           <span className={styles.fieldHint}>Group people within a team — e.g. &quot;Backend&quot;, &quot;Frontend&quot;</span>
-          <input data-testid="field-pod" value={val('pod')} placeholder={ph('pod')} onChange={(e) => handleChange('pod', e.target.value)} />
+          <input data-testid="field-pod" value={batchVal('pod')} placeholder={ph('pod')} onChange={(e) => handleBatchChange('pod', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>
@@ -368,45 +476,31 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
               &#8505;
             </button>
           </label>
-          {showStatusInfo && (
-            <div className={styles.infoOverlay} onMouseDown={() => setShowStatusInfo(false)}>
-              <div className={styles.infoPop} onMouseDown={(e) => e.stopPropagation()}>
-                <div className={styles.infoHeader}>
-                  <span>Status Types</span>
-                  <button className={styles.infoClose} onClick={() => setShowStatusInfo(false)} title="Close" aria-label="Close">x</button>
-                </div>
-                {STATUSES.map((s) => (
-                  <div key={s} className={styles.infoRow}>
-                    <strong>{s}</strong> — {STATUS_DESCRIPTIONS[s]}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <select data-testid="field-status" value={val('status')} onChange={(e) => handleChange('status', e.target.value)}>
+          {statusInfoPopover}
+          <select data-testid="field-status" value={batchVal('status')} onChange={(e) => handleBatchChange('status', e.target.value)}>
             {mixed('status') && <option value="">Mixed</option>}
             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className={styles.field}>
           <label>Employment Type</label>
-          <input data-testid="field-employmentType" value={val('employmentType')} placeholder={ph('employmentType', 'FTE')} onChange={(e) => handleChange('employmentType', e.target.value)} />
+          <input data-testid="field-employmentType" value={batchVal('employmentType')} placeholder={ph('employmentType', 'FTE')} onChange={(e) => handleBatchChange('employmentType', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Level</label>
-          <input data-testid="field-level" type="number" min="0" value={val('level')} placeholder={ph('level')} onChange={(e) => handleChange('level', e.target.value)} />
+          <input data-testid="field-level" type="number" min="0" value={batchVal('level')} placeholder={ph('level')} onChange={(e) => handleBatchChange('level', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Other Teams</label>
-          <input data-testid="field-otherTeams" value={val('otherTeams')} placeholder={ph('otherTeams', 'Comma-separated')} onChange={(e) => handleChange('otherTeams', e.target.value)} />
+          <input data-testid="field-otherTeams" value={batchVal('otherTeams')} placeholder={ph('otherTeams', 'Comma-separated')} onChange={(e) => handleBatchChange('otherTeams', e.target.value)} />
         </div>
         <div className={styles.field}>
           <label>Public Note</label>
-          <textarea data-testid="field-publicNote" value={val('publicNote')} placeholder={ph('publicNote', 'Visible on the org chart')} onChange={(e) => handleChange('publicNote', e.target.value)} rows={3} />
+          <textarea data-testid="field-publicNote" value={batchVal('publicNote')} placeholder={ph('publicNote', 'Visible on the org chart')} onChange={(e) => handleBatchChange('publicNote', e.target.value)} rows={3} />
         </div>
         <div className={styles.field}>
           <label>Private Note</label>
-          <textarea data-testid="field-privateNote" value={val('privateNote')} placeholder={ph('privateNote', 'Only visible in this panel')} onChange={(e) => handleChange('privateNote', e.target.value)} rows={3} />
+          <textarea data-testid="field-privateNote" value={batchVal('privateNote')} placeholder={ph('privateNote', 'Only visible in this panel')} onChange={(e) => handleBatchChange('privateNote', e.target.value)} rows={3} />
         </div>
         <div className={styles.field}>
           <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -414,10 +508,10 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
             <input
               type="checkbox"
               data-testid="field-private"
-              checked={form.private}
+              checked={batchForm.private}
               onChange={(e) => {
-                setForm((f) => ({ ...f, private: e.target.checked }))
-                if (isBatch) setBatchDirty((d) => new Set(d).add('private'))
+                setBatchForm((f) => ({ ...f, private: e.target.checked }))
+                setBatchDirty((d) => new Set(d).add('private'))
               }}
             />
           </label>
@@ -429,16 +523,12 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
         <button
           className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
           onClick={handleSave}
-          disabled={isBatch ? batchDirty.size === 0 || saveStatus === 'saving' : saveStatus === 'saving'}
+          disabled={batchDirty.size === 0 || saveStatus === 'saving'}
           title="Save changes"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>
-        {isBatch ? (
-          <button className={styles.deleteBtn} onClick={clearSelection} title="Clear selection">Clear selection</button>
-        ) : (
-          <button className={styles.deleteBtn} onClick={handleDelete} title="Delete this person">Delete</button>
-        )}
+        <button className={styles.deleteBtn} onClick={clearSelection} title="Clear selection">Clear selection</button>
       </div>
     </aside>
   )

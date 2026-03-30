@@ -1791,15 +1791,30 @@ func TestOrgService_AddParent(t *testing.T) {
 func TestOrgService_AddParent_ChildHasManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	data := svc.GetOrg(context.Background())
-	bob := findByName(data.Working, "Bob") // Bob reports to Alice
+	ctx := context.Background()
+	data := svc.GetOrg(ctx)
+	bob := findByName(data.Working, "Bob")   // Bob reports to Alice
+	alice := findByName(data.Working, "Alice") // Alice is root
 
-	_, _, _, err := svc.AddParent(context.Background(), bob.Id, "CEO")
-	if err == nil {
-		t.Fatal("expected error when child already has a manager")
+	parent, working, _, err := svc.AddParent(ctx, bob.Id, "Middle Manager")
+	if err != nil {
+		t.Fatalf("expected success, got error: %v", err)
 	}
-	if !isConflict(err) {
-		t.Errorf("expected ConflictError, got %T: %v", err, err)
+	if parent.Name != "Middle Manager" {
+		t.Errorf("expected parent name 'Middle Manager', got %q", parent.Name)
+	}
+	// The new parent should now manage Bob
+	updatedBob := findById(working, bob.Id)
+	if updatedBob.ManagerId != parent.Id {
+		t.Errorf("expected bob.ManagerId=%q, got %q", parent.Id, updatedBob.ManagerId)
+	}
+	// The new parent should report to Alice (Bob's old manager)
+	newParent := findById(working, parent.Id)
+	if newParent == nil {
+		t.Fatal("new parent not found in working")
+	}
+	if newParent.ManagerId != alice.Id {
+		t.Errorf("expected newParent.ManagerId=%q (Alice), got %q", alice.Id, newParent.ManagerId)
 	}
 }
 

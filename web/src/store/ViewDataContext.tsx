@@ -64,10 +64,10 @@ export function useActions(): ActionsContextValue {
   return ctx
 }
 
-export function ViewDataProvider({ children, onEditMode }: { children: ReactNode; onEditMode?: (personId: string) => void }) {
+export function ViewDataProvider({ children }: { children: ReactNode }) {
   const { original, working, pods, settings, add, addParent, remove, update } = useOrgData()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
-  const { toggleSelect } = useSelection()
+  const { toggleSelect, enterEditing } = useSelection()
 
   // Derived data
   const rawPeople = dataView === 'original' ? original : working
@@ -174,8 +174,9 @@ export function ViewDataProvider({ children, onEditMode }: { children: ReactNode
 
   const handleEditMode = useCallback((personId: string) => {
     toggleSelect(personId, false)
-    onEditMode?.(personId)
-  }, [toggleSelect, onEditMode])
+    const person = working.find(p => p.id === personId)
+    if (person) enterEditing(person)
+  }, [toggleSelect, enterEditing, working])
 
   const handleInlineEdit = useCallback((personId: string, field: string, value: string) => {
     void update(personId, { [field]: value })

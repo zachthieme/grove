@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import type { Person } from '../api/types'
 import type { PersonChange } from '../hooks/useOrgDiff'
+import type { EditBuffer } from '../store/useInteractionState'
 import PersonNode from '../components/PersonNode'
 
 export interface OrgNode {
@@ -31,13 +32,16 @@ export function buildOrgTree(people: Person[]): OrgNode[] {
   return roots.map(build)
 }
 
-export function DraggableNode({ person, selected, changes, showTeam, isManager, collapsed, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onSelect, onInlineEdit, nodeRef }: {
+export function DraggableNode({ person, selected, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onSelect, onEnterEditing, onUpdateBuffer, nodeRef }: {
   person: Person
   selected: boolean
   changes?: PersonChange
   showTeam?: boolean
   isManager?: boolean
   collapsed?: boolean
+  editing?: boolean
+  editBuffer?: EditBuffer | null
+  focusField?: 'name' | 'role' | 'team' | null
   onAdd?: () => void
   onAddParent?: () => void
   onDelete?: () => void
@@ -46,7 +50,8 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
   onEditMode?: () => void
   onToggleCollapse?: () => void
   onSelect: (e?: React.MouseEvent) => void
-  onInlineEdit?: (field: string, value: string) => void
+  onEnterEditing?: () => void
+  onUpdateBuffer?: (field: string, value: string) => void
   nodeRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
@@ -63,6 +68,7 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
         setDropRef(node)
         nodeRef?.(node)
       }}
+      data-person-id={person.id}
       style={{
         outline: isOver && !isDragging ? '2px solid var(--grove-green, #3d6b35)' : 'none',
         outlineOffset: isOver && !isDragging ? 2 : 0,
@@ -91,6 +97,9 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
           showTeam={showTeam}
           isManager={isManager}
           collapsed={collapsed}
+          editing={editing}
+          editBuffer={editBuffer}
+          focusField={focusField}
           onAdd={onAdd}
           onAddParent={onAddParent}
           onDelete={onDelete}
@@ -99,7 +108,8 @@ export function DraggableNode({ person, selected, changes, showTeam, isManager, 
           onEditMode={onEditMode}
           onToggleCollapse={onToggleCollapse}
           onClick={onSelect}
-          onInlineEdit={onInlineEdit}
+          onEnterEditing={onEnterEditing}
+          onUpdateBuffer={onUpdateBuffer}
         />
       </div>
     </div>

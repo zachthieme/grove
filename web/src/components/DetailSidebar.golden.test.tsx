@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import DetailSidebar from './DetailSidebar'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makePerson, makeEditBuffer, renderWithOrg } from '../test-helpers'
 
 const alice = makePerson({ id: 'a1', name: 'Alice Smith', role: 'VP', managerId: '', team: 'Platform', discipline: 'Eng' })
 const bob = makePerson({ id: 'b2', name: 'Bob Jones', role: 'Engineer', managerId: 'a1', team: 'Platform', discipline: 'Eng', employmentType: 'FTE' })
@@ -117,6 +117,9 @@ describe('DetailSidebar golden', () => {
       ...baseCtx,
       selectedId: 'b2',
       selectedIds: new Set(['b2']),
+      interactionMode: 'editing' as const,
+      editBuffer: makeEditBuffer(bob),
+      editingPersonId: 'b2',
     })
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot('./__golden__/detail-sidebar-edit.golden')
   })
