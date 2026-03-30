@@ -47,9 +47,9 @@ export default function ChartShell({
   const roots = useMemo(() => buildOrgTree(people), [people])
   const edges = useMemo(() => computeEdges(people, roots), [computeEdges, people, roots])
 
-  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, roots)
-
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
+
+  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, [roots, collapsedIds])
   const handleToggleCollapse = useCallback((id: string) => {
     setCollapsedIds(prev => {
       const next = new Set(prev)
