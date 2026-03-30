@@ -46,4 +46,35 @@ describe('findSpatialNeighbor', () => {
   it('[VIM-001] handles unknown current id', () => {
     expect(findSpatialNeighbor('missing', nodes, 'j')).toBeNull()
   })
+
+  it('[VIM-001] h prefers same-level node over closer diagonal node', () => {
+    // Org chart scenario: manager at top-left, two ICs at bottom
+    // From IC-right, h should go to IC-left (same level), not manager (closer diagonally)
+    const orgNodes = new Map<string, DOMRect>([
+      ['manager', rect(50, 0)],      // manager: top center
+      ['ic-left', rect(0, 100)],     // IC: bottom left
+      ['ic-right', rect(200, 100)],  // IC: bottom right
+    ])
+    // From ic-right, pressing h: manager is at (-150, -100), ic-left is at (-200, 0)
+    // ic-left is same level (dy=0), manager is different level (dy=100)
+    expect(findSpatialNeighbor('ic-right', orgNodes, 'h')).toBe('ic-left')
+  })
+
+  it('[VIM-001] l prefers same-level node over closer diagonal node', () => {
+    const orgNodes = new Map<string, DOMRect>([
+      ['manager', rect(150, 0)],
+      ['ic-left', rect(0, 100)],
+      ['ic-right', rect(200, 100)],
+    ])
+    expect(findSpatialNeighbor('ic-left', orgNodes, 'l')).toBe('ic-right')
+  })
+
+  it('[VIM-001] falls back to diagonal when no same-level candidates', () => {
+    // Only candidate to the left is above
+    const diag = new Map<string, DOMRect>([
+      ['above-left', rect(0, 0)],
+      ['current', rect(200, 100)],
+    ])
+    expect(findSpatialNeighbor('current', diag, 'h')).toBe('above-left')
+  })
 })
