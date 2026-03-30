@@ -56,11 +56,12 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
 
   const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
 
-  // Reset sidebar editing when selection changes
-  const selectionKey = selectedId ?? (selectedIds.size > 1 ? `batch-${selectedIds.size}` : '')
-  useEffect(() => {
-    setSidebarEditing(false)
-  }, [selectionKey, setSidebarEditing])
+  // Reset sidebar editing when selection changes (ref-based, no effect loop)
+  const prevSelectionRef = useRef(selectedId)
+  if (prevSelectionRef.current !== selectedId) {
+    prevSelectionRef.current = selectedId
+    if (sidebarEditing) setSidebarEditing(false)
+  }
   const vimAddReport = useCallback((parentId: string) => {
     const parent = working.find(p => p.id === parentId)
     if (!parent) return
@@ -260,8 +261,9 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
 
 function AppShell() {
   const [sidebarEditing, setSidebarEditing] = useState(false)
+  const handleEditMode = useCallback(() => setSidebarEditing(true), [])
   return (
-    <ViewDataProvider onEditMode={() => setSidebarEditing(true)}>
+    <ViewDataProvider onEditMode={handleEditMode}>
       <AppContent sidebarEditing={sidebarEditing} setSidebarEditing={setSidebarEditing} />
     </ViewDataProvider>
   )

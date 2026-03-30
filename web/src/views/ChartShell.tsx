@@ -48,8 +48,9 @@ export default function ChartShell({
   const edges = useMemo(() => computeEdges(people, roots), [computeEdges, people, roots])
 
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
+  const [collapseKey, setCollapseKey] = useState(0)
 
-  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, [roots, collapsedIds])
+  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, collapseKey)
   const handleToggleCollapse = useCallback((id: string) => {
     setCollapsedIds(prev => {
       const next = new Set(prev)
@@ -57,6 +58,7 @@ export default function ChartShell({
       else next.add(id)
       return next
     })
+    setCollapseKey(k => k + 1)
   }, [])
 
   // Auto-scroll to keep selected node visible
