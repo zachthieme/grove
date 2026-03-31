@@ -2,196 +2,127 @@ import { useMemo, useCallback, type ReactNode } from 'react'
 import type { Pod } from '../api/types'
 import type { EditBuffer } from '../store/useInteractionState'
 import { computeEdges } from './columnEdges'
-import { computeRenderItems } from './columnLayout'
-import { type OrgNode } from './shared'
+import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
 import PersonNode from '../components/PersonNode'
-import { buildPodDropId } from '../utils/ids'
-import { useChart } from './ChartContext'
 import GroupHeaderNode from '../components/GroupHeaderNode'
+import { useChart } from './ChartContext'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
-function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: OrgNode[] }) {
+function LayoutSubtree({ node, crossTeamICs }: { node: ManagerLayout; crossTeamICs?: ICLayout[] }) {
   const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
-  const managers = node.children.filter((c) => c.children.length > 0)
-  const ics = node.children.filter((c) => c.children.length === 0)
 
-  const renderItems = useMemo(() => computeRenderItems(managers, ics), [managers, ics])
-
-  const allICs = managers.length === 0
+  const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
+  const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
+  const hasCrossTeam = !!(crossTeamICs && crossTeamICs.length > 0 && !isCollapsed)
 
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
 
-  const isPodCollapsed = useCallback((managerId: string, podName: string) => {
-    const podNodeId = buildPodDropId(managerId, podName)
-    return collapsedIds?.has(podNodeId) ?? false
-  }, [collapsedIds])
-
-  const renderPodHeader = useCallback((managerId: string, podName: string, memberCount: number) => {
-    const pod = findPod(managerId, podName)
-    const podNodeId = buildPodDropId(managerId, podName)
-    const podCollapsed = collapsedIds?.has(podNodeId) ?? false
+  const renderIC = useCallback((ic: ICLayout) => {
+    const isEditing = interactionMode === 'editing' && editingPersonId === ic.person.id
     return (
-      <GroupHeaderNode
-        nodeId={podNodeId}
-        name={podName}
-        count={memberCount}
-        noteText={pod?.publicNote}
-        onAdd={onAddToTeam ? () => onAddToTeam(managerId, pod?.team ?? podName, podName) : undefined}
-        onInfo={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
-        onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
-        cardRef={setNodeRef(podNodeId)}
-        droppableId={podNodeId}
-        collapsed={podCollapsed}
-        onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(podNodeId) : undefined}
-      />
-    )
-  }, [pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse])
-
-  const renderIC = useCallback((child: OrgNode) => {
-    const isEditing = interactionMode === 'editing' && editingPersonId === child.person.id
-    return (
-      <div key={child.person.id} className={styles.nodeSlot}>
+      <div key={ic.person.id} className={styles.nodeSlot}>
         <PersonNode
-          person={child.person}
-          selected={selectedIds.has(child.person.id)}
-          changes={changes?.get(child.person.id)}
-          isManager={managerSet?.has(child.person.id)}
+          person={ic.person}
+          selected={selectedIds.has(ic.person.id)}
+          changes={changes?.get(ic.person.id)}
+          isManager={managerSet?.has(ic.person.id)}
           editing={isEditing}
           editBuffer={isEditing ? editBuffer : null}
           focusField={isEditing ? 'name' : null}
-          onAdd={onAddReport ? () => onAddReport(child.person.id) : undefined}
-          onAddParent={onAddParent ? () => onAddParent(child.person.id) : undefined}
-          onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
-          onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
-          onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
-          onEditMode={onEditMode ? () => onEditMode(child.person.id) : undefined}
-          onClick={(e) => onSelect(child.person.id, e)}
-          onEnterEditing={onEnterEditing ? () => onEnterEditing(child.person) : undefined}
+          onAdd={onAddReport ? () => onAddReport(ic.person.id) : undefined}
+          onAddParent={onAddParent ? () => onAddParent(ic.person.id) : undefined}
+          onDelete={onDeletePerson ? () => onDeletePerson(ic.person.id) : undefined}
+          onInfo={onInfo ? () => onInfo(ic.person.id) : undefined}
+          onFocus={onFocus && managerSet?.has(ic.person.id) ? () => onFocus(ic.person.id) : undefined}
+          onEditMode={onEditMode ? () => onEditMode(ic.person.id) : undefined}
+          onClick={(e) => onSelect(ic.person.id, e)}
+          onEnterEditing={onEnterEditing ? () => onEnterEditing(ic.person) : undefined}
           onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
           onCommitEdits={onCommitEdits}
-          cardRef={setNodeRef(child.person.id)}
+          cardRef={setNodeRef(ic.person.id)}
         />
       </div>
     )
   }, [selectedIds, changes, managerSet, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef])
 
-  const icPodListElements = useMemo((): ReactNode => {
-    if (!allICs) return null
-    const unpodded: OrgNode[] = []
-    const podOrder: string[] = []
-    const podMap = new Map<string, OrgNode[]>()
-    for (const ic of ics) {
-      const podName = ic.person.pod
-      if (!podName) {
-        unpodded.push(ic)
-        continue
-      }
-      if (!podMap.has(podName)) {
-        podOrder.push(podName)
-        podMap.set(podName, [])
-      }
-      podMap.get(podName)!.push(ic)
-    }
-    podOrder.sort((a, b) => a.localeCompare(b))
-    const hasPods = podOrder.length > 0
-    if (!hasPods) {
-      return (
-        <div className={styles.icStack}>
-          {ics.map((child) => renderIC(child))}
-        </div>
-      )
-    }
+  const renderPodGroup = useCallback((group: PodGroupLayout) => {
+    const pod = findPod(group.managerId, group.podName)
+    const podCollapsed = collapsedIds?.has(group.collapseKey) ?? false
     return (
-      <>
-        {unpodded.length > 0 && (
-          <div className={styles.icStack}>
-            {unpodded.map((child) => renderIC(child))}
+      <div key={group.collapseKey} className={styles.subtree}>
+        <div className={styles.nodeSlot}>
+          <GroupHeaderNode
+            nodeId={group.collapseKey}
+            name={group.podName}
+            count={group.members.length}
+            noteText={pod?.publicNote}
+            onAdd={onAddToTeam ? () => onAddToTeam(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
+            onInfo={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
+            onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
+            cardRef={setNodeRef(group.collapseKey)}
+            droppableId={group.collapseKey}
+            collapsed={podCollapsed}
+            onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
+          />
+        </div>
+        {!podCollapsed && (
+          <div className={styles.children}>
+            <div className={styles.icStack}>
+              {group.members.map((ic) => renderIC(ic))}
+            </div>
           </div>
         )}
-        {podOrder.map((podName) => {
-          const members = podMap.get(podName)!
-          const podCollapsed = isPodCollapsed(node.person.id, podName)
-          return (
-            <div key={podName} className={styles.subtree}>
-              <div className={styles.nodeSlot}>
-                {renderPodHeader(node.person.id, podName, members.length)}
-              </div>
-              {!podCollapsed && (
-                <div className={styles.children}>
-                  <div className={styles.icStack}>
-                    {members.map((child) => renderIC(child))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </>
+      </div>
     )
-  }, [allICs, ics, node.person.id, renderPodHeader, renderIC, isPodCollapsed])
+  }, [pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, renderIC])
 
-  const mixedChildrenElements = useMemo((): ReactNode[] => {
-    if (allICs) return []
+  // Build child elements by iterating node.children and switching on type
+  const childElements = useMemo((): ReactNode[] => {
+    if (node.children.length === 0) return []
+
     const elements: ReactNode[] = []
-    let icBatch: OrgNode[] = []
+    let icBatch: ICLayout[] = []
 
     const flushIcBatch = () => {
       if (icBatch.length === 0) return
       elements.push(
         <div key={`ic-stack-${icBatch[0].person.id}`} className={styles.icStack}>
-          {icBatch.map((child) => renderIC(child))}
+          {icBatch.map((ic) => renderIC(ic))}
         </div>
       )
       icBatch = []
     }
 
-    const isCrossTeam = (n: OrgNode) =>
-      (n.person.additionalTeams?.length ?? 0) > 0
-
-    for (const item of renderItems) {
-      if (item.type === 'ic') {
-        if (isCrossTeam(item.node)) {
+    for (const child of node.children) {
+      switch (child.type) {
+        case 'manager':
           flushIcBatch()
-          elements.push(renderIC(item.node))
-        } else {
-          icBatch.push(item.node)
-        }
-      } else {
-        flushIcBatch()
-        if (item.type === 'manager') {
           elements.push(
-            <SubtreeNode key={item.node.person.id} node={item.node} crossTeamICs={item.crossTeamICs} />
+            <LayoutSubtree key={child.person.id} node={child} crossTeamICs={child.crossTeamICs} />
           )
-        } else if (item.type === 'icGroup') {
-          const groupKey = item.podName ?? item.team
-          const groupCollapsed = isPodCollapsed(node.person.id, groupKey)
-          elements.push(
-            <div key={`group-${item.podName ? 'pod' : 'team'}-${item.team}`} className={styles.subtree}>
-              <div className={styles.nodeSlot}>
-                {renderPodHeader(node.person.id, groupKey, item.members.length)}
-              </div>
-              {!groupCollapsed && (
-                <div className={styles.children}>
-                  <div className={styles.icStack}>
-                    {item.members.map((child) => renderIC(child))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        }
+          break
+        case 'ic':
+          if (child.affiliation !== 'local') {
+            flushIcBatch()
+            elements.push(renderIC(child))
+          } else {
+            icBatch.push(child)
+          }
+          break
+        case 'podGroup':
+          flushIcBatch()
+          elements.push(renderPodGroup(child))
+          break
+        default:
+          break
       }
     }
     flushIcBatch()
+
     return elements
-  }, [allICs, renderItems, renderIC, renderPodHeader, isPodCollapsed, node.person.id])
-
-  const isCollapsed = collapsedIds?.has(node.person.id) ?? false
-  const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
-
-  const hasCrossTeam = !!(crossTeamICs && crossTeamICs.length > 0 && !isCollapsed)
+  }, [node.children, renderIC, renderPodGroup])
 
   const managerNodeEl = (
     <div className={styles.nodeSlot}>
@@ -211,7 +142,7 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
         onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
         onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
         onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
-        onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
+        onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.collapseKey) : undefined}
         onClick={(e) => onSelect(node.person.id, e)}
         onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
         onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
@@ -226,12 +157,12 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
       {hasCrossTeam ? (
         <div className={styles.managerWithCrossTeam}>
           {managerNodeEl}
-          {crossTeamICs.map(ic => renderIC(ic))}
+          {crossTeamICs!.map(ic => renderIC(ic))}
         </div>
       ) : managerNodeEl}
       {node.children.length > 0 && !isCollapsed && (
         <div className={styles.children}>
-          {allICs ? icPodListElements : mixedChildrenElements}
+          {childElements}
         </div>
       )}
       {node.children.length > 0 && isCollapsed && (
@@ -241,13 +172,70 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
   )
 }
 
+function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
+  const { selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+
+  const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
+
+  return (
+    <div className={styles.subtree}>
+      <div className={styles.nodeSlot}>
+        <GroupHeaderNode
+          nodeId={group.collapseKey}
+          name={group.teamName}
+          count={group.members.length}
+          collapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
+        />
+      </div>
+      {!isCollapsed && (
+        <div className={styles.children}>
+          <div className={styles.icStack}>
+            {group.members.map((ic) => (
+              <div key={ic.person.id} className={styles.nodeSlot}>
+                <PersonNode
+                  person={ic.person}
+                  selected={selectedIds.has(ic.person.id)}
+                  changes={changes?.get(ic.person.id)}
+                  isManager={managerSet?.has(ic.person.id)}
+                  onAdd={onAddReport ? () => onAddReport(ic.person.id) : undefined}
+                  onDelete={onDeletePerson ? () => onDeletePerson(ic.person.id) : undefined}
+                  onInfo={onInfo ? () => onInfo(ic.person.id) : undefined}
+                  onClick={(e) => onSelect(ic.person.id, e)}
+                  cardRef={setNodeRef(ic.person.id)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ColumnView() {
+  const renderLayoutNode = useCallback((node: LayoutNode): ReactNode => {
+    switch (node.type) {
+      case 'manager':
+        return <LayoutSubtree key={node.person.id} node={node} crossTeamICs={node.crossTeamICs} />
+      case 'teamGroup':
+        return <LayoutTeamGroup key={node.collapseKey} group={node} />
+      default:
+        return null
+    }
+  }, [])
+
+  const computeEdgesFn = useCallback(
+    (people: Parameters<typeof computeEdges>[1], _roots: unknown, layoutRoots?: Parameters<typeof computeEdges>[0]) =>
+      layoutRoots ? computeEdges(layoutRoots, people) : [],
+    [],
+  )
+
   return (
     <ChartShell
-      computeEdges={(people) => computeEdges(people)}
-      renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
-      renderTeamHeader={(team, count, opts) => <GroupHeaderNode nodeId={`orphan:${team}`} name={team} count={count} collapsed={opts?.collapsed} onToggleCollapse={opts?.onToggleCollapse} />}
-      viewStyles={styles}
+      computeEdges={computeEdgesFn}
+      computeLayout={computeLayoutTree}
+      renderLayoutNode={renderLayoutNode}
       dashedEdges
       useGhostPeople
       includeAddToTeam

@@ -1,11 +1,12 @@
 // Scenarios: VIEW-002
-import { useMemo } from 'react'
-import type { Person, Pod } from '../api/types'
+import { useCallback, type ReactNode } from 'react'
+import type { Person } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
 import type { EditBuffer } from '../store/useInteractionState'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChart } from './ChartContext'
 import { type OrgNode } from './shared'
+import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout } from './layoutTree'
 import PersonNode from '../components/PersonNode'
 import ChartShell from './ChartShell'
 import styles from './ManagerView.module.css'
@@ -95,41 +96,47 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
   )
 }
 
-function ManagerSubtree({ node }: { node: OrgNode }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
-  const subManagers = node.children.filter((c) => c.children.length > 0)
-  const ics = node.children.filter((c) => c.children.length === 0)
+function PodSummaryCard({ group }: { group: PodGroupLayout }) {
+  const { pods, onPodSelect } = useChart()
+  const pod = pods?.find((p) => p.managerId === group.managerId && p.name === group.podName)
+  const people = group.members.map((m) => m.person)
 
-  const { unpoddedICs, icPodGroups } = useMemo(() => {
-    if (ics.length === 0) return { unpoddedICs: [] as Person[], icPodGroups: [] as { team: string; people: Person[]; pod: Pod | undefined }[] }
-    const unpodded: Person[] = []
-    const podOrder: string[] = []
-    const podMap = new Map<string, Person[]>()
-    for (const ic of ics) {
-      const podName = ic.person.pod
-      if (!podName) {
-        unpodded.push(ic.person)
-        continue
-      }
-      if (!podMap.has(podName)) {
-        podOrder.push(podName)
-        podMap.set(podName, [])
-      }
-      podMap.get(podName)!.push(ic.person)
-    }
-    podOrder.sort((a, b) => a.localeCompare(b))
-    return {
-      unpoddedICs: unpodded,
-      icPodGroups: podOrder.map((podName) => ({
-        team: podName,
-        people: podMap.get(podName)!,
-        pod: pods?.find((p) => p.managerId === node.person.id && p.name === podName),
-      })),
-    }
-  }, [ics, pods, node.person.id])
+  return (
+    <SummaryCard
+      people={people}
+      podName={group.podName}
+      publicNote={pod?.publicNote}
+      podId={pod?.id}
+      onPodClick={onPodSelect}
+    />
+  )
+}
 
-  const isCollapsed = collapsedIds?.has(node.person.id) ?? false
+function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
+  const { selectedIds, onSelect, changes, managerSet, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+
+  const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
   const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
+
+  // Collect children by type
+  const managers: ManagerLayout[] = []
+  const unpoddedPeople: Person[] = []
+  const podGroups: PodGroupLayout[] = []
+  for (const child of node.children) {
+    switch (child.type) {
+      case 'manager':
+        managers.push(child)
+        break
+      case 'ic':
+        unpoddedPeople.push(child.person)
+        break
+      case 'podGroup':
+        podGroups.push(child)
+        break
+      default:
+        break
+    }
+  }
 
   return (
     <div className={styles.subtree}>
@@ -150,7 +157,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
           onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
-          onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
+          onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.collapseKey) : undefined}
           onClick={(e) => onSelect(node.person.id, e)}
           onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
           onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
@@ -161,28 +168,15 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
 
       {node.children.length > 0 && !isCollapsed && (
         <div className={styles.children}>
-          {subManagers.map((child) => (
-            <ManagerSubtree key={child.person.id} node={child} />
+          {managers.map((child) => (
+            <ManagerLayoutSubtree key={child.person.id} node={child} />
           ))}
-          {unpoddedICs.length > 0 && icPodGroups.length === 0 ? (
-            <SummaryCard people={unpoddedICs} />
-          ) : (
-            <>
-              {unpoddedICs.length > 0 && (
-                <SummaryCard people={unpoddedICs} />
-              )}
-              {icPodGroups.map((group) => (
-                <SummaryCard
-                  key={group.team}
-                  people={group.people}
-                  podName={group.pod?.name}
-                  publicNote={group.pod?.publicNote}
-                  podId={group.pod?.id}
-                  onPodClick={onPodSelect}
-                />
-              ))}
-            </>
+          {unpoddedPeople.length > 0 && (
+            <SummaryCard people={unpoddedPeople} />
           )}
+          {podGroups.map((group) => (
+            <PodSummaryCard key={group.collapseKey} group={group} />
+          ))}
         </div>
       )}
       {node.children.length > 0 && isCollapsed && (
@@ -193,12 +187,21 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
 }
 
 export default function ManagerView() {
+  const renderLayoutNode = useCallback((node: LayoutNode): ReactNode => {
+    switch (node.type) {
+      case 'manager':
+        return <ManagerLayoutSubtree key={node.person.id} node={node} />
+      default:
+        // ManagerView doesn't render orphan teamGroups or bare ICs at root level
+        return null
+    }
+  }, [])
+
   return (
     <ChartShell
       computeEdges={computeManagerEdges}
-      renderSubtree={(node) => <ManagerSubtree key={node.person.id} node={node} />}
-      viewStyles={styles}
-      wrapOrphansInIcStack={false}
+      computeLayout={computeLayoutTree}
+      renderLayoutNode={renderLayoutNode}
     />
   )
 }

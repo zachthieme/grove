@@ -1,4 +1,5 @@
 import type { Person } from '../api/types'
+import type { LayoutNode, ManagerLayout, ICLayout } from './layoutTree'
 
 export interface EdgeDef {
   fromId: string
@@ -7,63 +8,58 @@ export interface EdgeDef {
 }
 
 /**
- * Compute all edges for the column view: reporting edges (solid) and
- * additional-team edges (dashed). For IC stacks, only one edge is drawn
- * to the first IC in each team group.
+ * Compute all edges for the column view by walking the LayoutNode tree.
+ * Reporting edges (solid) come from the layout structure; additional-team
+ * edges (dashed) still require the flat people list for team lead lookup.
+ *
+ * For IC stacks (consecutive local ICs), only one edge is drawn to the
+ * first IC in the batch.
  */
-export function computeEdges(people: Person[]): EdgeDef[] {
-  const byId = new Map(people.map((p) => [p.id, p]))
-  const childrenMap = new Map<string, Person[]>()
-  for (const p of people) {
-    if (p.managerId && byId.has(p.managerId)) {
-      if (!childrenMap.has(p.managerId)) childrenMap.set(p.managerId, [])
-      childrenMap.get(p.managerId)!.push(p)
-    }
-  }
-
-  // For each parent, split children into managers and ICs.
-  // Draw a line to each manager child individually.
-  // Draw ONE line to the first IC (the stack implies the rest).
+export function computeEdges(layoutRoots: LayoutNode[], people: Person[]): EdgeDef[] {
   const result: EdgeDef[] = []
-  for (const [managerId, children] of childrenMap) {
-    const managerChildren = children.filter((c) =>
-      people.some((p) => p.managerId === c.id)
-    )
-    const icChildren = children.filter((c) =>
-      !people.some((p) => p.managerId === c.id)
-    )
 
-    for (const c of managerChildren) {
-      result.push({ fromId: managerId, toId: c.id })
-    }
-    // For ICs, group by pod (or team if no pod).
-    // If a group has a pod, draw: parent → pod header, pod header → first IC.
-    // If no pod, draw: parent → first IC.
-    //
-    // When all children are ICs (no managers), unpodded ICs render as one
-    // flat stack regardless of team, so use a single group for all of them.
-    const allICs = managerChildren.length === 0
-    const icGroups = new Map<string, { firstIc: Person; hasPod: boolean }>()
-    for (const c of icChildren) {
-      const hasPod = !!c.pod
-      const key = hasPod ? c.pod! : (allICs ? '__unpodded__' : c.team)
-      if (!icGroups.has(key)) {
-        icGroups.set(key, { firstIc: c, hasPod })
+  function walkManager(node: ManagerLayout) {
+    let icBatch: ICLayout[] = []
+
+    const flushIcBatch = () => {
+      if (icBatch.length > 0) {
+        result.push({ fromId: node.person.id, toId: icBatch[0].person.id })
+        icBatch = []
       }
     }
-    for (const [groupKey, { firstIc, hasPod }] of icGroups) {
-      if (hasPod) {
-        const podNodeId = `pod:${managerId}:${groupKey}`
-        result.push({ fromId: managerId, toId: podNodeId })
-        result.push({ fromId: podNodeId, toId: firstIc.id })
-      } else {
-        result.push({ fromId: managerId, toId: firstIc.id })
+
+    for (const child of node.children) {
+      switch (child.type) {
+        case 'manager':
+          flushIcBatch()
+          result.push({ fromId: node.person.id, toId: child.person.id })
+          walkManager(child)
+          break
+        case 'ic':
+          if (child.affiliation !== 'local') {
+            flushIcBatch()
+            result.push({ fromId: node.person.id, toId: child.person.id })
+          } else {
+            icBatch.push(child)
+          }
+          break
+        case 'podGroup':
+          flushIcBatch()
+          result.push({ fromId: node.person.id, toId: child.collapseKey })
+          if (child.members.length > 0) {
+            result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
+          }
+          break
       }
     }
+    flushIcBatch()
   }
 
-  // Additional teams: dashed edges
-  // Find the "lead" of each team — person with reports in that team, or first person
+  for (const root of layoutRoots) {
+    if (root.type === 'manager') walkManager(root)
+  }
+
+  // Dashed cross-team edges (still from people list)
   const byTeam = new Map<string, Person[]>()
   for (const p of people) {
     if (!byTeam.has(p.team)) byTeam.set(p.team, [])
@@ -92,7 +88,7 @@ export function computeEdges(people: Person[]): EdgeDef[] {
 function findTeamLead(
   byTeam: Map<string, Person[]>,
   hasReports: Set<string>,
-  teamName: string
+  teamName: string,
 ): Person | undefined {
   const members = byTeam.get(teamName)
   if (!members || members.length === 0) return undefined

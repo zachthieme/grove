@@ -92,7 +92,7 @@ Single Go binary serving a React SPA via `go:embed`.
 - `web/src/views/ColumnView.tsx` — Detail view: recursive tree with managers horizontal, ICs stacked vertical
 - `web/src/views/ManagerView.tsx` — Manager-only view: managers as nodes, ICs as summary cards
 - `web/src/views/shared.tsx` — Shared `DraggableNode`, `OrgNode`, `buildOrgTree`
-- `web/src/views/columnLayout.ts` — Manager affinity reordering and render item computation
+- `web/src/views/layoutTree.ts` — Unified layout computation: `computeLayoutTree` transforms OrgNode trees into LayoutNode trees (manager affinity reordering, cross-team IC placement, pod/team grouping, orphan grouping, collapse key construction)
 - `web/src/components/PersonNode.tsx` — Person card with status styling, hover actions (+/edit/delete/info)
 - `web/src/components/DetailSidebar.tsx` — Edit form with manager dropdown, status info popover
 - `web/src/components/ColumnMappingModal.tsx` — Column mapping UI for non-standard CSV headers

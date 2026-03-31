@@ -5,7 +5,7 @@ import type { ChartEdge } from '../hooks/useChartLayout'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { useLassoSelect } from '../hooks/useLassoSelect'
 import { buildOrgTree, type OrgNode } from './shared'
-import { OrphanGroup } from './OrphanGroup'
+import type { LayoutNode } from './layoutTree'
 import { ChartProvider } from './ChartContext'
 import { DragBadgeOverlay } from './DragBadgeOverlay'
 import { LassoSvgOverlay } from './LassoSvgOverlay'
@@ -16,28 +16,21 @@ import DeleteConfirmPopover from '../components/DeleteConfirmPopover'
 import styles from './ChartShell.module.css'
 
 export interface ChartShellProps {
-  computeEdges: (people: Person[], roots: OrgNode[]) => ChartEdge[]
-  renderSubtree: (node: OrgNode) => ReactNode
-  renderOrphanSubtree?: (node: OrgNode) => ReactNode
-  renderTeamHeader?: (team: string, count: number, options?: { collapsed?: boolean; onToggleCollapse?: () => void }) => ReactNode
-  /** View-specific styles for OrphanGroup (subtree, nodeSlot, children, icStack, teamHeader) */
-  viewStyles: Record<string, string>
+  computeEdges: (people: Person[], roots: OrgNode[], layoutRoots?: LayoutNode[]) => ChartEdge[]
+  computeLayout: (roots: OrgNode[]) => LayoutNode[]
+  renderLayoutNode: (node: LayoutNode) => ReactNode
   dashedEdges?: boolean
   useGhostPeople?: boolean
   includeAddToTeam?: boolean
-  wrapOrphansInIcStack?: boolean
 }
 
 export default function ChartShell({
   computeEdges,
-  renderSubtree,
-  renderOrphanSubtree,
-  renderTeamHeader,
-  viewStyles,
+  computeLayout,
+  renderLayoutNode,
   dashedEdges,
   useGhostPeople,
   includeAddToTeam,
-  wrapOrphansInIcStack = true,
 }: ChartShellProps) {
   const { people, ghostPeople, managerSet, pods } = usePeople()
   const { changes } = useChanges()
@@ -45,7 +38,14 @@ export default function ChartShell({
   const selection = useSelection()
 
   const roots = useMemo(() => buildOrgTree(people), [people])
-  const edges = useMemo(() => computeEdges(people, roots), [computeEdges, people, roots])
+  const layoutTree = useMemo(
+    () => computeLayout(roots),
+    [computeLayout, roots],
+  )
+  const edges = useMemo(
+    () => computeEdges(people, roots, layoutTree),
+    [computeEdges, people, roots, layoutTree],
+  )
 
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [collapseKey, setCollapseKey] = useState(0)
@@ -116,27 +116,7 @@ export default function ChartShell({
         <div className={styles.container} ref={containerRef} data-role="chart-container">
           <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} dashedEdges={dashedEdges} />
           <div className={styles.forest} data-role="forest">
-            {roots.filter((r) => r.children.length > 0).map((root) => (
-              renderSubtree(root)
-            ))}
-            <OrphanGroup
-              orphans={roots.filter((r) => r.children.length === 0)}
-              roots={roots}
-              selectedIds={selection.selectedIds}
-              onSelect={actions.handleSelect}
-              changes={changes}
-              setNodeRef={setNodeRef}
-              managerSet={managerSet}
-              onAddReport={actions.handleAddReport}
-              onDeletePerson={actions.handleDeletePerson}
-              onInfo={actions.handleShowInfo}
-              styles={viewStyles}
-              wrapInIcStack={wrapOrphansInIcStack}
-              renderSubtree={renderOrphanSubtree ?? renderSubtree}
-              renderTeamHeader={renderTeamHeader}
-              collapsedIds={collapsedIds}
-              onToggleCollapse={handleToggleCollapse}
-            />
+            {layoutTree.map((n) => renderLayoutNode(n))}
           </div>
           {people.length === 1 && roots.length === 1 && roots[0].children.length === 0 && (
             <div className={styles.emptyHint}>

@@ -9,7 +9,7 @@
 **Tests**:
 - `web/e2e/smoke.spec.ts` → "upload CSV and see org chart"
 - `web/e2e/smoke.spec.ts` → "switch between views"
-- `web/src/views/columnLayout.test.ts` → "computeRenderItems"
+- `web/src/views/layoutTree.test.ts` → "computeLayoutTree"
 - `web/src/views/columnEdges.test.ts` → "computeEdges"
 
 ## Behavior
@@ -80,6 +80,62 @@ Spreadsheet-like view of all people. Cells are editable inline. Columns can be s
 
 ## Edge cases
 - Read-only mode (original data view)
+
+---
+
+# Scenario: Layout tree computation
+
+**ID**: LAYOUT-001
+**Area**: views
+**Tests**:
+- `web/src/views/layoutTree.test.ts` → "computeLayoutTree"
+
+## Behavior
+The layout tree transforms flat OrgNode trees into typed LayoutNode trees that both views consume. It handles manager affinity reordering, cross-team IC classification and placement, pod/team grouping, and orphan team grouping.
+
+## Invariants
+- Managers reordered so cross-team-connected teams are adjacent (BFS affinity graph)
+- Single-affiliation ICs attached to their matching manager's crossTeamICs
+- Multi-affiliation ICs placed after highest-indexed matching manager
+- Unaffiliated ICs grouped by pod (if set) or team (if multiple teams)
+- Single-team unpodded ICs left ungrouped
+- Single orphan + single root rendered as ManagerLayout (not grouped)
+- Orphans grouped by team into TeamGroupLayout nodes
+- Empty team falls back to "Unassigned"
+
+## Edge cases
+- No managers (ICs only) — pod grouping still applies
+- All children are ICs — pod grouping within all-IC subtree
+- Single pod group even with one team — creates podGroup for edge anchoring
+
+---
+
+# Scenario: Layout tree abstraction contract
+
+**ID**: LAYOUT-002
+**Area**: views
+**Tests**:
+- `web/src/views/layoutTree.test.ts` → "abstraction leak guards"
+
+## Behavior
+Contract tests that ensure the layout tree abstraction doesn't leak view-specific concerns. Views consume LayoutNodes without needing to re-derive layout decisions from raw Person data.
+
+## Invariants
+- No extra fields on any LayoutNode (no rendering hints like cssClass, direction)
+- Every person appears exactly once in the output (no duplicates, no drops)
+- Pod group members have matching pod field
+- Team group members have matching team field
+- IC affiliation consistent with additionalTeams
+- crossTeamICs always have singleCrossTeam affiliation
+- All collapse keys unique across the tree
+- Manager collapse keys equal person ID
+- Pod collapse keys match pod:{managerId}:{podName}
+- Team collapse keys match orphan:{teamName}
+- Same input produces identical output (deterministic)
+- Adding unrelated person doesn't change existing subtrees (locality)
+
+## Edge cases
+- None — these are structural invariants, not behavior-dependent
 
 ---
 
