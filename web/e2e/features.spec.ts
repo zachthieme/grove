@@ -15,15 +15,15 @@ test.describe('Feature tests', () => {
   test('[ORG-001] drag-and-drop reparent', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await dragPersonTo(page, 'Carol', 'Alice')
-    // Wait for reparent to take effect
+    // Wait for reparent to take effect — dnd-kit needs time to settle
+    await page.waitForTimeout(500)
     await page.locator('[data-role="chart-container"]').click({ position: { x: 5, y: 5 } })
-    await page.waitForTimeout(200)
+    await page.waitForTimeout(300)
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     await enterSidebarEdit(page)
     const managerSelect = sidebarField(page, 'manager')
-    const selectedText = await managerSelect.locator('option:checked').textContent()
-    expect(selectedText).toContain('Alice')
+    await expect(managerSelect.locator('option:checked')).toContainText('Alice', { timeout: 3000 })
   })
 
   test('[VIEW-006] lasso multi-select', async ({ page }) => {
