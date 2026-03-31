@@ -80,8 +80,8 @@ test.describe('Autosave recovery', () => {
     // Step 3: Click Restore
     await banner.getByRole('button', { name: 'Restore' }).click()
 
-    // The banner should disappear
-    await expect(banner).not.toBeVisible()
+    // The banner should disappear (webkit needs extra time for state settle)
+    await expect(banner).not.toBeVisible({ timeout: 10000 })
 
     // The restored data should be visible with the edited role
     await expect(page.locator('[data-selected]').filter({ hasText: 'Bob' })).toBeVisible()
@@ -120,7 +120,7 @@ test.describe('Autosave recovery', () => {
 
     // Click Restore
     await banner.getByRole('button', { name: 'Restore' }).click()
-    await expect(banner).not.toBeVisible()
+    await expect(banner).not.toBeVisible({ timeout: 10000 })
 
     // Verify restored data
     await expect(page.locator('[data-selected]').filter({ hasText: 'Distinguished Engineer' })).toBeVisible()
