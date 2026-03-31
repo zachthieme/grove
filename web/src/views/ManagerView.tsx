@@ -5,7 +5,8 @@ import type { ChartEdge } from '../hooks/useChartLayout'
 import type { EditBuffer } from '../store/useInteractionState'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChart } from './ChartContext'
-import { DraggableNode, type OrgNode } from './shared'
+import { type OrgNode } from './shared'
+import PersonNode from '../components/PersonNode'
 import ChartShell from './ChartShell'
 import styles from './ManagerView.module.css'
 
@@ -133,7 +134,7 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
   return (
     <div className={styles.subtree}>
       <div className={styles.nodeSlot}>
-        <DraggableNode
+        <PersonNode
           person={node.person}
           selected={selectedIds.has(node.person.id)}
           changes={changes?.get(node.person.id)}
@@ -150,11 +151,11 @@ function ManagerSubtree({ node }: { node: OrgNode }) {
           onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
           onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
           onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
-          onSelect={(e) => onSelect(node.person.id, e)}
+          onClick={(e) => onSelect(node.person.id, e)}
           onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
           onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
           onCommitEdits={onCommitEdits}
-          nodeRef={setNodeRef(node.person.id)}
+          cardRef={setNodeRef(node.person.id)}
         />
       </div>
 

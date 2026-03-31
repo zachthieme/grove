@@ -3,10 +3,11 @@ import type { Pod } from '../api/types'
 import type { EditBuffer } from '../store/useInteractionState'
 import { computeEdges } from './columnEdges'
 import { computeRenderItems } from './columnLayout'
-import { DraggableNode, type OrgNode } from './shared'
+import { type OrgNode } from './shared'
+import PersonNode from '../components/PersonNode'
 import { buildPodDropId } from '../utils/ids'
 import { useChart } from './ChartContext'
-import { PodHeaderNode } from './PodHeaderNode'
+import GroupHeaderNode from '../components/GroupHeaderNode'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
@@ -32,14 +33,16 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
     const podNodeId = buildPodDropId(managerId, podName)
     const podCollapsed = collapsedIds?.has(podNodeId) ?? false
     return (
-      <PodHeaderNode
-        podName={podName}
-        memberCount={memberCount}
-        publicNote={pod?.publicNote}
+      <GroupHeaderNode
+        nodeId={podNodeId}
+        name={podName}
+        count={memberCount}
+        noteText={pod?.publicNote}
         onAdd={onAddToTeam ? () => onAddToTeam(managerId, pod?.team ?? podName, podName) : undefined}
+        onInfo={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
         onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
-        nodeRef={setNodeRef(podNodeId)}
-        podNodeId={podNodeId}
+        cardRef={setNodeRef(podNodeId)}
+        droppableId={podNodeId}
         collapsed={podCollapsed}
         onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(podNodeId) : undefined}
       />
@@ -50,7 +53,7 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
     const isEditing = interactionMode === 'editing' && editingPersonId === child.person.id
     return (
       <div key={child.person.id} className={styles.nodeSlot}>
-        <DraggableNode
+        <PersonNode
           person={child.person}
           selected={selectedIds.has(child.person.id)}
           changes={changes?.get(child.person.id)}
@@ -64,11 +67,11 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
           onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
           onFocus={onFocus && managerSet?.has(child.person.id) ? () => onFocus(child.person.id) : undefined}
           onEditMode={onEditMode ? () => onEditMode(child.person.id) : undefined}
-          onSelect={(e) => onSelect(child.person.id, e)}
+          onClick={(e) => onSelect(child.person.id, e)}
           onEnterEditing={onEnterEditing ? () => onEnterEditing(child.person) : undefined}
           onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
           onCommitEdits={onCommitEdits}
-          nodeRef={setNodeRef(child.person.id)}
+          cardRef={setNodeRef(child.person.id)}
         />
       </div>
     )
@@ -192,7 +195,7 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
 
   const managerNodeEl = (
     <div className={styles.nodeSlot}>
-      <DraggableNode
+      <PersonNode
         person={node.person}
         selected={selectedIds.has(node.person.id)}
         changes={changes?.get(node.person.id)}
@@ -209,11 +212,11 @@ function SubtreeNode({ node, crossTeamICs }: { node: OrgNode; crossTeamICs?: Org
         onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
         onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
         onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.person.id) : undefined}
-        onSelect={(e) => onSelect(node.person.id, e)}
+        onClick={(e) => onSelect(node.person.id, e)}
         onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
         onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
         onCommitEdits={onCommitEdits}
-        nodeRef={setNodeRef(node.person.id)}
+        cardRef={setNodeRef(node.person.id)}
       />
     </div>
   )
@@ -243,7 +246,7 @@ export default function ColumnView() {
     <ChartShell
       computeEdges={(people) => computeEdges(people)}
       renderSubtree={(node) => <SubtreeNode key={node.person.id} node={node} />}
-      renderTeamHeader={(team, count, opts) => <PodHeaderNode podName={team} memberCount={count} collapsed={opts?.collapsed} onToggleCollapse={opts?.onToggleCollapse} />}
+      renderTeamHeader={(team, count, opts) => <GroupHeaderNode nodeId={`orphan:${team}`} name={team} count={count} collapsed={opts?.collapsed} onToggleCollapse={opts?.onToggleCollapse} />}
       viewStyles={styles}
       dashedEdges
       useGhostPeople

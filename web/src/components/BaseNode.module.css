@@ -1,0 +1,206 @@
+.wrapper {
+  position: relative;
+  animation: nodeEnter 0.3s ease-out both;
+}
+
+@keyframes nodeEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cardArea {
+  position: relative;
+}
+
+.node {
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
+}
+
+.node:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.manager {
+  border-left: 3.5px solid var(--grove-green);
+}
+
+.group {
+  border-left: 3.5px solid var(--grove-green);
+}
+
+.selected,
+.selected:hover {
+  border-color: var(--grove-green);
+  border-left-color: var(--grove-green);
+  box-shadow: var(--shadow-focus);
+}
+
+/* Status styles */
+.recruiting {
+  border-color: var(--grove-green-muted);
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+  background: var(--grove-green-soft);
+}
+
+.future {
+  border-color: var(--border-soft);
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+  background: var(--surface-sunken);
+}
+
+.transfer {
+  border-color: var(--grove-gold);
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+  background: var(--grove-gold-light);
+}
+
+.ghost {
+  opacity: 0.35;
+  border-style: dashed;
+  text-decoration: line-through;
+}
+
+.placeholder {
+  border-style: dashed;
+  border-color: var(--border-soft);
+  background: var(--surface-sunken);
+  cursor: default;
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+/* Employment type right accent bar */
+.empRight {
+  border-right: 3.5px solid var(--emp-color);
+}
+
+/* Warning indicator */
+.warningDot {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 12px;
+  line-height: 1;
+  z-index: 2;
+  cursor: help;
+}
+
+.privateIcon {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  font-size: 11px;
+  line-height: 1;
+  z-index: 2;
+  opacity: 0.6;
+}
+
+.noteIcon {
+  position: absolute;
+  bottom: -8px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+  border: 1px solid var(--border-medium);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 3;
+  padding: 0;
+}
+
+.noteIcon:hover, .noteIconActive {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.notePanel {
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--surface-note);
+  border: 1px solid var(--grove-gold-light);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  animation: noteSlideIn 0.15s ease-out;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes noteSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notePanelText {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.collapseToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4px auto 0;
+  width: 24px;
+  height: 16px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-toolbar);
+  border: 1px solid var(--border-soft);
+  border-radius: 0 0 6px 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  z-index: 2;
+}
+
+.collapseToggle:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-medium);
+  background: var(--surface-raised);
+}
+
+/* Drag / Drop */
+.dragHandle {
+  cursor: grab;
+  transition: opacity 0.15s;
+}
+
+.dragging {
+  opacity: 0.3;
+}
+
+.dropTarget {
+  border-radius: 6px;
+  transition: outline 0.15s, background 0.15s;
+}
+
+.dropOver {
+  outline: 2px solid var(--grove-green, #3d6b35);
+  outline-offset: 2px;
+  background: var(--grove-green-soft, #e8f0e6);
+}

@@ -6,6 +6,8 @@ import { makePerson } from '../test-helpers'
 
 vi.mock('@dnd-kit/core', () => ({
   DragOverlay: ({ children }: { children: React.ReactNode }) => <div data-testid="drag-overlay">{children}</div>,
+  useDraggable: () => ({ attributes: {}, listeners: {}, setNodeRef: vi.fn(), isDragging: false }),
+  useDroppable: () => ({ setNodeRef: vi.fn(), isOver: false }),
 }))
 
 afterEach(() => cleanup())

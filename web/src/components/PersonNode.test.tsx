@@ -33,25 +33,25 @@ describe('PersonNode behavior', () => {
 
   it('hover shows action buttons, unhover hides them', async () => {
     const user = userEvent.setup()
-    const { container } = render(
+    render(
       <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
     )
-    const wrapper = container.firstElementChild!
+    const card = screen.getByTestId('person-Default Person')
     expect(screen.queryByLabelText('Delete')).toBeNull()
 
-    await user.hover(wrapper)
+    await user.hover(card)
     expect(screen.getByLabelText('Delete')).toBeTruthy()
 
-    await user.unhover(wrapper)
+    await user.unhover(card)
     expect(screen.queryByLabelText('Delete')).toBeNull()
   })
 
   it('ghost mode suppresses action buttons even on hover', async () => {
     const user = userEvent.setup()
-    const { container } = render(
+    render(
       <PersonNode person={makePerson()} ghost onDelete={vi.fn()} />,
     )
-    await user.hover(container.firstElementChild!)
+    await user.hover(screen.getByTestId('person-Default Person'))
     expect(screen.queryByLabelText('Delete')).toBeNull()
   })
 
@@ -164,20 +164,20 @@ describe('PersonNode behavior', () => {
     it('[CREATE-005] shows "Add direct report" button on hover when onAdd is provided', async () => {
       const user = userEvent.setup()
       const onAdd = vi.fn()
-      const { container } = render(
+      render(
         <PersonNode person={makePerson({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
       )
-      await user.hover(container.firstElementChild!)
+      await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.getByLabelText('Add direct report')).toBeTruthy()
     })
 
     it('[CREATE-005] clicking "+" on a leaf node calls onAdd', async () => {
       const user = userEvent.setup()
       const onAdd = vi.fn()
-      const { container } = render(
+      render(
         <PersonNode person={makePerson({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
       )
-      await user.hover(container.firstElementChild!)
+      await user.hover(screen.getByTestId('person-Default Person'))
       // fireEvent avoids pointer-move side effects that would trigger mouseLeave on the wrapper
       fireEvent.click(screen.getByLabelText('Add direct report'))
       expect(onAdd).toHaveBeenCalledTimes(1)
@@ -185,10 +185,10 @@ describe('PersonNode behavior', () => {
 
     it('[CREATE-005] does not show "+" button when onAdd is not provided', async () => {
       const user = userEvent.setup()
-      const { container } = render(
+      render(
         <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
       )
-      await user.hover(container.firstElementChild!)
+      await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.queryByLabelText('Add direct report')).toBeNull()
     })
   })
@@ -198,19 +198,19 @@ describe('PersonNode behavior', () => {
     it('[CREATE-003] shows "Add manager above" button on hover when onAddParent is provided', async () => {
       const user = userEvent.setup()
       const onAddParent = vi.fn()
-      const { container } = render(
+      render(
         <PersonNode person={makePerson()} onAddParent={onAddParent} onClick={vi.fn()} />,
       )
-      await user.hover(container.firstElementChild!)
+      await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.getByLabelText('Add manager above')).toBeTruthy()
     })
 
     it('[CREATE-003] does not show "Add manager above" button when onAddParent is not provided', async () => {
       const user = userEvent.setup()
-      const { container } = render(
+      render(
         <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
       )
-      await user.hover(container.firstElementChild!)
+      await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.queryByLabelText('Add manager above')).toBeNull()
     })
   })

@@ -1,6 +1,6 @@
 import type { PersonChange } from '../hooks/useOrgDiff'
 import type { OrgNode } from './shared'
-import { DraggableNode } from './shared'
+import PersonNode from '../components/PersonNode'
 
 interface OrphanGroupProps {
   orphans: OrgNode[]
@@ -31,7 +31,7 @@ export function OrphanGroup({
 
   const renderOrphanNode = (child: OrgNode) => (
     <div key={child.person.id} className={styles.nodeSlot}>
-      <DraggableNode
+      <PersonNode
         person={child.person}
         selected={selectedIds.has(child.person.id)}
         changes={changes?.get(child.person.id)}
@@ -39,8 +39,8 @@ export function OrphanGroup({
         onAdd={onAddReport ? () => onAddReport(child.person.id) : undefined}
         onDelete={onDeletePerson ? () => onDeletePerson(child.person.id) : undefined}
         onInfo={onInfo ? () => onInfo(child.person.id) : undefined}
-        onSelect={(e) => onSelect(child.person.id, e)}
-        nodeRef={setNodeRef(child.person.id)}
+        onClick={(e) => onSelect(child.person.id, e)}
+        cardRef={setNodeRef(child.person.id)}
       />
     </div>
   )
