@@ -6,6 +6,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 export async function uploadCSV(page: Page, csvPath: string) {
+  // Suppress the onboarding tour so driver.js overlay doesn't block interactions
+  await page.evaluate(() => localStorage.setItem('grove-tour-seen', '1'))
   const absPath = path.resolve(__dirname, '../../testdata', csvPath)
   // Use the upload prompt file input (in main) if visible, otherwise fall back to the toolbar's hidden input
   const mainInput = page.getByRole('main').locator('input[type="file"]')
