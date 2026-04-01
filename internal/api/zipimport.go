@@ -292,7 +292,13 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 			}
 		}
 
-		snapCopy := s.snaps.CopyAll()
+		var diskWarns []string
+		if err := s.snaps.DeleteStore(); err != nil {
+			diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
+		}
+		if err := s.snaps.PersistAll(); err != nil {
+			diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
+		}
 		resp := &UploadResponse{
 			Status:    UploadReady,
 			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
@@ -300,14 +306,6 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		}
 		s.mu.Unlock()
 
-		// Disk I/O outside the lock
-		var diskWarns []string
-		if err := s.snaps.DeleteStore(); err != nil {
-			diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
-		}
-		if err := s.snaps.PersistCopy(snapCopy); err != nil {
-			diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
-		}
 		resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
 
 		return resp, nil

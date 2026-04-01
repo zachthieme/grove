@@ -1,7 +1,6 @@
 package api
 
 import (
-	"maps"
 	"sort"
 	"time"
 )
@@ -107,20 +106,10 @@ func (sm *SnapshotManager) ReplaceAll(snapshots map[string]snapshotData) {
 	sm.snapshots = snapshots
 }
 
-// CopyAll returns a shallow copy of the snapshot map, safe for use outside the lock.
-func (sm *SnapshotManager) CopyAll() map[string]snapshotData {
-	if sm.snapshots == nil {
-		return nil
-	}
-	cp := make(map[string]snapshotData, len(sm.snapshots))
-	maps.Copy(cp, sm.snapshots)
-	return cp
-}
-
-// PersistCopy writes a pre-copied snapshot map to the store. Use this to persist
-// outside the lock: copy under lock with CopyAll, then call PersistCopy without lock.
-func (sm *SnapshotManager) PersistCopy(snapshots map[string]snapshotData) error {
-	return sm.store.Write(snapshots)
+// PersistAll writes the current snapshot map to the store.
+// Must be called with the external lock held.
+func (sm *SnapshotManager) PersistAll() error {
+	return sm.store.Write(sm.snapshots)
 }
 
 // DeleteStore removes the persisted snapshot file.

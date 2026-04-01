@@ -132,7 +132,7 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		return nil, errValidation("parsing pending zip: %v", err)
 	}
 
-	// Commit state under lock — check epoch hasn't changed
+	// Commit state and persist under lock
 	s.mu.Lock()
 	if s.pendingEpoch != epoch {
 		s.mu.Unlock()
@@ -156,19 +156,17 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		}
 	}
 
-	snapCopy := s.snaps.CopyAll()
-	// s.pending already cleared in Phase 1
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
-	s.mu.Unlock()
-
-	// Disk I/O outside the lock
 	var diskWarns []string
 	if err := s.snaps.DeleteStore(); err != nil {
 		diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
 	}
-	if err := s.snaps.PersistCopy(snapCopy); err != nil {
+	if err := s.snaps.PersistAll(); err != nil {
 		diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
 	}
+
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	s.mu.Unlock()
+
 	resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
 	return resp, nil
 }

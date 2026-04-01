@@ -7,13 +7,11 @@ import (
 
 func (s *OrgService) SaveSnapshot(ctx context.Context, name string) error {
 	s.mu.Lock()
-	err := s.snaps.Save(name, s.working, s.podMgr.GetPods(), s.settings)
-	snapCopy := s.snaps.CopyAll()
-	s.mu.Unlock()
-	if err != nil {
+	defer s.mu.Unlock()
+	if err := s.snaps.Save(name, s.working, s.podMgr.GetPods(), s.settings); err != nil {
 		return err
 	}
-	if err := s.snaps.PersistCopy(snapCopy); err != nil {
+	if err := s.snaps.PersistAll(); err != nil {
 		return fmt.Errorf("persisting snapshot: %w", err)
 	}
 	return nil
@@ -61,10 +59,9 @@ func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, e
 
 func (s *OrgService) DeleteSnapshot(ctx context.Context, name string) error {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.snaps.Delete(name)
-	snapCopy := s.snaps.CopyAll()
-	s.mu.Unlock()
-	if err := s.snaps.PersistCopy(snapCopy); err != nil {
+	if err := s.snaps.PersistAll(); err != nil {
 		return fmt.Errorf("persisting snapshot deletion: %w", err)
 	}
 	return nil
