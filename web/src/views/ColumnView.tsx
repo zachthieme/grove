@@ -9,12 +9,11 @@ import { useChart } from './ChartContext'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
-function LayoutSubtree({ node, crossTeamICs }: { node: ManagerLayout; crossTeamICs?: ICLayout[] }) {
+function LayoutSubtree({ node }: { node: ManagerLayout }) {
   const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
   const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
-  const hasCrossTeam = !!(crossTeamICs && crossTeamICs.length > 0 && !isCollapsed)
 
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
@@ -100,7 +99,7 @@ function LayoutSubtree({ node, crossTeamICs }: { node: ManagerLayout; crossTeamI
         case 'manager':
           flushIcBatch()
           elements.push(
-            <LayoutSubtree key={child.person.id} node={child} crossTeamICs={child.crossTeamICs} />
+            <LayoutSubtree key={child.person.id} node={child} />
           )
           break
         case 'ic':
@@ -114,6 +113,10 @@ function LayoutSubtree({ node, crossTeamICs }: { node: ManagerLayout; crossTeamI
         case 'podGroup':
           flushIcBatch()
           elements.push(renderPodGroup(child))
+          break
+        case 'teamGroup':
+          flushIcBatch()
+          elements.push(<LayoutTeamGroup key={child.collapseKey} group={child} />)
           break
         default:
           break
@@ -153,13 +156,8 @@ function LayoutSubtree({ node, crossTeamICs }: { node: ManagerLayout; crossTeamI
   )
 
   return (
-    <div className={`${styles.subtree} ${hasCrossTeam ? styles.subtreeLeftAligned : ''}`}>
-      {hasCrossTeam ? (
-        <div className={styles.managerWithCrossTeam}>
-          {managerNodeEl}
-          {crossTeamICs!.map(ic => renderIC(ic))}
-        </div>
-      ) : managerNodeEl}
+    <div className={styles.subtree}>
+      {managerNodeEl}
       {node.children.length > 0 && !isCollapsed && (
         <div className={styles.children}>
           {childElements}
@@ -217,7 +215,7 @@ export default function ColumnView() {
   const renderLayoutNode = useCallback((node: LayoutNode): ReactNode => {
     switch (node.type) {
       case 'manager':
-        return <LayoutSubtree key={node.person.id} node={node} crossTeamICs={node.crossTeamICs} />
+        return <LayoutSubtree key={node.person.id} node={node} />
       case 'teamGroup':
         return <LayoutTeamGroup key={node.collapseKey} group={node} />
       default:

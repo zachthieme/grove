@@ -272,7 +272,7 @@ function collectCollapseKeys(nodes: LayoutNode[]): string[] {
 
 /** Known allowed fields per LayoutNode type. */
 const ALLOWED_FIELDS: Record<string, Set<string>> = {
-  manager: new Set(['type', 'person', 'collapseKey', 'children', 'crossTeamICs']),
+  manager: new Set(['type', 'person', 'collapseKey', 'children']),
   ic: new Set(['type', 'person', 'affiliation']),
   podGroup: new Set(['type', 'podName', 'managerId', 'collapseKey', 'members']),
   teamGroup: new Set(['type', 'teamName', 'collapseKey', 'members']),

@@ -8,7 +8,6 @@ export interface ManagerLayout {
   person: Person
   collapseKey: string
   children: LayoutNode[]
-  crossTeamICs: ICLayout[]
 }
 
 export interface ICLayout {
@@ -290,6 +289,5 @@ function buildManagerLayout(node: OrgNode): ManagerLayout {
     person: node.person,
     collapseKey: node.person.id,
     children,
-    crossTeamICs: [],
   }
 }

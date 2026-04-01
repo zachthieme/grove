@@ -50,6 +50,13 @@ export function computeEdges(layoutRoots: LayoutNode[], people: Person[]): EdgeD
             result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
           }
           break
+        case 'teamGroup':
+          flushIcBatch()
+          result.push({ fromId: node.person.id, toId: child.collapseKey })
+          if (child.members.length > 0) {
+            result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
+          }
+          break
       }
     }
     flushIcBatch()
