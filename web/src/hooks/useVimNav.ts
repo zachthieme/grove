@@ -6,6 +6,7 @@ interface VimNavOptions {
   working: Person[]
   selectedId: string | null
   setSelectedId: (id: string | null) => void
+  batchSelect?: (ids: Set<string>) => void
   onDelete?: (id: string) => void
   onAddReport?: (id: string) => void
   onAddParent?: (childId: string) => void
@@ -17,19 +18,19 @@ interface VimNavOptions {
 /**
  * Vim-style keyboard navigation for the org chart.
  *
- * j/k — move down/up spatially
- * h   — move left spatially
- * l   — move right spatially
- * i/I — enter edit mode (sidebar)
- * o   — add report under selected
- * O   — add parent above selected
- * d   — delete selected (sends to recycle bin)
- * x   — cut selected (mark for move)
- * p   — paste (move cut person under selected)
- * /   — focus search
- * Esc — cancel cut / deselect
+ * j/k / ArrowDown/Up   — move down/up spatially
+ * h/l / ArrowLeft/Right — move left/right spatially
+ * i/I  — enter edit mode (sidebar)
+ * o    — add report under selected
+ * O    — add parent above selected
+ * d    — delete selected (sends to recycle bin)
+ * x    — cut selected (mark for move)
+ * p    — paste (move cut person under selected)
+ * /    — focus search
+ * Ctrl+A / Cmd+A — select all people
+ * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddReport, onAddParent, onReparent, onSidebarEdit, enabled }: VimNavOptions) {
+export function useVimNav({ working, selectedId, setSelectedId, batchSelect, onDelete, onAddReport, onAddParent, onReparent, onSidebarEdit, enabled }: VimNavOptions) {
   const [cutId, setCutId] = useState<string | null>(null)
   const cancelCut = useCallback(() => setCutId(null), [])
 
@@ -102,6 +103,16 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
       const tag = el?.tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       if (el?.isContentEditable) return
+
+      // Ctrl+A / Cmd+A: select all people
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault()
+        if (batchSelect) {
+          batchSelect(new Set(working.map(p => p.id)))
+        }
+        return
+      }
+
       if (e.metaKey || e.ctrlKey || e.altKey) return
 
       if (e.key === '/') {
@@ -117,26 +128,45 @@ export function useVimNav({ working, selectedId, setSelectedId, onDelete, onAddR
         return
       }
 
-      if (['h', 'j', 'k', 'l'].includes(e.key)) {
-        e.preventDefault()
-        navigateSpatial(e.key as 'h' | 'j' | 'k' | 'l')
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur()
-        }
-        return
-      }
-
-      if (['o', 'O', 'd', 'x', 'p'].includes(e.key)) {
-        e.preventDefault()
-        navigate(e.key)
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur()
-        }
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'j':
+          e.preventDefault()
+          navigateSpatial('j')
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          break
+        case 'ArrowUp':
+        case 'k':
+          e.preventDefault()
+          navigateSpatial('k')
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          break
+        case 'ArrowRight':
+        case 'l':
+          e.preventDefault()
+          navigateSpatial('l')
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          break
+        case 'ArrowLeft':
+        case 'h':
+          e.preventDefault()
+          navigateSpatial('h')
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          break
+        case 'o':
+        case 'O':
+        case 'd':
+        case 'x':
+        case 'p':
+          e.preventDefault()
+          navigate(e.key)
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          break
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [enabled, navigate, navigateSpatial, selectedId])
+  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working])
 
   return { cutId, cancelCut }
 }

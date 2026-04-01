@@ -189,7 +189,7 @@ function AppOverlays({ logPanelOpen, setLogPanelOpen }: {
 function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boolean; setSidebarEditing: (v: boolean) => void }) {
   const { working, remove, add, reparent, canUndo, canRedo, undo, redo, loaded, snapshots, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgData()
   const { viewMode, headPersonId, setHead, showAllEmploymentTypes } = useUI()
-  const { selectedIds, setSelectedId, clearSelection, interactionMode, revertEdits } = useSelection()
+  const { selectedIds, setSelectedId, clearSelection, batchSelect, interactionMode, revertEdits } = useSelection()
   const { infoPopoverId, clearInfoPopover, handleAddParent } = useActions()
 
   const { themePref, changeTheme } = useTheme()
@@ -222,7 +222,7 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
   }, [working, add])
 
   const { cutId, cancelCut } = useVimNav({
-    working, selectedId, setSelectedId,
+    working, selectedId, setSelectedId, batchSelect,
     onDelete: remove, onAddReport: vimAddReport, onAddParent: handleAddParent, onReparent: reparent,
     onSidebarEdit: () => {
       if (interactionMode === 'editing') revertEdits()
