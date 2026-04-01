@@ -6,7 +6,7 @@ import type { EditBuffer } from '../store/useInteractionState'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChart } from './ChartContext'
 import { type OrgNode } from './shared'
-import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout } from './layoutTree'
+import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
 import PersonNode from '../components/PersonNode'
 import ChartShell from './ChartShell'
 import styles from './ManagerView.module.css'
@@ -122,6 +122,7 @@ function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
   const managers: ManagerLayout[] = []
   const unpoddedPeople: Person[] = []
   const podGroups: PodGroupLayout[] = []
+  const teamGroups: TeamGroupLayout[] = []
   for (const child of node.children) {
     switch (child.type) {
       case 'manager':
@@ -132,6 +133,9 @@ function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
         break
       case 'podGroup':
         podGroups.push(child)
+        break
+      case 'teamGroup':
+        teamGroups.push(child)
         break
       default:
         break
@@ -177,6 +181,9 @@ function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
           {podGroups.map((group) => (
             <PodSummaryCard key={group.collapseKey} group={group} />
           ))}
+          {teamGroups.map((group) => (
+            <SummaryCard key={group.collapseKey} people={group.members.map(m => m.person)} podName={group.teamName} />
+          ))}
         </div>
       )}
       {node.children.length > 0 && isCollapsed && (
@@ -191,8 +198,13 @@ export default function ManagerView() {
     switch (node.type) {
       case 'manager':
         return <ManagerLayoutSubtree key={node.person.id} node={node} />
+      case 'teamGroup':
+        return (
+          <div key={node.collapseKey} className={styles.subtree}>
+            <SummaryCard people={node.members.map(m => m.person)} podName={node.teamName} />
+          </div>
+        )
       default:
-        // ManagerView doesn't render orphan teamGroups or bare ICs at root level
         return null
     }
   }, [])

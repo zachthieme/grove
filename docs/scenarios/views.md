@@ -49,6 +49,7 @@ Shows only managers as nodes, with ICs summarized as cards under each manager. I
 - ICs grouped by pod when pods exist (sorted alphabetically)
 - Pod cards show pod name, member count, and truncated public note (max 50 chars)
 - Same drag-drop and lasso behavior as column view
+- Orphan nodes (people with no manager and no reports) rendered as team group summaries
 
 ## Edge cases
 - Manager with zero ICs in any status group → that group row hidden
