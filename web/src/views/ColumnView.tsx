@@ -1,4 +1,4 @@
-import { useMemo, useCallback, type ReactNode } from 'react'
+import { memo, useMemo, useCallback, type ReactNode } from 'react'
 import type { Pod } from '../api/types'
 import { computeEdges } from './columnEdges'
 import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
@@ -9,14 +9,14 @@ import { usePersonNodeProps } from '../hooks/usePersonNodeProps'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
-function ICNode({ ic }: { ic: ICLayout }) {
+const ICNode = memo(function ICNode({ ic }: { ic: ICLayout }) {
   const props = usePersonNodeProps(ic.person)
   return (
     <div className={styles.nodeSlot}>
       <PersonNode person={ic.person} {...props} />
     </div>
   )
-}
+})
 
 function LayoutSubtree({ node }: { node: ManagerLayout }) {
   const { selectedPodId, pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
@@ -137,7 +137,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
   )
 }
 
-function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
+const LayoutTeamGroup = memo(function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
   const { collapsedIds, onToggleCollapse, onSelect, selectedIds } = useChart()
   const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
 
@@ -164,7 +164,7 @@ function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
       )}
     </div>
   )
-}
+})
 
 export default function ColumnView() {
   const renderLayoutNode = useCallback((node: LayoutNode): ReactNode => {

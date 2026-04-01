@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import BaseNode, { type BaseNodeActions } from './BaseNode'
 import styles from './GroupHeaderNode.module.css'
 
@@ -17,7 +18,7 @@ interface Props {
   dragData?: Record<string, unknown>
 }
 
-export default function GroupHeaderNode({ nodeId, name, count, noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId, dragData }: Props) {
+export default memo(function GroupHeaderNode({ nodeId, name, count, noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId, dragData }: Props) {
   const actions: BaseNodeActions | undefined = (onAdd || onInfo)
     ? {
         onAdd: onAdd ? (e) => { e.stopPropagation(); onAdd() } : undefined,
@@ -47,4 +48,4 @@ export default function GroupHeaderNode({ nodeId, name, count, noteText, collaps
       <div className={styles.count}>{count} {count === 1 ? 'person' : 'people'}</div>
     </BaseNode>
   )
-}
+})

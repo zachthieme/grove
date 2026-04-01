@@ -1,5 +1,5 @@
 // Scenarios: VIEW-002
-import { useCallback, type ReactNode } from 'react'
+import { memo, useCallback, type ReactNode } from 'react'
 import type { Person } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
@@ -112,7 +112,7 @@ function PodSummaryCard({ group }: { group: PodGroupLayout }) {
   )
 }
 
-function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
+const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
   const { collapsedIds, onToggleCollapse } = useChart()
   const managerProps = usePersonNodeProps(node.person)
 
@@ -175,7 +175,7 @@ function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
       )}
     </div>
   )
-}
+})
 
 export default function ManagerView() {
   const renderLayoutNode = useCallback((node: LayoutNode): ReactNode => {
