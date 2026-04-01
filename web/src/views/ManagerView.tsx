@@ -2,9 +2,9 @@
 import { useCallback, type ReactNode } from 'react'
 import type { Person } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
-import type { EditBuffer } from '../store/useInteractionState'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChart } from './ChartContext'
+import { usePersonNodeProps } from '../hooks/usePersonNodeProps'
 import { type OrgNode } from './shared'
 import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
 import PersonNode from '../components/PersonNode'
@@ -113,10 +113,10 @@ function PodSummaryCard({ group }: { group: PodGroupLayout }) {
 }
 
 function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { selectedIds, onSelect, changes, managerSet, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { collapsedIds, onToggleCollapse } = useChart()
+  const managerProps = usePersonNodeProps(node.person)
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
-  const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
 
   // Collect children by type
   const managers: ManagerLayout[] = []
@@ -147,26 +147,10 @@ function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
       <div className={styles.nodeSlot}>
         <PersonNode
           person={node.person}
-          selected={selectedIds.has(node.person.id)}
-          changes={changes?.get(node.person.id)}
-          showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
-          isManager={managerSet?.has(node.person.id)}
+          showTeam={node.children.length > 0 || !!managerProps.isManager}
           collapsed={node.children.length > 0 ? isCollapsed : undefined}
-          editing={isNodeEditing}
-          editBuffer={isNodeEditing ? editBuffer : null}
-          focusField={isNodeEditing ? 'name' : null}
-          onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
-          onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
-          onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
-          onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
-          onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
-          onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
           onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.collapseKey) : undefined}
-          onClick={(e) => onSelect(node.person.id, e)}
-          onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
-          onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
-          onCommitEdits={onCommitEdits}
-          cardRef={setNodeRef(node.person.id)}
+          {...managerProps}
         />
       </div>
 
