@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.12.0
+
+### Bug Fixes
+- **Upload/ConfirmMapping race** (#107): Added epoch counter to detect when a concurrent upload supersedes pending data — ConfirmMapping returns 409 conflict instead of silently losing the second upload
+- **Snapshot persistence race** (#108): Moved snapshot persistence inside OrgService mutex so concurrent saves can't overwrite each other on disk; removed CopyAll/PersistCopy pattern
+- **ManagerView orphan nodes** (#105): ManagerView now renders teamGroup and podGroup nodes instead of silently dropping them
+- **Search navigation** (#106): Search result selection scrolls to person card by stable UUID instead of name, fixing duplicate-name lookup failures
+- **Autosave retry** (#113): Server autosave failures now retry 3 times with exponential backoff (1s/2s/4s) instead of fire-and-forget
+
+### Features
+- **Pod/group selection** (#99): Pod and team group headers highlight when selected, with `selectedPodId` threaded through ChartContext
+- **Group drag** (#98): Dragging a pod or team group header bulk-moves all members via `dragData.memberIds`
+- **usePersonNodeProps hook** (#102): Centralized ChartContext-to-PersonNode prop mapping — ColumnView LayoutSubtree destructure reduced from 23 to 7 properties
+- **Arrow key navigation** (#115): Arrow keys (Up/Down/Left/Right) work as aliases for vim navigation (k/j/h/l)
+- **Ctrl+A select-all** (#115): Ctrl+A / Cmd+A selects all visible people
+- **Keyboard drag-drop** (#115): Enabled dnd-kit KeyboardSensor — Space to pick up, arrow keys to move, Space to drop, Escape to cancel
+
+### Security
+- **Snapshot name validation** (#114): Names validated against `^[a-zA-Z0-9][a-zA-Z0-9 _\-\.]*$`, max 100 characters, rejects empty/path-traversal strings
+- **CSRF protection** (#114): All POST/DELETE endpoints require `X-Requested-With: XMLHttpRequest` header; frontend API client sends it automatically
+
+### Performance
+- **TableView virtualization** (#109): Rows rendered with `@tanstack/react-virtual` — scales to 5000+ rows with overscan of 20
+- **Edge culling** (#109): SVG edge lines skip computation for edges where both endpoints are off-screen; moved from `useLayoutEffect` to `useEffect` (non-blocking)
+- **React.memo audit** (#109): Memoized ICNode, LayoutTeamGroup, ManagerLayoutSubtree, GroupHeaderNode to prevent unnecessary re-renders
+
+### Refactoring
+- **Layout tree pipeline** (#100): Decomposed 120-line `buildManagerLayout` into `classifyICs` and `groupUnaffiliated` sub-functions
+- **crossTeamICs removed** (#104): Removed `crossTeamICs` field from `ManagerLayout` — views derive cross-team ICs from children array by `affiliation`
+- **PodGroupLayout semantics** (#101): `PodGroupLayout` only created for actual pods; team groups use `TeamGroupLayout` with `team:{managerId}:{name}` collapse keys
+- **LayoutNode edges** (#103): ManagerView `computeManagerEdges` walks `LayoutNode` trees instead of `OrgNode` trees
+- **Consolidated storage paths** (#112): Extracted shared `groveDir()` function replacing duplicate `~/.grove` path computation in snapshot_store.go and autosave.go
+
+### Accessibility
+- **aria-live** (#115): Added `role="alert"` to cut notification banner; added `aria-label` to AutosaveBanner and DetailSidebar action buttons
+- **Shift+Tab** (#115): Reverse field cycling in PersonNode edit mode (name ← team ← role ← name)
+
+### Testing
+- **E2E integration flow** (#111): Playwright test chaining upload → edit → autosave → snapshot → restore in a single continuous flow
+- **Concurrency scenarios**: CONC-004 (epoch race), CONC-005 (concurrent snapshot saves)
+- **Security scenarios**: SNAP-009 (name validation), SEC-001 (CSRF protection)
+
+### Closed (already resolved)
+- **Collapsible pods** (#97): Already working via BaseNode collapse toggle wired through GroupHeaderNode
+- **AppContent mega-destructure** (#96): Already split into AppToolbar, AppBanners, AppWorkspace, AppOverlays sub-components
+- **Split ChartContext** (#110): Deprioritized — 4 consumers, 2 heavy ones use 19-23 of 24 properties, split would add complexity without meaningful perf gain
+
+---
+
+## v0.11.0
+
+### Features
+- **BaseNode hierarchy**: Unified PersonNode and GroupHeaderNode (pod/team headers) under a shared BaseNode component — consistent drag, drop, collapse, selection, and hover actions across all node types
+- **Unified layout tree**: Extracted `computeLayoutTree` and `buildManagerLayout` into `layoutTree.ts` — single layout computation layer for both ColumnView and ManagerView
+- **Pod collapse**: Pod group headers gained collapse/expand toggles (same as manager nodes)
+
+### Bug Fixes
+- **Cross-team IC layout**: Dual placement strategy — single-affiliation ICs render beside their affiliated manager, multi-affiliation ICs render between managers
+- **Edge line anchoring**: SVG connector lines anchor to the `.node` card element, not the wrapper with collapse toggle
+- **Note icon position**: Note icons position relative to the card area, not the outer wrapper
+- **Orphan team collapse**: Orphan team groups support collapse/expand
+- **E2E stability**: Added retries in CI, increased webkit autosave banner timeout, stabilized flaky drag test, suppressed tour overlay in e2e tests
+- **Coverage thresholds**: Lowered to match actual coverage after refactors
+
+### Refactoring
+- **AppContent split** (#96): Decomposed into AppToolbar, AppBanners, AppWorkspace, AppOverlays sub-components
+- **Tech debt batch**: Addressed issues #84, #86, #88, #91, #92, #93 (various cleanup and consistency fixes)
+
+---
+
 ## v0.10.0
 
 ### Features
@@ -204,6 +274,14 @@
 - Added export format sanitization test
 - Added cross-team affinity layout test
 - Updated isManager tests to reflect direct-reports-only behavior
+
+---
+
+## v0.5.1
+
+### Features
+- **Version flag**: `grove --version` via ldflags injection from GoReleaser
+- **Windows binaries**: Added Windows to GoReleaser build config
 
 ---
 
