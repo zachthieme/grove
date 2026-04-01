@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { MouseSensor, useSensor, useSensors, type DragStartEvent } from '@dnd-kit/core'
+import { MouseSensor, KeyboardSensor, useSensor, useSensors, type DragStartEvent } from '@dnd-kit/core'
 import { useDragDrop } from './useDragDrop'
 
 export interface ChartLine {
@@ -18,7 +18,8 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } })
-  const sensors = useSensors(mouseSensor)
+  const keyboardSensor = useSensor(KeyboardSensor)
+  const sensors = useSensors(mouseSensor, keyboardSensor)
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveDragId(event.active.id as string)
