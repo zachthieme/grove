@@ -51,10 +51,9 @@ export default function SearchBar() {
       setSelectedId(person.id)
       setQuery('')
       setOpen(false)
-      // Scroll to the person's node in the chart
       requestAnimationFrame(() => {
-        const el = document.querySelector<HTMLElement>(`[data-testid="person-${person.name}"]`)
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const el = document.querySelector(`[data-person-id="${person.id}"]`)
+        el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
       })
     },
     [setSelectedId],
