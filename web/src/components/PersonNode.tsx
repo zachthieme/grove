@@ -96,13 +96,24 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
     if (e.key === 'Tab') {
       e.preventDefault()
       cyclingRef.current = true
-      // Cycle: name → role → team → name (skip team if not shown)
-      if (activeField === 'name') {
-        setActiveField(showTeam ? 'team' : 'role')
-      } else if (activeField === 'team') {
-        setActiveField('role')
+      if (e.shiftKey) {
+        // Reverse cycle: name → role → team → name (skip team if not shown)
+        if (activeField === 'name') {
+          setActiveField('role')
+        } else if (activeField === 'role') {
+          setActiveField(showTeam ? 'team' : 'name')
+        } else {
+          setActiveField('name')
+        }
       } else {
-        setActiveField('name')
+        // Forward cycle: name → role → team → name (skip team if not shown)
+        if (activeField === 'name') {
+          setActiveField(showTeam ? 'team' : 'role')
+        } else if (activeField === 'team') {
+          setActiveField('role')
+        } else {
+          setActiveField('name')
+        }
       }
     }
     // Escape is handled by useUnifiedEscape at app level
