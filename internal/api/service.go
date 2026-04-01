@@ -22,7 +22,7 @@ type OrgService struct {
 	settings     Settings
 	pending      *PendingUpload
 	pendingEpoch uint64
-	pendingBase  uint64
+	confirmedEpoch uint64
 	snaps        *SnapshotManager
 	podMgr       *PodManager
 	idIndex      map[string]int

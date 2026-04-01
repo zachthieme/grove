@@ -62,11 +62,11 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]string) (*OrgData, error) {
 	// Phase 1: grab and clear pending data under lock.
 	// epoch captures the expected pendingEpoch value for a single un-superseded
-	// upload: pendingBase+1. If pendingEpoch has advanced past that (concurrent or
+	// upload: confirmedEpoch+1. If pendingEpoch has advanced past that (concurrent or
 	// sequential second upload), Phase 3 will detect the mismatch.
 	s.mu.Lock()
 	pending := s.pending
-	epoch := s.pendingBase + 1
+	epoch := s.confirmedEpoch + 1
 	s.pending = nil
 	s.mu.Unlock()
 
@@ -99,23 +99,22 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	}
 	people := ConvertOrg(org)
 
-	// Phase 3: commit state under lock — check epoch hasn't changed
+	// Phase 3: commit state and persist under lock — check epoch hasn't changed
 	s.mu.Lock()
 	if s.pendingEpoch != epoch {
 		s.mu.Unlock()
 		return nil, errConflict("upload superseded by a newer upload")
 	}
-	s.pendingBase = s.pendingEpoch
+	s.confirmedEpoch = s.pendingEpoch
 	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
-	s.mu.Unlock()
-
-	// Phase 4: disk I/O outside lock
 	var persistWarn string
 	if err := s.snaps.DeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
+	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	s.mu.Unlock()
+
 	resp.PersistenceWarning = persistWarn
 	return resp, nil
 }
@@ -138,7 +137,7 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		s.mu.Unlock()
 		return nil, errConflict("upload superseded by a newer upload")
 	}
-	s.pendingBase = s.pendingEpoch
+	s.confirmedEpoch = s.pendingEpoch
 	s.resetState(orig, work, snaps)
 
 	if podsSidecar != nil {
