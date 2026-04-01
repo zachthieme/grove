@@ -256,6 +256,50 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 	}
 }
 
+// Scenarios: CONC-005
+func TestConcurrentSnapshotSaves_BothPersist(t *testing.T) {
+	store := newSafeMemorySnapshotStore()
+	svc := NewOrgService(store)
+	csv := []byte("Name,Role,Manager,Team,Status\nAlice,VP,,Eng,Active\n")
+	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		_ = svc.SaveSnapshot(context.Background(), "snap-a")
+	}()
+	go func() {
+		defer wg.Done()
+		_ = svc.SaveSnapshot(context.Background(), "snap-b")
+	}()
+	wg.Wait()
+
+	// Both snapshots must be in memory
+	snaps := svc.ListSnapshots(context.Background())
+	names := make(map[string]bool, len(snaps))
+	for _, s := range snaps {
+		names[s.Name] = true
+	}
+	if !names["snap-a"] || !names["snap-b"] {
+		t.Errorf("expected both snap-a and snap-b in list, got %v", snaps)
+	}
+
+	// Both snapshots must be persisted to the store
+	persisted, err := store.inner.Read()
+	if err != nil {
+		t.Fatalf("reading store: %v", err)
+	}
+	if _, ok := persisted["snap-a"]; !ok {
+		t.Error("snap-a not persisted to store")
+	}
+	if _, ok := persisted["snap-b"]; !ok {
+		t.Error("snap-b not persisted to store")
+	}
+}
+
 // Scenarios: CONC-001
 func TestConcurrentMixedOperations(t *testing.T) {
 	svc, aliceID, bobID, carolID := setupConcurrentService(t)
