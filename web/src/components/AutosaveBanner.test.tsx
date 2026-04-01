@@ -17,7 +17,7 @@ describe('AutosaveBanner', () => {
         snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
       },
     })
-    const restoreBtn = screen.getByRole('button', { name: 'Restore' })
+    const restoreBtn = screen.getByRole('button', { name: 'Restore autosaved data' })
     await user.click(restoreBtn)
     expect(restoreFn).toHaveBeenCalledTimes(1)
   })
@@ -32,7 +32,7 @@ describe('AutosaveBanner', () => {
         snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
       },
     })
-    const dismissBtn = screen.getByRole('button', { name: 'Dismiss' })
+    const dismissBtn = screen.getByRole('button', { name: 'Dismiss autosave recovery' })
     await user.click(dismissBtn)
     expect(dismissFn).toHaveBeenCalledTimes(1)
   })

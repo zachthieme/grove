@@ -74,7 +74,7 @@ function AppBanners({ cutId, exportError, clearExportError, serverSaveError }: {
       {cutId && (() => {
         const cutPerson = working.find(p => p.id === cutId)
         return cutPerson ? (
-          <div className={styles.warnBanner}>
+          <div className={styles.warnBanner} role="alert">
             <span className={styles.warnText}>Cut: <strong>{cutPerson.name}</strong> — navigate to new manager and press <strong>p</strong> to paste, or <strong>Esc</strong> to cancel</span>
           </div>
         ) : null

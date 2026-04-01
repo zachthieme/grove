@@ -519,10 +519,11 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
             title="Save changes"
+            aria-label="Save changes"
           >
             {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
           </button>
-          <button className={styles.deleteBtn} onClick={handleDelete} title="Delete this person">Delete</button>
+          <button className={styles.deleteBtn} onClick={handleDelete} title="Delete this person" aria-label="Delete this person">Delete</button>
         </div>
       </aside>
     )
@@ -621,6 +622,7 @@ export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSideba
           onClick={handleSave}
           disabled={batchDirty.size === 0 || saveStatus === 'saving'}
           title="Save changes"
+          aria-label="Save changes"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>
