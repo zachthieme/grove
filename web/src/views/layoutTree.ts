@@ -148,12 +148,16 @@ function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode
   return result
 }
 
-function buildManagerLayout(node: OrgNode): ManagerLayout {
-  const managers = node.children.filter((c) => c.children.length > 0)
-  const ics = node.children.filter((c) => c.children.length === 0)
+export interface ClassifiedICs {
+  withinManager: Map<number, ICLayout[]>
+  afterManager: Map<number, ICLayout[]>
+  unaffiliated: ICLayout[]
+}
 
-  const reorderedManagers = reorderManagersByAffinity(managers, ics)
-
+export function classifyICs(
+  ics: OrgNode[],
+  reorderedManagers: OrgNode[],
+): ClassifiedICs {
   const managerByTeam = new Map<string, OrgNode>()
   const managerIndex = new Map<string, number>()
   for (let i = 0; i < reorderedManagers.length; i++) {
@@ -161,7 +165,6 @@ function buildManagerLayout(node: OrgNode): ManagerLayout {
     managerIndex.set(reorderedManagers[i].person.id, i)
   }
 
-  // Classify cross-team ICs
   const withinManager = new Map<number, ICLayout[]>()
   const afterManager = new Map<number, ICLayout[]>()
   const unaffiliated: ICLayout[] = []
@@ -201,68 +204,86 @@ function buildManagerLayout(node: OrgNode): ManagerLayout {
     }
   }
 
+  return { withinManager, afterManager, unaffiliated }
+}
+
+export function groupUnaffiliated(
+  unaffiliated: ICLayout[],
+  managerId: string,
+): LayoutNode[] {
+  if (unaffiliated.length === 0) return []
+
+  const groupOrder: string[] = []
+  const groupMap = new Map<string, { members: ICLayout[]; podName?: string }>()
+  for (const ic of unaffiliated) {
+    const hasPod = !!ic.person.pod
+    const key = hasPod ? `pod:${ic.person.pod}` : `team:${ic.person.team}`
+    if (!groupMap.has(key)) {
+      groupOrder.push(key)
+      groupMap.set(key, { members: [], podName: hasPod ? ic.person.pod! : undefined })
+    }
+    groupMap.get(key)!.members.push(ic)
+  }
+
+  let hasPodGroups = false
+  for (const g of groupMap.values()) {
+    if (g.podName) { hasPodGroups = true; break }
+  }
+
+  if (groupOrder.length <= 1 && !hasPodGroups) {
+    return unaffiliated
+  }
+
+  const result: LayoutNode[] = []
+  for (const key of groupOrder) {
+    const { members, podName } = groupMap.get(key)!
+    if (podName) {
+      result.push({
+        type: 'podGroup',
+        podName,
+        managerId,
+        collapseKey: `pod:${managerId}:${podName}`,
+        members,
+      })
+    } else if (hasPodGroups) {
+      // Unpodded ICs remain flat when pod groups are present
+      result.push(...members)
+    } else {
+      // Multiple teams, no pods — use TeamGroupLayout (NOT PodGroupLayout)
+      const teamName = members[0].person.team
+      result.push({
+        type: 'teamGroup',
+        teamName,
+        collapseKey: `team:${managerId}:${teamName}`,
+        members,
+      })
+    }
+  }
+  return result
+}
+
+function buildManagerLayout(node: OrgNode): ManagerLayout {
+  const managers = node.children.filter((c) => c.children.length > 0)
+  const ics = node.children.filter((c) => c.children.length === 0)
+
+  const reorderedManagers = reorderManagersByAffinity(managers, ics)
+  const { withinManager, afterManager, unaffiliated } = classifyICs(ics, reorderedManagers)
+
   // Build children array
   const children: LayoutNode[] = []
   for (let i = 0; i < reorderedManagers.length; i++) {
     const mgrLayout = buildManagerLayout(reorderedManagers[i])
-    mgrLayout.crossTeamICs = withinManager.get(i) || []
     children.push(mgrLayout)
-
+    // Single-affiliation cross-team ICs placed after their affiliated manager
+    const withinIcs = withinManager.get(i)
+    if (withinIcs) children.push(...withinIcs)
+    // Multi-affiliation ICs placed after highest-indexed manager
     const multiIcs = afterManager.get(i)
-    if (multiIcs) {
-      children.push(...multiIcs)
-    }
+    if (multiIcs) children.push(...multiIcs)
   }
 
   // Group unaffiliated ICs by pod/team
-  if (unaffiliated.length > 0) {
-    const groupOrder: string[] = []
-    const groupMap = new Map<string, { members: ICLayout[]; podName?: string }>()
-    for (const ic of unaffiliated) {
-      const hasPod = !!ic.person.pod
-      const key = hasPod ? `pod:${ic.person.pod}` : `team:${ic.person.team}`
-      if (!groupMap.has(key)) {
-        groupOrder.push(key)
-        groupMap.set(key, { members: [], podName: hasPod ? ic.person.pod! : undefined })
-      }
-      groupMap.get(key)!.members.push(ic)
-    }
-
-    let hasPodGroups = false
-    for (const g of groupMap.values()) {
-      if (g.podName) { hasPodGroups = true; break }
-    }
-
-    if (groupOrder.length > 1 || hasPodGroups) {
-      for (const key of groupOrder) {
-        const { members, podName } = groupMap.get(key)!
-        if (podName) {
-          children.push({
-            type: 'podGroup',
-            podName,
-            managerId: node.person.id,
-            collapseKey: `pod:${node.person.id}:${podName}`,
-            members,
-          })
-        } else if (hasPodGroups) {
-          // Unpodded ICs remain flat when pod groups are present
-          children.push(...members)
-        } else {
-          // Multiple team groups, no pods — group by team
-          const groupName = members[0].person.team
-          children.push({
-            type: 'podGroup',
-            podName: groupName,
-            managerId: node.person.id,
-            collapseKey: `pod:${node.person.id}:${groupName}`,
-            members,
-          })
-        }
-      }
-    } else {
-      children.push(...unaffiliated)
-    }
-  }
+  children.push(...groupUnaffiliated(unaffiliated, node.person.id))
 
   return {
     type: 'manager',

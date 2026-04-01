@@ -91,13 +91,15 @@ describe('computeLayoutTree', () => {
 
     const result = computeLayoutTree([root])
     const top = result[0] as ManagerLayout
-    // Carol should be in Bob's crossTeamICs (single match: Design)
-    const bob = top.children.find(
+    // Carol should appear right after Bob in parent's children array
+    const bobIdx = top.children.findIndex(
       (c): c is ManagerLayout => c.type === 'manager' && c.person.id === 'm2',
-    )!
-    expect(bob.crossTeamICs).toHaveLength(1)
-    expect(bob.crossTeamICs[0].person.id).toBe('ic1')
-    expect(bob.crossTeamICs[0].affiliation).toBe('singleCrossTeam')
+    )
+    expect(bobIdx).toBeGreaterThanOrEqual(0)
+    const carol = top.children[bobIdx + 1] as ICLayout
+    expect(carol.type).toBe('ic')
+    expect(carol.person.id).toBe('ic1')
+    expect(carol.affiliation).toBe('singleCrossTeam')
   })
 
   it('[LAYOUT-001] places multi-affiliation IC after highest-indexed manager', () => {
@@ -143,8 +145,12 @@ describe('computeLayoutTree', () => {
 
     const result = computeLayoutTree([root])
     const top = result[0] as ManagerLayout
-    const podGroups = top.children.filter((c): c is PodGroupLayout => c.type === 'podGroup')
-    expect(podGroups).toHaveLength(2)
+    const teamGroups = top.children.filter((c): c is TeamGroupLayout => c.type === 'teamGroup')
+    expect(teamGroups).toHaveLength(2)
+    expect(teamGroups[0].teamName).toBe('Design')
+    expect(teamGroups[0].collapseKey).toBe('team:mgr:Design')
+    expect(teamGroups[1].teamName).toBe('Product')
+    expect(teamGroups[1].collapseKey).toBe('team:mgr:Product')
   })
 
   it('[LAYOUT-001] does not group single-team unpodded ICs into a group', () => {
@@ -238,7 +244,6 @@ function collectPersons(nodes: LayoutNode[]): Person[] {
     switch (node.type) {
       case 'manager':
         result.push(node.person)
-        result.push(...node.crossTeamICs.map((ic) => ic.person))
         result.push(...collectPersons(node.children))
         break
       case 'ic':
@@ -282,9 +287,6 @@ function assertNoExtraFields(nodes: LayoutNode[]) {
     }
     if (node.type === 'manager') {
       assertNoExtraFields(node.children)
-      for (const ic of node.crossTeamICs) {
-        assertNoExtraFields([ic])
-      }
     }
     if (node.type === 'podGroup' || node.type === 'teamGroup') {
       for (const m of node.members) {
@@ -359,10 +361,6 @@ describe('abstraction leak guards', () => {
           }
         }
         if (node.type === 'manager') {
-          for (const ic of node.crossTeamICs) {
-            expect(ic.affiliation).toBe('singleCrossTeam')
-            expect((ic.person.additionalTeams || []).length).toBeGreaterThan(0)
-          }
           checkAffiliation(node.children)
         }
       }
@@ -399,12 +397,27 @@ describe('abstraction leak guards', () => {
     checkPodKeys(layoutResult)
   })
 
-  it('[LAYOUT-002] collapse key format — team groups match orphan:{teamName}', () => {
+  it('[LAYOUT-002] collapse key format — team groups use correct prefix', () => {
     for (const node of layoutResult) {
       if (node.type === 'teamGroup') {
+        // Root-level team groups (orphans) use orphan: prefix
         expect(node.collapseKey).toBe(`orphan:${node.teamName}`)
       }
     }
+    // Within-manager team groups use team:{managerId}:{teamName} prefix
+    function checkManagerTeamGroups(nodes: LayoutNode[]) {
+      for (const node of nodes) {
+        if (node.type === 'manager') {
+          for (const child of node.children) {
+            if (child.type === 'teamGroup') {
+              expect(child.collapseKey).toMatch(/^team:.+:.+$/)
+            }
+          }
+          checkManagerTeamGroups(node.children)
+        }
+      }
+    }
+    checkManagerTeamGroups(layoutResult)
   })
 
   it('[LAYOUT-002] stability — same input produces identical output', () => {
