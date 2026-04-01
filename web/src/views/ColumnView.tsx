@@ -1,50 +1,30 @@
 import { useMemo, useCallback, type ReactNode } from 'react'
 import type { Pod } from '../api/types'
-import type { EditBuffer } from '../store/useInteractionState'
 import { computeEdges } from './columnEdges'
 import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
 import PersonNode from '../components/PersonNode'
 import GroupHeaderNode from '../components/GroupHeaderNode'
 import { useChart } from './ChartContext'
+import { usePersonNodeProps } from '../hooks/usePersonNodeProps'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
+function ICNode({ ic }: { ic: ICLayout }) {
+  const props = usePersonNodeProps(ic.person)
+  return (
+    <div className={styles.nodeSlot}>
+      <PersonNode person={ic.person} {...props} />
+    </div>
+  )
+}
+
 function LayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { selectedIds, selectedPodId, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { selectedPodId, pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
-  const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
 
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
-
-  const renderIC = useCallback((ic: ICLayout) => {
-    const isEditing = interactionMode === 'editing' && editingPersonId === ic.person.id
-    return (
-      <div key={ic.person.id} className={styles.nodeSlot}>
-        <PersonNode
-          person={ic.person}
-          selected={selectedIds.has(ic.person.id)}
-          changes={changes?.get(ic.person.id)}
-          isManager={managerSet?.has(ic.person.id)}
-          editing={isEditing}
-          editBuffer={isEditing ? editBuffer : null}
-          focusField={isEditing ? 'name' : null}
-          onAdd={onAddReport ? () => onAddReport(ic.person.id) : undefined}
-          onAddParent={onAddParent ? () => onAddParent(ic.person.id) : undefined}
-          onDelete={onDeletePerson ? () => onDeletePerson(ic.person.id) : undefined}
-          onInfo={onInfo ? () => onInfo(ic.person.id) : undefined}
-          onFocus={onFocus && managerSet?.has(ic.person.id) ? () => onFocus(ic.person.id) : undefined}
-          onEditMode={onEditMode ? () => onEditMode(ic.person.id) : undefined}
-          onClick={(e) => onSelect(ic.person.id, e)}
-          onEnterEditing={onEnterEditing ? () => onEnterEditing(ic.person) : undefined}
-          onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
-          onCommitEdits={onCommitEdits}
-          cardRef={setNodeRef(ic.person.id)}
-        />
-      </div>
-    )
-  }, [selectedIds, changes, managerSet, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onDeletePerson, onInfo, onFocus, onEditMode, onSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef])
 
   const renderPodGroup = useCallback((group: PodGroupLayout) => {
     const pod = findPod(group.managerId, group.podName)
@@ -71,13 +51,13 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
         {!podCollapsed && (
           <div className={styles.children}>
             <div className={styles.icStack}>
-              {group.members.map((ic) => renderIC(ic))}
+              {group.members.map((ic) => <ICNode key={ic.person.id} ic={ic} />)}
             </div>
           </div>
         )}
       </div>
     )
-  }, [pods, selectedPodId, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, renderIC])
+  }, [pods, selectedPodId, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse])
 
   // Build child elements by iterating node.children and switching on type
   const childElements = useMemo((): ReactNode[] => {
@@ -90,7 +70,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
       if (icBatch.length === 0) return
       elements.push(
         <div key={`ic-stack-${icBatch[0].person.id}`} className={styles.icStack}>
-          {icBatch.map((ic) => renderIC(ic))}
+          {icBatch.map((ic) => <ICNode key={ic.person.id} ic={ic} />)}
         </div>
       )
       icBatch = []
@@ -107,7 +87,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
         case 'ic':
           if (child.affiliation !== 'local') {
             flushIcBatch()
-            elements.push(renderIC(child))
+            elements.push(<ICNode key={child.person.id} ic={child} />)
           } else {
             icBatch.push(child)
           }
@@ -127,32 +107,17 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
     flushIcBatch()
 
     return elements
-  }, [node.children, renderIC, renderPodGroup])
+  }, [node.children, renderPodGroup])
 
+  const managerProps = usePersonNodeProps(node.person)
   const managerNodeEl = (
     <div className={styles.nodeSlot}>
       <PersonNode
         person={node.person}
-        selected={selectedIds.has(node.person.id)}
-        changes={changes?.get(node.person.id)}
-        showTeam={node.children.length > 0 || !!managerSet?.has(node.person.id)}
-        isManager={managerSet?.has(node.person.id)}
+        showTeam={node.children.length > 0 || !!managerProps.isManager}
         collapsed={node.children.length > 0 ? isCollapsed : undefined}
-        editing={isNodeEditing}
-        editBuffer={isNodeEditing ? editBuffer : null}
-        focusField={isNodeEditing ? 'name' : null}
-        onAdd={onAddReport ? () => onAddReport(node.person.id) : undefined}
-        onAddParent={onAddParent ? () => onAddParent(node.person.id) : undefined}
-        onDelete={onDeletePerson ? () => onDeletePerson(node.person.id) : undefined}
-        onInfo={onInfo ? () => onInfo(node.person.id) : undefined}
-        onFocus={onFocus && managerSet?.has(node.person.id) ? () => onFocus(node.person.id) : undefined}
-        onEditMode={onEditMode ? () => onEditMode(node.person.id) : undefined}
         onToggleCollapse={node.children.length > 0 && onToggleCollapse ? () => onToggleCollapse(node.collapseKey) : undefined}
-        onClick={(e) => onSelect(node.person.id, e)}
-        onEnterEditing={onEnterEditing ? () => onEnterEditing(node.person) : undefined}
-        onUpdateBuffer={onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined}
-        onCommitEdits={onCommitEdits}
-        cardRef={setNodeRef(node.person.id)}
+        {...managerProps}
       />
     </div>
   )
@@ -173,8 +138,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
 }
 
 function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
-  const { selectedIds, onSelect, changes, managerSet, onAddReport, onDeletePerson, onInfo, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
-
+  const { collapsedIds, onToggleCollapse, onSelect, selectedIds } = useChart()
   const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
 
   return (
@@ -194,21 +158,7 @@ function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
       {!isCollapsed && (
         <div className={styles.children}>
           <div className={styles.icStack}>
-            {group.members.map((ic) => (
-              <div key={ic.person.id} className={styles.nodeSlot}>
-                <PersonNode
-                  person={ic.person}
-                  selected={selectedIds.has(ic.person.id)}
-                  changes={changes?.get(ic.person.id)}
-                  isManager={managerSet?.has(ic.person.id)}
-                  onAdd={onAddReport ? () => onAddReport(ic.person.id) : undefined}
-                  onDelete={onDeletePerson ? () => onDeletePerson(ic.person.id) : undefined}
-                  onInfo={onInfo ? () => onInfo(ic.person.id) : undefined}
-                  onClick={(e) => onSelect(ic.person.id, e)}
-                  cardRef={setNodeRef(ic.person.id)}
-                />
-              </div>
-            ))}
+            {group.members.map((ic) => <ICNode key={ic.person.id} ic={ic} />)}
           </div>
         </div>
       )}
