@@ -10,7 +10,7 @@ import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
 function LayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { selectedIds, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { selectedIds, selectedPodId, onSelect, changes, managerSet, pods, interactionMode, editingPersonId, editBuffer, onAddReport, onAddParent, onAddToTeam, onDeletePerson, onInfo, onFocus, onEditMode, onPodSelect, onEnterEditing, onUpdateBuffer, onCommitEdits, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
   const isNodeEditing = interactionMode === 'editing' && editingPersonId === node.person.id
@@ -60,6 +60,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
             onAdd={onAddToTeam ? () => onAddToTeam(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
             onInfo={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
             onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
+            selected={selectedPodId != null && selectedPodId === pod?.id}
             cardRef={setNodeRef(group.collapseKey)}
             droppableId={group.collapseKey}
             collapsed={podCollapsed}
@@ -75,7 +76,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
         )}
       </div>
     )
-  }, [pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, renderIC])
+  }, [pods, selectedPodId, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse, renderIC])
 
   // Build child elements by iterating node.children and switching on type
   const childElements = useMemo((): ReactNode[] => {
@@ -183,6 +184,8 @@ function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
           name={group.teamName}
           count={group.members.length}
           collapsed={isCollapsed}
+          onClick={(e) => onSelect(group.collapseKey, e)}
+          selected={selectedIds.has(group.collapseKey)}
           onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
         />
       </div>

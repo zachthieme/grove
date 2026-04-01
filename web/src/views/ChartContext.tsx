@@ -6,6 +6,7 @@ import type { InteractionMode } from '../store/orgTypes'
 
 export interface ChartContextValue {
   selectedIds: Set<string>
+  selectedPodId?: string | null
   changes?: Map<string, PersonChange>
   managerSet?: Set<string>
   pods?: Pod[]

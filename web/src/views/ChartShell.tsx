@@ -83,7 +83,7 @@ export default function ChartShell({
   const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
 
   const chartValue = useMemo(() => ({
-    selectedIds: selection.selectedIds, changes, managerSet, pods,
+    selectedIds: selection.selectedIds, selectedPodId: selection.selectedPodId, changes, managerSet, pods,
     interactionMode: selection.interactionMode,
     editingPersonId: selection.editingPersonId,
     editBuffer: selection.editBuffer,
