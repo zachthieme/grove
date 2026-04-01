@@ -42,6 +42,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 	}
 
 	// Required field (name) not matched with high confidence — hold as pending.
+	s.pendingEpoch++
 	s.pending = &PendingUpload{File: data, Filename: filename}
 	preview := [][]string{header}
 	for i, row := range dataRows {
@@ -60,10 +61,12 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 
 func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]string) (*OrgData, error) {
 	// Phase 1: grab and clear pending data under lock.
-	// Clearing here prevents a concurrent Upload from setting new pending data
-	// that we'd accidentally nil out when we re-acquire the lock in Phase 3.
+	// epoch captures the expected pendingEpoch value for a single un-superseded
+	// upload: pendingBase+1. If pendingEpoch has advanced past that (concurrent or
+	// sequential second upload), Phase 3 will detect the mismatch.
 	s.mu.Lock()
 	pending := s.pending
+	epoch := s.pendingBase + 1
 	s.pending = nil
 	s.mu.Unlock()
 
@@ -78,14 +81,14 @@ func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]stri
 
 	// Phase 2: parse entirely outside the lock (CPU work, no state mutation)
 	if pending.IsZip {
-		return s.confirmMappingZip(pending, mapping)
+		return s.confirmMappingZip(pending, mapping, epoch)
 	}
-	return s.confirmMappingCSV(pending, mapping)
+	return s.confirmMappingCSV(pending, mapping, epoch)
 }
 
 // confirmMappingCSV handles the non-zip ConfirmMapping path.
 // Called without holding s.mu.
-func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
+func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
 	header, dataRows, err := extractRows(pending.Filename, pending.File)
 	if err != nil {
 		return nil, errValidation("parsing pending file: %v", err)
@@ -96,8 +99,13 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	}
 	people := ConvertOrg(org)
 
-	// Phase 3: commit state under lock (s.pending already cleared in Phase 1)
+	// Phase 3: commit state under lock — check epoch hasn't changed
 	s.mu.Lock()
+	if s.pendingEpoch != epoch {
+		s.mu.Unlock()
+		return nil, errConflict("upload superseded by a newer upload")
+	}
+	s.pendingBase = s.pendingEpoch
 	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
@@ -114,7 +122,7 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 
 // confirmMappingZip handles the zip ConfirmMapping path.
 // Called without holding s.mu.
-func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[string]string) (*OrgData, error) {
+func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
 	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(pending.File)
 	if err != nil {
 		return nil, errValidation("parsing pending zip: %v", err)
@@ -124,8 +132,13 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		return nil, errValidation("parsing pending zip: %v", err)
 	}
 
-	// Commit state under lock
+	// Commit state under lock — check epoch hasn't changed
 	s.mu.Lock()
+	if s.pendingEpoch != epoch {
+		s.mu.Unlock()
+		return nil, errConflict("upload superseded by a newer upload")
+	}
+	s.pendingBase = s.pendingEpoch
 	s.resetState(orig, work, snaps)
 
 	if podsSidecar != nil {

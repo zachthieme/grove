@@ -15,15 +15,17 @@ import (
 )
 
 type OrgService struct {
-	mu       sync.RWMutex
-	original []Person
-	working  []Person
-	recycled []Person
-	settings Settings
-	pending  *PendingUpload
-	snaps    *SnapshotManager
-	podMgr   *PodManager
-	idIndex  map[string]int
+	mu           sync.RWMutex
+	original     []Person
+	working      []Person
+	recycled     []Person
+	settings     Settings
+	pending      *PendingUpload
+	pendingEpoch uint64
+	pendingBase  uint64
+	snaps        *SnapshotManager
+	podMgr       *PodManager
+	idIndex      map[string]int
 }
 
 func deriveDisciplineOrder(people []Person) []string {

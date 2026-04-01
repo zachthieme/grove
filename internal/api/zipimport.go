@@ -316,6 +316,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 	// Needs mapping — store as pending.
 	// Don't clear snapshots yet — user may cancel the mapping dialog.
 	// Snapshots are cleared when the mapping is confirmed in ConfirmMapping.
+	s.pendingEpoch++
 	s.pending = &PendingUpload{File: data, Filename: "upload.zip", IsZip: true}
 	s.mu.Unlock()
 
