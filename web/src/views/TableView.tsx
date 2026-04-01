@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Person, PersonUpdatePayload } from '../api/types'
 import { useOrgData, useSelection } from '../store/OrgContext'
 import { usePeople, useChanges } from '../store/ViewDataContext'
@@ -47,6 +48,7 @@ export default function TableView() {
   const [drafts, setDrafts] = useState<DraftRow[]>([])
   const newestDraftRef = useRef<HTMLTableRowElement>(null)
   const colToggleRef = useRef<HTMLDivElement>(null)
+  const tableWrapperRef = useRef<HTMLDivElement>(null)
   useOutsideClick(colToggleRef, () => setShowColToggle(false), showColToggle)
 
   const contextDefaults = useMemo(() => {
@@ -246,6 +248,13 @@ export default function TableView() {
     toggleSelect(personId, true)
   }, [toggleSelect])
 
+  const rowVirtualizer = useVirtualizer({
+    count: filteredPeople.length,
+    getScrollElement: () => tableWrapperRef.current,
+    estimateSize: () => 36,
+    overscan: 20,
+  })
+
   return (
     <div className={styles.container}>
       <div className={styles.tableToolbar}>
@@ -280,7 +289,7 @@ export default function TableView() {
           )}
         </div>
       </div>
-      <div className={styles.tableWrapper}>
+      <div className={styles.tableWrapper} ref={tableWrapperRef}>
         <table className={styles.table}>
           <thead>
             <TableHeader
@@ -301,20 +310,37 @@ export default function TableView() {
             />
           </thead>
           <tbody>
-            {filteredPeople.map(person => (
-              <TableRow
-                key={person.id}
-                person={person}
-                columns={visibleColumns}
-                managers={managers}
-                change={changes?.get(person.id)}
-                readOnly={readOnly}
-                selected={selectedIds.has(person.id)}
-                onToggleSelect={handleRowSelect}
-                onUpdate={handleUpdate}
-                onDelete={handleDelete}
-              />
-            ))}
+            {rowVirtualizer.getVirtualItems().length > 0 && rowVirtualizer.getVirtualItems()[0].start > 0 && (
+              <tr style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }}>
+                <td colSpan={visibleColumns.length + 2} />
+              </tr>
+            )}
+            {rowVirtualizer.getVirtualItems().map(virtualRow => {
+              const person = filteredPeople[virtualRow.index]
+              return (
+                <TableRow
+                  key={person.id}
+                  person={person}
+                  columns={visibleColumns}
+                  managers={managers}
+                  change={changes?.get(person.id)}
+                  readOnly={readOnly}
+                  selected={selectedIds.has(person.id)}
+                  onToggleSelect={handleRowSelect}
+                  onUpdate={handleUpdate}
+                  onDelete={handleDelete}
+                />
+              )
+            })}
+            {(() => {
+              const bottomPad = rowVirtualizer.getTotalSize() - (rowVirtualizer.getVirtualItems().at(-1)?.end ?? 0)
+              return bottomPad > 0 ? (
+                <tr style={{ height: `${bottomPad}px` }}>
+                  <td colSpan={visibleColumns.length + 2} />
+                </tr>
+              ) : null
+            })()}
+            {/* Draft rows always rendered (small count, not virtualized) */}
             {drafts.map((draft, draftIdx) => (
               <tr key={draft.id} className={styles.rowDraft} ref={draftIdx === drafts.length - 1 ? newestDraftRef : undefined}>
                 <td className={styles.actionCell} />
