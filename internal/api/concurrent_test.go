@@ -8,43 +8,12 @@ import (
 	"testing"
 )
 
-// safeMemorySnapshotStore wraps MemorySnapshotStore with a mutex so that
-// concurrent calls to Write/Read/Delete (which happen outside OrgService.mu)
-// do not race. The real FileSnapshotStore serialises via the filesystem; the
-// in-memory version needs an explicit lock for the same guarantee.
-type safeMemorySnapshotStore struct {
-	mu    sync.Mutex
-	inner *MemorySnapshotStore
-}
-
-func newSafeMemorySnapshotStore() *safeMemorySnapshotStore {
-	return &safeMemorySnapshotStore{inner: NewMemorySnapshotStore()}
-}
-
-func (s *safeMemorySnapshotStore) Read() (map[string]snapshotData, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.inner.Read()
-}
-
-func (s *safeMemorySnapshotStore) Write(snaps map[string]snapshotData) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.inner.Write(snaps)
-}
-
-func (s *safeMemorySnapshotStore) Delete() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.inner.Delete()
-}
-
 // setupConcurrentService creates a fresh OrgService with 3 people:
 // Alice (VP, root), Bob (Engineer, reports to Alice), Carol (Engineer, reports to Bob).
 // Returns the service along with Alice, Bob, and Carol's IDs.
 func setupConcurrentService(t *testing.T) (svc *OrgService, aliceID, bobID, carolID string) {
 	t.Helper()
-	svc = NewOrgService(newSafeMemorySnapshotStore())
+	svc = NewOrgService(NewMemorySnapshotStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
@@ -258,7 +227,7 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 
 // Scenarios: CONC-005
 func TestConcurrentSnapshotSaves_BothPersist(t *testing.T) {
-	store := newSafeMemorySnapshotStore()
+	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Manager,Team,Status\nAlice,VP,,Eng,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
@@ -288,7 +257,7 @@ func TestConcurrentSnapshotSaves_BothPersist(t *testing.T) {
 	}
 
 	// Both snapshots must be persisted to the store
-	persisted, err := store.inner.Read()
+	persisted, err := store.Read()
 	if err != nil {
 		t.Fatalf("reading store: %v", err)
 	}
