@@ -1962,3 +1962,61 @@ func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
 		t.Errorf("CEO should be root (no manager)")
 	}
 }
+
+// Scenarios: CONC-004
+func TestConfirmMapping_RejectsStaleEpoch(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	// Upload A — needs mapping (non-standard headers that won't auto-map)
+	csvA := []byte("PersonLabel,JobCode\nAlice,VP\n")
+	respA, err := svc.Upload(context.Background(), "a.csv", csvA)
+	if err != nil {
+		t.Fatalf("upload A: %v", err)
+	}
+	if respA.Status != UploadNeedsMapping {
+		t.Skipf("headers auto-mapped; cannot test epoch race")
+	}
+
+	// Upload B — supersedes A
+	csvB := []byte("PersonLabel,JobCode\nBob,SWE\n")
+	respB, err := svc.Upload(context.Background(), "b.csv", csvB)
+	if err != nil {
+		t.Fatalf("upload B: %v", err)
+	}
+	if respB.Status != UploadNeedsMapping {
+		t.Skipf("headers auto-mapped; cannot test epoch race")
+	}
+
+	// Confirm with A's mapping — should fail because B superseded it
+	_, err = svc.ConfirmMapping(context.Background(), map[string]string{"name": "PersonLabel", "role": "JobCode"})
+	if err == nil {
+		t.Fatal("expected conflict error when confirming stale upload, got nil")
+	}
+	if !isConflict(err) {
+		t.Errorf("expected conflict error, got: %v", err)
+	}
+}
+
+// Scenarios: CONC-004
+func TestConfirmMapping_AcceptsCurrentEpoch(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+
+	csv := []byte("PersonLabel,JobCode\nAlice,VP\n")
+	resp, err := svc.Upload(context.Background(), "test.csv", csv)
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+	if resp.Status != UploadNeedsMapping {
+		t.Skipf("headers auto-mapped; cannot test epoch")
+	}
+
+	data, err := svc.ConfirmMapping(context.Background(), map[string]string{"name": "PersonLabel", "role": "JobCode"})
+	if err != nil {
+		t.Fatalf("expected success, got: %v", err)
+	}
+	if len(data.Working) != 1 {
+		t.Errorf("expected 1 working person, got %d", len(data.Working))
+	}
+}
