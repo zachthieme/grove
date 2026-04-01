@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { MouseSensor, useSensor, useSensors, type DragStartEvent } from '@dnd-kit/core'
 import { useDragDrop } from './useDragDrop'
 
@@ -43,14 +43,37 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
     return () => observer.disconnect()
   }, [])
 
-  useLayoutEffect(() => {
+  const [scrollKey, setScrollKey] = useState(0)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    let ticking = false
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true
+        requestAnimationFrame(() => {
+          setScrollKey(k => k + 1)
+          ticking = false
+        })
+      }
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
     if (!containerRef.current || edges.length === 0) {
       setLines([])
       return
     }
-    const rect = containerRef.current.getBoundingClientRect()
-    const sl = containerRef.current.scrollLeft
-    const st = containerRef.current.scrollTop
+    const container = containerRef.current
+    const rect = container.getBoundingClientRect()
+    const sl = container.scrollLeft
+    const st = container.scrollTop
+    const viewLeft = sl
+    const viewRight = sl + rect.width
+    const viewTop = st
+    const viewBottom = st + rect.height
     const computed: ChartLine[] = []
 
     for (const { fromId, toId, dashed } of edges) {
@@ -59,6 +82,17 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
       if (!fromEl || !toEl) continue
       const fr = fromEl.getBoundingClientRect()
       const tr = toEl.getBoundingClientRect()
+
+      // Convert to container-relative coordinates
+      const fx = fr.left - rect.left + sl
+      const fy = fr.top - rect.top + st
+      const tx = tr.left - rect.left + sl
+      const ty = tr.top - rect.top + st
+
+      // Skip edges where both endpoints are off-screen
+      const fromVisible = fx + fr.width > viewLeft && fx < viewRight && fy + fr.height > viewTop && fy < viewBottom
+      const toVisible = tx + tr.width > viewLeft && tx < viewRight && ty + tr.height > viewTop && ty < viewBottom
+      if (!fromVisible && !toVisible) continue
 
       if (dashed) {
         computed.push({
@@ -78,7 +112,7 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
       }
     }
     setLines(computed)
-  }, [edges, resizeKey, layoutDeps])
+  }, [edges, resizeKey, scrollKey, layoutDeps])
 
   return { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd }
 }
