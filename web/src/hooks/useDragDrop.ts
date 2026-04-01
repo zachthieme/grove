@@ -22,10 +22,13 @@ export function useDragDrop() {
     const targetId = over.id as string
     const resolvedTargetId = resolveManagerId(targetId)
 
-    // If the dragged person is part of a multi-selection, move all selected people
-    const idsToMove = selectedIds.has(draggedId) && selectedIds.size > 1
-      ? [...selectedIds].filter((id) => id !== resolvedTargetId)
-      : [draggedId]
+    // If dragging a group header, move all members
+    const memberIds = active.data.current?.memberIds as string[] | undefined
+    const idsToMove = memberIds
+      ? memberIds.filter((id) => id !== resolvedTargetId)
+      : selectedIds.has(draggedId) && selectedIds.size > 1
+        ? [...selectedIds].filter((id) => id !== resolvedTargetId)
+        : [draggedId]
 
     const teamName = parseTeamDropId(targetId)
     if (teamName !== null) {

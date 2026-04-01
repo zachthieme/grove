@@ -65,6 +65,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
             droppableId={group.collapseKey}
             collapsed={podCollapsed}
             onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
+            dragData={{ memberIds: group.members.map(m => m.person.id) }}
           />
         </div>
         {!podCollapsed && (
@@ -187,6 +188,7 @@ function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
           onClick={(e) => onSelect(group.collapseKey, e)}
           selected={selectedIds.has(group.collapseKey)}
           onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
+          dragData={{ memberIds: group.members.map(m => m.person.id) }}
         />
       </div>
       {!isCollapsed && (

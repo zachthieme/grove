@@ -14,9 +14,10 @@ interface Props {
   onInfo?: () => void
   cardRef?: (el: HTMLDivElement | null) => void
   droppableId?: string
+  dragData?: Record<string, unknown>
 }
 
-export default function GroupHeaderNode({ nodeId, name, count, noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId }: Props) {
+export default function GroupHeaderNode({ nodeId, name, count, noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId, dragData }: Props) {
   const actions: BaseNodeActions | undefined = (onAdd || onInfo)
     ? {
         onAdd: onAdd ? (e) => { e.stopPropagation(); onAdd() } : undefined,
@@ -38,6 +39,7 @@ export default function GroupHeaderNode({ nodeId, name, count, noteText, collaps
       droppableId={droppableId ?? nodeId}
       cardRef={cardRef}
       actions={actions}
+      dragData={dragData}
       testId={`group-${name}`}
       ariaLabel={`${name} group`}
     >
