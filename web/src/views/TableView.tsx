@@ -333,7 +333,8 @@ export default function TableView() {
               )
             })}
             {(() => {
-              const bottomPad = rowVirtualizer.getTotalSize() - (rowVirtualizer.getVirtualItems().at(-1)?.end ?? 0)
+              const vItems = rowVirtualizer.getVirtualItems()
+              const bottomPad = rowVirtualizer.getTotalSize() - (vItems[vItems.length - 1]?.end ?? 0)
               return bottomPad > 0 ? (
                 <tr style={{ height: `${bottomPad}px` }}>
                   <td colSpan={visibleColumns.length + 2} />
