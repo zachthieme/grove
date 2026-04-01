@@ -12,19 +12,19 @@ import ChartShell from './ChartShell'
 import styles from './ManagerView.module.css'
 
 
-function computeManagerEdges(_people: Person[], roots: OrgNode[]): ChartEdge[] {
+function computeManagerEdges(_people: Person[], _roots: OrgNode[], layoutRoots?: LayoutNode[]): ChartEdge[] {
+  if (!layoutRoots) return []
   const result: ChartEdge[] = []
-  function collectEdges(nodes: OrgNode[]) {
-    for (const n of nodes) {
-      for (const child of n.children) {
-        if (child.children.length > 0) {
-          result.push({ fromId: n.person.id, toId: child.person.id })
-        }
+  function walk(node: LayoutNode) {
+    if (node.type !== 'manager') return
+    for (const child of node.children) {
+      if (child.type === 'manager') {
+        result.push({ fromId: node.person.id, toId: child.person.id })
+        walk(child)
       }
-      collectEdges(n.children)
     }
   }
-  collectEdges(roots)
+  for (const root of layoutRoots) walk(root)
   return result
 }
 
