@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 )
@@ -140,5 +141,83 @@ func TestSnapshot_LoadClearsRecycled(t *testing.T) {
 	}
 	if len(svc.GetRecycled(context.Background())) != 0 {
 		t.Errorf("expected recycled to be cleared after load, got %d", len(svc.GetRecycled(context.Background())))
+	}
+}
+
+// Scenarios: SNAP-009
+func TestSnapshot_Save_EmptyName(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	err := svc.SaveSnapshot(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty snapshot name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected validation error, got: %v", err)
+	}
+}
+
+// Scenarios: SNAP-009
+func TestSnapshot_Save_PathTraversal(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	err := svc.SaveSnapshot(context.Background(), "../evil")
+	if err == nil {
+		t.Fatal("expected error for path-traversal snapshot name")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected validation error, got: %v", err)
+	}
+}
+
+// Scenarios: SNAP-009
+func TestSnapshot_Save_TooLong(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	longName := strings.Repeat("a", 101)
+	err := svc.SaveSnapshot(context.Background(), longName)
+	if err == nil {
+		t.Fatal("expected error for snapshot name over 100 chars")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected validation error, got: %v", err)
+	}
+}
+
+// Scenarios: SNAP-009
+func TestSnapshot_Save_ValidSpecialChars(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	validNames := []string{
+		"v1",
+		"my snapshot",
+		"release-2026",
+		"snapshot_v1.0",
+		"Q1 Planning",
+		strings.Repeat("a", 100), // exactly 100 chars
+	}
+	for _, name := range validNames {
+		if err := svc.SaveSnapshot(context.Background(), name); err != nil {
+			t.Errorf("expected valid name %q to succeed, got: %v", name, err)
+		}
+	}
+}
+
+// Scenarios: SNAP-009
+func TestSnapshot_Save_InvalidChars(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	invalidNames := []string{
+		"../evil",
+		"/etc/passwd",
+		"name\x00null",
+		"<script>",
+		"name|pipe",
+	}
+	for _, name := range invalidNames {
+		err := svc.SaveSnapshot(context.Background(), name)
+		if err == nil {
+			t.Errorf("expected invalid name %q to fail", name)
+		}
 	}
 }

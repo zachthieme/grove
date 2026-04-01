@@ -150,38 +150,46 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave).not.toHaveBeenCalled()
   })
 
-  it('[AUTO-002] sets serverSaveError to true when writeAutosave rejects', async () => {
+  it('[AUTO-002] sets serverSaveError to true when writeAutosave rejects all retries', async () => {
     mockOrgData()
-    mockedWriteAutosave.mockRejectedValueOnce(new Error('network error'))
+    // Reject all 3 attempts (initial + 2 retries with 1s and 2s backoff)
+    mockedWriteAutosave.mockRejectedValue(new Error('network error'))
 
     const { result } = renderHook(() => useAutosave())
 
-    // Advance past the debounce to trigger the save
+    // Advance debounce, then flush all timers and microtasks for retries
     await act(async () => {
       vi.advanceTimersByTime(2000)
-      // Flush microtasks so the rejected promise settles and setState runs
-      await Promise.resolve()
+    })
+    await act(async () => {
+      await vi.runAllTimersAsync()
     })
 
     expect(result.current.serverSaveError).toBe(true)
+    mockedWriteAutosave.mockReset()
+    mockedWriteAutosave.mockResolvedValue(undefined)
   })
 
   it('[AUTO-002] clears serverSaveError on a subsequent successful save', async () => {
     mockOrgData({ working: [makePerson({ name: 'Alice' })] })
-    mockedWriteAutosave.mockRejectedValueOnce(new Error('network error'))
+    // Reject all 3 attempts for the first save
+    mockedWriteAutosave.mockRejectedValue(new Error('network error'))
 
     const { result, rerender } = renderHook(() => useAutosave())
 
-    // First save fails
+    // First save fails — advance debounce, then flush all retry timers
     await act(async () => {
       vi.advanceTimersByTime(2000)
-      await Promise.resolve()
+    })
+    await act(async () => {
+      await vi.runAllTimersAsync()
     })
 
     expect(result.current.serverSaveError).toBe(true)
 
     // Second save succeeds
-    mockedWriteAutosave.mockResolvedValueOnce(undefined)
+    mockedWriteAutosave.mockReset()
+    mockedWriteAutosave.mockResolvedValue(undefined)
     mockOrgData({ working: [makePerson({ name: 'Bob' })] })
     rerender()
 

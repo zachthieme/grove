@@ -142,6 +142,7 @@ func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
 	body := `{"personId":"abc"}`
 	req := httptest.NewRequest("POST", "/api/update", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	req.Header.Set("X-Correlation-ID", "corr-123")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -302,6 +303,7 @@ func TestLogEndpoints_POST(t *testing.T) {
 	body := `{"source":"web","method":"POST","path":"/api/update","responseStatus":200,"durationMs":15}`
 	req := httptest.NewRequest("POST", "/api/logs", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
@@ -325,6 +327,7 @@ func TestLogEndpoints_DELETE(t *testing.T) {
 	router := NewRouter(NewServices(NewOrgService(NewMemorySnapshotStore())), buf, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("DELETE", "/api/logs", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 

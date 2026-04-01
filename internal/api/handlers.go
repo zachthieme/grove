@@ -68,7 +68,22 @@ func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.H
 		mux.HandleFunc("DELETE /api/logs", handleDeleteLogs(logBuf))
 	}
 
-	return mux
+	return csrfProtect(mux)
+}
+
+// csrfProtect rejects POST and DELETE requests that lack the X-Requested-With
+// header. Browsers never add custom headers on cross-origin form submissions,
+// so this is a lightweight CSRF defence without requiring tokens.
+func csrfProtect(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost || r.Method == http.MethodDelete {
+			if r.Header.Get("X-Requested-With") == "" {
+				writeError(w, http.StatusForbidden, "missing X-Requested-With header")
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func handleUpload(svc ImportService) http.HandlerFunc {

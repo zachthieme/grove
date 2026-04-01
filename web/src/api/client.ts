@@ -61,10 +61,13 @@ function fetchWithTimeout(
       Object.assign(headers, fetchInit.headers)
     }
   }
-  headers['X-Correlation-ID'] = cid
-
   const path = typeof input === 'string' ? input : input instanceof URL ? input.pathname : input.url
   const method = fetchInit.method ?? 'GET'
+
+  headers['X-Correlation-ID'] = cid
+  if (method === 'POST' || method === 'DELETE') {
+    headers['X-Requested-With'] = 'XMLHttpRequest'
+  }
 
   async function attempt(retriesLeft: number): Promise<Response> {
     const startTime = Date.now()

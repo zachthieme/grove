@@ -1,9 +1,18 @@
 package api
 
 import (
+	"regexp"
 	"sort"
 	"time"
 )
+
+// validSnapshotName allows names starting with a letter or digit, followed by
+// letters, digits, spaces, hyphens, underscores, or dots.
+var validSnapshotName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 _\-\.]*$`)
+
+func isValidSnapshotName(name string) bool {
+	return validSnapshotName.MatchString(name)
+}
 
 type snapshotData struct {
 	People    []Person
@@ -42,8 +51,17 @@ func NewSnapshotManager(store SnapshotStore) *SnapshotManager {
 	return sm
 }
 
-// Save stores a named snapshot of the given state. Returns an error for reserved names.
+// Save stores a named snapshot of the given state. Returns an error for invalid or reserved names.
 func (sm *SnapshotManager) Save(name string, people []Person, pods []Pod, settings Settings) error {
+	if name == "" {
+		return errValidation("snapshot name is required")
+	}
+	if len(name) > 100 {
+		return errValidation("snapshot name too long (max 100 characters)")
+	}
+	if !isValidSnapshotName(name) {
+		return errValidation("snapshot name contains invalid characters (use letters, numbers, spaces, hyphens, underscores, dots)")
+	}
 	if reservedSnapshotNames[name] {
 		return errConflict("snapshot name %q is reserved", name)
 	}

@@ -243,6 +243,7 @@ func uploadTestCSV(t *testing.T) (handler http.Handler, data *api.OrgData) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/api/upload", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	handler.ServeHTTP(rec, req)
 	if rec.Code != 200 {
 		t.Fatalf("upload: %d %s", rec.Code, rec.Body.String())
@@ -264,6 +265,7 @@ func postJSON(t *testing.T, handler http.Handler, path, payload string, wantStat
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", path, strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	handler.ServeHTTP(rec, req)
 	if rec.Code != wantStatus {
 		t.Fatalf("%s: expected %d, got %d: %s", path, wantStatus, rec.Code, rec.Body.String())

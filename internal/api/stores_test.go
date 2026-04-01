@@ -127,6 +127,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 	body := `{"original":[],"working":[],"recycled":[],"snapshotName":"","timestamp":"now"}`
 	req := httptest.NewRequest("POST", "/api/autosave", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -168,6 +169,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -187,6 +189,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	body := `{"original":[{"id":"1","name":"Alice"}],"working":[],"recycled":[],"snapshotName":"v1","timestamp":"2026-01-01T00:00:00Z"}`
 	req := httptest.NewRequest("POST", "/api/autosave", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -210,6 +213,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 
 	// Delete
 	req = httptest.NewRequest("DELETE", "/api/autosave", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -243,6 +247,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	body := `{"name":"v1"}`
 	req := httptest.NewRequest("POST", "/api/snapshots/save", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -264,6 +269,7 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	body := `{"name":"v1"}`
 	req := httptest.NewRequest("POST", "/api/snapshots/save", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -276,6 +282,7 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	body = `{"name":"v1"}`
 	req = httptest.NewRequest("POST", "/api/snapshots/delete", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 

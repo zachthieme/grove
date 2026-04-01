@@ -359,6 +359,7 @@ func TestContractErrorResponseShape(t *testing.T) {
 			}
 			req := httptest.NewRequest(tc.method, tc.path, body)
 			req.Header.Set("Content-Type", "application/json")
+   req.Header.Set("X-Requested-With", "XMLHttpRequest")
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, req)
 
@@ -437,6 +438,7 @@ func TestContractUploadResponseShape(t *testing.T) {
 	body, contentType := createMultipartUpload(t, "test.csv", []byte(csv))
 	req := httptest.NewRequest("POST", "/api/upload", body)
 	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

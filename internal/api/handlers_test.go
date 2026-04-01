@@ -32,6 +32,7 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 
 	req := httptest.NewRequest("POST", "/api/upload", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -128,6 +129,7 @@ func TestMoveHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/move", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -173,6 +175,7 @@ func TestUpdateHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -208,6 +211,7 @@ func TestAddHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/add", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -246,6 +250,7 @@ func TestDeleteHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -281,6 +286,7 @@ func TestRecycledHandler(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"personId": bob.Id})
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -318,6 +324,7 @@ func TestRestoreHandler(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"personId": bob.Id})
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -328,6 +335,7 @@ func TestRestoreHandler(t *testing.T) {
 	body, _ = json.Marshal(map[string]string{"personId": bob.Id})
 	req = httptest.NewRequest("POST", "/api/restore", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -363,6 +371,7 @@ func TestEmptyBinHandler(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"personId": bob.Id})
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -371,6 +380,7 @@ func TestEmptyBinHandler(t *testing.T) {
 
 	// POST /api/empty-bin
 	req = httptest.NewRequest("POST", "/api/empty-bin", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -453,6 +463,7 @@ func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
 
 	req := httptest.NewRequest("POST", "/api/upload", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -492,6 +503,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -531,6 +543,7 @@ func TestReorderHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/reorder", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -569,6 +582,7 @@ func TestReorderHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/reorder", bytes.NewReader([]byte("not json")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -601,6 +615,7 @@ func TestResetHandler(t *testing.T) {
 	})
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -612,6 +627,7 @@ func TestResetHandler(t *testing.T) {
 	body, _ = json.Marshal(map[string]string{"personId": carol.Id})
 	req = httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -620,6 +636,7 @@ func TestResetHandler(t *testing.T) {
 
 	// POST /api/reset
 	req = httptest.NewRequest("POST", "/api/reset", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -675,6 +692,7 @@ func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"name": "v1"})
 	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -720,6 +738,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"name": "v1"})
 	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -734,6 +753,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 	})
 	req = httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -744,6 +764,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 	body, _ = json.Marshal(map[string]string{"name": "v1"})
 	req = httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -771,6 +792,7 @@ func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"name": "nonexistent"})
 	req := httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -790,6 +812,7 @@ func TestSnapshotHandlers_Delete(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"name": "v1"})
 	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -800,6 +823,7 @@ func TestSnapshotHandlers_Delete(t *testing.T) {
 	body, _ = json.Marshal(map[string]string{"name": "v1"})
 	req = httptest.NewRequest("POST", "/api/snapshots/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -827,6 +851,7 @@ func TestMoveHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/move", bytes.NewReader([]byte("not json")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -855,6 +880,7 @@ func TestMoveHandler_PersonNotFound(t *testing.T) {
 	})
 	req := httptest.NewRequest("POST", "/api/move", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -872,6 +898,7 @@ func TestUpdateHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -893,6 +920,7 @@ func TestUpdateHandler_PersonNotFound(t *testing.T) {
 	})
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -910,6 +938,7 @@ func TestAddHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/add", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -927,6 +956,7 @@ func TestDeleteHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -945,6 +975,7 @@ func TestDeleteHandler_PersonNotFound(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"personId": "nonexistent"})
 	req := httptest.NewRequest("POST", "/api/delete", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -962,6 +993,7 @@ func TestRestoreHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/restore", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -980,6 +1012,7 @@ func TestRestoreHandler_PersonNotFound(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"personId": "nonexistent"})
 	req := httptest.NewRequest("POST", "/api/restore", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -996,6 +1029,7 @@ func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1013,6 +1047,7 @@ func TestConfirmMappingHandler_NoPending(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{"mapping": map[string]string{"name": "Name"}})
 	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1069,6 +1104,7 @@ func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1086,6 +1122,7 @@ func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/snapshots/load", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1103,6 +1140,7 @@ func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/snapshots/delete", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1119,6 +1157,7 @@ func TestUploadHandler_NoFile(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/upload", nil)
 	req.Header.Set("Content-Type", "multipart/form-data")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1148,6 +1187,7 @@ func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/upload", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1176,6 +1216,7 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 	body, _ := json.Marshal(data)
 	req := httptest.NewRequest("POST", "/api/autosave", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1201,6 +1242,7 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 
 	// Delete autosave
 	req = httptest.NewRequest("DELETE", "/api/autosave", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1229,6 +1271,7 @@ func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/autosave", bytes.NewReader([]byte("bad")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1265,6 +1308,7 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1284,6 +1328,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{"name": "snap1"})
 	req := httptest.NewRequest("POST", "/api/snapshots/save", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1398,6 +1443,7 @@ func TestUploadZipHandler(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/upload/zip", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1436,6 +1482,7 @@ func TestSettingsHandler_GetAndPost(t *testing.T) {
 	body := `{"disciplineOrder":["Product","Eng"]}`
 	req = httptest.NewRequest("POST", "/api/settings", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	w = httptest.NewRecorder()
 	NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore()).ServeHTTP(w, req)
 	if w.Code != 200 {
@@ -1465,6 +1512,7 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 	body, _ := json.Marshal(data)
 	req := httptest.NewRequest("POST", "/api/restore-state", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1515,6 +1563,7 @@ func TestRestoreStateHandler_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/restore-state", bytes.NewReader([]byte("not json")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1550,6 +1599,7 @@ func TestBodySizeLimit(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/update", bytes.NewReader(bigBody))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1653,6 +1703,7 @@ func TestContentTypeValidation(t *testing.T) {
 			if tc.contentType != "" {
 				req.Header.Set("Content-Type", tc.contentType)
 			}
+			req.Header.Set("X-Requested-With", "XMLHttpRequest")
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, req)
 
@@ -1671,6 +1722,7 @@ func TestContentTypeValidation_ErrorShape(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/update", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "text/plain")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -1695,6 +1747,7 @@ func TestCreateHandler(t *testing.T) {
 	body := strings.NewReader(`{"name":"Alice"}`)
 	req := httptest.NewRequest("POST", "/api/create", body)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1730,6 +1783,7 @@ func TestCreateHandler_EmptyName(t *testing.T) {
 	body := strings.NewReader(`{"name":""}`)
 	req := httptest.NewRequest("POST", "/api/create", body)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1749,6 +1803,7 @@ func TestAddParentHandler(t *testing.T) {
 	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":"CEO"}`, alice.Id))
 	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1780,6 +1835,7 @@ func TestAddParentHandler_EmptyName(t *testing.T) {
 	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":""}`, alice.Id))
 	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1799,6 +1855,7 @@ func TestAddParentHandler_ChildHasManager(t *testing.T) {
 	body := strings.NewReader(fmt.Sprintf(`{"childId":"%s","name":"Middle"}`, bob.Id))
 	req := httptest.NewRequest("POST", "/api/people/add-parent", body)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
@@ -1807,3 +1864,78 @@ func TestAddParentHandler_ChildHasManager(t *testing.T) {
 	}
 }
 
+// --- CSRF protection tests ---
+
+// Scenarios: SEC-001
+func TestCSRFProtect_PostWithoutHeader_Returns403(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	req := httptest.NewRequest("POST", "/api/move", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	// No X-Requested-With header
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+	var errResp map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&errResp); err != nil {
+		t.Fatalf("decoding error response: %v", err)
+	}
+	if errResp["error"] == "" {
+		t.Error("expected error message in response")
+	}
+}
+
+// Scenarios: SEC-001
+func TestCSRFProtect_PostWithHeader_Succeeds(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/snapshots/save", strings.NewReader(`{"name":"test"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// Scenarios: SEC-001
+func TestCSRFProtect_GetWithoutHeader_Succeeds(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	// GET requests should not require X-Requested-With
+	req := httptest.NewRequest("GET", "/api/org", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+// Scenarios: SEC-001
+func TestCSRFProtect_DeleteWithoutHeader_Returns403(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
+	// No X-Requested-With header
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}

@@ -6,6 +6,22 @@ import * as api from '../api/client'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number = 3,
+  baseDelayMs: number = 1000,
+): Promise<T> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      if (attempt === maxAttempts - 1) throw err
+      await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)))
+    }
+  }
+  throw new Error('unreachable')
+}
+
 export function useAutosave(suppressAutosaveRef?: React.RefObject<boolean>) {
   const { original, working, recycled, pods, originalPods, settings, currentSnapshotName, loaded } = useOrgData()
   const timerRef = useRef<number>(undefined)
@@ -31,10 +47,10 @@ export function useAutosave(suppressAutosaveRef?: React.RefObject<boolean>) {
       } catch (e) {
         console.warn('localStorage autosave failed:', e)
       }
-      api.writeAutosave(data)
+      retryWithBackoff(() => api.writeAutosave(data))
         .then(() => setServerSaveError(false))
         .catch((err) => {
-          console.warn('Server autosave failed:', err)
+          console.warn('Server autosave failed after retries:', err)
           setServerSaveError(true)
         })
     }, AUTOSAVE_DEBOUNCE_MS)

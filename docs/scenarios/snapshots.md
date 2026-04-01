@@ -110,7 +110,7 @@ Saving a snapshot with a reserved name (__working__, __original__) returns a con
 
 ## Edge cases
 - User cannot save as __export_temp__ (rejected as reserved)
-- Empty string name is technically allowed (not reserved)
+- Empty string name is rejected (see SNAP-009)
 
 ---
 
@@ -177,3 +177,31 @@ Client exports a specific snapshot as CSV or XLSX. Special names __working__ and
 
 ## Edge cases
 - Unsupported format returns 400
+
+---
+
+# Scenario: Snapshot name validation
+
+**ID**: SNAP-009
+**Area**: snapshots
+**Tests**:
+- `internal/api/snapshots_test.go` → "TestSnapshot_Save_EmptyName"
+- `internal/api/snapshots_test.go` → "TestSnapshot_Save_PathTraversal"
+- `internal/api/snapshots_test.go` → "TestSnapshot_Save_TooLong"
+- `internal/api/snapshots_test.go` → "TestSnapshot_Save_ValidSpecialChars"
+- `internal/api/snapshots_test.go` → "TestSnapshot_Save_InvalidChars"
+
+## Behavior
+Snapshot names are validated before saving. Names must be non-empty, at most 100 characters, and contain only letters, digits, spaces, hyphens, underscores, and dots. The name must start with a letter or digit.
+
+## Invariants
+- Empty name returns validation error (HTTP 422)
+- Name over 100 characters returns validation error (HTTP 422)
+- Names with path-traversal characters (e.g. `../`) are rejected
+- Names with special characters (/, <, >, |, null bytes) are rejected
+- Valid names with spaces, hyphens, underscores, dots are accepted
+
+## Edge cases
+- Name starting with a dot or space is rejected (must start with letter or digit)
+- Exactly 100-character name is accepted
+- 101-character name is rejected
