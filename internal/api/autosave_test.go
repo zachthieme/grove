@@ -6,8 +6,8 @@ import "testing"
 
 func TestAutosave_WriteAndRead(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	data := AutosaveData{
 		Original:     []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
@@ -37,8 +37,8 @@ func TestAutosave_WriteAndRead(t *testing.T) {
 
 func TestAutosave_ReadMissing(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	data, err := ReadAutosave()
 	if err != nil {
@@ -51,8 +51,8 @@ func TestAutosave_ReadMissing(t *testing.T) {
 
 func TestAutosave_Delete(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	if err := WriteAutosave(AutosaveData{Timestamp: "now"}); err != nil {
 		t.Fatalf("write autosave: %v", err)
@@ -69,8 +69,8 @@ func TestAutosave_Delete(t *testing.T) {
 
 func TestAutosave_DeleteMissing(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	if err := DeleteAutosave(); err != nil {
 		t.Fatalf("expected no error deleting missing file, got: %v", err)

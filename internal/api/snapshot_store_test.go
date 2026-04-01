@@ -11,8 +11,8 @@ import (
 )
 
 func TestSnapshotStore_WriteAndRead(t *testing.T) {
-	snapshotStoreDir = t.TempDir()
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = t.TempDir()
+	defer func() { storageDir = "" }()
 
 	snaps := map[string]snapshotData{
 		"v1": {
@@ -37,8 +37,8 @@ func TestSnapshotStore_WriteAndRead(t *testing.T) {
 }
 
 func TestSnapshotStore_ReadMissing(t *testing.T) {
-	snapshotStoreDir = t.TempDir()
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = t.TempDir()
+	defer func() { storageDir = "" }()
 
 	snaps, err := ReadSnapshots()
 	if err != nil {
@@ -50,8 +50,8 @@ func TestSnapshotStore_ReadMissing(t *testing.T) {
 }
 
 func TestSnapshotStore_Delete(t *testing.T) {
-	snapshotStoreDir = t.TempDir()
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = t.TempDir()
+	defer func() { storageDir = "" }()
 
 	snaps := map[string]snapshotData{
 		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},
@@ -69,8 +69,8 @@ func TestSnapshotStore_Delete(t *testing.T) {
 }
 
 func TestSnapshotStore_DeleteMissing(t *testing.T) {
-	snapshotStoreDir = t.TempDir()
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = t.TempDir()
+	defer func() { storageDir = "" }()
 
 	// Delete when no file exists should not error
 	if err := DeleteSnapshotStore(); err != nil {
@@ -80,8 +80,8 @@ func TestSnapshotStore_DeleteMissing(t *testing.T) {
 
 func TestSnapshotStore_CorruptJSON(t *testing.T) {
 	dir := t.TempDir()
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	// Write corrupt JSON directly to the file
 	path := filepath.Join(dir, "snapshots.json")
@@ -113,8 +113,8 @@ func TestSnapshotStore_WriteToReadOnlyDir(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(readOnlyDir, 0755) })
 
-	snapshotStoreDir = readOnlyDir
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = readOnlyDir
+	defer func() { storageDir = "" }()
 
 	snaps := map[string]snapshotData{
 		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},
@@ -127,8 +127,8 @@ func TestSnapshotStore_WriteToReadOnlyDir(t *testing.T) {
 
 func TestSnapshotStore_ReadPermissionDenied(t *testing.T) {
 	dir := t.TempDir()
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	// Write valid data, then make file unreadable
 	snaps := map[string]snapshotData{
@@ -157,8 +157,8 @@ func TestSnapshotStore_ReadPermissionDenied(t *testing.T) {
 }
 
 func TestSnapshotStore_RoundTripPreservesAllFields(t *testing.T) {
-	snapshotStoreDir = t.TempDir()
-	defer func() { snapshotStoreDir = "" }()
+	storageDir = t.TempDir()
+	defer func() { storageDir = "" }()
 
 	ts := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
 	snaps := map[string]snapshotData{

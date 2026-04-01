@@ -1161,8 +1161,8 @@ func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 // Scenarios: AUTO-006
 func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
@@ -1221,8 +1221,8 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
@@ -1240,8 +1240,8 @@ func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 // Scenarios: AUTO-006
 func TestAutosaveHandler_ReadMissing(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
@@ -1258,8 +1258,8 @@ func TestAutosaveHandler_ReadMissing(t *testing.T) {
 // Scenarios: AUTO-006
 func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	dir := t.TempDir()
-	autosaveDir = dir
-	defer func() { autosaveDir = "" }()
+	storageDir = dir
+	defer func() { storageDir = "" }()
 
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())

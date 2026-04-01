@@ -14,9 +14,9 @@ func TestSnapshotRecovery_MalformedJSON(t *testing.T) {
 	if err := os.WriteFile(path, []byte("{not valid json!!!"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	old := snapshotStoreDir
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = old }()
+	old := storageDir
+	storageDir = dir
+	defer func() { storageDir = old }()
 
 	result, err := ReadSnapshots()
 	if err == nil {
@@ -33,9 +33,9 @@ func TestSnapshotRecovery_TruncatedJSON(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"snap1":{"people":[{"id":"a","name":"Al`), 0644); err != nil {
 		t.Fatal(err)
 	}
-	old := snapshotStoreDir
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = old }()
+	old := storageDir
+	storageDir = dir
+	defer func() { storageDir = old }()
 
 	result, err := ReadSnapshots()
 	if err == nil {
@@ -52,9 +52,9 @@ func TestSnapshotRecovery_EmptyFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte(""), 0644); err != nil {
 		t.Fatal(err)
 	}
-	old := snapshotStoreDir
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = old }()
+	old := storageDir
+	storageDir = dir
+	defer func() { storageDir = old }()
 
 	result, err := ReadSnapshots()
 	if err == nil {
@@ -67,9 +67,9 @@ func TestSnapshotRecovery_EmptyFile(t *testing.T) {
 
 func TestSnapshotRecovery_FileNotExist(t *testing.T) {
 	dir := t.TempDir()
-	old := snapshotStoreDir
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = old }()
+	old := storageDir
+	storageDir = dir
+	defer func() { storageDir = old }()
 
 	result, err := ReadSnapshots()
 	if err != nil {
@@ -87,9 +87,9 @@ func TestSnapshotRecovery_ValidJSON(t *testing.T) {
 	if err := os.WriteFile(path, []byte(data), 0644); err != nil {
 		t.Fatal(err)
 	}
-	old := snapshotStoreDir
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = old }()
+	old := storageDir
+	storageDir = dir
+	defer func() { storageDir = old }()
 
 	result, err := ReadSnapshots()
 	if err != nil {
@@ -110,9 +110,9 @@ func TestSnapshotRecovery_ManagerStartsClean(t *testing.T) {
 	if err := os.WriteFile(path, []byte("corrupted!"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	old := snapshotStoreDir
-	snapshotStoreDir = dir
-	defer func() { snapshotStoreDir = old }()
+	old := storageDir
+	storageDir = dir
+	defer func() { storageDir = old }()
 
 	store := FileSnapshotStore{}
 	sm := NewSnapshotManager(store)

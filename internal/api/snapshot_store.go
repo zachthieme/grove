@@ -10,20 +10,10 @@ import (
 	"time"
 )
 
-// snapshotStoreDir can be overridden in tests (same pattern as autosave.go).
-var snapshotStoreDir = ""
-
 func snapshotStorePath() (string, error) {
-	dir := snapshotStoreDir
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("getting home dir: %w", err)
-		}
-		dir = filepath.Join(home, ".grove")
-	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("creating dir: %w", err)
+	dir, err := groveDir()
+	if err != nil {
+		return "", err
 	}
 	return filepath.Join(dir, "snapshots.json"), nil
 }

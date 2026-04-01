@@ -9,17 +9,10 @@ import (
 	"path/filepath"
 )
 
-// autosaveDir overrides the default ~/.grove directory. Only set in tests.
-var autosaveDir = ""
-
 func autosavePath() (string, error) {
-	dir := autosaveDir
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("getting home dir: %w", err)
-		}
-		dir = filepath.Join(home, ".grove")
+	dir, err := groveDir()
+	if err != nil {
+		return "", err
 	}
 	return filepath.Join(dir, "autosave.json"), nil
 }
@@ -28,9 +21,6 @@ func WriteAutosave(data AutosaveData) error {
 	path, err := autosavePath()
 	if err != nil {
 		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return fmt.Errorf("creating autosave dir: %w", err)
 	}
 	b, err := json.Marshal(data)
 	if err != nil {
