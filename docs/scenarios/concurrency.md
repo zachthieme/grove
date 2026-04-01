@@ -76,3 +76,44 @@ The frontend renders a 200-person org chart without errors or hangs. All three v
 
 ## Edge cases
 - None
+
+---
+
+# Scenario: Upload/ConfirmMapping race returns conflict
+
+**ID**: CONC-004
+**Area**: concurrency
+**Tests**:
+- `internal/api/service_test.go` → "TestConfirmMapping_RejectsStaleEpoch"
+- `internal/api/service_test.go` → "TestConfirmMapping_AcceptsCurrentEpoch"
+
+## Behavior
+When a user uploads File A (needs mapping), then uploads File B before confirming A, the ConfirmMapping for A's mapping returns a 409 conflict error. The user must re-confirm with B's mapping.
+
+## Invariants
+- ConfirmMapping with a stale epoch returns a conflict error
+- ConfirmMapping with the current epoch succeeds normally
+- No data is silently lost
+
+## Edge cases
+- None
+
+---
+
+# Scenario: Concurrent snapshot saves persist all snapshots
+
+**ID**: CONC-005
+**Area**: concurrency
+**Tests**:
+- `internal/api/concurrent_test.go` → "TestConcurrentSnapshotSaves_BothPersist"
+
+## Behavior
+Two concurrent SaveSnapshot calls both persist their data. Neither overwrites the other on disk.
+
+## Invariants
+- Both snapshots appear in ListSnapshots after concurrent saves
+- Both snapshots are present in the persisted store
+- Existing TestConcurrentSnapshotOperations still passes
+
+## Edge cases
+- None
