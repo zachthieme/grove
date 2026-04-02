@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.13.0
+
+### Breaking Changes
+- **Sidebar always editable**: Removed the view/edit toggle — selecting a person, batch, or pod immediately shows the editable form. `PersonViewSidebar` and `BatchViewSidebar` removed.
+- **Unified selection model**: Removed `selectedPodId`/`selectPod`/`onPodSelect` — all nodes (person, pod, team group) use `selectedIds` with collapseKeys. One selection path for everything.
+
+### Features
+- **Unified node behavior**: All nodes on screen (person, manager, pod group, team group, orphan group) share identical selection, vim navigation, cut/paste, and drag-and-drop behavior
+- **Pod search**: Search bar now includes pod groups alongside people, showing "Pod · TeamName" in results
+- **Vim cut/paste for groups**: Cutting a pod or team group cuts all members; pasting moves them to the target via shared `moveToTarget()` utility (same code path as drag-and-drop)
+- **Sidebar keyboard navigation**: Tab focuses the sidebar from the chart; Esc or Shift+Tab from first field reverts changes and returns to chart navigation; Cmd+S / Ctrl+S saves — works in all sidebars (person, batch, pod) regardless of vim mode
+- **Vim `i` enters sidebar**: Pressing `i` in vim mode focuses the sidebar's first input field
+- **Search blur on select**: Selecting a search result blurs the input so vim navigation works immediately
+
+### Refactoring
+- **Person type deduplication** (#112): Extracted `model.PersonFields` with 16 shared fields — embedded in both `model.Person` and `api.Person`. Adding a new person field is now a one-place change.
+- **Shared `moveToTarget()`**: Drag-and-drop and vim cut/paste share the same target resolution logic (person, pod, team, orphan targets)
+- **Shared `SidebarShell`**: All sidebars (person, batch, pod) use `SidebarShell` for consistent keyboard handling (Tab/Esc/Shift+Tab/Cmd+S)
+- **Generic drag overlay**: `DragBadgeOverlay` clones the visual content of any dragged node from the DOM — no type-specific rendering
+- **Removed `vimAddReport` duplication**: Vim nav uses `handleAddReport` from `ViewDataContext` instead of reimplementing it
+- **Lasso skip unified**: Lasso selection skips all group nodes uniformly (`id.includes(':')`) instead of only pods
+
+### Accessibility
+- **Form labels** (#115): All 13 PersonForm fields have `htmlFor`/`id` associations for screen readers
+- **aria-live on save status**: Save buttons in all sidebars have `aria-live="polite"`; save errors have `role="alert"`
+
+---
+
 ## v0.12.0
 
 ### Bug Fixes

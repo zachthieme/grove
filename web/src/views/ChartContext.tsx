@@ -7,7 +7,6 @@ import type { InteractionMode } from '../store/orgTypes'
 /** Data that changes on mutations, selections, and edits. */
 export interface ChartDataContextValue {
   selectedIds: Set<string>
-  selectedPodId?: string | null
   changes?: Map<string, PersonChange>
   managerSet?: Set<string>
   pods?: Pod[]
@@ -27,8 +26,6 @@ export interface ChartActionsContextValue {
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
-  onEditMode?: (id: string) => void
-  onPodSelect?: (podId: string) => void
   onEnterEditing?: (person: Person) => void
   onUpdateBuffer?: (field: keyof PersonFormValues, value: string | boolean) => void
   onCommitEdits?: () => void

@@ -15,10 +15,9 @@ import styles from './DetailSidebar.module.css'
 
 interface PersonEditSidebarProps {
   personId: string
-  onSetMode?: (mode: 'view' | 'edit') => void
 }
 
-export default function PersonEditSidebar({ personId, onSetMode: _onSetMode }: PersonEditSidebarProps) {
+export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) {
   const { working } = useOrgData()
   const { update, remove, reparent } = useOrgMutations()
   const { showPrivate } = useUI()
@@ -39,11 +38,7 @@ export default function PersonEditSidebar({ personId, onSetMode: _onSetMode }: P
     }
   }, [person?.id])
 
-  useEffect(() => {
-    if (firstInputRef.current) {
-      firstInputRef.current.focus()
-    }
-  }, [])
+  // Don't auto-focus — let vim nav keep working. Tab enters the sidebar.
 
   const managers = useMemo(() => {
     const managerIds = new Set(working.filter(p => p.managerId).map(p => p.managerId))
@@ -101,7 +96,7 @@ export default function PersonEditSidebar({ personId, onSetMode: _onSetMode }: P
   if (!person) return null
 
   return (
-    <SidebarShell heading="Edit Person">
+    <SidebarShell heading="Edit Person" onExit={() => { if (person) setSidebarForm(personToForm(person)) }} onSave={handleSave}>
       <PersonForm
         values={sidebarForm}
         onChange={handleChange}
@@ -110,13 +105,14 @@ export default function PersonEditSidebar({ personId, onSetMode: _onSetMode }: P
         onToggleStatusInfo={() => setShowStatusInfo(v => !v)}
         firstInputRef={firstInputRef}
       />
-      {saveError && <div className={styles.saveError} style={{ padding: '4px 16px' }}>{saveError}</div>}
+      {saveError && <div className={styles.saveError} role="alert" style={{ padding: '4px 16px' }}>{saveError}</div>}
       <div className={styles.actions}>
         <button
           className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
           onClick={handleSave}
           disabled={saveStatus === 'saving'}
           title="Save changes"
+          aria-live="polite"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>

@@ -7,8 +7,8 @@ import "testing"
 func TestNewOrg_ValidPeople(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Engineering", Manager: "", Team: "Eng", Status: "Active"},
-		{Name: "Bob", Role: "Engineer", Discipline: "Engineering", Manager: "Alice", Team: "Platform", Status: "Active"},
+		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Engineering", Team: "Eng", Status: "Active"}},
+		{PersonFields: PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Manager: "Alice"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -25,8 +25,8 @@ func TestNewOrg_ValidPeople(t *testing.T) {
 func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
-		{Name: "Alice", Role: "PM", Discipline: "PM", Manager: "", Team: "PM", Status: "Active"},
+		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{PersonFields: PersonFields{Name: "Alice", Role: "PM", Discipline: "PM", Team: "PM", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -40,7 +40,7 @@ func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
 func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Bob", Role: "Eng", Discipline: "Eng", Manager: "Nobody", Team: "Eng", Status: "Active"},
+		{PersonFields: PersonFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: "Active"}, Manager: "Nobody"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -54,8 +54,8 @@ func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
 func TestNewOrg_AnyOrderAllowed(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Bob", Role: "Engineer", Discipline: "Eng", Manager: "Alice", Team: "Platform", Status: "Active"},
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{PersonFields: PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Manager: "Alice"},
+		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -69,7 +69,7 @@ func TestNewOrg_AnyOrderAllowed(t *testing.T) {
 func TestNewOrg_InvalidStatusWarns(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "TBD"},
+		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "TBD"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -88,7 +88,7 @@ func TestNewOrg_MissingFieldWarns(t *testing.T) {
 	// After validation relaxation, only Name and Status are required.
 	// Missing Name should still produce a warning.
 	people := []Person{
-		{Name: "", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
+		{PersonFields: PersonFields{Name: "", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -102,8 +102,8 @@ func TestNewOrg_MissingFieldWarns(t *testing.T) {
 func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
-		{Name: "Incoming", Role: "", Discipline: "", Manager: "Alice", Team: "Eng", Status: "Transfer In"},
+		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{PersonFields: PersonFields{Name: "Incoming", Team: "Eng", Status: "Transfer In"}, Manager: "Alice"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -127,7 +127,7 @@ func TestNewOrg_NewStatuses(t *testing.T) {
 			role, disc = "", ""
 		}
 		people := []Person{
-			{Name: "Test", Role: role, Discipline: disc, Manager: "", Team: "Eng", Status: s},
+			{PersonFields: PersonFields{Name: "Test", Role: role, Discipline: disc, Team: "Eng", Status: s}},
 		}
 		org, err := NewOrg(people)
 		if err != nil {
@@ -144,7 +144,7 @@ func TestNewOrg_OldStatusesWarn(t *testing.T) {
 	oldStatuses := []string{"Hiring", "Transfer"}
 	for _, s := range oldStatuses {
 		people := []Person{
-			{Name: "Test", Role: "Eng", Discipline: "Eng", Manager: "", Team: "Eng", Status: s},
+			{PersonFields: PersonFields{Name: "Test", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: s}},
 		}
 		org, err := NewOrg(people)
 		if err != nil {
@@ -160,7 +160,7 @@ func TestNewOrg_OldStatusesWarn(t *testing.T) {
 func TestNewOrg_MultipleWarnings(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "", Role: "Eng", Discipline: "Eng", Manager: "", Team: "", Status: "Bogus"},
+		{PersonFields: PersonFields{Name: "", Role: "Eng", Discipline: "Eng", Status: "Bogus"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -183,9 +183,9 @@ func TestNewOrg_MultipleWarnings(t *testing.T) {
 func TestNewOrg_WarningDoesNotBlockOtherRows(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
-		{Name: "", Role: "", Discipline: "", Manager: "", Team: "", Status: "Bogus"}, // bad row
-		{Name: "Carol", Role: "Eng", Discipline: "Eng", Manager: "Alice", Team: "Eng", Status: "Active"},
+		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{PersonFields: PersonFields{Status: "Bogus"}}, // bad row
+		{PersonFields: PersonFields{Name: "Carol", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: "Active"}, Manager: "Alice"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -227,7 +227,7 @@ func containsSubstr(s, sub string) bool {
 func TestNewOrg_ActiveAllowsBlankRoleDisciplineTeam(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Name: "Alice", Role: "", Discipline: "", Manager: "", Team: "", Status: "Active"},
+		{PersonFields: PersonFields{Name: "Alice", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {

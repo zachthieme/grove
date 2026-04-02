@@ -62,23 +62,20 @@ function buildStatusGroups(people: Person[]): { label: string; count: number }[]
   return groups
 }
 
-function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
+function SummaryCard({ people, podName, publicNote, onClick }: {
   people: Person[]
   podName?: string
   publicNote?: string
-  podId?: string
-  onPodClick?: (podId: string) => void
+  onClick?: () => void
 }) {
   const groups = buildStatusGroups(people)
 
   if (groups.length === 0 && !podName) return null
 
-  const isClickable = podId && onPodClick
-
   return (
     <div
-      className={`${styles.summaryCard}${isClickable ? ` ${styles.summaryCardClickable}` : ''}`}
-      onClick={isClickable ? () => onPodClick(podId) : undefined}
+      className={`${styles.summaryCard}${onClick ? ` ${styles.summaryCardClickable}` : ''}`}
+      onClick={onClick}
     >
       {podName && <div className={styles.podCardHeader}>{podName}</div>}
       {publicNote && (
@@ -97,7 +94,7 @@ function SummaryCard({ people, podName, publicNote, podId, onPodClick }: {
 }
 
 function PodSummaryCard({ group }: { group: PodGroupLayout }) {
-  const { pods, onPodSelect } = useChart()
+  const { pods, onSelect } = useChart()
   const pod = pods?.find((p) => p.managerId === group.managerId && p.name === group.podName)
   const people = group.members.map((m) => m.person)
 
@@ -106,8 +103,7 @@ function PodSummaryCard({ group }: { group: PodGroupLayout }) {
       people={people}
       podName={group.podName}
       publicNote={pod?.publicNote}
-      podId={pod?.id}
-      onPodClick={onPodSelect}
+      onClick={() => onSelect(group.collapseKey)}
     />
   )
 }

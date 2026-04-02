@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/zachthieme/grove/internal/model"
 	"strings"
 	"sync"
 	"testing"
@@ -296,11 +297,13 @@ func TestConcurrentMixedOperations(t *testing.T) {
 				case 3:
 					// Add a new person
 					_, _, _, _ = svc.Add(context.Background(), Person{
-						Name:      fmt.Sprintf("NewPerson-%d-%d", g, i),
-						Role:      "IC",
+						PersonFields: model.PersonFields{
+							Name:   fmt.Sprintf("NewPerson-%d-%d", g, i),
+							Role:   "IC",
+							Team:   "Eng",
+							Status: "Active",
+						},
 						ManagerId: aliceID,
-						Team:      "Eng",
-						Status:    "Active",
 					})
 				case 4:
 					// Delete Carol (may fail if already deleted)

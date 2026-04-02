@@ -50,24 +50,9 @@ func ConvertOrgWithIDMap(org *model.Org, idMap map[string][]string) []Person {
 		}
 
 		result[i] = Person{
-			Id:              indexToID[i],
-			Name:            p.Name,
-			Role:            p.Role,
-			Discipline:      p.Discipline,
-			ManagerId:       managerID,
-			Team:            p.Team,
-			AdditionalTeams: p.AdditionalTeams,
-			Status:          p.Status,
-			EmploymentType:  p.EmploymentType,
-			Warning:         p.Warning,
-			NewRole:         p.NewRole,
-			NewTeam:         p.NewTeam,
-			Pod:             p.Pod,
-			PublicNote:      p.PublicNote,
-			PrivateNote:     p.PrivateNote,
-			Level:           p.Level,
-			Private:         p.Private,
-			Extra:           p.Extra,
+			PersonFields: p.PersonFields,
+			Id:           indexToID[i],
+			ManagerId:    managerID,
 		}
 	}
 	return result

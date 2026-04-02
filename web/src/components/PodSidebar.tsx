@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useOrgData, useOrgMutations, useSelection } from '../store/OrgContext'
+import { useOrgData, useOrgMutations } from '../store/OrgContext'
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import type { PodUpdatePayload } from '../api/types'
+import SidebarShell from './SidebarShell'
 import styles from './DetailSidebar.module.css'
 
-export default function PodSidebar() {
+export default function PodSidebar({ podId }: { podId: string }) {
   const { pods, working } = useOrgData()
   const { updatePod } = useOrgMutations()
-  const { selectedPodId, selectPod } = useSelection()
-  const pod = pods.find(p => p.id === selectedPodId)
+  const pod = pods.find(p => p.id === podId)
 
   const [form, setForm] = useState({ name: '', publicNote: '', privateNote: '' })
   const { saveStatus, saveError, markSaving, markSaved, markError, reset } = useSaveStatus()
@@ -51,14 +51,12 @@ export default function PodSidebar() {
     }
   }
 
+  const resetForm = () => {
+    if (pod) setForm({ name: pod.name, publicNote: pod.publicNote ?? '', privateNote: pod.privateNote ?? '' })
+  }
+
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.header}>
-        <h3>Pod Details</h3>
-        <button className={styles.closeBtn} onClick={() => selectPod(null)} aria-label="Close">
-          &times;
-        </button>
-      </div>
+    <SidebarShell heading="Pod Details" onExit={resetForm} onSave={handleSave}>
       <div className={styles.form}>
         <div className={styles.field}>
           <label>Name</label>
@@ -94,17 +92,18 @@ export default function PodSidebar() {
           />
         </div>
       </div>
-      {saveError && <div className={styles.saveError} style={{ padding: '4px 16px' }}>{saveError}</div>}
+      {saveError && <div className={styles.saveError} role="alert" style={{ padding: '4px 16px' }}>{saveError}</div>}
       <div className={styles.actions}>
         <button
           className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
           onClick={handleSave}
           disabled={!isDirty || saveStatus === 'saving'}
           title="Save changes"
+          aria-live="polite"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>
       </div>
-    </aside>
+    </SidebarShell>
   )
 }

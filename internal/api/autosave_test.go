@@ -2,7 +2,11 @@ package api
 
 // Scenarios: AUTO-006 — all tests in this file
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/zachthieme/grove/internal/model"
+)
 
 func TestAutosave_WriteAndRead(t *testing.T) {
 	dir := t.TempDir()
@@ -10,8 +14,8 @@ func TestAutosave_WriteAndRead(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	data := AutosaveData{
-		Original:     []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
-		Working:      []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
+		Original:     []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Working:      []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
 		SnapshotName: "v1",
 		Timestamp:    "2026-03-21T12:00:00Z",
 	}

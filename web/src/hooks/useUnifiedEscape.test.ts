@@ -9,8 +9,6 @@ function makeActions(overrides: Partial<Parameters<typeof useUnifiedEscape>[0]> 
     onCloseInfoPopover: vi.fn(),
     cutActive: false,
     onCancelCut: vi.fn(),
-    sidebarEditMode: false,
-    onExitSidebarEdit: vi.fn(),
     hasSelection: false,
     onClearSelection: vi.fn(),
     hasHead: false,
@@ -39,7 +37,6 @@ describe('useUnifiedEscape', () => {
     const actions = makeActions({
       infoPopoverOpen: true,
       cutActive: true,
-      sidebarEditMode: true,
       hasSelection: true,
     })
     renderHook(() => useUnifiedEscape(actions))
@@ -47,23 +44,10 @@ describe('useUnifiedEscape', () => {
 
     expect(actions.onCloseInfoPopover).toHaveBeenCalledTimes(1)
     expect(actions.onCancelCut).not.toHaveBeenCalled()
-    expect(actions.onExitSidebarEdit).not.toHaveBeenCalled()
     expect(actions.onClearSelection).not.toHaveBeenCalled()
   })
 
-  it('[SELECT-002] sidebar edit mode exits to view mode', () => {
-    const actions = makeActions({
-      sidebarEditMode: true,
-      hasSelection: true,
-    })
-    renderHook(() => useUnifiedEscape(actions))
-    fireEvent.keyDown(document, { key: 'Escape' })
-
-    expect(actions.onExitSidebarEdit).toHaveBeenCalledTimes(1)
-    expect(actions.onClearSelection).not.toHaveBeenCalled()
-  })
-
-  it('[SELECT-002] clears selection when in view mode', () => {
+  it('[SELECT-002] clears selection when nothing higher priority is active', () => {
     const actions = makeActions({ hasSelection: true, hasHead: true })
     renderHook(() => useUnifiedEscape(actions))
     fireEvent.keyDown(document, { key: 'Escape' })

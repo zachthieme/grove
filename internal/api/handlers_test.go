@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/zachthieme/grove/internal/model"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -204,9 +205,8 @@ func TestAddHandler(t *testing.T) {
 
 	uploadCSV(t, handler)
 
-	body, _ := json.Marshal(Person{
-		Name: "Dave", Role: "Engineer", Discipline: "Eng",
-		Team: "Eng", Status: "Active",
+	body, _ := json.Marshal(Person{PersonFields: model.PersonFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
+		Team: "Eng", Status: "Active"},
 	})
 
 	req := httptest.NewRequest("POST", "/api/add", bytes.NewReader(body))
@@ -1209,8 +1209,8 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 
 	// Write autosave
 	data := AutosaveData{
-		Original:  []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
-		Working:   []Person{{Id: "1", Name: "Alice", Status: "Active", Team: "Eng"}},
+		Original:  []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Working:   []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
 		Timestamp: "2026-03-21T12:00:00Z",
 	}
 	body, _ := json.Marshal(data)
@@ -1500,12 +1500,12 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 
 	data := AutosaveData{
 		Original: []Person{
-			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Working: []Person{
-			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Role: "Senior Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Role: "Senior Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
 	}

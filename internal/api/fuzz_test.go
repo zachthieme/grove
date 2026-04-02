@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/zachthieme/grove/internal/model"
 	"strings"
 	"testing"
 )
@@ -253,9 +254,8 @@ func FuzzWouldCreateCycle(f *testing.F) {
 			if i < len(managerList) {
 				mgr = managerList[i]
 			}
-			people = append(people, Person{
-				Id:        name,
-				Name:      name,
+			people = append(people, Person{PersonFields: model.PersonFields{Name: name}, Id: name,
+
 				ManagerId: mgr,
 			})
 		}

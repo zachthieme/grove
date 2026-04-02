@@ -40,7 +40,7 @@ function singleEditCtx(person: ReturnType<typeof makePerson>, overrides: Record<
 describe('DetailSidebar — branch coverage', () => {
   describe('status info popover', () => {
     function renderSingle() {
-      return renderWithOrg(<DetailSidebar mode="edit" />, {
+      return renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update: vi.fn().mockResolvedValue(undefined),
@@ -80,7 +80,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('closes popover when mouseDown on overlay', () => {
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update: vi.fn().mockResolvedValue(undefined),
@@ -103,7 +103,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('does not close popover when mouseDown on inner content (stopPropagation)', () => {
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update: vi.fn().mockResolvedValue(undefined),
@@ -121,28 +121,26 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('PodSidebar delegation', () => {
-    it('renders PodSidebar when selectedPodId is set and no person selected', () => {
+    it('renders PodSidebar when pod collapseKey is selected', () => {
       const pod: Pod = {
         id: 'pod-1', name: 'Alpha', team: 'Platform', managerId: 'a1',
       }
       renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         pods: [pod],
-        selectedPodId: 'pod-1',
-        selectedId: null,
-        selectedIds: new Set(),
+        selectedId: 'pod:a1:Alpha',
+        selectedIds: new Set(['pod:a1:Alpha']),
       })
       expect(screen.getByText('Pod Details')).toBeTruthy()
     })
 
-    it('does not render PodSidebar when person is also selected', () => {
+    it('does not render PodSidebar when a person is selected', () => {
       const pod: Pod = {
         id: 'pod-1', name: 'Alpha', team: 'Platform', managerId: 'a1',
       }
       renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         pods: [pod],
-        selectedPodId: 'pod-1',
         selectedId: 'b2',
         selectedIds: new Set(['b2']),
         update: vi.fn().mockResolvedValue(undefined),
@@ -162,7 +160,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'ic1', name: 'IC Person', role: 'Eng',
         managerId: 'prv1', team: 'Secret',
       })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [privateMgr, ic],
         ...singleEditCtx(ic),
         showPrivate: false,
@@ -183,7 +181,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'ic1', name: 'IC Person', role: 'Eng',
         managerId: 'prv1', team: 'Secret',
       })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [privateMgr, ic],
         ...singleEditCtx(ic),
         showPrivate: true,
@@ -200,7 +198,7 @@ describe('DetailSidebar — branch coverage', () => {
     function renderSingleEdit(person: ReturnType<typeof makePerson>, overrides = {}) {
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, person],
         selectedId: person.id,
         selectedIds: new Set([person.id]),
@@ -315,7 +313,7 @@ describe('DetailSidebar — branch coverage', () => {
         private: undefined,
         additionalTeams: undefined as unknown as string[],
       })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [barebones],
         ...singleEditCtx(barebones),
         update: vi.fn().mockResolvedValue(undefined),
@@ -334,7 +332,7 @@ describe('DetailSidebar — branch coverage', () => {
         id: 'p1', name: 'Multi', managerId: '', team: 'T',
         additionalTeams: ['TeamA', 'TeamB'],
       })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [withTeams],
         ...singleEditCtx(withTeams),
         update: vi.fn().mockResolvedValue(undefined),
@@ -354,7 +352,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic = makePerson({ id: 'ic1', name: 'IC', managerId: 'm1', team: 'TeamA' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'TeamB' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic, ic2],
         ...singleEditCtx(ic),
         update,
@@ -377,7 +375,7 @@ describe('DetailSidebar — branch coverage', () => {
         update,
         reparent,
         clearSelection,
-        ...renderWithOrg(<DetailSidebar mode="edit" />, {
+        ...renderWithOrg(<DetailSidebar />, {
           working: [alice, bob, carol],
           selectedId: null,
           selectedIds: new Set(['b2', 'c3']),
@@ -416,7 +414,7 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       // bob has discipline 'Eng', carol has 'Design' -> discipline will be MIXED_VALUE
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -443,7 +441,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -467,7 +465,7 @@ describe('DetailSidebar — branch coverage', () => {
         if (callCount === 1) return Promise.reject(new Error('fail'))
         return Promise.resolve(undefined)
       })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -487,7 +485,7 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockResolvedValue(undefined)
       const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'a1', team: 'T', level: 3 })
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'a1', team: 'T', level: 3 })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, ic1, ic2],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -512,7 +510,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -537,7 +535,7 @@ describe('DetailSidebar — branch coverage', () => {
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
       const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -556,7 +554,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for fields with differing employmentType', () => {
       const fte = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
       const contractor = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'Contractor' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, fte, contractor],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -569,7 +567,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows uniform value for matching employmentType', () => {
       const fte1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
       const fte2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'FTE' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, fte1, fte2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -581,7 +579,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing levels', () => {
       const l3 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', level: 3 })
       const l5 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', level: 5 })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, l3, l5],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -594,7 +592,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing pods', () => {
       const podA = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', pod: 'Alpha' })
       const podB = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', pod: 'Beta' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, podA, podB],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -607,7 +605,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing publicNote', () => {
       const note1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', publicNote: 'Note A' })
       const note2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', publicNote: 'Note B' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, note1, note2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -619,7 +617,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing privateNote', () => {
       const note1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', privateNote: 'Secret A' })
       const note2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', privateNote: 'Secret B' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, note1, note2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -631,7 +629,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed for differing additionalTeams', () => {
       const t1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', additionalTeams: ['X'] })
       const t2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', additionalTeams: ['Y'] })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, t1, t2],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -645,7 +643,7 @@ describe('DetailSidebar — branch coverage', () => {
       const mgr2 = makePerson({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T' })
       const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T' })
       const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'T' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2],
         selectedId: null,
         selectedIds: new Set(['ic1', 'ic2']),
@@ -659,7 +657,7 @@ describe('DetailSidebar — branch coverage', () => {
     it('shows Mixed option in status select when statuses differ', () => {
       const active = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', status: 'Active' })
       const open = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', status: 'Open' })
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, active, open],
         selectedId: null,
         selectedIds: new Set(['p1', 'p2']),
@@ -671,7 +669,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('does not show name field in batch edit mode', () => {
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -681,17 +679,8 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('batch heading', () => {
-    it('shows correct count in view mode heading', () => {
+    it('shows correct count in heading', () => {
       renderWithOrg(<DetailSidebar />, {
-        working: [alice, bob, carol],
-        selectedId: null,
-        selectedIds: new Set(['b2', 'c3']),
-      })
-      expect(screen.getByTestId('sidebar-heading').textContent).toBe('2 people selected')
-    })
-
-    it('shows correct count in edit mode heading', () => {
-      renderWithOrg(<DetailSidebar mode="edit" />, {
         working: [alice, bob, carol],
         selectedId: null,
         selectedIds: new Set(['b2', 'c3']),
@@ -706,7 +695,7 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update,
@@ -725,7 +714,7 @@ describe('DetailSidebar — branch coverage', () => {
       const update = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         ...singleEditCtx(bob),
         update,

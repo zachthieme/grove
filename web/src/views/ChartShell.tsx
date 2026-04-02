@@ -80,15 +80,15 @@ export default function ChartShell({
     enabled: true,
   })
 
-  const draggedPerson = activeDragId ? people.find((p) => p.id === activeDragId) : null
+  // activeDragId is used directly by DragBadgeOverlay (works for any node type)
 
   const chartData = useMemo(() => ({
-    selectedIds: selection.selectedIds, selectedPodId: selection.selectedPodId, changes, managerSet, pods,
+    selectedIds: selection.selectedIds, changes, managerSet, pods,
     interactionMode: selection.interactionMode,
     editingPersonId: selection.editingPersonId,
     editBuffer: selection.editBuffer,
     collapsedIds,
-  }), [selection.selectedIds, selection.selectedPodId, selection.interactionMode, selection.editingPersonId, selection.editBuffer, changes, managerSet, pods, collapsedIds])
+  }), [selection.selectedIds, selection.interactionMode, selection.editingPersonId, selection.editBuffer, changes, managerSet, pods, collapsedIds])
 
   const chartActions = useMemo(() => ({
     onSelect: actions.handleSelect,
@@ -99,8 +99,6 @@ export default function ChartShell({
     onDeletePerson: actions.handleDeletePerson,
     onInfo: actions.handleShowInfo,
     onFocus: actions.handleFocus,
-    onEditMode: actions.handleEditMode,
-    onPodSelect: selection.selectPod,
     onEnterEditing: selection.enterEditing,
     onUpdateBuffer: selection.updateBuffer,
     onCommitEdits: actions.handleCommitEdits,
@@ -127,7 +125,7 @@ export default function ChartShell({
             </div>
           )}
         </div>
-        <DragBadgeOverlay draggedPerson={draggedPerson} selectedIds={selection.selectedIds} />
+        <DragBadgeOverlay activeDragId={activeDragId} selectedIds={selection.selectedIds} />
       </DndContext>
       {actions.addParentTargetId != null && (
         <AddParentPopover

@@ -72,18 +72,18 @@ describe('SelectionContext', () => {
     expect(captured!.selectedId).toBeNull()
   })
 
-  it('[SELECT-001] selectPod sets pod id and clears person selection', () => {
+  it('[SELECT-001] setSelectedId with pod collapseKey selects the pod and clears person selection', () => {
     renderWithProvider()
 
     // Select a person first
     act(() => { captured!.toggleSelect('a1', false) })
     expect(captured!.selectedIds.size).toBe(1)
 
-    // Select a pod
-    act(() => { captured!.selectPod('pod-1') })
-    expect(captured!.selectedPodId).toBe('pod-1')
-    expect(captured!.selectedIds.size).toBe(0)
-    expect(captured!.selectedId).toBeNull()
+    // Select a pod via collapseKey
+    act(() => { captured!.setSelectedId('pod:m1:Alpha') })
+    expect(captured!.selectedId).toBe('pod:m1:Alpha')
+    expect(captured!.selectedIds.size).toBe(1)
+    expect(captured!.selectedIds.has('pod:m1:Alpha')).toBe(true)
   })
 
   it('[SELECT-001] batchSelect sets exact set of IDs', () => {
@@ -94,19 +94,17 @@ describe('SelectionContext', () => {
     expect(captured!.selectedIds.has('a1')).toBe(true)
     expect(captured!.selectedIds.has('b2')).toBe(true)
     expect(captured!.selectedIds.has('c3')).toBe(true)
-    // Also clears pod selection
-    expect(captured!.selectedPodId).toBeNull()
   })
 
-  it('[SELECT-001] batchSelect clears previous pod selection', () => {
+  it('[SELECT-001] batchSelect replaces previous pod collapseKey selection', () => {
     renderWithProvider()
 
-    act(() => { captured!.selectPod('pod-1') })
-    expect(captured!.selectedPodId).toBe('pod-1')
+    act(() => { captured!.setSelectedId('pod:m1:Alpha') })
+    expect(captured!.selectedId).toBe('pod:m1:Alpha')
 
     act(() => { captured!.batchSelect(new Set(['a1'])) })
-    expect(captured!.selectedPodId).toBeNull()
     expect(captured!.selectedIds.has('a1')).toBe(true)
+    expect(captured!.selectedIds.has('pod:m1:Alpha')).toBe(false)
   })
 
   it('[SELECT-001] selectedId returns the single ID when exactly one selected, null otherwise', () => {

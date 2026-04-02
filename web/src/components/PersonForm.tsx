@@ -60,8 +60,9 @@ export default function PersonForm({
     <div className={styles.form}>
       {!isBatch && (
         <div className={styles.field}>
-          <label>Name</label>
+          <label htmlFor="field-name">Name</label>
           <input
+            id="field-name"
             data-testid="field-name"
             ref={firstInputRef}
             value={values.name}
@@ -70,8 +71,9 @@ export default function PersonForm({
         </div>
       )}
       <div className={styles.field}>
-        <label>Role</label>
+        <label htmlFor="field-role">Role</label>
         <input
+          id="field-role"
           data-testid="field-role"
           value={isBatch ? displayVal('role') : values.role}
           placeholder={isBatch ? placeholder('role') : undefined}
@@ -79,8 +81,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Discipline</label>
+        <label htmlFor="field-discipline">Discipline</label>
         <input
+          id="field-discipline"
           data-testid="field-discipline"
           value={isBatch ? displayVal('discipline') : values.discipline}
           placeholder={isBatch ? placeholder('discipline') : undefined}
@@ -88,8 +91,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Team</label>
+        <label htmlFor="field-team">Team</label>
         <input
+          id="field-team"
           data-testid="field-team"
           value={isBatch ? displayVal('team') : values.team}
           placeholder={isBatch ? placeholder('team') : undefined}
@@ -97,8 +101,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Manager</label>
+        <label htmlFor="field-manager">Manager</label>
         <select
+          id="field-manager"
           data-testid="field-manager"
           value={isBatch ? displayVal('managerId') : values.managerId}
           onChange={(e) => onChange('managerId', e.target.value)}
@@ -113,11 +118,12 @@ export default function PersonForm({
         </select>
       </div>
       <div className={styles.field}>
-        <label>Pod</label>
+        <label htmlFor="field-pod">Pod</label>
         <span className={styles.fieldHint}>
           Group people within a team — e.g. &quot;Backend&quot;, &quot;Frontend&quot;
         </span>
         <input
+          id="field-pod"
           data-testid="field-pod"
           value={isBatch ? displayVal('pod') : values.pod}
           placeholder={isBatch ? placeholder('pod') : undefined}
@@ -125,7 +131,7 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>
+        <label htmlFor="field-status">
           Status
           <button
             className={styles.infoIcon}
@@ -137,6 +143,7 @@ export default function PersonForm({
         </label>
         {statusInfoPopover}
         <select
+          id="field-status"
           data-testid="field-status"
           value={isBatch ? displayVal('status') : values.status}
           onChange={(e) => onChange('status', e.target.value)}
@@ -150,8 +157,9 @@ export default function PersonForm({
         </select>
       </div>
       <div className={styles.field}>
-        <label>Employment Type</label>
+        <label htmlFor="field-employmentType">Employment Type</label>
         <input
+          id="field-employmentType"
           data-testid="field-employmentType"
           value={isBatch ? displayVal('employmentType') : values.employmentType}
           placeholder={isBatch ? placeholder('employmentType', 'FTE') : undefined}
@@ -159,8 +167,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Level</label>
+        <label htmlFor="field-level">Level</label>
         <input
+          id="field-level"
           data-testid="field-level"
           type="number"
           min="0"
@@ -170,8 +179,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Other Teams</label>
+        <label htmlFor="field-otherTeams">Other Teams</label>
         <input
+          id="field-otherTeams"
           data-testid="field-otherTeams"
           value={isBatch ? displayVal('otherTeams') : values.otherTeams}
           placeholder={
@@ -181,8 +191,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Public Note</label>
+        <label htmlFor="field-publicNote">Public Note</label>
         <textarea
+          id="field-publicNote"
           data-testid="field-publicNote"
           value={isBatch ? displayVal('publicNote') : values.publicNote}
           placeholder={
@@ -195,8 +206,9 @@ export default function PersonForm({
         />
       </div>
       <div className={styles.field}>
-        <label>Private Note</label>
+        <label htmlFor="field-privateNote">Private Note</label>
         <textarea
+          id="field-privateNote"
           data-testid="field-privateNote"
           value={isBatch ? displayVal('privateNote') : values.privateNote}
           placeholder={

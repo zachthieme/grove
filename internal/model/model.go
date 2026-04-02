@@ -24,24 +24,31 @@ const (
 	StatusPlanned     = "Planned"
 )
 
+// PersonFields holds fields shared between the domain model and the API wire
+// format. When adding a new person field, add it here once rather than in both
+// Person and api.Person.
+type PersonFields struct {
+	Name            string            `json:"name"`
+	Role            string            `json:"role"`
+	Discipline      string            `json:"discipline"`
+	Team            string            `json:"team"`
+	AdditionalTeams []string          `json:"additionalTeams"`
+	Status          string            `json:"status"`
+	EmploymentType  string            `json:"employmentType"`
+	Warning         string            `json:"warning,omitempty"`
+	NewRole         string            `json:"newRole,omitempty"`
+	NewTeam         string            `json:"newTeam,omitempty"`
+	Pod             string            `json:"pod,omitempty"`
+	PublicNote      string            `json:"publicNote,omitempty"`
+	PrivateNote     string            `json:"privateNote,omitempty"`
+	Level           int               `json:"level,omitempty"`
+	Private         bool              `json:"private,omitempty"`
+	Extra           map[string]string `json:"extra,omitempty"`
+}
+
 type Person struct {
-	Name            string
-	Role            string
-	Discipline      string
-	Manager         string
-	Team            string
-	AdditionalTeams []string
-	Status          string
-	EmploymentType  string
-	NewRole         string
-	NewTeam         string
-	Warning         string // non-empty if this row had validation issues
-	Pod             string
-	PublicNote      string
-	PrivateNote     string
-	Level           int
-	Private         bool
-	Extra           map[string]string // unmapped spreadsheet columns, keyed by original header name
+	PersonFields
+	Manager string // manager by name, used only during CSV import
 }
 
 type Org struct {

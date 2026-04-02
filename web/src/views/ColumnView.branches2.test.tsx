@@ -1,7 +1,7 @@
 /**
  * Additional branch coverage for ColumnView (round 2).
  * Covers: pod findPod returning a matching pod vs undefined, pod publicNote,
- * pod?.team vs podName fallback, onPodSelect callback, onFocus for managers
+ * pod?.team vs podName fallback, pod onInfo callback, onFocus for managers
  * vs non-managers, changes map branches, showTeam when managerSet has a leaf,
  * icGroup with podName vs without, empty children (no subtree div),
  * selected node highlighting, and originalView readOnly mode.

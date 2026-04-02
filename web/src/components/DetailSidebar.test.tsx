@@ -33,7 +33,7 @@ describe('DetailSidebar', () => {
         setSelectedId,
         ...overrides,
       }
-      const result = renderWithOrg(<DetailSidebar mode="edit" />, ctx)
+      const result = renderWithOrg(<DetailSidebar />, ctx)
       return { ...result, update, remove, reparent, clearSelection, setSelectedId, ...overrides }
     }
 
@@ -158,7 +158,7 @@ describe('DetailSidebar', () => {
         clearSelection,
         ...overrides,
       }
-      const result = renderWithOrg(<DetailSidebar mode="edit" />, ctx)
+      const result = renderWithOrg(<DetailSidebar />, ctx)
       return { ...result, update, reparent, clearSelection }
     }
 
@@ -219,7 +219,7 @@ describe('DetailSidebar', () => {
       it('[UI-002] calls update with correct id for second duplicate on save', async () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
-        renderWithOrg(<DetailSidebar mode="edit" />, {
+        renderWithOrg(<DetailSidebar />, {
           working: [alice1, alice2],
           selectedId: 'dup2',
           selectedIds: new Set(['dup2']),
@@ -238,7 +238,7 @@ describe('DetailSidebar', () => {
       it('[UI-002] can edit each duplicate independently', async () => {
         const user = userEvent.setup()
         const update = vi.fn().mockResolvedValue(undefined)
-        const { unmount } = renderWithOrg(<DetailSidebar mode="edit" />, {
+        const { unmount } = renderWithOrg(<DetailSidebar />, {
           working: [alice1, alice2],
           selectedId: 'dup1',
           selectedIds: new Set(['dup1']),
@@ -251,7 +251,7 @@ describe('DetailSidebar', () => {
         expect(nameInput.value).toBe('Alice One')
         unmount()
 
-        renderWithOrg(<DetailSidebar mode="edit" />, {
+        renderWithOrg(<DetailSidebar />, {
           working: [alice1, alice2],
           selectedId: 'dup2',
           selectedIds: new Set(['dup2']),
@@ -271,7 +271,7 @@ describe('DetailSidebar', () => {
         const update = vi.fn().mockResolvedValue(undefined)
         // Person has a non-empty role so we can clear it to empty to trigger save
         const emptyPerson = makePerson({ id: 'empty1', name: 'Empty Person', role: 'Engineer', team: '', discipline: '', employmentType: '' })
-        renderWithOrg(<DetailSidebar mode="edit" />, {
+        renderWithOrg(<DetailSidebar />, {
           working: [emptyPerson],
           selectedId: 'empty1',
           selectedIds: new Set(['empty1']),
@@ -294,7 +294,7 @@ describe('DetailSidebar', () => {
         const update = vi.fn().mockResolvedValue(undefined)
         const longStr = 'A'.repeat(500)
         const longPerson = makePerson({ id: 'long1', name: 'Short', role: 'Short', team: 'T', discipline: 'D' })
-        renderWithOrg(<DetailSidebar mode="edit" />, {
+        renderWithOrg(<DetailSidebar />, {
           working: [longPerson],
           selectedId: 'long1',
           selectedIds: new Set(['long1']),
@@ -320,7 +320,7 @@ describe('DetailSidebar', () => {
         const specialName = 'Jos\u00e9 Garc\u00eda-L\u00f3pez'
         // Start with a plain name so we can change it to specialName (making it dirty)
         const p = makePerson({ id: 'save-special', name: 'Plain Name' })
-        renderWithOrg(<DetailSidebar mode="edit" />, {
+        renderWithOrg(<DetailSidebar />, {
           working: [p],
           selectedId: 'save-special',
           selectedIds: new Set(['save-special']),
@@ -342,7 +342,7 @@ describe('DetailSidebar', () => {
         const update = vi.fn().mockResolvedValue(undefined)
         // Start with normal values; change them to whitespace-only to verify whitespace passes through
         const wsPerson = makePerson({ id: 'ws1', name: 'Real Name', role: 'Real Role', team: 'T' })
-        renderWithOrg(<DetailSidebar mode="edit" />, {
+        renderWithOrg(<DetailSidebar />, {
           working: [wsPerson],
           selectedId: 'ws1',
           selectedIds: new Set(['ws1']),
@@ -375,7 +375,7 @@ describe('DetailSidebar', () => {
     it('[UI-002] shows "Retry" when update rejects', async () => {
       const user = userEvent.setup()
       const update = vi.fn().mockRejectedValueOnce(new Error('Network error'))
-      renderWithOrg(<DetailSidebar mode="edit" />, {
+      renderWithOrg(<DetailSidebar />, {
         working: [alice, bob],
         selectedId: 'b2',
         selectedIds: new Set(['b2']),

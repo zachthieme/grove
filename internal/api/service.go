@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 type OrgService struct {
@@ -211,9 +212,8 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	}
 
 	p := Person{
-		Id:     uuid.NewString(),
-		Name:   name,
-		Status: "Active",
+		PersonFields: model.PersonFields{Name: name, Status: "Active"},
+		Id:           uuid.NewString(),
 	}
 
 	s.mu.Lock()

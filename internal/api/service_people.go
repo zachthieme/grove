@@ -169,9 +169,8 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Perso
 	}
 
 	parent := Person{
-		Id:     uuid.NewString(),
-		Name:   name,
-		Status: "Active",
+		PersonFields: model.PersonFields{Name: name, Status: "Active"},
+		Id:           uuid.NewString(),
 	}
 
 	// Insert between child and its existing manager (if any)

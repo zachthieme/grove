@@ -30,16 +30,15 @@ const alphaPod: Pod = {
 function renderPod(podOverride: Partial<Pod> = {}, contextOverrides = {}) {
   const pod = { ...alphaPod, ...podOverride }
   const updatePod = vi.fn().mockResolvedValue(undefined)
-  const selectPod = vi.fn()
-  const result = renderWithOrg(<PodSidebar />, {
+  const clearSelection = vi.fn()
+  const result = renderWithOrg(<PodSidebar podId={pod.id} />, {
     pods: [pod],
     working: [manager, member1, member2],
-    selectedPodId: pod.id,
     updatePod,
-    selectPod,
+    clearSelection,
     ...contextOverrides,
   })
-  return { ...result, updatePod, selectPod }
+  return { ...result, updatePod, clearSelection }
 }
 
 describe('PodSidebar — branch coverage', () => {
@@ -58,10 +57,9 @@ describe('PodSidebar — branch coverage', () => {
   describe('non-Error rejection', () => {
     it('shows "Save failed" when updatePod rejects with a string', async () => {
       const updatePod = vi.fn().mockRejectedValueOnce('string error')
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-1" />, {
         pods: [alphaPod],
         working: [manager, member1, member2],
-        selectedPodId: 'pod-1',
         updatePod,
       })
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
@@ -75,10 +73,9 @@ describe('PodSidebar — branch coverage', () => {
 
     it('shows Error.message when updatePod rejects with an Error', async () => {
       const updatePod = vi.fn().mockRejectedValueOnce(new Error('Custom error msg'))
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-1" />, {
         pods: [alphaPod],
         working: [manager, member1, member2],
-        selectedPodId: 'pod-1',
         updatePod,
       })
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
@@ -96,10 +93,9 @@ describe('PodSidebar — branch coverage', () => {
       const updatePod = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-1" />, {
         pods: [alphaPod],
         working: [manager, member1, member2],
-        selectedPodId: 'pod-1',
         updatePod,
       })
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
@@ -116,10 +112,9 @@ describe('PodSidebar — branch coverage', () => {
       const updatePod = vi.fn().mockImplementation(
         () => new Promise<void>(resolve => { resolveUpdate = resolve })
       )
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-1" />, {
         pods: [alphaPod],
         working: [manager, member1, member2],
-        selectedPodId: 'pod-1',
         updatePod,
       })
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
@@ -194,10 +189,9 @@ describe('PodSidebar — branch coverage', () => {
         id: 'pod-bare', name: 'Bare', team: 'T', managerId: 'm1',
         // publicNote and privateNote are undefined
       }
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-bare" />, {
         pods: [bareNote],
         working: [manager, member1],
-        selectedPodId: 'pod-bare',
         updatePod: vi.fn().mockResolvedValue(undefined),
       })
       // Textareas should show empty, with placeholders
@@ -212,10 +206,9 @@ describe('PodSidebar — branch coverage', () => {
         id: 'pod-bare', name: 'Bare', team: 'T', managerId: 'm1',
       }
       const updatePod = vi.fn().mockResolvedValue(undefined)
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-bare" />, {
         pods: [bareNote],
         working: [manager],
-        selectedPodId: 'pod-bare',
         updatePod,
       })
       // Save should be disabled initially
@@ -235,10 +228,9 @@ describe('PodSidebar — branch coverage', () => {
       const orphanPod: Pod = {
         id: 'pod-orphan', name: 'Orphan', team: 'Platform', managerId: 'm1',
       }
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-orphan" />, {
         pods: [orphanPod],
         working: [manager], // no members with pod: 'Orphan'
-        selectedPodId: 'pod-orphan',
         updatePod: vi.fn().mockResolvedValue(undefined),
       })
       expect(screen.getByText('0')).toBeTruthy()
@@ -259,11 +251,11 @@ describe('PodSidebar — branch coverage', () => {
   })
 
   describe('close button', () => {
-    it('calls selectPod(null) on close', async () => {
+    it('calls clearSelection on close', async () => {
       const user = userEvent.setup()
-      const { selectPod } = renderPod()
+      const { clearSelection } = renderPod()
       await user.click(screen.getByLabelText('Close'))
-      expect(selectPod).toHaveBeenCalledWith(null)
+      expect(clearSelection).toHaveBeenCalled()
     })
   })
 })

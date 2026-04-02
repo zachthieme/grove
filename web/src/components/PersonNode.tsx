@@ -45,7 +45,6 @@ interface Props {
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
-  onEditMode?: () => void
   onToggleCollapse?: () => void
   onClick?: (e?: React.MouseEvent) => void
   onEnterEditing?: () => void
@@ -54,7 +53,7 @@ interface Props {
   cardRef?: (el: HTMLDivElement | null) => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onEditMode, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
+function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
   const nameRef = useRef<HTMLInputElement>(null)
   const roleRef = useRef<HTMLInputElement>(null)
   const teamRef = useRef<HTMLInputElement>(null)
@@ -139,7 +138,6 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
   if (onAdd) actions.onAdd = (e) => { e.stopPropagation(); onAdd() }
   if (onAddParent) actions.onAddParent = (e) => { e.stopPropagation(); onAddParent() }
   if (onDelete) actions.onDelete = (e) => { e.stopPropagation(); onDelete() }
-  if (onEditMode) actions.onEdit = (e) => { e.stopPropagation(); onEditMode() }
   if (onInfo) actions.onInfo = (e) => { e.stopPropagation(); onInfo() }
   if (onFocus) actions.onFocus = (e) => { e.stopPropagation(); onFocus() }
 

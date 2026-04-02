@@ -14,14 +14,12 @@ export interface SelectionContextValue {
   selectedIds: Set<string>
   /** Backward compat: returns the single selected ID when exactly one is selected, null otherwise */
   selectedId: string | null
-  selectedPodId: string | null
   interactionMode: InteractionMode
   editBuffer: import('../utils/personFormUtils').PersonFormValues | null
   editingPersonId: string | null
   setSelectedId: (id: string | null) => void
   toggleSelect: (id: string, multi: boolean) => void
   clearSelection: () => void
-  selectPod: (id: string | null) => void
   batchSelect: (ids: Set<string>) => void
   enterEditing: (person: import('../api/types').Person) => void
   commitEdits: () => Record<string, string | boolean | number> | null

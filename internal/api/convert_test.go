@@ -10,8 +10,8 @@ import (
 func TestConvertOrg_AssignsIDs(t *testing.T) {
 	t.Parallel()
 	people := []model.Person{
-		{Name: "Alice", Role: "VP", Discipline: "Eng", Manager: "", Team: "Eng", Status: "Active"},
-		{Name: "Bob", Role: "Engineer", Discipline: "Eng", Manager: "Alice", Team: "Platform", Status: "Active"},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Manager: "Alice"},
 	}
 	org, err := model.NewOrg(people)
 	if err != nil {
@@ -51,9 +51,9 @@ func TestConvertOrg_AssignsIDs(t *testing.T) {
 func TestConvertOrg_PreservesFields(t *testing.T) {
 	t.Parallel()
 	people := []model.Person{
-		{Name: "Eve", Role: "TPM", Discipline: "TPM", Manager: "", Team: "Platform",
+		{PersonFields: model.PersonFields{Name: "Eve", Role: "TPM", Discipline: "TPM", Team: "Platform",
 			AdditionalTeams: []string{"Search", "Infra"}, Status: "Active",
-			NewRole: "Sr TPM", NewTeam: "Infra"},
+			NewRole: "Sr TPM", NewTeam: "Infra"}},
 	}
 	org, err := model.NewOrg(people)
 	if err != nil {
@@ -94,11 +94,15 @@ func TestConvertOrg_PreservesExtra(t *testing.T) {
 	org := &model.Org{
 		People: []model.Person{
 			{
-				Name: "Alice", Role: "VP", Discipline: "Eng", Team: "T", Status: "Active",
-				Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"},
+				PersonFields: model.PersonFields{
+					Name: "Alice", Role: "VP", Discipline: "Eng", Team: "T", Status: "Active",
+					Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"},
+				},
 			},
 			{
-				Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+				PersonFields: model.PersonFields{
+					Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+				},
 			},
 		},
 	}

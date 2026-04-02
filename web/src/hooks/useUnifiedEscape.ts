@@ -5,8 +5,6 @@ interface UnifiedEscapeActions {
   onCloseInfoPopover: () => void
   cutActive: boolean
   onCancelCut: () => void
-  sidebarEditMode: boolean
-  onExitSidebarEdit: () => void
   hasSelection: boolean
   onClearSelection: () => void
   hasHead: boolean
@@ -21,9 +19,8 @@ interface UnifiedEscapeActions {
  * Priority (highest to lowest):
  * 1. Close info popover
  * 2. Cancel cut
- * 3. Exit sidebar edit mode (return to view mode)
- * 4. Clear selection (close sidebar)
- * 5. Clear head person (show full chart)
+ * 3. Clear selection (close sidebar)
+ * 4. Clear head person (show full chart)
  *
  * Component-scoped escapes (inline edit, search bar, AddParentPopover)
  * fire first because they're on focused input elements — this handler
@@ -50,7 +47,6 @@ export function useUnifiedEscape(actions: UnifiedEscapeActions) {
       e.preventDefault()
       if (a.infoPopoverOpen) { a.onCloseInfoPopover(); return }
       if (a.cutActive) { a.onCancelCut(); return }
-      if (a.sidebarEditMode) { a.onExitSidebarEdit(); return }
       if (a.hasSelection) { a.onClearSelection(); return }
       if (a.hasHead) { a.onClearHead(); return }
     }

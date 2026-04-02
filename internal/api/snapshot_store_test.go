@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/zachthieme/grove/internal/model"
 )
 
 func TestSnapshotStore_WriteAndRead(t *testing.T) {
@@ -16,7 +18,7 @@ func TestSnapshotStore_WriteAndRead(t *testing.T) {
 
 	snaps := map[string]snapshotData{
 		"v1": {
-			People:    []Person{{Id: "1", Name: "Alice", Status: "Active"}},
+			People:    []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active"}, Id: "1"}},
 			Timestamp: time.Now(),
 		},
 	}
@@ -54,7 +56,7 @@ func TestSnapshotStore_Delete(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	snaps := map[string]snapshotData{
-		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},
+		"v1": {People: []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active"}, Id: "1"}}, Timestamp: time.Now()},
 	}
 	_ = WriteSnapshots(snaps)
 
@@ -117,7 +119,7 @@ func TestSnapshotStore_WriteToReadOnlyDir(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	snaps := map[string]snapshotData{
-		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},
+		"v1": {People: []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active"}, Id: "1"}}, Timestamp: time.Now()},
 	}
 	err := WriteSnapshots(snaps)
 	if err == nil {
@@ -132,7 +134,7 @@ func TestSnapshotStore_ReadPermissionDenied(t *testing.T) {
 
 	// Write valid data, then make file unreadable
 	snaps := map[string]snapshotData{
-		"v1": {People: []Person{{Id: "1", Name: "Alice", Status: "Active"}}, Timestamp: time.Now()},
+		"v1": {People: []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active"}, Id: "1"}}, Timestamp: time.Now()},
 	}
 	if err := WriteSnapshots(snaps); err != nil {
 		t.Fatalf("write: %v", err)
@@ -163,9 +165,9 @@ func TestSnapshotStore_RoundTripPreservesAllFields(t *testing.T) {
 	ts := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
 	snaps := map[string]snapshotData{
 		"v1": {
-			People:   []Person{{Id: "1", Name: "Alice", Role: "VP", Status: "Active", Pod: "Alpha"}},
-			Pods:     []Pod{{Id: "p1", Name: "Alpha", Team: "Eng", ManagerId: "1"}},
-			Settings: Settings{DisciplineOrder: []string{"Eng", "Design"}},
+			People:    []Person{{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Status: "Active", Pod: "Alpha"}, Id: "1"}},
+			Pods:      []Pod{{Id: "p1", Name: "Alpha", Team: "Eng", ManagerId: "1"}},
+			Settings:  Settings{DisciplineOrder: []string{"Eng", "Design"}},
 			Timestamp: ts,
 		},
 	}

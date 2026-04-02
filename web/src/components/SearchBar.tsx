@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent } from 'react'
 import { useOrgData } from '../store/OrgContext'
 import { useSelection } from '../store/OrgContext'
-import type { Person } from '../api/types'
+import type { Person, Pod } from '../api/types'
 import styles from './SearchBar.module.css'
 
 const MAX_RESULTS = 8
 
+type SearchResult = { kind: 'person'; person: Person } | { kind: 'pod'; pod: Pod }
+
 export default function SearchBar() {
-  const { working } = useOrgData()
+  const { working, pods } = useOrgData()
   const { setSelectedId } = useSelection()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -15,11 +17,19 @@ export default function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const matches: Person[] = query.trim()
-    ? working
-        .filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
-        .slice(0, MAX_RESULTS)
-    : []
+  const matches = useMemo((): SearchResult[] => {
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    const people: SearchResult[] = working
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, MAX_RESULTS)
+      .map((p) => ({ kind: 'person', person: p }))
+    const podResults: SearchResult[] = (pods ?? [])
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, MAX_RESULTS)
+      .map((p) => ({ kind: 'pod', pod: p }))
+    return [...people, ...podResults].slice(0, MAX_RESULTS)
+  }, [query, working, pods])
 
   // Cmd+K / Ctrl+K global shortcut
   useEffect(() => {
@@ -46,13 +56,21 @@ export default function SearchBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const selectPerson = useCallback(
-    (person: Person) => {
-      setSelectedId(person.id)
+  const selectResult = useCallback(
+    (result: SearchResult) => {
       setQuery('')
       setOpen(false)
+      inputRef.current?.blur()
+      if (result.kind === 'pod') {
+        setSelectedId(`pod:${result.pod.managerId}:${result.pod.name}`)
+      } else {
+        setSelectedId(result.person.id)
+      }
       requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-person-id="${person.id}"]`)
+        const selector = result.kind === 'pod'
+          ? `[data-person-id="pod:${result.pod.managerId}:${result.pod.name}"]`
+          : `[data-person-id="${result.person.id}"]`
+        const el = document.querySelector(selector)
         el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
       })
     },
@@ -76,7 +94,7 @@ export default function SearchBar() {
       setHighlighted((h) => Math.max(h - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (matches[highlighted]) selectPerson(matches[highlighted])
+      if (matches[highlighted]) selectResult(matches[highlighted])
     } else if (e.key === 'Escape') {
       setQuery('')
       setOpen(false)
@@ -98,13 +116,13 @@ export default function SearchBar() {
         ref={inputRef}
         className={styles.input}
         type="search"
-        placeholder="Search people… (⌘K)"
-        title="Search people (⌘K)"
+        placeholder="Search… (⌘K)"
+        title="Search (⌘K)"
         value={query}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onFocus={() => { if (query.trim()) setOpen(true) }}
-        aria-label="Search people"
+        aria-label="Search"
         aria-autocomplete="list"
         aria-expanded={showDropdown}
         aria-haspopup="listbox"
@@ -119,24 +137,31 @@ export default function SearchBar() {
               No matches
             </li>
           ) : (
-            matches.map((person, i) => (
+            matches.map((result, i) => {
+              const key = result.kind === 'pod' ? `pod-${result.pod.id}` : result.person.id
+              const name = result.kind === 'pod' ? result.pod.name : result.person.name
+              const meta = result.kind === 'pod'
+                ? `Pod · ${result.pod.team}`
+                : [result.person.role, result.person.team].filter(Boolean).join(' · ')
+              return (
               <li
-                key={person.id}
+                key={key}
                 className={`${styles.result} ${i === highlighted ? styles.resultHighlighted : ''}`}
                 role="option"
                 aria-selected={i === highlighted}
                 onMouseEnter={() => setHighlighted(i)}
                 onMouseDown={(e) => {
                   e.preventDefault() // prevent blur before click
-                  selectPerson(person)
+                  selectResult(result)
                 }}
               >
-                <span className={styles.name}>{person.name}</span>
+                <span className={styles.name}>{name}</span>
                 <span className={styles.meta}>
-                  {[person.role, person.team].filter(Boolean).join(' · ')}
+                  {meta}
                 </span>
               </li>
-            ))
+              )
+            })
           )}
         </ul>
       )}

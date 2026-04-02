@@ -13,11 +13,7 @@ import PersonForm from './PersonForm'
 import SidebarShell from './SidebarShell'
 import styles from './DetailSidebar.module.css'
 
-interface BatchEditSidebarProps {
-  onSetMode?: (mode: 'view' | 'edit') => void
-}
-
-export default function BatchEditSidebar({ onSetMode: _onSetMode }: BatchEditSidebarProps) {
+export default function BatchEditSidebar() {
   const { working } = useOrgData()
   const { update, reparent } = useOrgMutations()
   const { showPrivate } = useUI()
@@ -98,7 +94,7 @@ export default function BatchEditSidebar({ onSetMode: _onSetMode }: BatchEditSid
   if (selectedPeople.length === 0) return null
 
   return (
-    <SidebarShell heading={`Edit ${selectedIds.size} people`}>
+    <SidebarShell heading={`Edit ${selectedIds.size} people`} onExit={() => { setBatchForm(batchToForm(selectedPeople)); setBatchDirty(new Set()) }} onSave={handleSave}>
       <PersonForm
         values={batchForm}
         onChange={handleChange}
@@ -108,13 +104,14 @@ export default function BatchEditSidebar({ onSetMode: _onSetMode }: BatchEditSid
         showStatusInfo={showStatusInfo}
         onToggleStatusInfo={() => setShowStatusInfo(v => !v)}
       />
-      {saveError && <div className={styles.saveError} style={{ padding: '4px 16px' }}>{saveError}</div>}
+      {saveError && <div className={styles.saveError} role="alert" style={{ padding: '4px 16px' }}>{saveError}</div>}
       <div className={styles.actions}>
         <button
           className={`${styles.saveBtn} ${saveStatus === 'saved' ? styles.saveBtnSaved : ''}`}
           onClick={handleSave}
           disabled={batchDirty.size === 0 || saveStatus === 'saving'}
           title="Save changes"
+          aria-live="polite"
         >
           {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Retry' : 'Save'}
         </button>

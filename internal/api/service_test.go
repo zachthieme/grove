@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/zachthieme/grove/internal/model"
 	"testing"
 	"time"
 )
@@ -138,9 +139,8 @@ func TestOrgService_Add(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 
-	added, _, _, err := svc.Add(context.Background(), Person{
-		Name: "Dave", Role: "Engineer", Discipline: "Eng",
-		ManagerId: alice.Id, Team: "Eng", Status: "Active",
+	added, _, _, err := svc.Add(context.Background(), Person{PersonFields: model.PersonFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
+		Team: "Eng", Status: "Active"}, ManagerId: alice.Id,
 	})
 	if err != nil {
 		t.Fatalf("add failed: %v", err)
@@ -899,9 +899,8 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 	})
 
 	t.Run("[ORG-009] Add rejects long name", func(t *testing.T) {
-		_, _, _, err := svc.Add(context.Background(), Person{
-			Name: longStr, Role: "Eng", Discipline: "Eng",
-			Team: "Eng", Status: "Active",
+		_, _, _, err := svc.Add(context.Background(), Person{PersonFields: model.PersonFields{Name: longStr, Role: "Eng", Discipline: "Eng",
+			Team: "Eng", Status: "Active"},
 		})
 		if err == nil {
 			t.Error("expected error for long name on Add")
@@ -1028,7 +1027,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, _, _, err := svc.Add(context.Background(), Person{Name: "Test", Status: "BOGUS", Team: "Eng"})
+	_, _, _, err := svc.Add(context.Background(), Person{PersonFields: model.PersonFields{Name: "Test", Status: "BOGUS", Team: "Eng"}})
 	if err == nil {
 		t.Fatal("expected error for invalid status")
 	}
@@ -1038,7 +1037,7 @@ func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, _, _, err := svc.Add(context.Background(), Person{Name: "Test", Status: "Active", Team: "Eng", ManagerId: "nonexistent"})
+	_, _, _, err := svc.Add(context.Background(), Person{PersonFields: model.PersonFields{Name: "Test", Status: "Active", Team: "Eng"}, ManagerId: "nonexistent"})
 	if err == nil {
 		t.Fatal("expected error for invalid manager")
 	}
@@ -1112,15 +1111,15 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 	settings := &Settings{DisciplineOrder: []string{"Eng", "Product"}}
 	data := AutosaveData{
 		Original: []Person{
-			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Working: []Person{
-			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Role: "Senior Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Role: "Senior Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Recycled: []Person{
-			{Id: "3", Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "3"},
 		},
 		Pods:         []Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
 		OriginalPods: []Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
@@ -1163,14 +1162,14 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
 		Original: []Person{
-			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
-			{Id: "3", Name: "Carol", Role: "Engineer", Team: "Platform", ManagerId: "2", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
+			{PersonFields: model.PersonFields{Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "2"},
 		},
 		Working: []Person{
-			{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Role: "Engineer", Team: "Platform", ManagerId: "1", Status: "Active"},
-			{Id: "3", Name: "Carol", Role: "Engineer", Team: "Platform", ManagerId: "2", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
+			{PersonFields: model.PersonFields{Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "2"},
 		},
 		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
 	}
@@ -1209,12 +1208,12 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
 		Original: []Person{
-			{Id: "1", Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Discipline: "Engineering", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Working: []Person{
-			{Id: "1", Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"},
-			{Id: "2", Name: "Bob", Discipline: "Engineering", Team: "Platform", ManagerId: "1", Status: "Active"},
+			{PersonFields: model.PersonFields{Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"}, Id: "1"},
+			{PersonFields: model.PersonFields{Name: "Bob", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Settings: nil, // nil settings should derive defaults
 	}
@@ -1417,9 +1416,8 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 	}
 
 	// Add a new person under Bob and assign same pod "Alpha"
-	added, _, _, err := svc.Add(context.Background(), Person{
-		Name: "Eve", Role: "Engineer", Discipline: "Eng",
-		ManagerId: bob.Id, Team: "Platform", Status: "Active",
+	added, _, _, err := svc.Add(context.Background(), Person{PersonFields: model.PersonFields{Name: "Eve", Role: "Engineer", Discipline: "Eng",
+		Team: "Platform", Status: "Active"}, ManagerId: bob.Id,
 	})
 	if err != nil {
 		t.Fatalf("add failed: %v", err)
@@ -1793,7 +1791,7 @@ func TestOrgService_AddParent_ChildHasManager(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 	data := svc.GetOrg(ctx)
-	bob := findByName(data.Working, "Bob")   // Bob reports to Alice
+	bob := findByName(data.Working, "Bob")     // Bob reports to Alice
 	alice := findByName(data.Working, "Alice") // Alice is root
 
 	parent, working, _, err := svc.AddParent(ctx, bob.Id, "Middle Manager")
@@ -1929,9 +1927,7 @@ func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
 	alice := data.Working[0]
 
 	// Step 2: Add a direct report
-	bob, working, _, err := svc.Add(context.Background(), Person{
-		Name: "Bob", Status: "Active", ManagerId: alice.Id,
-	})
+	bob, working, _, err := svc.Add(context.Background(), Person{PersonFields: model.PersonFields{Name: "Bob", Status: "Active"}, ManagerId: alice.Id})
 	if err != nil {
 		t.Fatalf("add failed: %v", err)
 	}

@@ -15,7 +15,6 @@ export interface PersonNodeCommonProps {
   onDelete?: () => void
   onInfo?: () => void
   onFocus?: () => void
-  onEditMode?: () => void
   onClick: (e?: React.MouseEvent) => void
   onEnterEditing?: () => void
   onUpdateBuffer?: (field: string, value: string) => void
@@ -28,7 +27,7 @@ export function usePersonNodeProps(person: Person): PersonNodeCommonProps {
     selectedIds, changes, managerSet, interactionMode,
     editingPersonId, editBuffer, onSelect, onAddReport,
     onAddParent, onDeletePerson, onInfo, onFocus,
-    onEditMode, onEnterEditing, onUpdateBuffer, onCommitEdits,
+    onEnterEditing, onUpdateBuffer, onCommitEdits,
     setNodeRef,
   } = useChart()
 
@@ -47,7 +46,6 @@ export function usePersonNodeProps(person: Person): PersonNodeCommonProps {
     onDelete: onDeletePerson ? () => onDeletePerson(id) : undefined,
     onInfo: onInfo ? () => onInfo(id) : undefined,
     onFocus: onFocus && managerSet?.has(id) ? () => onFocus(id) : undefined,
-    onEditMode: onEditMode ? () => onEditMode(id) : undefined,
     onClick: (e?: React.MouseEvent) => onSelect(id, e),
     onEnterEditing: onEnterEditing ? () => onEnterEditing(person) : undefined,
     onUpdateBuffer: onUpdateBuffer ? (field: string, value: string) => onUpdateBuffer(field as keyof EditBuffer, value) : undefined,

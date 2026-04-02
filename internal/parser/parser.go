@@ -69,18 +69,20 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 		}
 
 		p := model.Person{
-			Name:           get("name"),
-			Role:           get("role"),
-			Discipline:     get("discipline"),
-			Manager:        get("manager"),
-			Team:           get("team"),
-			Status:         status,
-			EmploymentType: empType,
-			NewRole:        get("newRole"),
-			NewTeam:        get("newTeam"),
-			Pod:            get("pod"),
-			PublicNote:     get("publicNote"),
-			PrivateNote:    get("privateNote"),
+			PersonFields: model.PersonFields{
+				Name:           get("name"),
+				Role:           get("role"),
+				Discipline:     get("discipline"),
+				Team:           get("team"),
+				Status:         status,
+				EmploymentType: empType,
+				NewRole:        get("newRole"),
+				NewTeam:        get("newTeam"),
+				Pod:            get("pod"),
+				PublicNote:     get("publicNote"),
+				PrivateNote:    get("privateNote"),
+			},
+			Manager: get("manager"),
 		}
 
 		if raw := get("level"); raw != "" {

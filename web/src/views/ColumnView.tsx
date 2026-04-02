@@ -19,7 +19,7 @@ const ICNode = memo(function ICNode({ ic }: { ic: ICLayout }) {
 })
 
 function LayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { selectedPodId, pods, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { selectedIds, pods, onAddToTeam, onSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
 
@@ -38,9 +38,9 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
             count={group.members.length}
             noteText={pod?.publicNote}
             onAdd={onAddToTeam ? () => onAddToTeam(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
-            onInfo={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
-            onClick={pod && onPodSelect ? () => onPodSelect(pod.id) : undefined}
-            selected={selectedPodId != null && selectedPodId === pod?.id}
+            onInfo={pod ? () => onSelect(group.collapseKey) : undefined}
+            onClick={(e) => onSelect(group.collapseKey, e)}
+            selected={selectedIds.has(group.collapseKey)}
             cardRef={setNodeRef(group.collapseKey)}
             droppableId={group.collapseKey}
             collapsed={podCollapsed}
@@ -57,7 +57,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
         )}
       </div>
     )
-  }, [pods, selectedPodId, onAddToTeam, onPodSelect, setNodeRef, collapsedIds, onToggleCollapse])
+  }, [pods, selectedIds, onAddToTeam, onSelect, setNodeRef, collapsedIds, onToggleCollapse])
 
   // Build child elements by iterating node.children and switching on type
   const childElements = useMemo((): ReactNode[] => {

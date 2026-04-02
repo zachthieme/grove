@@ -1,18 +1,34 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Person } from '../api/types'
+import type { Person, Pod } from '../api/types'
 import { findSpatialNeighbor } from './useSpatialNav'
+import { moveToTarget } from '../utils/moveToTarget'
 
 interface VimNavOptions {
   working: Person[]
+  pods: Pod[]
   selectedId: string | null
-  setSelectedId: (id: string | null) => void
   batchSelect?: (ids: Set<string>) => void
   onDelete?: (id: string) => void
   onAddReport?: (id: string) => void
   onAddParent?: (childId: string) => void
-  onReparent?: (personId: string, newManagerId: string) => void
-  onSidebarEdit?: () => void
+  move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
+  reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   enabled: boolean
+}
+
+/**
+ * Given a data-person-id value, resolve to the person IDs it represents.
+ * Works uniformly for person nodes (returns [id]) and group nodes (returns member IDs).
+ */
+function resolvePersonIds(nodeId: string, working: Person[]): string[] {
+  if (working.some(p => p.id === nodeId)) return [nodeId]
+  const el = document.querySelector(`[data-person-id="${nodeId}"]`)
+  if (!el) return []
+  const subtree = el.parentElement?.parentElement
+  if (!subtree) return []
+  return Array.from(subtree.querySelectorAll('[data-person-id]'))
+    .map(e => e.getAttribute('data-person-id')!)
+    .filter(id => working.some(p => p.id === id))
 }
 
 /**
@@ -20,34 +36,36 @@ interface VimNavOptions {
  *
  * j/k / ArrowDown/Up   — move down/up spatially
  * h/l / ArrowLeft/Right — move left/right spatially
- * i/I  — enter edit mode (sidebar)
  * o    — add report under selected
  * O    — add parent above selected
  * d    — delete selected (sends to recycle bin)
  * x    — cut selected (mark for move)
- * p    — paste (move cut person under selected)
+ * p    — paste (move cut people under selected target)
  * /    — focus search
  * Ctrl+A / Cmd+A — select all people
  * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, selectedId, setSelectedId, batchSelect, onDelete, onAddReport, onAddParent, onReparent, onSidebarEdit, enabled }: VimNavOptions) {
-  const [cutId, setCutId] = useState<string | null>(null)
-  const cancelCut = useCallback(() => setCutId(null), [])
+export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, onAddReport, onAddParent, move, reparent, enabled }: VimNavOptions) {
+  const [cutIds, setCutIds] = useState<string[]>([])
+  const cancelCut = useCallback(() => setCutIds([]), [])
 
-  // Clear cut if the person was deleted or no longer exists
   useEffect(() => {
-    if (cutId && !working.some(p => p.id === cutId)) {
-      setCutId(null)
+    if (cutIds.length > 0) {
+      const remaining = cutIds.filter(id => working.some(p => p.id === id))
+      if (remaining.length === 0) setCutIds([])
     }
-  }, [cutId, working])
+  }, [cutIds, working])
 
   const navigateSpatial = useCallback((direction: 'h' | 'j' | 'k' | 'l') => {
-    if (!selectedId) {
-      const firstNode = document.querySelector<HTMLElement>('[data-person-id]')
-      if (firstNode) {
-        const id = firstNode.getAttribute('data-person-id')
-        if (id) setSelectedId(id)
-      }
+    const currentId = selectedId
+      ?? document.querySelector('[data-selected="true"]')
+          ?.closest('[data-person-id]')
+          ?.getAttribute('data-person-id')
+      ?? null
+
+    if (!currentId) {
+      const first = document.querySelector<HTMLElement>('[data-person-id] [role="button"]')
+      first?.click()
       return
     }
 
@@ -58,43 +76,45 @@ export function useVimNav({ working, selectedId, setSelectedId, batchSelect, onD
       if (id) rects.set(id, el.getBoundingClientRect())
     })
 
-    const targetId = findSpatialNeighbor(selectedId, rects, direction)
+    const targetId = findSpatialNeighbor(currentId, rects, direction)
     if (targetId) {
-      setSelectedId(targetId)
       const targetEl = document.querySelector(`[data-person-id="${targetId}"]`)
+      targetEl?.querySelector<HTMLElement>('[role="button"]')?.click()
       targetEl?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
     }
-  }, [selectedId, setSelectedId])
+  }, [selectedId])
 
   const navigate = useCallback((key: string) => {
     if (!selectedId) return
+    const personIds = resolvePersonIds(selectedId, working)
 
     switch (key) {
       case 'o': {
-        if (onAddReport) onAddReport(selectedId)
+        if (onAddReport && personIds.length === 1) onAddReport(personIds[0])
         break
       }
       case 'O': {
-        if (onAddParent) onAddParent(selectedId)
+        if (onAddParent && personIds.length === 1) onAddParent(personIds[0])
         break
       }
       case 'd': {
-        if (onDelete) onDelete(selectedId)
+        for (const id of personIds) onDelete?.(id)
         break
       }
       case 'x': {
-        setCutId(selectedId)
+        if (personIds.length > 0) setCutIds(personIds)
         break
       }
       case 'p': {
-        if (cutId && cutId !== selectedId && onReparent) {
-          onReparent(cutId, selectedId)
-          setCutId(null)
+        if (cutIds.length > 0) {
+          // Same moveToTarget used by drag-and-drop
+          moveToTarget(cutIds, selectedId, { move, reparent }, pods)
+          setCutIds([])
         }
         break
       }
     }
-  }, [selectedId, onDelete, onAddReport, onAddParent, onReparent, cutId])
+  }, [selectedId, working, pods, onDelete, onAddReport, onAddParent, move, reparent, cutIds])
 
   useEffect(() => {
     if (!enabled) return
@@ -104,16 +124,22 @@ export function useVimNav({ working, selectedId, setSelectedId, batchSelect, onD
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       if (el?.isContentEditable) return
 
-      // Ctrl+A / Cmd+A: select all people
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault()
-        if (batchSelect) {
-          batchSelect(new Set(working.map(p => p.id)))
-        }
+        if (batchSelect) batchSelect(new Set(working.map(p => p.id)))
         return
       }
 
       if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      if (e.key === 'i' && selectedId) {
+        const sidebarInput = document.querySelector<HTMLElement>('aside input, aside select, aside textarea')
+        if (sidebarInput) {
+          e.preventDefault()
+          sidebarInput.focus()
+        }
+        return
+      }
 
       if (e.key === '/') {
         e.preventDefault()
@@ -122,37 +148,21 @@ export function useVimNav({ working, selectedId, setSelectedId, batchSelect, onD
         return
       }
 
-      if ((e.key === 'i' || e.key === 'I') && selectedId) {
-        e.preventDefault()
-        onSidebarEdit?.()
-        return
-      }
-
       switch (e.key) {
         case 'ArrowDown':
         case 'j':
-          e.preventDefault()
-          navigateSpatial('j')
-          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-          break
         case 'ArrowUp':
         case 'k':
-          e.preventDefault()
-          navigateSpatial('k')
-          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-          break
         case 'ArrowRight':
         case 'l':
-          e.preventDefault()
-          navigateSpatial('l')
-          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-          break
         case 'ArrowLeft':
-        case 'h':
+        case 'h': {
           e.preventDefault()
-          navigateSpatial('h')
+          const dir = ({ ArrowDown: 'j', j: 'j', ArrowUp: 'k', k: 'k', ArrowRight: 'l', l: 'l', ArrowLeft: 'h', h: 'h' } as const)[e.key]!
+          navigateSpatial(dir)
           if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
           break
+        }
         case 'o':
         case 'O':
         case 'd':
@@ -168,5 +178,5 @@ export function useVimNav({ working, selectedId, setSelectedId, batchSelect, onD
     return () => document.removeEventListener('keydown', handler)
   }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working])
 
-  return { cutId, cancelCut }
+  return { cutIds, cancelCut }
 }

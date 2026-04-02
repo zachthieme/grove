@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useCallback } from 'react'
 import styles from './App.module.css'
 import { OrgProvider, useOrgData, useOrgMutations, useUI, useSelection } from './store/OrgContext'
 import { ViewDataProvider, useActions } from './store/ViewDataContext'
@@ -61,8 +61,8 @@ function AppToolbar({ exportPng, exportSvg, exporting, exportAllSnapshots, loggi
 }
 
 /** Banners section — consumes contexts directly for error/view state. */
-function AppBanners({ cutId, exportError, clearExportError, serverSaveError }: {
-  cutId: string | null
+function AppBanners({ cutIds, exportError, clearExportError, serverSaveError }: {
+  cutIds: string[]
   exportError: string | null
   clearExportError: () => void
   serverSaveError: boolean
@@ -71,13 +71,15 @@ function AppBanners({ cutId, exportError, clearExportError, serverSaveError }: {
   const { viewMode, error, clearError } = useUI()
   return (
     <>
-      {cutId && (() => {
-        const cutPerson = working.find(p => p.id === cutId)
-        return cutPerson ? (
+      {cutIds.length > 0 && (() => {
+        const cutPeople = cutIds.map(id => working.find(p => p.id === id)).filter(Boolean)
+        if (cutPeople.length === 0) return null
+        const label = cutPeople.length === 1 ? cutPeople[0]!.name : `${cutPeople.length} people`
+        return (
           <div className={styles.warnBanner} role="alert">
-            <span className={styles.warnText}>Cut: <strong>{cutPerson.name}</strong> — navigate to new manager and press <strong>p</strong> to paste, or <strong>Esc</strong> to cancel</span>
+            <span className={styles.warnText}>Cut: <strong>{label}</strong> — navigate to new manager and press <strong>p</strong> to paste, or <strong>Esc</strong> to cancel</span>
           </div>
-        ) : null
+        )
       })()}
       {error && (
         <div className={styles.errorBanner} role="alert">
@@ -104,18 +106,16 @@ function AppBanners({ cutId, exportError, clearExportError, serverSaveError }: {
 }
 
 /** Main content area — consumes contexts for view/selection state. */
-function AppWorkspace({ mainRef, sidebarEditing, setSidebarEditing, snapshotExporting, snapshotProgress }: {
+function AppWorkspace({ mainRef, snapshotExporting, snapshotProgress }: {
   mainRef: React.RefObject<HTMLElement | null>
-  sidebarEditing: boolean
-  setSidebarEditing: (v: boolean) => void
   snapshotExporting: boolean
   snapshotProgress: { current: number; total: number }
 }) {
   const { loaded } = useOrgData()
   const { viewMode, layoutKey } = useUI()
-  const { selectedIds, selectedPodId, clearSelection, interactionMode, revertEdits } = useSelection()
+  const { selectedIds, clearSelection } = useSelection()
 
-  const hasSidebarSelection = selectedIds.size > 0 || !!selectedPodId
+  const hasSidebarSelection = selectedIds.size > 0
 
   return (
     <div className={styles.body}>
@@ -138,17 +138,7 @@ function AppWorkspace({ mainRef, sidebarEditing, setSidebarEditing, snapshotExpo
         )}
       </main>
       {hasSidebarSelection && (
-        <DetailSidebar
-          mode={sidebarEditing ? 'edit' : 'view'}
-          onSetMode={(mode) => {
-            if (mode === 'edit') {
-              if (interactionMode === 'editing') revertEdits()
-              setSidebarEditing(true)
-            } else {
-              setSidebarEditing(false)
-            }
-          }}
-        />
+        <DetailSidebar />
       )}
       <RecycleBinDrawer />
     </div>
@@ -187,12 +177,12 @@ function AppOverlays({ logPanelOpen, setLogPanelOpen }: {
 }
 
 /** Thin layout shell — coordinates cross-cutting hooks, delegates rendering to sub-components. */
-function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boolean; setSidebarEditing: (v: boolean) => void }) {
-  const { working, loaded, snapshots } = useOrgData()
-  const { remove, add, reparent, canUndo, canRedo, undo, redo, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgMutations()
+function AppContent() {
+  const { working, pods, loaded, snapshots } = useOrgData()
+  const { remove, move, reparent, canUndo, canRedo, undo, redo, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgMutations()
   const { viewMode, headPersonId, setHead, showAllEmploymentTypes } = useUI()
-  const { selectedIds, setSelectedId, clearSelection, batchSelect, interactionMode, revertEdits } = useSelection()
-  const { infoPopoverId, clearInfoPopover, handleAddParent } = useActions()
+  const { selectedIds, clearSelection, batchSelect } = useSelection()
+  const { infoPopoverId, clearInfoPopover, handleAddParent, handleAddReport } = useActions()
 
   const { themePref, changeTheme } = useTheme()
   const { vimMode, toggleVimMode } = useVimMode()
@@ -210,34 +200,15 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
   const clearHead = useCallback(() => setHead(null), [setHead])
   const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
 
-  // Reset sidebar editing when selection changes (ref-based, no effect loop)
-  const prevSelectionRef = useRef(selectedId)
-  if (prevSelectionRef.current !== selectedId) {
-    prevSelectionRef.current = selectedId
-    if (sidebarEditing) setSidebarEditing(false)
-  }
-
-  const vimAddReport = useCallback((parentId: string) => {
-    const parent = working.find(p => p.id === parentId)
-    if (!parent) return
-    add({ name: 'New Person', role: '', discipline: '', team: parent.team, managerId: parent.id, status: 'Active' as const, additionalTeams: [] })
-  }, [working, add])
-
-  const { cutId, cancelCut } = useVimNav({
-    working, selectedId, setSelectedId, batchSelect,
-    onDelete: remove, onAddReport: vimAddReport, onAddParent: handleAddParent, onReparent: reparent,
-    onSidebarEdit: () => {
-      if (interactionMode === 'editing') revertEdits()
-      setSidebarEditing(true)
-    },
+  const { cutIds, cancelCut } = useVimNav({
+    working, pods, selectedId, batchSelect,
+    onDelete: remove, onAddReport: handleAddReport, onAddParent: handleAddParent, move, reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })
 
   useUnifiedEscape({
     infoPopoverOpen: !!infoPopoverId, onCloseInfoPopover: clearInfoPopover,
-    cutActive: !!cutId, onCancelCut: cancelCut,
-    sidebarEditMode: sidebarEditing,
-    onExitSidebarEdit: () => { setSidebarEditing(false); if (document.activeElement instanceof HTMLElement) document.activeElement.blur() },
+    cutActive: cutIds.length > 0, onCancelCut: cancelCut,
     hasSelection: selectedIds.size > 0, onClearSelection: clearSelection,
     hasHead: !!headPersonId, onClearHead: clearHead,
     enabled: true,
@@ -253,9 +224,9 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
         vimMode={vimMode} toggleVimMode={toggleVimMode}
         themePref={themePref} changeTheme={changeTheme}
       />
-      <AppBanners cutId={cutId} exportError={exportError} clearExportError={clearExportError} serverSaveError={serverSaveError} />
+      <AppBanners cutIds={cutIds} exportError={exportError} clearExportError={clearExportError} serverSaveError={serverSaveError} />
       <AppWorkspace
-        mainRef={mainRef} sidebarEditing={sidebarEditing} setSidebarEditing={setSidebarEditing}
+        mainRef={mainRef}
         snapshotExporting={snapshotExporting} snapshotProgress={snapshotProgress}
       />
       <AppOverlays logPanelOpen={logPanelOpen} setLogPanelOpen={setLogPanelOpen} />
@@ -264,11 +235,9 @@ function AppContent({ sidebarEditing, setSidebarEditing }: { sidebarEditing: boo
 }
 
 function AppShell() {
-  const [sidebarEditing, setSidebarEditing] = useState(false)
-  const handleEditMode = useCallback(() => setSidebarEditing(true), [])
   return (
-    <ViewDataProvider onEditMode={handleEditMode}>
-      <AppContent sidebarEditing={sidebarEditing} setSidebarEditing={setSidebarEditing} />
+    <ViewDataProvider>
+      <AppContent />
     </ViewDataProvider>
   )
 }

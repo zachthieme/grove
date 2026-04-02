@@ -5,6 +5,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/zachthieme/grove/internal/model"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -233,25 +234,27 @@ func TestContractPodUpdateFields(t *testing.T) {
 
 func TestContractPersonJSONRoundTrip(t *testing.T) {
 	t.Parallel()
-	original := Person{
-		Id:              "uuid-123",
-		Name:            "Jane Doe",
-		Role:            "Staff Engineer",
-		Discipline:      "Engineering",
-		ManagerId:       "uuid-456",
+	original := Person{PersonFields: model.PersonFields{Name: "Jane Doe",
+		Role:       "Staff Engineer",
+		Discipline: "Engineering",
+
 		Team:            "Platform",
 		AdditionalTeams: []string{"Infra", "DevEx"},
 		Status:          "Active",
 		EmploymentType:  "FTE",
 		Warning:         "duplicate name",
-		SortIndex:       3,
-		NewRole:         "Senior Staff",
-		NewTeam:         "Core Platform",
-		Pod:             "pod-alpha",
-		PublicNote:      "Transitioning Q3",
-		PrivateNote:     "Promo candidate",
-		Level:           7,
-		Private:         true,
+
+		NewRole:     "Senior Staff",
+		NewTeam:     "Core Platform",
+		Pod:         "pod-alpha",
+		PublicNote:  "Transitioning Q3",
+		PrivateNote: "Promo candidate",
+		Level:       7,
+		Private:     true}, Id: "uuid-123",
+
+		ManagerId: "uuid-456",
+
+		SortIndex: 3,
 	}
 
 	data, err := json.Marshal(original)
@@ -291,11 +294,13 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 
 func TestContractPersonFieldTypes(t *testing.T) {
 	t.Parallel()
-	p := Person{
-		Id: "uuid-1", Name: "Alice", Role: "VP", Discipline: "Eng",
-		ManagerId: "uuid-2", Team: "Platform", AdditionalTeams: []string{"Infra"},
+	p := Person{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng",
+		Team: "Platform", AdditionalTeams: []string{"Infra"},
 		Status: "Active", EmploymentType: "FTE", Level: 5, Private: true,
-		SortIndex: 1, Extra: map[string]string{"Custom": "val"},
+		Extra: map[string]string{"Custom": "val"}}, Id: "uuid-1",
+		ManagerId: "uuid-2",
+
+		SortIndex: 1,
 	}
 	data, err := json.Marshal(p)
 	if err != nil {
@@ -359,7 +364,7 @@ func TestContractErrorResponseShape(t *testing.T) {
 			}
 			req := httptest.NewRequest(tc.method, tc.path, body)
 			req.Header.Set("Content-Type", "application/json")
-   req.Header.Set("X-Requested-With", "XMLHttpRequest")
+			req.Header.Set("X-Requested-With", "XMLHttpRequest")
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, req)
 

@@ -1,35 +1,36 @@
 import { useOrgData, useSelection } from '../store/OrgContext'
 import PodSidebar from './PodSidebar'
-import PersonViewSidebar from './PersonViewSidebar'
 import PersonEditSidebar from './PersonEditSidebar'
-import BatchViewSidebar from './BatchViewSidebar'
 import BatchEditSidebar from './BatchEditSidebar'
 
-interface DetailSidebarProps {
-  mode?: 'view' | 'edit'
-  onSetMode?: (mode: 'view' | 'edit') => void
+/** Parse a pod collapseKey ("pod:managerId:podName") and find the matching pod. */
+function usePodForKey(selectedId: string | null) {
+  const { pods } = useOrgData()
+  if (!selectedId?.startsWith('pod:')) return null
+  const parts = selectedId.split(':')
+  const managerId = parts[1]
+  const podName = parts.slice(2).join(':')
+  return pods.find(p => p.managerId === managerId && p.name === podName) ?? null
 }
 
-export default function DetailSidebar({ mode = 'view', onSetMode }: DetailSidebarProps) {
+export default function DetailSidebar() {
   const { working } = useOrgData()
-  const { selectedId, selectedIds, selectedPodId } = useSelection()
+  const { selectedId, selectedIds } = useSelection()
   const isBatch = selectedIds.size > 1
+  const pod = usePodForKey(selectedId)
 
-  if (selectedPodId && !selectedId && !isBatch) return <PodSidebar />
+  // Pod sidebar — via collapseKey selection
+  if (pod) return <PodSidebar podId={pod.id} />
 
   if (isBatch) {
     const people = working.filter(p => selectedIds.has(p.id))
     if (people.length === 0) return null
-    return mode === 'edit'
-      ? <BatchEditSidebar onSetMode={onSetMode} />
-      : <BatchViewSidebar onSetMode={onSetMode} />
+    return <BatchEditSidebar />
   }
 
   if (selectedId) {
     if (!working.some(p => p.id === selectedId)) return null
-    return mode === 'edit'
-      ? <PersonEditSidebar personId={selectedId} onSetMode={onSetMode} />
-      : <PersonViewSidebar personId={selectedId} onSetMode={onSetMode} />
+    return <PersonEditSidebar personId={selectedId} />
   }
 
   return null

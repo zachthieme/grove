@@ -14,7 +14,6 @@ const baseCtx = {
   originalPods: [] as any[],
   selectedId: null as string | null,
   selectedIds: new Set<string>(),
-  selectedPodId: null as string | null,
   update: vi.fn().mockResolvedValue(undefined),
   remove: vi.fn().mockResolvedValue(undefined),
   reparent: vi.fn().mockResolvedValue(undefined),
@@ -113,7 +112,7 @@ describe('DetailSidebar golden', () => {
   })
 
   it('single person in edit mode', () => {
-    const { container } = renderWithOrg(<DetailSidebar mode="edit" onSetMode={vi.fn()} />, {
+    const { container } = renderWithOrg(<DetailSidebar />, {
       ...baseCtx,
       selectedId: 'b2',
       selectedIds: new Set(['b2']),

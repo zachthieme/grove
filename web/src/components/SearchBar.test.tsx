@@ -14,9 +14,9 @@ describe('SearchBar', () => {
 
   it('[UI-017] renders an input with the correct placeholder and title', () => {
     renderWithOrg(<SearchBar />, { working: [alice] })
-    const input = screen.getByRole('combobox', { name: 'Search people' })
+    const input = screen.getByRole('combobox', { name: 'Search' })
     expect(input).toBeDefined()
-    expect(input.getAttribute('title')).toBe('Search people (⌘K)')
+    expect(input.getAttribute('title')).toBe('Search (⌘K)')
   })
 
   it('[UI-017] shows matching results as user types', async () => {

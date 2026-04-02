@@ -15,7 +15,6 @@ export function useSelection(): SelectionContextValue {
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [selectedPodId, setSelectedPodId] = useState<string | null>(null)
   const interaction = useInteractionState()
 
   const selectedId = useMemo(() => {
@@ -32,7 +31,6 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   }, [interaction])
 
   const toggleSelect = useCallback((id: string, multi: boolean) => {
-    setSelectedPodId(null)
     setSelectedIds((prev) => {
       if (multi) {
         if (interaction.mode === 'editing') {
@@ -71,24 +69,10 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     interaction.exitToIdle()
   }, [interaction])
 
-  const selectPod = useCallback((id: string | null) => {
-    if (interaction.mode === 'editing') {
-      interaction.commitEdits()
-    }
-    setSelectedPodId(id)
-    setSelectedIds(new Set())
-    if (id) {
-      interaction.enterSelected()
-    } else {
-      interaction.exitToIdle()
-    }
-  }, [interaction])
-
   const batchSelect = useCallback((ids: Set<string>) => {
     if (interaction.mode === 'editing') {
       interaction.commitEdits()
     }
-    setSelectedPodId(null)
     setSelectedIds(ids)
     if (ids.size > 0) {
       interaction.enterSelected()
@@ -104,20 +88,18 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   const value: SelectionContextValue = useMemo(() => ({
     selectedIds,
     selectedId,
-    selectedPodId,
     interactionMode: interaction.mode,
     editBuffer: interaction.editBuffer,
     editingPersonId: interaction.editingPersonId,
     setSelectedId,
     toggleSelect,
     clearSelection,
-    selectPod,
     batchSelect,
     enterEditing,
     commitEdits: interaction.commitEdits,
     revertEdits: interaction.revertEdits,
     updateBuffer: interaction.updateBuffer,
-  }), [selectedIds, selectedId, selectedPodId, interaction, setSelectedId, toggleSelect, clearSelection, selectPod, batchSelect, enterEditing])
+  }), [selectedIds, selectedId, interaction, setSelectedId, toggleSelect, clearSelection, batchSelect, enterEditing])
 
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>
 }

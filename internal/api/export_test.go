@@ -1,12 +1,13 @@
 package api
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"strings"
 	"testing"
 
+	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
 )
 
@@ -122,8 +123,8 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 func TestExportPodsSidecarCSV(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "m1", Name: "Alice", Team: "Eng"},
-		{Id: "p1", Name: "Bob", ManagerId: "m1", Team: "Platform"},
+		{PersonFields: model.PersonFields{Name: "Alice", Team: "Eng"}, Id: "m1"},
+		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "m1"},
 	}
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "m1",
@@ -152,7 +153,7 @@ func TestExportPodsSidecarCSV(t *testing.T) {
 func TestExportCSV_IncludesLevel(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "1", Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7}, Id: "1"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -171,10 +172,12 @@ func TestExportCSV_IncludesLevel(t *testing.T) {
 func TestExportCSV_IncludesExtraColumns(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "1", Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
-			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"}},
-		{Id: "2", Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
-			Extra: map[string]string{"CostCenter": "CC002"}},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"}}, Id: "1",
+		},
+		{PersonFields: model.PersonFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC002"}}, Id: "2",
+		},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -215,7 +218,7 @@ func TestExportCSV_IncludesExtraColumns(t *testing.T) {
 func TestExportCSV_NoExtraColumns(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "1", Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active"},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -235,10 +238,12 @@ func TestExportCSV_NoExtraColumns(t *testing.T) {
 func TestExportCSV_RoundTrip_ExtraColumns(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "1", Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Engineering", Status: "Active",
-			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC", "StartDate": "2020-01-15"}},
-		{Id: "2", Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active", ManagerId: "1",
-			Extra: map[string]string{"CostCenter": "CC002", "Location": "SF"}},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Engineering", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC", "StartDate": "2020-01-15"}}, Id: "1",
+		},
+		{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active",
+			Extra: map[string]string{"CostCenter": "CC002", "Location": "SF"}}, Id: "2", ManagerId: "1",
+		},
 	}
 
 	// Export
@@ -328,9 +333,9 @@ func TestSanitizeCell(t *testing.T) {
 func TestExportCSV_FormulaEscaping(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "1", Name: "=SUM(1,1)", Role: "+cmd|'/c calc'!A1", Discipline: "Eng", Team: "T", Status: "Active"},
-		{Id: "2", Name: "-2+3", Role: "@SUM(1,1)", Discipline: "Design", Team: "T", Status: "Active", ManagerId: "1"},
-		{Id: "3", Name: "Alice", Role: "Senior Engineer", Discipline: "Eng", Team: "Platform", Status: "Active", ManagerId: "1"},
+		{PersonFields: model.PersonFields{Name: "=SUM(1,1)", Role: "+cmd|'/c calc'!A1", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
+		{PersonFields: model.PersonFields{Name: "-2+3", Role: "@SUM(1,1)", Discipline: "Design", Team: "T", Status: "Active"}, Id: "2", ManagerId: "1"},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "Senior Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "1"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -381,8 +386,8 @@ func TestExportCSV_FormulaEscaping(t *testing.T) {
 func TestExportCSV_IncludesPrivateColumn(t *testing.T) {
 	t.Parallel()
 	people := []Person{
-		{Id: "1", Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: true},
-		{Id: "2", Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: false},
+		{PersonFields: model.PersonFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: true}, Id: "1"},
+		{PersonFields: model.PersonFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: false}, Id: "2"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {

@@ -31,7 +31,6 @@ export interface ActionsContextValue {
   handleDeletePerson: (personId: string) => void
   handleShowInfo: (personId: string) => void
   handleFocus: (personId: string) => void
-  handleEditMode: (personId: string) => void
   infoPopoverId: string | null
   clearInfoPopover: () => void
   addParentTargetId: string | null
@@ -66,11 +65,11 @@ export function useActions(): ActionsContextValue {
   return ctx
 }
 
-export function ViewDataProvider({ children, onEditMode: onEditModeProp }: { children: ReactNode; onEditMode?: (personId: string) => void }) {
+export function ViewDataProvider({ children }: { children: ReactNode }) {
   const { original, working, pods, settings } = useOrgData()
   const { add, addParent, remove, update } = useOrgMutations()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
-  const { toggleSelect, setSelectedId, commitEdits, editingPersonId } = useSelection()
+  const { toggleSelect, commitEdits, editingPersonId } = useSelection()
 
   // Derived data
   const rawPeople = dataView === 'original' ? original : working
@@ -175,11 +174,6 @@ export function ViewDataProvider({ children, onEditMode: onEditModeProp }: { chi
     setHead(personId)
   }, [setHead])
 
-  const handleEditMode = useCallback((personId: string) => {
-    setSelectedId(personId)
-    onEditModeProp?.(personId)
-  }, [setSelectedId, onEditModeProp])
-
   const handleInlineEdit = useCallback((personId: string, field: string, value: string) => {
     void update(personId, { [field]: value })
   }, [update])
@@ -207,13 +201,13 @@ export function ViewDataProvider({ children, onEditMode: onEditModeProp }: { chi
 
   const actionsValue: ActionsContextValue = useMemo(() => ({
     handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
-    handleShowInfo, handleFocus, handleEditMode, infoPopoverId, clearInfoPopover,
+    handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
     addParentTargetId, setAddParentTargetId, submitAddParent,
     deleteTargetId, confirmDelete, cancelDelete,
     handleInlineEdit,
     handleCommitEdits,
   }), [handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
-       handleShowInfo, handleFocus, handleEditMode, infoPopoverId, clearInfoPopover,
+       handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
        addParentTargetId, setAddParentTargetId, submitAddParent,
        deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit, handleCommitEdits])
 

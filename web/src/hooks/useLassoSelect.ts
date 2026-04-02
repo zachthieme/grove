@@ -79,8 +79,8 @@ export function useLassoSelect({ containerRef, nodeRefs, onSelect, enabled = tru
     const st = container.scrollTop
     const selected = new Set<string>()
     for (const [id, el] of nodeRefs.current) {
-      // Skip pod header nodes (synthetic IDs)
-      if (id.startsWith('pod:')) continue
+      // Skip group node IDs (pod, team, orphan collapseKeys all contain ':'; person UUIDs don't)
+      if (id.includes(':')) continue
       const nodeRect = el.getBoundingClientRect()
       if (rectsIntersect(lasso, nodeRect, containerRect, sl, st)) {
         selected.add(id)

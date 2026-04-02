@@ -20,33 +20,30 @@ const alphaPod: Pod = {
 describe('PodSidebar', () => {
   afterEach(() => cleanup())
 
-  it('[UI-003] close button calls selectPod(null)', () => {
-    const selectPod = vi.fn()
-    renderWithOrg(<PodSidebar />, {
+  it('[UI-003] close button calls clearSelection', () => {
+    const clearSelection = vi.fn()
+    renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
-      selectPod,
+      clearSelection,
     })
     fireEvent.click(screen.getByLabelText('Close'))
-    expect(selectPod).toHaveBeenCalledWith(null)
+    expect(clearSelection).toHaveBeenCalled()
   })
 
   it('[UI-003] save button is disabled when nothing changed', () => {
-    renderWithOrg(<PodSidebar />, {
+    renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
     })
     const saveBtn = screen.getByRole('button', { name: /save/i })
     expect((saveBtn as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('[UI-003] save button is enabled when name changes', () => {
-    renderWithOrg(<PodSidebar />, {
+    renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
     })
     const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
     fireEvent.change(nameInput, { target: { value: 'Alpha Renamed' } })
@@ -56,10 +53,9 @@ describe('PodSidebar', () => {
 
   it('[UI-003] calls updatePod when save button clicked after name change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
-    renderWithOrg(<PodSidebar />, {
+    renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
       updatePod: updatePodFn,
     })
     const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
@@ -71,10 +67,9 @@ describe('PodSidebar', () => {
 
   it('[UI-003] calls updatePod when save clicked after public note change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
-    renderWithOrg(<PodSidebar />, {
+    renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
       updatePod: updatePodFn,
     })
     const textarea = screen.getByDisplayValue('Public info') as HTMLTextAreaElement
@@ -86,10 +81,9 @@ describe('PodSidebar', () => {
 
   it('[UI-003] calls updatePod when save clicked after private note change', async () => {
     const updatePodFn = vi.fn().mockResolvedValue(undefined)
-    renderWithOrg(<PodSidebar />, {
+    renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
       updatePod: updatePodFn,
     })
     const textarea = screen.getByDisplayValue('Private info') as HTMLTextAreaElement
@@ -103,11 +97,10 @@ describe('PodSidebar', () => {
   describe('error and edge states', () => {
     it('shows "Retry" and error message when updatePod rejects', async () => {
       const updatePodFn = vi.fn().mockRejectedValueOnce(new Error('Network error'))
-      renderWithOrg(<PodSidebar />, {
+      renderWithOrg(<PodSidebar podId="pod-1" />, {
         pods: [alphaPod],
         working: [manager, member1, member2],
-        selectedPodId: 'pod-1',
-        updatePod: updatePodFn,
+          updatePod: updatePodFn,
       })
       const nameInput = screen.getByDisplayValue('Alpha') as HTMLInputElement
       fireEvent.change(nameInput, { target: { value: 'Alpha Renamed' } })
@@ -120,11 +113,10 @@ describe('PodSidebar', () => {
       expect(updatePodFn).toHaveBeenCalledTimes(1)
     })
 
-    it('renders nothing when selectedPodId does not match any pod', () => {
-      const { container } = renderWithOrg(<PodSidebar />, {
+    it('renders nothing when podId does not match any pod', () => {
+      const { container } = renderWithOrg(<PodSidebar podId="nonexistent" />, {
         pods: [alphaPod],
         working: [manager, member1, member2],
-        selectedPodId: 'nonexistent',
       })
       expect(container.innerHTML).toBe('')
     })

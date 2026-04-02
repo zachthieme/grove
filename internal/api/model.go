@@ -1,25 +1,12 @@
 package api
 
+import "github.com/zachthieme/grove/internal/model"
+
 type Person struct {
-	Id              string   `json:"id"`
-	Name            string   `json:"name"`
-	Role            string   `json:"role"`
-	Discipline      string   `json:"discipline"`
-	ManagerId       string   `json:"managerId"`
-	Team            string   `json:"team"`
-	AdditionalTeams []string `json:"additionalTeams"`
-	Status          string   `json:"status"`
-	EmploymentType  string   `json:"employmentType"`
-	Warning         string   `json:"warning,omitempty"`
-	SortIndex       int      `json:"sortIndex"`
-	NewRole         string   `json:"newRole,omitempty"`
-	NewTeam         string   `json:"newTeam,omitempty"`
-	Pod             string   `json:"pod,omitempty"`
-	PublicNote      string   `json:"publicNote,omitempty"`
-	PrivateNote     string   `json:"privateNote,omitempty"`
-	Level           int      `json:"level,omitempty"`
-	Private         bool              `json:"private,omitempty"`
-	Extra           map[string]string `json:"extra,omitempty"`
+	model.PersonFields
+	Id        string `json:"id"`
+	ManagerId string `json:"managerId"`
+	SortIndex int    `json:"sortIndex"`
 }
 
 // PersonUpdate carries optional field updates for a person.

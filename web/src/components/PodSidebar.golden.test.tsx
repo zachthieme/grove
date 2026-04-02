@@ -21,10 +21,9 @@ describe('PodSidebar golden', () => {
   afterEach(() => cleanup())
 
   it('no selection', () => {
-    const { container } = renderWithOrg(<PodSidebar />, {
+    const { container } = renderWithOrg(<PodSidebar podId="nonexistent" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: null,
       updatePod: vi.fn().mockResolvedValue(undefined),
     })
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
@@ -33,10 +32,9 @@ describe('PodSidebar golden', () => {
   })
 
   it('pod selected with notes and members', () => {
-    const { container } = renderWithOrg(<PodSidebar />, {
+    const { container } = renderWithOrg(<PodSidebar podId="pod-1" />, {
       pods: [alphaPod],
       working: [manager, member1, member2],
-      selectedPodId: 'pod-1',
       updatePod: vi.fn().mockResolvedValue(undefined),
     })
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
