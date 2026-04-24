@@ -1,11 +1,11 @@
-import type { Person } from '../api/types'
-import type { PersonChange } from './useOrgDiff'
+import type { OrgNode } from '../api/types'
+import type { NodeChange } from './useOrgDiff'
 import type { EditBuffer } from '../store/useInteractionState'
 import { useChart } from '../views/ChartContext'
 
-export interface PersonNodeCommonProps {
+export interface NodeCommonProps {
   selected: boolean
-  changes?: PersonChange
+  changes?: NodeChange
   isManager?: boolean
   editing: boolean
   editBuffer: EditBuffer | null
@@ -22,7 +22,7 @@ export interface PersonNodeCommonProps {
   cardRef: (el: HTMLDivElement | null) => void
 }
 
-export function usePersonNodeProps(person: Person): PersonNodeCommonProps {
+export function useNodeProps(person: OrgNode): NodeCommonProps {
   const {
     selectedIds, changes, managerSet, interactionMode,
     editingPersonId, editBuffer, onSelect, onAddReport,

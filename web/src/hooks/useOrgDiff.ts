@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
-export type ChangeType = 'added' | 'removed' | 'reporting' | 'title' | 'reorg' | 'pod'
+export type ChangeType = 'added' | 'removed' | 'reporting' | 'title' | 'reorg' | 'pod' | 'type'
 
-export interface PersonChange {
+export interface NodeChange {
   types: Set<ChangeType>
 }
 
-export function useOrgDiff(original: Person[], working: Person[]): Map<string, PersonChange> {
+export function useOrgDiff(original: OrgNode[], working: OrgNode[]): Map<string, NodeChange> {
   return useMemo(() => {
-    const changes = new Map<string, PersonChange>()
+    const changes = new Map<string, NodeChange>()
     const origById = new Map(original.map((p) => [p.id, p]))
     const workById = new Map(working.map((p) => [p.id, p]))
 
@@ -23,6 +23,7 @@ export function useOrgDiff(original: Person[], working: Person[]): Map<string, P
         if (w.role !== o.role || w.discipline !== o.discipline) types.add('title')
         if (w.team !== o.team) types.add('reorg')
         if ((w.pod ?? '') !== (o.pod ?? '')) types.add('pod')
+        if ((w.type ?? 'person') !== (o.type ?? 'person')) types.add('type')
       }
       if (types.size > 0) changes.set(w.id, { types })
     }

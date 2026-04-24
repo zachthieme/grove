@@ -1,4 +1,4 @@
-import type { Person, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings, PersonUpdatePayload, PodUpdatePayload } from '../api/types'
+import type { OrgNode, Pod, MappedColumn, SnapshotInfo, AutosaveData, Settings, OrgNodeUpdatePayload, PodUpdatePayload } from '../api/types'
 
 export type ViewMode = 'detail' | 'manager' | 'table'
 export type DataView = 'original' | 'working' | 'diff'
@@ -15,16 +15,16 @@ export interface SelectionContextValue {
   /** Backward compat: returns the single selected ID when exactly one is selected, null otherwise */
   selectedId: string | null
   interactionMode: InteractionMode
-  editBuffer: import('../utils/personFormUtils').PersonFormValues | null
+  editBuffer: import('../utils/nodeFormUtils').NodeFormValues | null
   editingPersonId: string | null
   setSelectedId: (id: string | null) => void
   toggleSelect: (id: string, multi: boolean) => void
   clearSelection: () => void
   batchSelect: (ids: Set<string>) => void
-  enterEditing: (person: import('../api/types').Person) => void
+  enterEditing: (person: import('../api/types').OrgNode) => void
   commitEdits: () => Record<string, string | boolean | number> | null
   revertEdits: () => void
-  updateBuffer: (field: keyof import('../utils/personFormUtils').PersonFormValues, value: string | boolean) => void
+  updateBuffer: (field: keyof import('../utils/nodeFormUtils').NodeFormValues, value: string | boolean) => void
 }
 
 export interface UIContextValue {
@@ -50,9 +50,9 @@ export interface UIContextValue {
 }
 
 export interface OrgDataStateValue {
-  original: Person[]
-  working: Person[]
-  recycled: Person[]
+  original: OrgNode[]
+  working: OrgNode[]
+  recycled: OrgNode[]
   pods: Pod[]
   originalPods: Pod[]
   settings: Settings
@@ -69,8 +69,8 @@ export interface OrgMutationsValue {
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
-  update: (personId: string, fields: PersonUpdatePayload, correlationId?: string) => Promise<void>
-  add: (person: Omit<Person, 'id'>) => Promise<void>
+  update: (personId: string, fields: OrgNodeUpdatePayload, correlationId?: string) => Promise<void>
+  add: (person: Omit<OrgNode, 'id'>) => Promise<void>
   addParent: (childId: string, name: string) => Promise<void>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>

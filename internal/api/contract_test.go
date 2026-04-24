@@ -45,7 +45,7 @@ func collectJSONFields(t reflect.Type) []string {
 
 func TestContractPersonFields(t *testing.T) {
 	t.Parallel()
-	// TypeScript Person interface fields
+	// TypeScript OrgNode interface fields
 	expected := []string{
 		"additionalTeams",
 		"discipline",
@@ -65,12 +65,13 @@ func TestContractPersonFields(t *testing.T) {
 		"sortIndex",
 		"status",
 		"team",
+		"type",
 		"warning",
 	}
 	sort.Strings(expected)
 
-	got := jsonFieldNames(Person{})
-	assertFieldsMatch(t, "Person", expected, got)
+	got := jsonFieldNames(OrgNode{})
+	assertFieldsMatch(t, "OrgNode", expected, got)
 }
 
 func TestContractPodFields(t *testing.T) {
@@ -214,8 +215,8 @@ func TestContractPersonUpdateFields(t *testing.T) {
 	}
 	sort.Strings(expected)
 
-	got := jsonFieldNames(PersonUpdate{})
-	assertFieldsMatch(t, "PersonUpdate", expected, got)
+	got := jsonFieldNames(OrgNodeUpdate{})
+	assertFieldsMatch(t, "OrgNodeUpdate", expected, got)
 }
 
 func TestContractPodUpdateFields(t *testing.T) {
@@ -234,7 +235,7 @@ func TestContractPodUpdateFields(t *testing.T) {
 
 func TestContractPersonJSONRoundTrip(t *testing.T) {
 	t.Parallel()
-	original := Person{PersonFields: model.PersonFields{Name: "Jane Doe",
+	original := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Jane Doe",
 		Role:       "Staff Engineer",
 		Discipline: "Engineering",
 
@@ -259,16 +260,16 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 
 	data, err := json.Marshal(original)
 	if err != nil {
-		t.Fatalf("failed to marshal Person: %v", err)
+		t.Fatalf("failed to marshal OrgNode: %v", err)
 	}
 
-	var roundTripped Person
+	var roundTripped OrgNode
 	if err := json.Unmarshal(data, &roundTripped); err != nil {
-		t.Fatalf("failed to unmarshal Person: %v", err)
+		t.Fatalf("failed to unmarshal OrgNode: %v", err)
 	}
 
 	if !reflect.DeepEqual(original, roundTripped) {
-		t.Errorf("Person round-trip failed.\nOriginal:     %+v\nRound-tripped: %+v", original, roundTripped)
+		t.Errorf("OrgNode round-trip failed.\nOriginal:     %+v\nRound-tripped: %+v", original, roundTripped)
 	}
 
 	// Also verify JSON contains all expected keys
@@ -294,7 +295,7 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 
 func TestContractPersonFieldTypes(t *testing.T) {
 	t.Parallel()
-	p := Person{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng",
+	p := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng",
 		Team: "Platform", AdditionalTeams: []string{"Infra"},
 		Status: "Active", EmploymentType: "FTE", Level: 5, Private: true,
 		Extra: map[string]string{"Custom": "val"}}, Id: "uuid-1",

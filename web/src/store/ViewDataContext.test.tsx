@@ -3,7 +3,7 @@ import { renderHook, act, cleanup } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { OrgOverrideProvider } from './OrgContext'
 import { ViewDataProvider, usePeople, useChanges, useActions } from './ViewDataContext'
-import { makeOrgContext, makePerson } from '../test-helpers'
+import { makeOrgContext, makeNode } from '../test-helpers'
 
 afterEach(() => cleanup())
 
@@ -25,7 +25,7 @@ describe('ViewDataContext', () => {
     })
 
     it('returns people from working by default', () => {
-      const alice = makePerson({ id: 'a', name: 'Alice' })
+      const alice = makeNode({ id: 'a', name: 'Alice' })
       const { result } = renderHook(() => usePeople(), {
         wrapper: wrapper({ working: [alice], original: [] }),
       })
@@ -34,8 +34,8 @@ describe('ViewDataContext', () => {
     })
 
     it('returns original people when dataView is original', () => {
-      const alice = makePerson({ id: 'a', name: 'Alice' })
-      const bob = makePerson({ id: 'b', name: 'Bob' })
+      const alice = makeNode({ id: 'a', name: 'Alice' })
+      const bob = makeNode({ id: 'b', name: 'Bob' })
       const { result } = renderHook(() => usePeople(), {
         wrapper: wrapper({ working: [alice], original: [bob], dataView: 'original' }),
       })
@@ -71,8 +71,8 @@ describe('ViewDataContext', () => {
     })
 
     it('computes managerSet from working data', () => {
-      const mgr = makePerson({ id: 'mgr', name: 'Manager' })
-      const ic = makePerson({ id: 'ic', name: 'IC', managerId: 'mgr' })
+      const mgr = makeNode({ id: 'mgr', name: 'Manager' })
+      const ic = makeNode({ id: 'ic', name: 'IC', managerId: 'mgr' })
       const { result } = renderHook(() => usePeople(), {
         wrapper: wrapper({ working: [mgr, ic], original: [mgr, ic] }),
       })
@@ -89,8 +89,8 @@ describe('ViewDataContext', () => {
     })
 
     it('returns changes when showChanges is true (diff view)', () => {
-      const alice = makePerson({ id: 'a', name: 'Alice' })
-      const aliceChanged = makePerson({ id: 'a', name: 'Alice', role: 'Manager' })
+      const alice = makeNode({ id: 'a', name: 'Alice' })
+      const aliceChanged = makeNode({ id: 'a', name: 'Alice', role: 'Manager' })
       const { result } = renderHook(() => useChanges(), {
         wrapper: wrapper({ working: [aliceChanged], original: [alice], dataView: 'diff' }),
       })
@@ -99,8 +99,8 @@ describe('ViewDataContext', () => {
     })
 
     it('returns undefined changes when showChanges is false', () => {
-      const alice = makePerson({ id: 'a', name: 'Alice' })
-      const aliceChanged = makePerson({ id: 'a', name: 'Alice', role: 'Manager' })
+      const alice = makeNode({ id: 'a', name: 'Alice' })
+      const aliceChanged = makeNode({ id: 'a', name: 'Alice', role: 'Manager' })
       const { result } = renderHook(() => useChanges(), {
         wrapper: wrapper({ working: [aliceChanged], original: [alice], dataView: 'working' }),
       })
@@ -156,7 +156,7 @@ describe('ViewDataContext', () => {
 
     it('handleAddReport adds a person under the given parent', async () => {
       const add = vi.fn().mockResolvedValue(undefined)
-      const parent = makePerson({ id: 'mgr', name: 'Manager', team: 'Eng' })
+      const parent = makeNode({ id: 'mgr', name: 'Manager', team: 'Eng' })
       const { result } = renderHook(() => useActions(), {
         wrapper: wrapper({ working: [parent], add }),
       })
@@ -172,7 +172,7 @@ describe('ViewDataContext', () => {
     it('[CREATE-005] handleAddReport works on leaf/IC node (promotes IC to manager)', async () => {
       const add = vi.fn().mockResolvedValue(undefined)
       // ic has a managerId — it's a leaf node (IC), not a manager
-      const ic = makePerson({ id: 'ic-1', name: 'IC Person', team: 'Design', managerId: 'some-parent' })
+      const ic = makeNode({ id: 'ic-1', name: 'IC Person', team: 'Design', managerId: 'some-parent' })
       const { result } = renderHook(() => useActions(), {
         wrapper: wrapper({ working: [ic], add }),
       })
@@ -272,7 +272,7 @@ describe('ViewDataContext', () => {
   describe('head person clearing', () => {
     it('clears head when head person is private and showPrivate is false', () => {
       const setHead = vi.fn()
-      const privatePerson = makePerson({ id: 'priv', name: 'Private', private: true })
+      const privatePerson = makeNode({ id: 'priv', name: 'Private', private: true })
       renderHook(() => usePeople(), {
         wrapper: wrapper({
           working: [privatePerson],
@@ -287,7 +287,7 @@ describe('ViewDataContext', () => {
 
     it('does not clear head when showPrivate is true', () => {
       const setHead = vi.fn()
-      const privatePerson = makePerson({ id: 'priv', name: 'Private', private: true })
+      const privatePerson = makeNode({ id: 'priv', name: 'Private', private: true })
       renderHook(() => usePeople(), {
         wrapper: wrapper({
           working: [privatePerson],
@@ -302,7 +302,7 @@ describe('ViewDataContext', () => {
 
     it('does not clear head when head person is not private', () => {
       const setHead = vi.fn()
-      const person = makePerson({ id: 'pub', name: 'Public' })
+      const person = makeNode({ id: 'pub', name: 'Public' })
       renderHook(() => usePeople(), {
         wrapper: wrapper({
           working: [person],

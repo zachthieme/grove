@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Person, Pod } from '../api/types'
+import type { OrgNode, Pod } from '../api/types'
 import { findSpatialNeighbor } from './useSpatialNav'
 import { moveToTarget } from '../utils/moveToTarget'
 
 interface VimNavOptions {
-  working: Person[]
+  working: OrgNode[]
   pods: Pod[]
   selectedId: string | null
   batchSelect?: (ids: Set<string>) => void
@@ -20,7 +20,7 @@ interface VimNavOptions {
  * Given a data-person-id value, resolve to the person IDs it represents.
  * Works uniformly for person nodes (returns [id]) and group nodes (returns member IDs).
  */
-function resolvePersonIds(nodeId: string, working: Person[]): string[] {
+function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
   if (working.some(p => p.id === nodeId)) return [nodeId]
   const el = document.querySelector(`[data-person-id="${nodeId}"]`)
   if (!el) return []

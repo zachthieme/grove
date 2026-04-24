@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import { useFilteredPeople } from './useFilteredPeople'
 
-const makePerson = (overrides: Partial<Person> & { id: string; name: string }): Person => ({
+const makeNode = (overrides: Partial<OrgNode> & { id: string; name: string }): OrgNode => ({
   role: 'Eng',
   discipline: 'Eng',
   managerId: '',
@@ -13,10 +13,10 @@ const makePerson = (overrides: Partial<Person> & { id: string; name: string }): 
   ...overrides,
 })
 
-const alice = makePerson({ id: '1', name: 'Alice', employmentType: 'FTE' })
-const bob = makePerson({ id: '2', name: 'Bob', employmentType: 'Contractor', managerId: '1' })
-const carol = makePerson({ id: '3', name: 'Carol', employmentType: 'FTE', managerId: '1' })
-const dave = makePerson({ id: '4', name: 'Dave', employmentType: 'Intern', managerId: '2' })
+const alice = makeNode({ id: '1', name: 'Alice', employmentType: 'FTE' })
+const bob = makeNode({ id: '2', name: 'Bob', employmentType: 'Contractor', managerId: '1' })
+const carol = makeNode({ id: '3', name: 'Carol', employmentType: 'FTE', managerId: '1' })
+const dave = makeNode({ id: '4', name: 'Dave', employmentType: 'Intern', managerId: '2' })
 
 describe('useFilteredPeople', () => {
   it('[FILTER-001] returns all people when no filters are applied', () => {
@@ -113,7 +113,7 @@ describe('useFilteredPeople', () => {
   })
 
   it('[FILTER-001] treats people with undefined employmentType correctly when filtering', () => {
-    const noType = makePerson({ id: '5', name: 'Eve' }) // no employmentType
+    const noType = makeNode({ id: '5', name: 'Eve' }) // no employmentType
     const all = [alice, noType]
     // Hiding empty string should filter out people with no employmentType
     const hidden = new Set([''])
@@ -124,7 +124,7 @@ describe('useFilteredPeople', () => {
   })
 
   describe('private people filtering', () => {
-    const eve = makePerson({ id: '5', name: 'Eve', managerId: '1', private: true })
+    const eve = makeNode({ id: '5', name: 'Eve', managerId: '1', private: true })
 
     it('[FILTER-004] hides private people when showPrivate is false', () => {
       const all = [alice, bob, eve]
@@ -143,8 +143,8 @@ describe('useFilteredPeople', () => {
     })
 
     it('[FILTER-004] injects placeholder for hidden private manager with visible reports', () => {
-      const eveManager = makePerson({ id: '5', name: 'Eve', private: true })
-      const bobUnder = makePerson({ id: '2', name: 'Bob', managerId: '5' })
+      const eveManager = makeNode({ id: '5', name: 'Eve', private: true })
+      const bobUnder = makeNode({ id: '2', name: 'Bob', managerId: '5' })
       const all = [eveManager, bobUnder]
       const { result } = renderHook(() =>
         useFilteredPeople(all, all, all, new Set(), null, false, false),
@@ -160,7 +160,7 @@ describe('useFilteredPeople', () => {
     })
 
     it('[FILTER-004] does not inject placeholder when private manager has no visible reports', () => {
-      const eveManager = makePerson({ id: '5', name: 'Eve', private: true })
+      const eveManager = makeNode({ id: '5', name: 'Eve', private: true })
       const all = [alice, eveManager]
       const { result } = renderHook(() =>
         useFilteredPeople(all, all, all, new Set(), null, false, false),
@@ -169,8 +169,8 @@ describe('useFilteredPeople', () => {
     })
 
     it('[FILTER-004] placeholder has stable deterministic ID', () => {
-      const eveManager = makePerson({ id: '5', name: 'Eve', private: true })
-      const bobUnder = makePerson({ id: '2', name: 'Bob', managerId: '5' })
+      const eveManager = makeNode({ id: '5', name: 'Eve', private: true })
+      const bobUnder = makeNode({ id: '2', name: 'Bob', managerId: '5' })
       const all = [eveManager, bobUnder]
       const { result: r1 } = renderHook(() =>
         useFilteredPeople(all, all, all, new Set(), null, false, false),
@@ -184,7 +184,7 @@ describe('useFilteredPeople', () => {
     })
 
     it('[FILTER-004] filters private people from ghost people in diff mode', () => {
-      const evePrivate = makePerson({ id: '5', name: 'Eve', private: true })
+      const evePrivate = makeNode({ id: '5', name: 'Eve', private: true })
       const original = [alice, bob, evePrivate]
       const working = [alice]
       const { result } = renderHook(() =>

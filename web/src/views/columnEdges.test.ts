@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { computeEdges } from './columnEdges'
 import { computeLayoutTree } from './layoutTree'
 import { buildOrgTree } from './shared'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
-const makePerson = (overrides: Partial<Person> & { id: string; name: string }): Person => ({
+const makeNode = (overrides: Partial<OrgNode> & { id: string; name: string }): OrgNode => ({
   role: 'Engineer',
   discipline: 'Eng',
   managerId: '',
@@ -20,15 +20,15 @@ describe('computeEdges', () => {
   })
 
   it('[VIEW-001] returns empty for single person', () => {
-    const people = [makePerson({ id: '1', name: 'Alice' })]
+    const people = [makeNode({ id: '1', name: 'Alice' })]
     const layout = computeLayoutTree(buildOrgTree(people))
     expect(computeEdges(layout, people)).toEqual([])
   })
 
   it('[VIEW-001] draws edge from manager to report', () => {
     const people = [
-      makePerson({ id: '1', name: 'Alice' }),
-      makePerson({ id: '2', name: 'Bob', managerId: '1' }),
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -38,9 +38,9 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] draws one edge per IC batch, not per IC', () => {
     const people = [
-      makePerson({ id: '1', name: 'Alice' }),
-      makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
-      makePerson({ id: '3', name: 'Carol', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '3', name: 'Carol', managerId: '1', team: 'Eng' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -52,9 +52,9 @@ describe('computeEdges', () => {
   it('[VIEW-001] draws edges through team groups when ICs span multiple teams', () => {
     // When all children are ICs across multiple teams, layout tree creates team groups
     const people = [
-      makePerson({ id: '1', name: 'Alice' }),
-      makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
-      makePerson({ id: '3', name: 'Carol', managerId: '1', team: 'Design' }),
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '3', name: 'Carol', managerId: '1', team: 'Design' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -68,9 +68,9 @@ describe('computeEdges', () => {
   it('[VIEW-001] draws one edge for all ICs when they share a team (no managers)', () => {
     // When all children are ICs on the same team, they stay as a flat batch
     const people = [
-      makePerson({ id: '1', name: 'Alice' }),
-      makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
-      makePerson({ id: '3', name: 'Carol', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '3', name: 'Carol', managerId: '1', team: 'Eng' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -82,11 +82,11 @@ describe('computeEdges', () => {
   it('[VIEW-001] draws separate edges per team when parent has manager children', () => {
     // When there are both managers and ICs, ICs are grouped by team visually
     const people = [
-      makePerson({ id: '1', name: 'Alice' }),
-      makePerson({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
-      makePerson({ id: '3', name: 'Carol', managerId: '2' }), // makes Bob a manager
-      makePerson({ id: '4', name: 'Dave', managerId: '1', team: 'Eng' }),
-      makePerson({ id: '5', name: 'Eve', managerId: '1', team: 'Design' }),
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '3', name: 'Carol', managerId: '2' }), // makes Bob a manager
+      makeNode({ id: '4', name: 'Dave', managerId: '1', team: 'Eng' }),
+      makeNode({ id: '5', name: 'Eve', managerId: '1', team: 'Design' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -101,9 +101,9 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] draws individual edges to manager children', () => {
     const people = [
-      makePerson({ id: '1', name: 'Alice' }),
-      makePerson({ id: '2', name: 'Bob', managerId: '1' }),
-      makePerson({ id: '3', name: 'Carol', managerId: '2' }), // makes Bob a manager
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1' }),
+      makeNode({ id: '3', name: 'Carol', managerId: '2' }), // makes Bob a manager
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -115,9 +115,9 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] draws dashed edges for additionalTeams', () => {
     const people = [
-      makePerson({ id: '1', name: 'Alice', team: 'Eng' }),
-      makePerson({ id: '2', name: 'Bob', team: 'Design' }),
-      makePerson({ id: '3', name: 'Carol', team: 'Eng', managerId: '1', additionalTeams: ['Design'] }),
+      makeNode({ id: '1', name: 'Alice', team: 'Eng' }),
+      makeNode({ id: '2', name: 'Bob', team: 'Design' }),
+      makeNode({ id: '3', name: 'Carol', team: 'Eng', managerId: '1', additionalTeams: ['Design'] }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -129,7 +129,7 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] does not draw dashed edge to self', () => {
     const people = [
-      makePerson({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Eng'] }),
+      makeNode({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Eng'] }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -139,7 +139,7 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] skips additionalTeam edge when team has no members', () => {
     const people = [
-      makePerson({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Nonexistent'] }),
+      makeNode({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Nonexistent'] }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -148,10 +148,10 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] prefers manager as team lead for dashed edges', () => {
     const people = [
-      makePerson({ id: '1', name: 'Boss' }),
-      makePerson({ id: '2', name: 'Lead', team: 'Design' }),
-      makePerson({ id: '3', name: 'IC', team: 'Design', managerId: '2' }),
-      makePerson({ id: '4', name: 'Other', team: 'Eng', additionalTeams: ['Design'], managerId: '1' }),
+      makeNode({ id: '1', name: 'Boss' }),
+      makeNode({ id: '2', name: 'Lead', team: 'Design' }),
+      makeNode({ id: '3', name: 'IC', team: 'Design', managerId: '2' }),
+      makeNode({ id: '4', name: 'Other', team: 'Eng', additionalTeams: ['Design'], managerId: '1' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
@@ -163,11 +163,11 @@ describe('computeEdges', () => {
 
   it('[VIEW-001] edges through pod headers use collapseKey as node ID', () => {
     const people = [
-      makePerson({ id: '1', name: 'Boss' }),
-      makePerson({ id: '2', name: 'Mgr', managerId: '1' }),
-      makePerson({ id: '3', name: 'Sub', managerId: '2' }),
-      makePerson({ id: '4', name: 'IC1', managerId: '1', pod: 'Alpha' }),
-      makePerson({ id: '5', name: 'IC2', managerId: '1', pod: 'Alpha' }),
+      makeNode({ id: '1', name: 'Boss' }),
+      makeNode({ id: '2', name: 'Mgr', managerId: '1' }),
+      makeNode({ id: '3', name: 'Sub', managerId: '2' }),
+      makeNode({ id: '4', name: 'IC1', managerId: '1', pod: 'Alpha' }),
+      makeNode({ id: '5', name: 'IC2', managerId: '1', pod: 'Alpha' }),
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)

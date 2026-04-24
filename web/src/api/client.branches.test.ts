@@ -1,6 +1,6 @@
 /**
  * Additional branch coverage tests for client.ts.
- * Covers: deletePerson, restorePerson, emptyBin (lines 183-214),
+ * Covers: deleteNode, restoreNode, emptyBin (lines 183-214),
  * fetchWithTimeout Headers instance / array headers branches (lines 42, 44),
  * and signal merging (line 55).
  */
@@ -34,11 +34,11 @@ function errorResp(status: number, text: string) {
   }
 }
 
-describe('deletePerson', () => {
+describe('deleteNode', () => {
   it('sends DELETE payload to /api/delete', async () => {
     const data = { working: [], recycled: [], pods: [] }
     mockFetch.mockResolvedValueOnce(okJson(data))
-    const result = await api.deletePerson({ personId: 'p1' })
+    const result = await api.deleteNode({ personId: 'p1' })
     expect(result).toEqual(data)
     expect(mockFetch.mock.calls[0][0]).toBe('/api/delete')
     const init = mockFetch.mock.calls[0][1]
@@ -48,22 +48,22 @@ describe('deletePerson', () => {
 
   it('uses provided correlationId', async () => {
     mockFetch.mockResolvedValueOnce(okJson({ working: [], recycled: [], pods: [] }))
-    await api.deletePerson({ personId: 'p1' }, 'my-cid')
+    await api.deleteNode({ personId: 'p1' }, 'my-cid')
     const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>
     expect(headers['X-Correlation-ID']).toBe('my-cid')
   })
 
   it('throws on error response', async () => {
     mockFetch.mockResolvedValueOnce(errorResp(404, 'Not found'))
-    await expect(api.deletePerson({ personId: 'p1' })).rejects.toThrow('API 404: Not found')
+    await expect(api.deleteNode({ personId: 'p1' })).rejects.toThrow('API 404: Not found')
   })
 })
 
-describe('restorePerson', () => {
+describe('restoreNode', () => {
   it('sends restore payload to /api/restore', async () => {
     const data = { working: [], recycled: [], pods: [] }
     mockFetch.mockResolvedValueOnce(okJson(data))
-    const result = await api.restorePerson('person-123')
+    const result = await api.restoreNode('person-123')
     expect(result).toEqual(data)
     expect(mockFetch.mock.calls[0][0]).toBe('/api/restore')
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
@@ -72,14 +72,14 @@ describe('restorePerson', () => {
 
   it('uses provided correlationId', async () => {
     mockFetch.mockResolvedValueOnce(okJson({ working: [], recycled: [], pods: [] }))
-    await api.restorePerson('p1', 'restore-cid')
+    await api.restoreNode('p1', 'restore-cid')
     const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>
     expect(headers['X-Correlation-ID']).toBe('restore-cid')
   })
 
   it('throws on error response', async () => {
     mockFetch.mockResolvedValueOnce(errorResp(500, 'Server error'))
-    await expect(api.restorePerson('p1')).rejects.toThrow('API 500: Server error')
+    await expect(api.restoreNode('p1')).rejects.toThrow('API 500: Server error')
   })
 })
 
@@ -113,7 +113,7 @@ describe('fetchWithTimeout header branches', () => {
     // To exercise the Headers instance branch, we need to reach it indirectly.
     // Since fetchWithTimeout is private, let's verify the object-header path is solid.
     mockFetch.mockResolvedValueOnce(okJson({ working: [], pods: [] }))
-    await api.movePerson({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
+    await api.moveNode({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
     const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>
     expect(headers['Content-Type']).toBe('application/json')
     expect(headers['X-Correlation-ID']).toBeDefined()
@@ -132,7 +132,7 @@ describe('fetchWithTimeout header branches', () => {
 })
 
 describe('jsonWithLog error path with logging', () => {
-  it('logs error and calls onApiError on failed deletePerson', async () => {
+  it('logs error and calls onApiError on failed deleteNode', async () => {
     const errorHandler = vi.fn()
     const cleanup = api.setOnApiError(errorHandler)
     api.setLoggingEnabled(true)
@@ -141,7 +141,7 @@ describe('jsonWithLog error path with logging', () => {
       .mockResolvedValueOnce(errorResp(422, 'Validation error'))
       .mockResolvedValue({ ok: true, status: 200 }) // for log entry
 
-    await expect(api.deletePerson({ personId: 'p1' })).rejects.toThrow('API 422')
+    await expect(api.deleteNode({ personId: 'p1' })).rejects.toThrow('API 422')
     expect(errorHandler).toHaveBeenCalledWith('API 422: Validation error')
     // Should have sent a log entry (2 fetch calls: API + log)
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2)
@@ -150,13 +150,13 @@ describe('jsonWithLog error path with logging', () => {
     api.setLoggingEnabled(false)
   })
 
-  it('logs error on failed restorePerson', async () => {
+  it('logs error on failed restoreNode', async () => {
     api.setLoggingEnabled(true)
     mockFetch
       .mockResolvedValueOnce(errorResp(404, 'Not found'))
       .mockResolvedValue({ ok: true, status: 200 })
 
-    await expect(api.restorePerson('p1')).rejects.toThrow('API 404')
+    await expect(api.restoreNode('p1')).rejects.toThrow('API 404')
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2)
 
     api.setLoggingEnabled(false)
@@ -176,18 +176,18 @@ describe('jsonWithLog error path with logging', () => {
 })
 
 describe('jsonWithLog success path with logging', () => {
-  it('logs successful deletePerson', async () => {
+  it('logs successful deleteNode', async () => {
     api.setLoggingEnabled(true)
     mockFetch.mockResolvedValue(okJson({ working: [], recycled: [], pods: [] }))
-    await api.deletePerson({ personId: 'p1' })
+    await api.deleteNode({ personId: 'p1' })
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2)
     api.setLoggingEnabled(false)
   })
 
-  it('logs successful restorePerson', async () => {
+  it('logs successful restoreNode', async () => {
     api.setLoggingEnabled(true)
     mockFetch.mockResolvedValue(okJson({ working: [], recycled: [], pods: [] }))
-    await api.restorePerson('p1')
+    await api.restoreNode('p1')
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2)
     api.setLoggingEnabled(false)
   })

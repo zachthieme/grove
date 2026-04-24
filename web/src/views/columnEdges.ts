@@ -1,4 +1,4 @@
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import type { LayoutNode, ManagerLayout, ICLayout } from './layoutTree'
 
 export interface EdgeDef {
@@ -15,7 +15,7 @@ export interface EdgeDef {
  * For IC stacks (consecutive local ICs), only one edge is drawn to the
  * first IC in the batch.
  */
-export function computeEdges(layoutRoots: LayoutNode[], people: Person[]): EdgeDef[] {
+export function computeEdges(layoutRoots: LayoutNode[], people: OrgNode[]): EdgeDef[] {
   const result: EdgeDef[] = []
 
   function walkManager(node: ManagerLayout) {
@@ -67,7 +67,7 @@ export function computeEdges(layoutRoots: LayoutNode[], people: Person[]): EdgeD
   }
 
   // Dashed cross-team edges (still from people list)
-  const byTeam = new Map<string, Person[]>()
+  const byTeam = new Map<string, OrgNode[]>()
   for (const p of people) {
     if (!byTeam.has(p.team)) byTeam.set(p.team, [])
     byTeam.get(p.team)!.push(p)
@@ -93,10 +93,10 @@ export function computeEdges(layoutRoots: LayoutNode[], people: Person[]): EdgeD
 }
 
 function findTeamLead(
-  byTeam: Map<string, Person[]>,
+  byTeam: Map<string, OrgNode[]>,
   hasReports: Set<string>,
   teamName: string,
-): Person | undefined {
+): OrgNode | undefined {
   const members = byTeam.get(teamName)
   if (!members || members.length === 0) return undefined
   // Prefer someone with reports (a manager) in that team

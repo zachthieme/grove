@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AutosaveBanner from './AutosaveBanner'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 describe('AutosaveBanner', () => {
   afterEach(() => cleanup())
@@ -13,7 +13,7 @@ describe('AutosaveBanner', () => {
     renderWithOrg(<AutosaveBanner />, {
       restoreAutosave: restoreFn,
       autosaveAvailable: {
-        original: [makePerson()], working: [makePerson()], recycled: [],
+        original: [makeNode()], working: [makeNode()], recycled: [],
         snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
       },
     })
@@ -28,7 +28,7 @@ describe('AutosaveBanner', () => {
     renderWithOrg(<AutosaveBanner />, {
       dismissAutosave: dismissFn,
       autosaveAvailable: {
-        original: [makePerson()], working: [makePerson()], recycled: [],
+        original: [makeNode()], working: [makeNode()], recycled: [],
         snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
       },
     })

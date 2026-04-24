@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import type { ColumnDef } from './tableColumns'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import TableFilterDropdown from './TableFilterDropdown'
 import { getPersonValue } from './tableColumns'
 import styles from './TableView.module.css'
@@ -15,7 +15,7 @@ interface TableHeaderProps {
   filterActive: Set<string>
   onFilterClick: (key: string) => void
   openFilter: string | null
-  people: Person[]
+  people: OrgNode[]
   columnFilters: Map<string, Set<string>>
   onFilterSelectionChange: (key: string, selected: Set<string>) => void
   onFilterClose: () => void

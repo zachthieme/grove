@@ -19,7 +19,7 @@ func snapshotStorePath() (string, error) {
 }
 
 type persistedSnapshot struct {
-	People    []Person  `json:"people"`
+	People    []OrgNode  `json:"people"`
 	Pods      []Pod     `json:"pods,omitempty"`
 	Settings  Settings  `json:"settings,omitempty"`
 	Timestamp time.Time `json:"timestamp"`

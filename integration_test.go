@@ -23,7 +23,7 @@ func TestIntegration_WebAPI_RoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 people, got %d", len(data.Working))
 	}
 
-	bob := findAPIPersonByName(data.Working, "Bob")
+	bob := findAPINodeByName(data.Working, "Bob")
 	if bob == nil {
 		t.Fatal("expected to find Bob")
 	}
@@ -51,7 +51,7 @@ func TestIntegration_SnapshotRoundTrip(t *testing.T) {
 	t.Parallel()
 	handler, data := uploadTestCSV(t)
 
-	bob := findAPIPersonByName(data.Working, "Bob")
+	bob := findAPINodeByName(data.Working, "Bob")
 	if bob == nil {
 		t.Fatal("expected to find Bob")
 	}
@@ -94,7 +94,7 @@ func TestIntegration_SnapshotRoundTrip(t *testing.T) {
 	if err := json.Unmarshal(body, &orgData); err != nil {
 		t.Fatalf("decode load snapshot: %v", err)
 	}
-	restoredBob := findAPIPersonByName(orgData.Working, "Bob")
+	restoredBob := findAPINodeByName(orgData.Working, "Bob")
 	if restoredBob == nil {
 		t.Fatal("Bob missing after snapshot load")
 	}
@@ -108,7 +108,7 @@ func TestIntegration_PodWorkflow(t *testing.T) {
 	t.Parallel()
 	handler, data := uploadTestCSV(t)
 
-	alice := findAPIPersonByName(data.Working, "Alice")
+	alice := findAPINodeByName(data.Working, "Alice")
 	if alice == nil {
 		t.Fatal("expected to find Alice")
 	}
@@ -198,8 +198,8 @@ func TestIntegration_CycleDetection(t *testing.T) {
 	handler, data := uploadTestCSV(t)
 
 	// Alice → Bob → Carol. Moving Alice under Carol should fail (cycle).
-	alice := findAPIPersonByName(data.Working, "Alice")
-	carol := findAPIPersonByName(data.Working, "Carol")
+	alice := findAPINodeByName(data.Working, "Alice")
+	carol := findAPINodeByName(data.Working, "Carol")
 	if alice == nil || carol == nil {
 		t.Fatal("expected to find Alice and Carol")
 	}
@@ -273,7 +273,7 @@ func postJSON(t *testing.T, handler http.Handler, path, payload string, wantStat
 	return rec.Body.Bytes()
 }
 
-func findAPIPersonByName(people []api.Person, name string) *api.Person {
+func findAPINodeByName(people []api.OrgNode, name string) *api.OrgNode {
 	for i := range people {
 		if people[i].Name == name {
 			return &people[i]

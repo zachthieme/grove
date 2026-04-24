@@ -1,6 +1,6 @@
 import { useOrgData, useSelection } from '../store/OrgContext'
 import PodSidebar from './PodSidebar'
-import PersonEditSidebar from './PersonEditSidebar'
+import NodeEditSidebar from './NodeEditSidebar'
 import BatchEditSidebar from './BatchEditSidebar'
 
 /** Parse a pod collapseKey ("pod:managerId:podName") and find the matching pod. */
@@ -30,7 +30,7 @@ export default function DetailSidebar() {
 
   if (selectedId) {
     if (!working.some(p => p.id === selectedId)) return null
-    return <PersonEditSidebar personId={selectedId} />
+    return <NodeEditSidebar personId={selectedId} />
   }
 
   return null

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { Person, PersonUpdatePayload } from '../api/types'
+import type { OrgNode, OrgNodeUpdatePayload } from '../api/types'
 import { useOrgData, useOrgMutations, useSelection } from '../store/OrgContext'
 import { usePeople, useChanges } from '../store/ViewDataContext'
 import type { ColumnDef } from './tableColumns'
@@ -16,14 +16,14 @@ interface DraftRow {
   values: Record<string, string>
 }
 
-function draftToPerson(values: Record<string, string>): Omit<Person, 'id'> {
+function draftToPerson(values: Record<string, string>): Omit<OrgNode, 'id'> {
   return {
     name: values.name || '',
     role: values.role || '',
     discipline: values.discipline || '',
     team: values.team || '',
     managerId: values.managerId || '',
-    status: (values.status || DEFAULT_STATUS) as Person['status'],
+    status: (values.status || DEFAULT_STATUS) as OrgNode['status'],
     additionalTeams: values.additionalTeams ? values.additionalTeams.split(',').map(s => s.trim()).filter(Boolean) : [],
     employmentType: values.employmentType || 'FTE',
     level: values.level ? parseInt(values.level, 10) : undefined,
@@ -74,7 +74,7 @@ export default function TableView() {
   const allColumns = useMemo(() => [...TABLE_COLUMNS, ...extraColumns], [extraColumns])
 
   const handleUpdate = useCallback(async (personId: string, field: string, value: string) => {
-    await update(personId, { [field]: value } as PersonUpdatePayload)
+    await update(personId, { [field]: value } as OrgNodeUpdatePayload)
   }, [update])
 
   const handleDelete = useCallback(async (personId: string) => {

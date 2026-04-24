@@ -2,14 +2,14 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import UnparentedBar from './UnparentedBar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 afterEach(() => cleanup())
 
 describe('UnparentedBar', () => {
   it('[UI-008] expands to show orphan names when toggle is clicked', async () => {
     const user = userEvent.setup()
-    const orphan = makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })
+    const orphan = makeNode({ id: 'o1', name: 'Orphan Alice', managerId: '' })
     renderWithOrg(<UnparentedBar />, {
       working: [orphan],
     })
@@ -19,7 +19,7 @@ describe('UnparentedBar', () => {
 
   it('[UI-008] collapses again when toggle is clicked twice', async () => {
     const user = userEvent.setup()
-    const orphan = makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })
+    const orphan = makeNode({ id: 'o1', name: 'Orphan Alice', managerId: '' })
     renderWithOrg(<UnparentedBar />, {
       working: [orphan],
     })
@@ -33,7 +33,7 @@ describe('UnparentedBar', () => {
   it('[UI-008] calls toggleSelect when an orphan name is clicked', async () => {
     const user = userEvent.setup()
     const toggleSelect = vi.fn()
-    const orphan = makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })
+    const orphan = makeNode({ id: 'o1', name: 'Orphan Alice', managerId: '' })
     renderWithOrg(<UnparentedBar />, {
       working: [orphan],
       toggleSelect,

@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 /**
  * Computes the set of person IDs in the subtree rooted at headPersonId.
  * Returns null when no head is set (meaning "show everything").
  */
-export function useHeadSubtree(headPersonId: string | null, working: Person[]): Set<string> | null {
+export function useHeadSubtree(headPersonId: string | null, working: OrgNode[]): Set<string> | null {
   return useMemo(() => {
     if (!headPersonId) return null
     const childrenMap = new Map<string, string[]>()

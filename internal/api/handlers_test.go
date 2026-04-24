@@ -139,7 +139,7 @@ func TestMoveHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working []Person `json:"working"`
+		Working []OrgNode `json:"working"`
 		Pods    []Pod    `json:"pods"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
@@ -185,7 +185,7 @@ func TestUpdateHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working []Person `json:"working"`
+		Working []OrgNode `json:"working"`
 		Pods    []Pod    `json:"pods"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
@@ -205,7 +205,7 @@ func TestAddHandler(t *testing.T) {
 
 	uploadCSV(t, handler)
 
-	body, _ := json.Marshal(Person{PersonFields: model.PersonFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
+	body, _ := json.Marshal(OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
 		Team: "Eng", Status: "Active"},
 	})
 
@@ -220,8 +220,8 @@ func TestAddHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Created Person   `json:"created"`
-		Working []Person `json:"working"`
+		Created OrgNode   `json:"created"`
+		Working []OrgNode `json:"working"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -259,8 +259,8 @@ func TestDeleteHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working  []Person `json:"working"`
-		Recycled []Person `json:"recycled"`
+		Working  []OrgNode `json:"working"`
+		Recycled []OrgNode `json:"recycled"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -302,7 +302,7 @@ func TestRecycledHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var recycled []Person
+	var recycled []OrgNode
 	if err := json.NewDecoder(rec.Body).Decode(&recycled); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -344,8 +344,8 @@ func TestRestoreHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working  []Person `json:"working"`
-		Recycled []Person `json:"recycled"`
+		Working  []OrgNode `json:"working"`
+		Recycled []OrgNode `json:"recycled"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -389,7 +389,7 @@ func TestEmptyBinHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Recycled []Person `json:"recycled"`
+		Recycled []OrgNode `json:"recycled"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -552,7 +552,7 @@ func TestReorderHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working []Person `json:"working"`
+		Working []OrgNode `json:"working"`
 		Pods    []Pod    `json:"pods"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
@@ -672,7 +672,7 @@ func TestResetHandler(t *testing.T) {
 	req = httptest.NewRequest("GET", "/api/recycled", nil)
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
-	var recycled []Person
+	var recycled []OrgNode
 	if err := json.NewDecoder(rec.Body).Decode(&recycled); err != nil {
 		t.Fatalf("decoding recycled: %v", err)
 	}
@@ -1209,8 +1209,8 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 
 	// Write autosave
 	data := AutosaveData{
-		Original:  []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
-		Working:   []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Original:  []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Working:   []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
 		Timestamp: "2026-03-21T12:00:00Z",
 	}
 	body, _ := json.Marshal(data)
@@ -1499,13 +1499,13 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 
 	data := AutosaveData{
-		Original: []Person{
-			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
-			{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
+		Original: []OrgNode{
+			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
-		Working: []Person{
-			{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
-			{PersonFields: model.PersonFields{Name: "Bob", Role: "Senior Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
+		Working: []OrgNode{
+			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
+			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Senior Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
 		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
 	}

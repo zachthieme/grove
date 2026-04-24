@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 function employmentTier(empType: string | undefined): number {
   if (!empType || empType === 'FTE' || empType === 'Intern') return 0
@@ -13,10 +13,10 @@ function disciplineRank(discipline: string, order: string[] | null): number {
   return order.length // unknown disciplines sort after known
 }
 
-export function sortPeople(people: Person[], disciplineOrder: string[]): Person[] {
+export function sortPeople(people: OrgNode[], disciplineOrder: string[]): OrgNode[] {
   // Group by (managerId, team)
-  const groups = new Map<string, Person[]>()
-  const ungrouped: Person[] = []
+  const groups = new Map<string, OrgNode[]>()
+  const ungrouped: OrgNode[] = []
 
   for (const p of people) {
     if (!p.managerId) {
@@ -60,7 +60,7 @@ export function sortPeople(people: Person[], disciplineOrder: string[]): Person[
   }
 
   // Reassemble preserving original group encounter order
-  const result: Person[] = []
+  const result: OrgNode[] = []
   const seen = new Set<string>()
 
   for (const p of people) {
@@ -78,7 +78,7 @@ export function sortPeople(people: Person[], disciplineOrder: string[]): Person[
   return result
 }
 
-export function useSortedPeople(people: Person[], disciplineOrder: string[]): Person[] {
+export function useSortedPeople(people: OrgNode[], disciplineOrder: string[]): OrgNode[] {
   return useMemo(
     () => sortPeople(people, disciplineOrder),
     [people, disciplineOrder]

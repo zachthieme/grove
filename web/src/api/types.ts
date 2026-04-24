@@ -1,7 +1,8 @@
 import type { Status } from '../constants'
 
-export interface Person {
+export interface OrgNode {
   id: string
+  type?: string
   name: string
   role: string
   discipline: string
@@ -36,15 +37,15 @@ export interface PodInfo extends Pod {
 }
 
 export interface OrgData {
-  original: Person[]
-  working: Person[]
+  original: OrgNode[]
+  working: OrgNode[]
   pods?: Pod[]
   settings?: Settings
   persistenceWarning?: string
 }
 
 export interface MutationResponse {
-  working: Person[]
+  working: OrgNode[]
   pods: Pod[]
 }
 
@@ -55,7 +56,7 @@ export interface MovePayload {
   newPod?: string
 }
 
-export interface PersonUpdatePayload {
+export interface OrgNodeUpdatePayload {
   name?: string
   role?: string
   discipline?: string
@@ -81,7 +82,7 @@ export interface PodUpdatePayload {
 
 export interface UpdatePayload {
   personId: string
-  fields: PersonUpdatePayload
+  fields: OrgNodeUpdatePayload
 }
 
 export interface DeletePayload {
@@ -94,24 +95,24 @@ export interface AddParentPayload {
 }
 
 export interface DeleteResponse {
-  working: Person[]
-  recycled: Person[]
+  working: OrgNode[]
+  recycled: OrgNode[]
   pods: Pod[]
 }
 
 export interface RestoreResponse {
-  working: Person[]
-  recycled: Person[]
+  working: OrgNode[]
+  recycled: OrgNode[]
   pods: Pod[]
 }
 
 export interface EmptyBinResponse {
-  recycled: Person[]
+  recycled: OrgNode[]
 }
 
 export interface AddResponse {
-  created: Person
-  working: Person[]
+  created: OrgNode
+  working: OrgNode[]
   pods: Pod[]
 }
 
@@ -140,12 +141,15 @@ export interface Settings {
 }
 
 export interface AutosaveData {
-  original: Person[]
-  working: Person[]
-  recycled: Person[]
+  original: OrgNode[]
+  working: OrgNode[]
+  recycled: OrgNode[]
   pods?: Pod[]
   originalPods?: Pod[]
   settings?: Settings
   snapshotName: string
   timestamp: string
 }
+
+// Keep Person as a backward-compat alias during transition
+export type Person = OrgNode

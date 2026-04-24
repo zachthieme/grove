@@ -1,8 +1,8 @@
-import type { Person, PersonUpdatePayload } from '../api/types'
+import type { OrgNode, OrgNodeUpdatePayload } from '../api/types'
 import { MIXED_VALUE } from '../constants'
 
-/** Unified form values for both inline and sidebar editing of a Person. */
-export interface PersonFormValues {
+/** Unified form values for both inline and sidebar editing of an OrgNode. */
+export interface NodeFormValues {
   name: string
   role: string
   discipline: string
@@ -16,9 +16,10 @@ export interface PersonFormValues {
   publicNote: string
   privateNote: string
   private: boolean
+  type: string
 }
 
-export function blankForm(): PersonFormValues {
+export function blankForm(): NodeFormValues {
   return {
     name: '',
     role: '',
@@ -33,10 +34,11 @@ export function blankForm(): PersonFormValues {
     publicNote: '',
     privateNote: '',
     private: false,
+    type: 'person',
   }
 }
 
-export function personToForm(p: Person): PersonFormValues {
+export function nodeToForm(p: OrgNode): NodeFormValues {
   return {
     name: p.name,
     role: p.role,
@@ -51,14 +53,15 @@ export function personToForm(p: Person): PersonFormValues {
     publicNote: p.publicNote ?? '',
     privateNote: p.privateNote ?? '',
     private: p.private ?? false,
+    type: p.type || 'person',
   }
 }
 
-export function batchToForm(people: Person[]): PersonFormValues {
+export function batchToForm(people: OrgNode[]): NodeFormValues {
   if (people.length === 0) return blankForm()
   const first = people[0]
-  const teamsStr = (p: Person) => (p.additionalTeams || []).join(', ')
-  const m = (test: (p: Person) => boolean, val: string) =>
+  const teamsStr = (p: OrgNode) => (p.additionalTeams || []).join(', ')
+  const m = (test: (p: OrgNode) => boolean, val: string) =>
     people.every(test) ? val : MIXED_VALUE
   return {
     name: '',
@@ -90,6 +93,7 @@ export function batchToForm(people: Person[]): PersonFormValues {
     )
       ? (first.private ?? false)
       : false,
+    type: m(p => (p.type || 'person') === (first.type || 'person'), first.type || 'person'),
   }
 }
 
@@ -98,11 +102,11 @@ export function batchToForm(people: Person[]): PersonFormValues {
  * Returns null if nothing changed.
  */
 export function computeDirtyFields(
-  original: PersonFormValues,
-  current: PersonFormValues,
+  original: NodeFormValues,
+  current: NodeFormValues,
 ): Record<string, string | boolean | number> | null {
   const dirty: Record<string, string | boolean | number> = {}
-  for (const key of Object.keys(original) as (keyof PersonFormValues)[]) {
+  for (const key of Object.keys(original) as (keyof NodeFormValues)[]) {
     if (current[key] !== original[key]) {
       dirty[key] = current[key]
     }
@@ -111,14 +115,14 @@ export function computeDirtyFields(
 }
 
 /**
- * Convert dirty form fields into a PersonUpdatePayload suitable for the API.
+ * Convert dirty form fields into a OrgNodeUpdatePayload suitable for the API.
  * Handles the otherTeams -> additionalTeams rename and level -> number coercion.
  * Skips managerId (reparent is a separate API call).
  */
 export function dirtyToApiPayload(
   dirty: Record<string, string | boolean | number>,
-): PersonUpdatePayload {
-  const fields: PersonUpdatePayload = {}
+): OrgNodeUpdatePayload {
+  const fields: OrgNodeUpdatePayload = {}
   for (const [key, val] of Object.entries(dirty)) {
     if (key === 'managerId') continue
     if (key === 'otherTeams') {
@@ -133,7 +137,7 @@ export function dirtyToApiPayload(
 }
 
 /**
- * Convert a batch edit's touched fields into a PersonUpdatePayload.
+ * Convert a batch edit's touched fields into a OrgNodeUpdatePayload.
  * Similar to dirtyToApiPayload but works with a Set of touched field names
  * and a form that may contain MIXED_VALUE sentinels (which are skipped).
  * Skips managerId and team when managerChanged (reparent handles those).
@@ -141,14 +145,14 @@ export function dirtyToApiPayload(
  */
 export function batchDirtyToApiPayload(
   touched: Set<string>,
-  form: PersonFormValues,
+  form: NodeFormValues,
   managerChanged: boolean,
-): PersonUpdatePayload {
-  const fields: PersonUpdatePayload = {}
+): OrgNodeUpdatePayload {
+  const fields: OrgNodeUpdatePayload = {}
   for (const key of touched) {
     if (managerChanged && (key === 'managerId' || key === 'team')) continue
     if (key === 'private') continue
-    const val = form[key as keyof PersonFormValues]
+    const val = form[key as keyof NodeFormValues]
     if (val === MIXED_VALUE) continue
     const apiKey = key === 'otherTeams' ? 'additionalTeams' : key
     if (apiKey === 'level') {

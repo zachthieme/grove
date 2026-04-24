@@ -3,13 +3,13 @@ import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
 import { renderWithViewData } from '../test-helpers'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn()
 })
 
-const testPeople: Person[] = [
+const testPeople: OrgNode[] = [
   {
     id: '1', name: 'Alice', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering',
     additionalTeams: [], status: 'Active', employmentType: 'FTE',

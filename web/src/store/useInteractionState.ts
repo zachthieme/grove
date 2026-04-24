@@ -1,17 +1,17 @@
 import { useState, useCallback, useMemo, useRef } from 'react'
-import type { Person } from '../api/types'
-import { type PersonFormValues, personToForm, computeDirtyFields } from '../utils/personFormUtils'
+import type { OrgNode } from '../api/types'
+import { type NodeFormValues, nodeToForm, computeDirtyFields } from '../utils/nodeFormUtils'
 
 export type InteractionMode = 'idle' | 'selected' | 'editing'
 
-/** @deprecated Use PersonFormValues from utils/personFormUtils instead */
-export type EditBuffer = PersonFormValues
+/** @deprecated Use NodeFormValues from utils/nodeFormUtils instead */
+export type EditBuffer = NodeFormValues
 
 export function useInteractionState() {
   const [mode, setMode] = useState<InteractionMode>('idle')
-  const [editBuffer, setEditBuffer] = useState<PersonFormValues | null>(null)
+  const [editBuffer, setEditBuffer] = useState<NodeFormValues | null>(null)
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null)
-  const originalRef = useRef<PersonFormValues | null>(null)
+  const originalRef = useRef<NodeFormValues | null>(null)
 
   const enterSelected = useCallback(() => {
     setMode('selected')
@@ -20,15 +20,15 @@ export function useInteractionState() {
     originalRef.current = null
   }, [])
 
-  const enterEditing = useCallback((person: Person) => {
-    const buf = personToForm(person)
+  const enterEditing = useCallback((person: OrgNode) => {
+    const buf = nodeToForm(person)
     setMode('editing')
     setEditBuffer(buf)
     setEditingPersonId(person.id)
     originalRef.current = { ...buf }
   }, [])
 
-  const updateBuffer = useCallback((field: keyof PersonFormValues, value: string | boolean) => {
+  const updateBuffer = useCallback((field: keyof NodeFormValues, value: string | boolean) => {
     setEditBuffer(prev => prev ? { ...prev, [field]: value } : prev)
   }, [])
 

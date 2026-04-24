@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import { useHeadSubtree } from './useHeadSubtree'
 
-const makePerson = (overrides: Partial<Person> & { id: string; name: string }): Person => ({
+const makeNode = (overrides: Partial<OrgNode> & { id: string; name: string }): OrgNode => ({
   role: 'Eng',
   discipline: 'Eng',
   managerId: '',
@@ -13,12 +13,12 @@ const makePerson = (overrides: Partial<Person> & { id: string; name: string }): 
   ...overrides,
 })
 
-const alice = makePerson({ id: '1', name: 'Alice' })
-const bob = makePerson({ id: '2', name: 'Bob', managerId: '1' })
-const carol = makePerson({ id: '3', name: 'Carol', managerId: '1' })
-const dave = makePerson({ id: '4', name: 'Dave', managerId: '2' })
-const eve = makePerson({ id: '5', name: 'Eve', managerId: '2' })
-const frank = makePerson({ id: '6', name: 'Frank', managerId: '4' })
+const alice = makeNode({ id: '1', name: 'Alice' })
+const bob = makeNode({ id: '2', name: 'Bob', managerId: '1' })
+const carol = makeNode({ id: '3', name: 'Carol', managerId: '1' })
+const dave = makeNode({ id: '4', name: 'Dave', managerId: '2' })
+const eve = makeNode({ id: '5', name: 'Eve', managerId: '2' })
+const frank = makeNode({ id: '6', name: 'Frank', managerId: '4' })
 
 const everyone = [alice, bob, carol, dave, eve, frank]
 

@@ -140,7 +140,7 @@ func FuzzUpdateFields(f *testing.F) {
 			return
 		}
 		// Should never panic; errors are expected for invalid values
-		_, _ = svc.Update(context.Background(), people[0].Id, PersonUpdate{
+		_, _ = svc.Update(context.Background(), people[0].Id, OrgNodeUpdate{
 			Name: &name, Role: &role, Discipline: &disc,
 		})
 	})
@@ -245,7 +245,7 @@ func FuzzWouldCreateCycle(f *testing.F) {
 			nameList = nameList[:50]
 		}
 
-		var people []Person
+		var people []OrgNode
 		for i, name := range nameList {
 			if name == "" {
 				continue
@@ -254,7 +254,7 @@ func FuzzWouldCreateCycle(f *testing.F) {
 			if i < len(managerList) {
 				mgr = managerList[i]
 			}
-			people = append(people, Person{PersonFields: model.PersonFields{Name: name}, Id: name,
+			people = append(people, OrgNode{OrgNodeFields: model.OrgNodeFields{Name: name}, Id: name,
 
 				ManagerId: mgr,
 			})

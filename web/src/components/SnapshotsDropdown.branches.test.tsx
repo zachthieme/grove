@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SnapshotsDropdown from './SnapshotsDropdown'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 describe('SnapshotsDropdown branch coverage', () => {
   afterEach(() => cleanup())
@@ -13,7 +13,7 @@ describe('SnapshotsDropdown branch coverage', () => {
     // by providing a timestamp that produces Invalid Date
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       snapshots: [{ name: 'Snap', timestamp: 'not-a-date-string' }],
     })
     await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
@@ -26,7 +26,7 @@ describe('SnapshotsDropdown branch coverage', () => {
     const deleteFn = vi.fn()
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       deleteSnapshot: deleteFn,
       snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
     })
@@ -40,7 +40,7 @@ describe('SnapshotsDropdown branch coverage', () => {
     const deleteFn = vi.fn()
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       deleteSnapshot: deleteFn,
       snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
     })
@@ -54,7 +54,7 @@ describe('SnapshotsDropdown branch coverage', () => {
     const deleteFn = vi.fn()
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       deleteSnapshot: deleteFn,
       snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
     })
@@ -66,7 +66,7 @@ describe('SnapshotsDropdown branch coverage', () => {
 
   it('displays "Working" label when currentSnapshotName is null', () => {
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       currentSnapshotName: null,
     })
     expect(screen.getByRole('button', { name: /Snapshot: Working/ })).toBeDefined()
@@ -75,7 +75,7 @@ describe('SnapshotsDropdown branch coverage', () => {
   it('highlights current snapshot in menu with active class', async () => {
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       currentSnapshotName: 'Sprint 1',
       snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
     })
@@ -88,7 +88,7 @@ describe('SnapshotsDropdown branch coverage', () => {
   it('highlights Original in menu when currentSnapshotName is __original__', async () => {
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       currentSnapshotName: '__original__',
     })
     await user.click(screen.getByRole('button', { name: /Snapshot: Original/ }))

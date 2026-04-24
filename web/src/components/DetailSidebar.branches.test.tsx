@@ -10,26 +10,26 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup, fireEvent, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DetailSidebar from './DetailSidebar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 import type { Pod } from '../api/types'
 
 afterEach(() => cleanup())
 
-const alice = makePerson({
+const alice = makeNode({
   id: 'a1', name: 'Alice Smith', role: 'VP', managerId: '',
   team: 'Platform', discipline: 'Eng', employmentType: 'FTE',
 })
-const bob = makePerson({
+const bob = makeNode({
   id: 'b2', name: 'Bob Jones', role: 'Engineer', managerId: 'a1',
   team: 'Platform', discipline: 'Eng', employmentType: 'FTE',
 })
-const carol = makePerson({
+const carol = makeNode({
   id: 'c3', name: 'Carol White', role: 'Designer', managerId: 'a1',
   team: 'Design', discipline: 'Design', employmentType: 'Contractor',
 })
 
 /** Helper for single-person edit tests: provides selection context */
-function singleEditCtx(person: ReturnType<typeof makePerson>, overrides: Record<string, unknown> = {}) {
+function singleEditCtx(person: ReturnType<typeof makeNode>, overrides: Record<string, unknown> = {}) {
   return {
     selectedId: person.id,
     selectedIds: new Set([person.id]),
@@ -152,11 +152,11 @@ describe('DetailSidebar — branch coverage', () => {
 
   describe('showPrivate manager filtering', () => {
     it('hides private managers from dropdown when showPrivate is false', () => {
-      const privateMgr = makePerson({
+      const privateMgr = makeNode({
         id: 'prv1', name: 'Private Manager', role: 'Lead',
         managerId: '', team: 'Secret', private: true,
       })
-      const ic = makePerson({
+      const ic = makeNode({
         id: 'ic1', name: 'IC Person', role: 'Eng',
         managerId: 'prv1', team: 'Secret',
       })
@@ -173,11 +173,11 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows private managers in dropdown when showPrivate is true', () => {
-      const privateMgr = makePerson({
+      const privateMgr = makeNode({
         id: 'prv1', name: 'Private Manager', role: 'Lead',
         managerId: '', team: 'Secret', private: true,
       })
-      const ic = makePerson({
+      const ic = makeNode({
         id: 'ic1', name: 'IC Person', role: 'Eng',
         managerId: 'prv1', team: 'Secret',
       })
@@ -195,7 +195,7 @@ describe('DetailSidebar — branch coverage', () => {
   })
 
   describe('single save: optional field diffs', () => {
-    function renderSingleEdit(person: ReturnType<typeof makePerson>, overrides = {}) {
+    function renderSingleEdit(person: ReturnType<typeof makeNode>, overrides = {}) {
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
       renderWithOrg(<DetailSidebar />, {
@@ -211,7 +211,7 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes level field when level has changed', async () => {
       const user = userEvent.setup()
-      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', level: 3 })
+      const person = makeNode({ id: 'p1', name: 'Person', managerId: '', team: 'T', level: 3 })
       const { update } = renderSingleEdit(person)
       const levelInput = screen.getByTestId('field-level') as HTMLInputElement
       await user.clear(levelInput)
@@ -224,7 +224,7 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes pod field when pod has changed', async () => {
       const user = userEvent.setup()
-      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', pod: 'Alpha' })
+      const person = makeNode({ id: 'p1', name: 'Person', managerId: '', team: 'T', pod: 'Alpha' })
       const { update } = renderSingleEdit(person)
       const podInput = screen.getByTestId('field-pod') as HTMLInputElement
       await user.clear(podInput)
@@ -236,7 +236,7 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes publicNote when changed', async () => {
       const user = userEvent.setup()
-      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', publicNote: 'Old note' })
+      const person = makeNode({ id: 'p1', name: 'Person', managerId: '', team: 'T', publicNote: 'Old note' })
       const { update } = renderSingleEdit(person)
       const textarea = screen.getByTestId('field-publicNote') as HTMLTextAreaElement
       await user.clear(textarea)
@@ -248,7 +248,7 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes privateNote when changed', async () => {
       const user = userEvent.setup()
-      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', privateNote: 'Secret' })
+      const person = makeNode({ id: 'p1', name: 'Person', managerId: '', team: 'T', privateNote: 'Secret' })
       const { update } = renderSingleEdit(person)
       const textarea = screen.getByTestId('field-privateNote') as HTMLTextAreaElement
       await user.clear(textarea)
@@ -260,7 +260,7 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('includes private field when toggled', async () => {
       const user = userEvent.setup()
-      const person = makePerson({ id: 'p1', name: 'Person', managerId: '', team: 'T', private: false })
+      const person = makeNode({ id: 'p1', name: 'Person', managerId: '', team: 'T', private: false })
       const { update } = renderSingleEdit(person)
       const checkbox = screen.getByTestId('field-private') as HTMLInputElement
       await user.click(checkbox)
@@ -271,7 +271,7 @@ describe('DetailSidebar — branch coverage', () => {
 
     it('does not include unchanged optional fields', async () => {
       const user = userEvent.setup()
-      const person = makePerson({
+      const person = makeNode({
         id: 'p1', name: 'Person', managerId: '', team: 'T',
         level: 3, pod: 'Alpha', publicNote: 'Note', privateNote: 'Secret', private: true,
       })
@@ -302,7 +302,7 @@ describe('DetailSidebar — branch coverage', () => {
 
   describe('sidebar form fallbacks', () => {
     it('handles person with null/undefined optional fields', () => {
-      const barebones = makePerson({
+      const barebones = makeNode({
         id: 'p1', name: 'Bare', managerId: '', team: 'T',
         // These are undefined or null-like
         employmentType: undefined,
@@ -328,7 +328,7 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('handles person with additionalTeams populated', () => {
-      const withTeams = makePerson({
+      const withTeams = makeNode({
         id: 'p1', name: 'Multi', managerId: '', team: 'T',
         additionalTeams: ['TeamA', 'TeamB'],
       })
@@ -347,11 +347,11 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
-      const mgr1 = makePerson({ id: 'm1', name: 'Mgr One', managerId: '', team: 'TeamA' })
-      const mgr2 = makePerson({ id: 'm2', name: 'Mgr Two', managerId: '', team: 'TeamB' })
-      const ic = makePerson({ id: 'ic1', name: 'IC', managerId: 'm1', team: 'TeamA' })
+      const mgr1 = makeNode({ id: 'm1', name: 'Mgr One', managerId: '', team: 'TeamA' })
+      const mgr2 = makeNode({ id: 'm2', name: 'Mgr Two', managerId: '', team: 'TeamB' })
+      const ic = makeNode({ id: 'ic1', name: 'IC', managerId: 'm1', team: 'TeamA' })
       // mgr2 needs a report so it appears in the manager dropdown
-      const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'TeamB' })
+      const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'TeamB' })
       renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic, ic2],
         ...singleEditCtx(ic),
@@ -435,12 +435,12 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
-      const mgr1 = makePerson({ id: 'm1', name: 'Mgr One', managerId: '', team: 'T1' })
-      const mgr2 = makePerson({ id: 'm2', name: 'Mgr Two', managerId: '', team: 'T2' })
-      const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T1' })
-      const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
+      const mgr1 = makeNode({ id: 'm1', name: 'Mgr One', managerId: '', team: 'T1' })
+      const mgr2 = makeNode({ id: 'm2', name: 'Mgr Two', managerId: '', team: 'T2' })
+      const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T1' })
+      const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
-      const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
+      const ic3 = makeNode({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
       renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
@@ -483,8 +483,8 @@ describe('DetailSidebar — branch coverage', () => {
     it('handles batch save with level field (parsed as int)', async () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
-      const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'a1', team: 'T', level: 3 })
-      const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'a1', team: 'T', level: 3 })
+      const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'a1', team: 'T', level: 3 })
+      const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'a1', team: 'T', level: 3 })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, ic1, ic2],
         selectedId: null,
@@ -504,12 +504,12 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const reparent = vi.fn().mockRejectedValue(new Error('fail'))
       const update = vi.fn().mockResolvedValue(undefined)
-      const mgr1 = makePerson({ id: 'm1', name: 'Mgr1', managerId: '', team: 'T1' })
-      const mgr2 = makePerson({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T2' })
-      const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T1' })
-      const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
+      const mgr1 = makeNode({ id: 'm1', name: 'Mgr1', managerId: '', team: 'T1' })
+      const mgr2 = makeNode({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T2' })
+      const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T1' })
+      const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
-      const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
+      const ic3 = makeNode({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
       renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
@@ -529,12 +529,12 @@ describe('DetailSidebar — branch coverage', () => {
       const user = userEvent.setup()
       const update = vi.fn().mockResolvedValue(undefined)
       const reparent = vi.fn().mockResolvedValue(undefined)
-      const mgr1 = makePerson({ id: 'm1', name: 'Mgr1', managerId: '', team: 'T1' })
-      const mgr2 = makePerson({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T2' })
-      const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T1' })
-      const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
+      const mgr1 = makeNode({ id: 'm1', name: 'Mgr1', managerId: '', team: 'T1' })
+      const mgr2 = makeNode({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T2' })
+      const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T1' })
+      const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'm1', team: 'T1' })
       // mgr2 needs a report so it appears in the manager dropdown
-      const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
+      const ic3 = makeNode({ id: 'ic3', name: 'IC3', managerId: 'm2', team: 'T2' })
       renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2, ic3],
         selectedId: null,
@@ -552,8 +552,8 @@ describe('DetailSidebar — branch coverage', () => {
 
   describe('formFromBatch mixed vs uniform fields', () => {
     it('shows Mixed for fields with differing employmentType', () => {
-      const fte = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
-      const contractor = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'Contractor' })
+      const fte = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
+      const contractor = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'Contractor' })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, fte, contractor],
         selectedId: null,
@@ -565,8 +565,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows uniform value for matching employmentType', () => {
-      const fte1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
-      const fte2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'FTE' })
+      const fte1 = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', employmentType: 'FTE' })
+      const fte2 = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', employmentType: 'FTE' })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, fte1, fte2],
         selectedId: null,
@@ -577,8 +577,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed for differing levels', () => {
-      const l3 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', level: 3 })
-      const l5 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', level: 5 })
+      const l3 = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', level: 3 })
+      const l5 = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', level: 5 })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, l3, l5],
         selectedId: null,
@@ -590,8 +590,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed for differing pods', () => {
-      const podA = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', pod: 'Alpha' })
-      const podB = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', pod: 'Beta' })
+      const podA = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', pod: 'Alpha' })
+      const podB = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', pod: 'Beta' })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, podA, podB],
         selectedId: null,
@@ -603,8 +603,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed for differing publicNote', () => {
-      const note1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', publicNote: 'Note A' })
-      const note2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', publicNote: 'Note B' })
+      const note1 = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', publicNote: 'Note A' })
+      const note2 = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', publicNote: 'Note B' })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, note1, note2],
         selectedId: null,
@@ -615,8 +615,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed for differing privateNote', () => {
-      const note1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', privateNote: 'Secret A' })
-      const note2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', privateNote: 'Secret B' })
+      const note1 = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', privateNote: 'Secret A' })
+      const note2 = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', privateNote: 'Secret B' })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, note1, note2],
         selectedId: null,
@@ -627,8 +627,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed for differing additionalTeams', () => {
-      const t1 = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', additionalTeams: ['X'] })
-      const t2 = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', additionalTeams: ['Y'] })
+      const t1 = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', additionalTeams: ['X'] })
+      const t2 = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', additionalTeams: ['Y'] })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, t1, t2],
         selectedId: null,
@@ -639,10 +639,10 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed option in manager select when managers differ', () => {
-      const mgr1 = makePerson({ id: 'm1', name: 'Mgr1', managerId: '', team: 'T' })
-      const mgr2 = makePerson({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T' })
-      const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T' })
-      const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'T' })
+      const mgr1 = makeNode({ id: 'm1', name: 'Mgr1', managerId: '', team: 'T' })
+      const mgr2 = makeNode({ id: 'm2', name: 'Mgr2', managerId: '', team: 'T' })
+      const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'm1', team: 'T' })
+      const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'm2', team: 'T' })
       renderWithOrg(<DetailSidebar />, {
         working: [mgr1, mgr2, ic1, ic2],
         selectedId: null,
@@ -655,8 +655,8 @@ describe('DetailSidebar — branch coverage', () => {
     })
 
     it('shows Mixed option in status select when statuses differ', () => {
-      const active = makePerson({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', status: 'Active' })
-      const open = makePerson({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', status: 'Open' })
+      const active = makeNode({ id: 'p1', name: 'P1', managerId: 'a1', team: 'T', status: 'Active' })
+      const open = makeNode({ id: 'p2', name: 'P2', managerId: 'a1', team: 'T', status: 'Open' })
       renderWithOrg(<DetailSidebar />, {
         working: [alice, active, open],
         selectedId: null,

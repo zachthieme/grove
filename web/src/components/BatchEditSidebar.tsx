@@ -3,13 +3,13 @@ import { useOrgData, useOrgMutations, useUI, useSelection } from '../store/OrgCo
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import { generateCorrelationId } from '../api/client'
 import {
-  type PersonFormValues,
+  type NodeFormValues,
   batchToForm,
   blankForm,
   batchDirtyToApiPayload,
-} from '../utils/personFormUtils'
+} from '../utils/nodeFormUtils'
 import { MIXED_VALUE } from '../constants'
-import PersonForm from './PersonForm'
+import NodeForm from './NodeForm'
 import SidebarShell from './SidebarShell'
 import styles from './DetailSidebar.module.css'
 
@@ -24,7 +24,7 @@ export default function BatchEditSidebar() {
     [working, selectedIds],
   )
 
-  const [batchForm, setBatchForm] = useState<PersonFormValues>(blankForm())
+  const [batchForm, setBatchForm] = useState<NodeFormValues>(blankForm())
   const [batchDirty, setBatchDirty] = useState<Set<string>>(new Set())
   const [showStatusInfo, setShowStatusInfo] = useState(false)
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
@@ -43,7 +43,7 @@ export default function BatchEditSidebar() {
     return mgrs.sort((a, b) => a.name.localeCompare(b.name))
   }, [working, showPrivate])
 
-  const handleChange = (field: keyof PersonFormValues, value: string | boolean) => {
+  const handleChange = (field: keyof NodeFormValues, value: string | boolean) => {
     if (field === 'managerId') {
       const newManager = working.find(p => p.id === value as string)
       if (newManager) {
@@ -83,7 +83,7 @@ export default function BatchEditSidebar() {
 
   const mixedFields = useMemo(() => {
     const s = new Set<string>()
-    for (const key of Object.keys(batchForm) as (keyof PersonFormValues)[]) {
+    for (const key of Object.keys(batchForm) as (keyof NodeFormValues)[]) {
       if (typeof batchForm[key] === 'string' && batchForm[key] === MIXED_VALUE) {
         s.add(key)
       }
@@ -95,7 +95,7 @@ export default function BatchEditSidebar() {
 
   return (
     <SidebarShell heading={`Edit ${selectedIds.size} people`} onExit={() => { setBatchForm(batchToForm(selectedPeople)); setBatchDirty(new Set()) }} onSave={handleSave}>
-      <PersonForm
+      <NodeForm
         values={batchForm}
         onChange={handleChange}
         managers={managers}

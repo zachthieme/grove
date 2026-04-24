@@ -1,4 +1,4 @@
-import type { OrgData, Person, MovePayload, UpdatePayload, DeletePayload, AddParentPayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings, PodUpdatePayload } from './types'
+import type { OrgData, OrgNode, MovePayload, UpdatePayload, DeletePayload, AddParentPayload, DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, UploadResponse, SnapshotInfo, AutosaveData, PodInfo, MutationResponse, Settings, PodUpdatePayload } from './types'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -194,7 +194,7 @@ export async function getOrg(correlationId?: string): Promise<OrgData | null> {
   })
 }
 
-export async function movePerson(payload: MovePayload, correlationId?: string): Promise<MutationResponse> {
+export async function moveNode(payload: MovePayload, correlationId?: string): Promise<MutationResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/move`, {
@@ -208,7 +208,7 @@ export async function movePerson(payload: MovePayload, correlationId?: string): 
   })
 }
 
-export async function updatePerson(payload: UpdatePayload, correlationId?: string): Promise<MutationResponse> {
+export async function updateNode(payload: UpdatePayload, correlationId?: string): Promise<MutationResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/update`, {
@@ -222,7 +222,7 @@ export async function updatePerson(payload: UpdatePayload, correlationId?: strin
   })
 }
 
-export async function addPerson(person: Omit<Person, 'id'>, correlationId?: string): Promise<AddResponse> {
+export async function addNode(person: Omit<OrgNode, 'id'>, correlationId?: string): Promise<AddResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/add`, {
@@ -250,7 +250,7 @@ export async function addParent(payload: AddParentPayload, correlationId?: strin
   })
 }
 
-export async function deletePerson(payload: DeletePayload, correlationId?: string): Promise<DeleteResponse> {
+export async function deleteNode(payload: DeletePayload, correlationId?: string): Promise<DeleteResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/delete`, {
@@ -264,7 +264,7 @@ export async function deletePerson(payload: DeletePayload, correlationId?: strin
   })
 }
 
-export async function restorePerson(personId: string, correlationId?: string): Promise<RestoreResponse> {
+export async function restoreNode(personId: string, correlationId?: string): Promise<RestoreResponse> {
   const cid = correlationId ?? generateCorrelationId()
   const startTime = Date.now()
   const resp = await fetchWithTimeout(`${BASE}/restore`, {

@@ -1,18 +1,18 @@
-import type { Person } from '../api/types'
-import type { OrgNode } from './shared'
+import type { OrgNode } from '../api/types'
+import type { TreeNode } from './shared'
 
 export type Affiliation = 'local' | 'singleCrossTeam' | 'multiCrossTeam'
 
 export interface ManagerLayout {
   type: 'manager'
-  person: Person
+  person: OrgNode
   collapseKey: string
   children: LayoutNode[]
 }
 
 export interface ICLayout {
   type: 'ic'
-  person: Person
+  person: OrgNode
   affiliation: Affiliation
 }
 
@@ -31,9 +31,20 @@ export interface TeamGroupLayout {
   members: ICLayout[]
 }
 
-export type LayoutNode = ManagerLayout | ICLayout | PodGroupLayout | TeamGroupLayout
+export interface ProductLayout {
+  type: 'product'
+  person: OrgNode
+}
 
-export function computeLayoutTree(roots: OrgNode[]): LayoutNode[] {
+export interface ProductGroupLayout {
+  type: 'productGroup'
+  collapseKey: string
+  members: ProductLayout[]
+}
+
+export type LayoutNode = ManagerLayout | ICLayout | PodGroupLayout | TeamGroupLayout | ProductGroupLayout | ProductLayout
+
+export function computeLayoutTree(roots: TreeNode[]): LayoutNode[] {
   const withChildren = roots.filter((r) => r.children.length > 0)
   const orphans = roots.filter((r) => r.children.length === 0)
 
@@ -72,7 +83,7 @@ export function computeLayoutTree(roots: OrgNode[]): LayoutNode[] {
   return result
 }
 
-function classifyAffiliation(person: Person, siblingManagers: OrgNode[]): Affiliation {
+function classifyAffiliation(person: OrgNode, siblingManagers: TreeNode[]): Affiliation {
   const addl = person.additionalTeams || []
   if (addl.length === 0) return 'local'
 
@@ -84,7 +95,7 @@ function classifyAffiliation(person: Person, siblingManagers: OrgNode[]): Affili
   return 'multiCrossTeam'
 }
 
-function buildICLayout(node: OrgNode, siblingManagers: OrgNode[]): ICLayout {
+function buildICLayout(node: TreeNode, siblingManagers: TreeNode[]): ICLayout {
   return {
     type: 'ic',
     person: node.person,
@@ -92,7 +103,7 @@ function buildICLayout(node: OrgNode, siblingManagers: OrgNode[]): ICLayout {
   }
 }
 
-function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode[] {
+function reorderManagersByAffinity(managers: TreeNode[], ics: TreeNode[]): TreeNode[] {
   if (managers.length <= 2) return managers
 
   const teamToIdx = new Map<string, number>()
@@ -119,7 +130,7 @@ function reorderManagersByAffinity(managers: OrgNode[], ics: OrgNode[]): OrgNode
   if (adj.size === 0) return managers
 
   const visited = new Set<number>()
-  const result: OrgNode[] = []
+  const result: TreeNode[] = []
 
   for (let i = 0; i < managers.length; i++) {
     if (visited.has(i)) continue
@@ -154,10 +165,10 @@ export interface ClassifiedICs {
 }
 
 export function classifyICs(
-  ics: OrgNode[],
-  reorderedManagers: OrgNode[],
+  ics: TreeNode[],
+  reorderedManagers: TreeNode[],
 ): ClassifiedICs {
-  const managerByTeam = new Map<string, OrgNode>()
+  const managerByTeam = new Map<string, TreeNode>()
   const managerIndex = new Map<string, number>()
   for (let i = 0; i < reorderedManagers.length; i++) {
     managerByTeam.set(reorderedManagers[i].person.team, reorderedManagers[i])
@@ -261,9 +272,13 @@ export function groupUnaffiliated(
   return result
 }
 
-function buildManagerLayout(node: OrgNode): ManagerLayout {
+function buildManagerLayout(node: TreeNode): ManagerLayout {
   const managers = node.children.filter((c) => c.children.length > 0)
-  const ics = node.children.filter((c) => c.children.length === 0)
+  const allLeaves = node.children.filter((c) => c.children.length === 0)
+
+  // Separate products from ICs
+  const products = allLeaves.filter((c) => c.person.type === 'product')
+  const ics = allLeaves.filter((c) => c.person.type !== 'product')
 
   const reorderedManagers = reorderManagersByAffinity(managers, ics)
   const { withinManager, afterManager, unaffiliated } = classifyICs(ics, reorderedManagers)
@@ -283,6 +298,18 @@ function buildManagerLayout(node: OrgNode): ManagerLayout {
 
   // Group unaffiliated ICs by pod/team
   children.push(...groupUnaffiliated(unaffiliated, node.person.id))
+
+  // Add product group if any products exist
+  if (products.length > 0) {
+    children.push({
+      type: 'productGroup',
+      collapseKey: `products:${node.person.id}`,
+      members: products.map((p) => ({
+        type: 'product' as const,
+        person: p.person,
+      })),
+    })
+  }
 
   return {
     type: 'manager',

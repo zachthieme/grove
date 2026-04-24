@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAutosave } from './useAutosave'
-import type { Person, Pod, Settings } from '../api/types'
+import type { OrgNode, Pod, Settings } from '../api/types'
 import type { OrgDataStateValue } from '../store/orgTypes'
 
 vi.mock('../api/client', () => ({
@@ -18,7 +18,7 @@ import { useOrgData } from '../store/OrgContext'
 const mockedWriteAutosave = vi.mocked(api.writeAutosave)
 const mockedUseOrgData = vi.mocked(useOrgData)
 
-function makePerson(overrides: Partial<Person> = {}): Person {
+function makeNode(overrides: Partial<OrgNode> = {}): OrgNode {
   return {
     id: '1',
     name: 'Alice',
@@ -36,9 +36,9 @@ const defaultSettings: Settings = { disciplineOrder: [] }
 
 function mockOrgData(overrides: Partial<Pick<OrgDataStateValue, 'original' | 'working' | 'recycled' | 'pods' | 'originalPods' | 'settings' | 'currentSnapshotName' | 'loaded'>> = {}) {
   const data = {
-    original: [makePerson()],
-    working: [makePerson()],
-    recycled: [] as Person[],
+    original: [makeNode()],
+    working: [makeNode()],
+    recycled: [] as OrgNode[],
     pods: [] as Pod[],
     originalPods: [] as Pod[],
     settings: defaultSettings,
@@ -73,33 +73,33 @@ describe('useAutosave', () => {
 
     expect(localStorage.getItem('grove-autosave')).not.toBeNull()
     const saved = JSON.parse(localStorage.getItem('grove-autosave')!)
-    expect(saved.original).toEqual([makePerson()])
-    expect(saved.working).toEqual([makePerson()])
+    expect(saved.original).toEqual([makeNode()])
+    expect(saved.working).toEqual([makeNode()])
     expect(saved.recycled).toEqual([])
     expect(saved.snapshotName).toBe('')
 
     expect(mockedWriteAutosave).toHaveBeenCalledTimes(1)
     const callArg = mockedWriteAutosave.mock.calls[0][0]
-    expect(callArg.original).toEqual([makePerson()])
-    expect(callArg.working).toEqual([makePerson()])
+    expect(callArg.original).toEqual([makeNode()])
+    expect(callArg.working).toEqual([makeNode()])
     expect(callArg.timestamp).toBeDefined()
   })
 
   it('[AUTO-001] debounces multiple rapid changes into a single save', async () => {
-    mockOrgData({ working: [makePerson({ name: 'Alice' })] })
+    mockOrgData({ working: [makeNode({ name: 'Alice' })] })
     const { rerender } = renderHook(() => useAutosave())
 
     // Rapid re-renders before debounce fires
     await act(async () => {
       vi.advanceTimersByTime(500)
     })
-    mockOrgData({ working: [makePerson({ name: 'Bob' })] })
+    mockOrgData({ working: [makeNode({ name: 'Bob' })] })
     rerender()
 
     await act(async () => {
       vi.advanceTimersByTime(500)
     })
-    mockOrgData({ working: [makePerson({ name: 'Charlie' })] })
+    mockOrgData({ working: [makeNode({ name: 'Charlie' })] })
     rerender()
 
     // Now let the debounce fire from the last update
@@ -171,7 +171,7 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-002] clears serverSaveError on a subsequent successful save', async () => {
-    mockOrgData({ working: [makePerson({ name: 'Alice' })] })
+    mockOrgData({ working: [makeNode({ name: 'Alice' })] })
     // Reject all 3 attempts for the first save
     mockedWriteAutosave.mockRejectedValue(new Error('network error'))
 
@@ -190,7 +190,7 @@ describe('useAutosave', () => {
     // Second save succeeds
     mockedWriteAutosave.mockReset()
     mockedWriteAutosave.mockResolvedValue(undefined)
-    mockOrgData({ working: [makePerson({ name: 'Bob' })] })
+    mockOrgData({ working: [makeNode({ name: 'Bob' })] })
     rerender()
 
     await act(async () => {
@@ -202,7 +202,7 @@ describe('useAutosave', () => {
   })
 
   it('[AUTO-001] triggers a new save when working data changes', async () => {
-    mockOrgData({ working: [makePerson({ name: 'Alice' })] })
+    mockOrgData({ working: [makeNode({ name: 'Alice' })] })
     const { rerender } = renderHook(() => useAutosave())
 
     // Let first save fire
@@ -213,7 +213,7 @@ describe('useAutosave', () => {
     expect(mockedWriteAutosave).toHaveBeenCalledTimes(1)
 
     // Change the working data
-    mockOrgData({ working: [makePerson({ name: 'Bob' })] })
+    mockOrgData({ working: [makeNode({ name: 'Bob' })] })
     rerender()
 
     // Let second save fire

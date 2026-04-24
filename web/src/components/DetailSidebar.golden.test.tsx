@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import DetailSidebar from './DetailSidebar'
-import { normalizeHTML, makePerson, makeEditBuffer, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, makeEditBuffer, renderWithOrg } from '../test-helpers'
 
-const alice = makePerson({ id: 'a1', name: 'Alice Smith', role: 'VP', managerId: '', team: 'Platform', discipline: 'Eng' })
-const bob = makePerson({ id: 'b2', name: 'Bob Jones', role: 'Engineer', managerId: 'a1', team: 'Platform', discipline: 'Eng', employmentType: 'FTE' })
-const carol = makePerson({ id: 'c3', name: 'Carol White', role: 'Designer', managerId: 'a1', team: 'Design', discipline: 'Design', employmentType: 'FTE' })
+const alice = makeNode({ id: 'a1', name: 'Alice Smith', role: 'VP', managerId: '', team: 'Platform', discipline: 'Eng' })
+const bob = makeNode({ id: 'b2', name: 'Bob Jones', role: 'Engineer', managerId: 'a1', team: 'Platform', discipline: 'Eng', employmentType: 'FTE' })
+const carol = makeNode({ id: 'c3', name: 'Carol White', role: 'Designer', managerId: 'a1', team: 'Design', discipline: 'Design', employmentType: 'FTE' })
 
 const baseCtx = {
   working: [alice, bob],
@@ -56,7 +56,7 @@ describe('DetailSidebar golden', () => {
   })
 
   it('batch: 2 people with same role (uniform)', () => {
-    const dan = makePerson({ id: 'd4', name: 'Dan', role: 'Engineer', team: 'Platform', managerId: 'a1', discipline: 'Eng', employmentType: 'FTE' })
+    const dan = makeNode({ id: 'd4', name: 'Dan', role: 'Engineer', team: 'Platform', managerId: 'a1', discipline: 'Eng', employmentType: 'FTE' })
     const { container } = renderWithOrg(<DetailSidebar />, {
       ...baseCtx,
       working: [alice, bob, dan],
@@ -67,7 +67,7 @@ describe('DetailSidebar golden', () => {
   })
 
   it('person with all empty strings', () => {
-    const emptyPerson = makePerson({ id: 'empty1', name: '', role: '', team: '', discipline: '', employmentType: '' })
+    const emptyPerson = makeNode({ id: 'empty1', name: '', role: '', team: '', discipline: '', employmentType: '' })
     const { container } = renderWithOrg(<DetailSidebar />, {
       ...baseCtx,
       working: [emptyPerson],
@@ -79,7 +79,7 @@ describe('DetailSidebar golden', () => {
 
   it('person with 500-char fields', () => {
     const longStr = 'A'.repeat(500)
-    const longPerson = makePerson({ id: 'long1', name: longStr, role: longStr, team: longStr, discipline: longStr })
+    const longPerson = makeNode({ id: 'long1', name: longStr, role: longStr, team: longStr, discipline: longStr })
     const { container } = renderWithOrg(<DetailSidebar />, {
       ...baseCtx,
       working: [longPerson],
@@ -90,7 +90,7 @@ describe('DetailSidebar golden', () => {
   })
 
   it('person with Unicode/emoji/CJK name', () => {
-    const p = makePerson({ id: 'uni1', name: '\u{1F469}\u200D\u{1F4BB} \u7530\u4E2D Jos\u00E9', role: 'Eng', discipline: 'Design' })
+    const p = makeNode({ id: 'uni1', name: '\u{1F469}\u200D\u{1F4BB} \u7530\u4E2D Jos\u00E9', role: 'Eng', discipline: 'Design' })
     const { container } = renderWithOrg(<DetailSidebar />, {
       ...baseCtx,
       working: [p],
@@ -101,7 +101,7 @@ describe('DetailSidebar golden', () => {
   })
 
   it('person with whitespace-only fields', () => {
-    const wsPerson = makePerson({ id: 'ws1', name: '   ', role: '   ', team: '   ', discipline: '   ' })
+    const wsPerson = makeNode({ id: 'ws1', name: '   ', role: '   ', team: '   ', discipline: '   ' })
     const { container } = renderWithOrg(<DetailSidebar />, {
       ...baseCtx,
       working: [wsPerson],

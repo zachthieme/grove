@@ -10,7 +10,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Toolbar from './Toolbar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 vi.mock('../api/client', () => ({
   exportDataUrl: (fmt: string) => `/api/export?format=${fmt}`,
@@ -33,7 +33,7 @@ describe('Toolbar — branch coverage', () => {
       })
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -57,7 +57,7 @@ describe('Toolbar — branch coverage', () => {
       })
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -76,7 +76,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots onExportAllSnapshots={onExportAll} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -93,7 +93,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots={false} onExportAllSnapshots={onExportAll} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -106,7 +106,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -120,7 +120,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots onExportAllSnapshots={onExportAll} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -135,7 +135,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots onExportAllSnapshots={onExportAll} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -150,7 +150,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots onExportAllSnapshots={onExportAll} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -165,7 +165,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots onExportAllSnapshots={onExportAll} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -180,7 +180,7 @@ describe('Toolbar — branch coverage', () => {
 
       renderWithOrg(
         <Toolbar hasSnapshots onExportAllSnapshots={onExportAll} exporting />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -203,7 +203,7 @@ describe('Toolbar — branch coverage', () => {
     it('renders Logs button with active styling when logPanelOpen is true', () => {
       renderWithOrg(
         <Toolbar loggingEnabled onToggleLogs={vi.fn()} logPanelOpen />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       const logsBtn = screen.getByRole('button', { name: 'Toggle log viewer' })
@@ -213,7 +213,7 @@ describe('Toolbar — branch coverage', () => {
     it('renders Logs button without active styling when logPanelOpen is false', () => {
       renderWithOrg(
         <Toolbar loggingEnabled onToggleLogs={vi.fn()} logPanelOpen={false} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       const logsBtn = screen.getByRole('button', { name: 'Toggle log viewer' })
@@ -223,7 +223,7 @@ describe('Toolbar — branch coverage', () => {
     it('does not render Logs button when loggingEnabled is false', () => {
       renderWithOrg(
         <Toolbar loggingEnabled={false} />,
-        { working: [makePerson()] },
+        { working: [makeNode()] },
       )
 
       expect(screen.queryByRole('button', { name: 'Toggle log viewer' })).toBeNull()
@@ -235,7 +235,7 @@ describe('Toolbar — branch coverage', () => {
       const user = userEvent.setup()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         viewMode: 'table',
       })
 
@@ -250,7 +250,7 @@ describe('Toolbar — branch coverage', () => {
       const user = userEvent.setup()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         viewMode: 'manager',
       })
 
@@ -263,7 +263,7 @@ describe('Toolbar — branch coverage', () => {
       const user = userEvent.setup()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       await user.click(screen.getByRole('button', { name: 'Menu' }))
@@ -278,7 +278,7 @@ describe('Toolbar — branch coverage', () => {
       const reflowFn = vi.fn()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         reflow: reflowFn,
         viewMode: 'detail',
       })
@@ -297,7 +297,7 @@ describe('Toolbar — branch coverage', () => {
       const user = userEvent.setup()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       const exportBtn = screen.getByRole('button', { name: 'Export options' })
@@ -318,7 +318,7 @@ describe('Toolbar — branch coverage', () => {
       const onExportPng = vi.fn()
 
       renderWithOrg(<Toolbar onExportPng={onExportPng} />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -333,7 +333,7 @@ describe('Toolbar — branch coverage', () => {
       const onExportSvg = vi.fn()
 
       renderWithOrg(<Toolbar onExportSvg={onExportSvg} />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       await user.click(screen.getByRole('button', { name: 'Export options' }))
@@ -346,7 +346,7 @@ describe('Toolbar — branch coverage', () => {
   describe('view mode pills', () => {
     it('highlights the active view mode pill', () => {
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         viewMode: 'manager',
       })
 
@@ -359,7 +359,7 @@ describe('Toolbar — branch coverage', () => {
 
     it('highlights the active data view pill', () => {
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         dataView: 'diff',
       })
 
@@ -375,7 +375,7 @@ describe('Toolbar — branch coverage', () => {
       const setViewMode = vi.fn()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         setViewMode,
       })
 
@@ -388,7 +388,7 @@ describe('Toolbar — branch coverage', () => {
       const setDataView = vi.fn()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         setDataView,
       })
 
@@ -400,7 +400,7 @@ describe('Toolbar — branch coverage', () => {
   describe('export button text', () => {
     it('shows "Export ▾" when not exporting', () => {
       renderWithOrg(<Toolbar exporting={false} />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       expect(screen.getByText('Export ▾')).toBeTruthy()
@@ -408,7 +408,7 @@ describe('Toolbar — branch coverage', () => {
 
     it('shows "Exporting..." when exporting is true', () => {
       renderWithOrg(<Toolbar exporting />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       expect(screen.getByText('Exporting...')).toBeTruthy()
@@ -420,7 +420,7 @@ describe('Toolbar — branch coverage', () => {
       const user = userEvent.setup()
 
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       // The upload button should exist
@@ -435,7 +435,7 @@ describe('Toolbar — branch coverage', () => {
   describe('help button', () => {
     it('renders help button with ? text', () => {
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
 
       const helpBtn = screen.getByRole('button', { name: 'Start product tour' })

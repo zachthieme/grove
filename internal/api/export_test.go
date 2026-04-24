@@ -36,7 +36,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 		t.Fatalf("expected 3 rows (header + 2 data), got %d", len(records))
 	}
 
-	expectedHeaders := []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
+	expectedHeaders := []string{"Name", "Type", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 	for i, h := range expectedHeaders {
 		if records[0][i] != h {
 			t.Errorf("header[%d]: expected %s, got %s", i, h, records[0][i])
@@ -47,19 +47,19 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	if records[1][0] != "Alice" {
 		t.Errorf("expected first data row to be Alice, got %s", records[1][0])
 	}
-	if records[1][3] != "" {
-		t.Errorf("expected Alice's manager to be empty, got '%s'", records[1][3])
+	if records[1][4] != "" {
+		t.Errorf("expected Alice's manager to be empty, got '%s'", records[1][4])
 	}
 
 	// Bob's manager should be "Alice" (name, not UUID)
-	if records[2][3] != "Alice" {
-		t.Errorf("expected Bob's manager to be 'Alice', got '%s'", records[2][3])
+	if records[2][4] != "Alice" {
+		t.Errorf("expected Bob's manager to be 'Alice', got '%s'", records[2][4])
 	}
 
 	// Employment type should default to "FTE" when not in input
 	for _, row := range records[1:] {
-		if row[7] != "FTE" {
-			t.Errorf("expected employment type 'FTE' for %s, got '%s'", row[0], row[7])
+		if row[8] != "FTE" {
+			t.Errorf("expected employment type 'FTE' for %s, got '%s'", row[0], row[8])
 		}
 	}
 }
@@ -92,9 +92,9 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 	// Verify headers include the three new columns
 	header := records[0]
 	expectedNewHeaders := map[string]int{
-		"Pod":          11,
-		"Public Note":  12,
-		"Private Note": 13,
+		"Pod":          12,
+		"Public Note":  13,
+		"Private Note": 14,
 	}
 	for name, idx := range expectedNewHeaders {
 		if idx >= len(header) {
@@ -108,23 +108,23 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 
 	// Verify data row contains the values
 	row := records[1]
-	if row[11] != "Alpha" {
-		t.Errorf("Pod = %q, want %q", row[11], "Alpha")
+	if row[12] != "Alpha" {
+		t.Errorf("Pod = %q, want %q", row[12], "Alpha")
 	}
-	if row[12] != "public info" {
-		t.Errorf("Public Note = %q, want %q", row[12], "public info")
+	if row[13] != "public info" {
+		t.Errorf("Public Note = %q, want %q", row[13], "public info")
 	}
-	if row[13] != "secret info" {
-		t.Errorf("Private Note = %q, want %q", row[13], "secret info")
+	if row[14] != "secret info" {
+		t.Errorf("Private Note = %q, want %q", row[14], "secret info")
 	}
 }
 
 // Scenarios: EXPORT-004
 func TestExportPodsSidecarCSV(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Team: "Eng"}, Id: "m1"},
-		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "m1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Eng"}, Id: "m1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "m1"},
 	}
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "m1",
@@ -152,8 +152,8 @@ func TestExportPodsSidecarCSV(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesLevel(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7}, Id: "1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7}, Id: "1"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -171,11 +171,11 @@ func TestExportCSV_IncludesLevel(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesExtraColumns(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
 			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"}}, Id: "1",
 		},
-		{PersonFields: model.PersonFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
 			Extra: map[string]string{"CostCenter": "CC002"}}, Id: "2",
 		},
 	}
@@ -217,8 +217,8 @@ func TestExportCSV_IncludesExtraColumns(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_NoExtraColumns(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -237,11 +237,11 @@ func TestExportCSV_NoExtraColumns(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_RoundTrip_ExtraColumns(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Engineering", Status: "Active",
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Engineering", Status: "Active",
 			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC", "StartDate": "2020-01-15"}}, Id: "1",
 		},
-		{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active",
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active",
 			Extra: map[string]string{"CostCenter": "CC002", "Location": "SF"}}, Id: "2", ManagerId: "1",
 		},
 	}
@@ -332,10 +332,10 @@ func TestSanitizeCell(t *testing.T) {
 // Scenarios: EXPORT-008
 func TestExportCSV_FormulaEscaping(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "=SUM(1,1)", Role: "+cmd|'/c calc'!A1", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
-		{PersonFields: model.PersonFields{Name: "-2+3", Role: "@SUM(1,1)", Discipline: "Design", Team: "T", Status: "Active"}, Id: "2", ManagerId: "1"},
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "Senior Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "=SUM(1,1)", Role: "+cmd|'/c calc'!A1", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "-2+3", Role: "@SUM(1,1)", Discipline: "Design", Team: "T", Status: "Active"}, Id: "2", ManagerId: "1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Senior Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "1"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {
@@ -355,8 +355,8 @@ func TestExportCSV_FormulaEscaping(t *testing.T) {
 	if row1[0] != "\t=SUM(1,1)" {
 		t.Errorf("Name: got %q, want %q", row1[0], "\t=SUM(1,1)")
 	}
-	if row1[1] != "\t+cmd|'/c calc'!A1" {
-		t.Errorf("Role: got %q, want %q", row1[1], "\t+cmd|'/c calc'!A1")
+	if row1[2] != "\t+cmd|'/c calc'!A1" {
+		t.Errorf("Role: got %q, want %q", row1[2], "\t+cmd|'/c calc'!A1")
 	}
 
 	// Row 2: person with -2+3 name, @SUM role, and manager name "=SUM(1,1)" should be sanitized
@@ -364,12 +364,12 @@ func TestExportCSV_FormulaEscaping(t *testing.T) {
 	if row2[0] != "\t-2+3" {
 		t.Errorf("Name: got %q, want %q", row2[0], "\t-2+3")
 	}
-	if row2[1] != "\t@SUM(1,1)" {
-		t.Errorf("Role: got %q, want %q", row2[1], "\t@SUM(1,1)")
+	if row2[2] != "\t@SUM(1,1)" {
+		t.Errorf("Role: got %q, want %q", row2[2], "\t@SUM(1,1)")
 	}
 	// Manager name is "=SUM(1,1)" which should also be sanitized
-	if row2[3] != "\t=SUM(1,1)" {
-		t.Errorf("Manager: got %q, want %q", row2[3], "\t=SUM(1,1)")
+	if row2[4] != "\t=SUM(1,1)" {
+		t.Errorf("Manager: got %q, want %q", row2[4], "\t=SUM(1,1)")
 	}
 
 	// Row 3: normal values should not be modified
@@ -377,17 +377,40 @@ func TestExportCSV_FormulaEscaping(t *testing.T) {
 	if row3[0] != "Alice" {
 		t.Errorf("Normal name: got %q, want %q", row3[0], "Alice")
 	}
-	if row3[1] != "Senior Engineer" {
-		t.Errorf("Normal role: got %q, want %q", row3[1], "Senior Engineer")
+	if row3[2] != "Senior Engineer" {
+		t.Errorf("Normal role: got %q, want %q", row3[2], "Senior Engineer")
+	}
+}
+
+// Scenarios: EXPORT-001
+func TestExportCSV_WithProducts(t *testing.T) {
+	t.Parallel()
+	nodes := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Type: "person", Name: "Alice", Role: "Eng", Status: "Active"}, Id: "1"},
+		{OrgNodeFields: model.OrgNodeFields{Type: "product", Name: "Widget", Status: "Active"}, Id: "2", ManagerId: "1"},
+	}
+	data, err := ExportCSV(nodes)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if !strings.Contains(lines[0], "Type") {
+		t.Errorf("expected Type in header, got: %s", lines[0])
+	}
+	if !strings.Contains(lines[1], "person") {
+		t.Errorf("expected 'person' in Alice's row, got: %s", lines[1])
+	}
+	if !strings.Contains(lines[2], "product") {
+		t.Errorf("expected 'product' in Widget's row, got: %s", lines[2])
 	}
 }
 
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesPrivateColumn(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: true}, Id: "1"},
-		{PersonFields: model.PersonFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: false}, Id: "2"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: true}, Id: "1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: false}, Id: "2"},
 	}
 	data, err := ExportCSV(people)
 	if err != nil {

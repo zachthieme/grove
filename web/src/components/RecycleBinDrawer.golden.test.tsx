@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import RecycleBinDrawer from './RecycleBinDrawer'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 
 describe('RecycleBinDrawer golden', () => {
   afterEach(() => cleanup())
@@ -30,8 +30,8 @@ describe('RecycleBinDrawer golden', () => {
     const { container } = renderWithOrg(<RecycleBinDrawer />, {
       binOpen: true,
       recycled: [
-        makePerson({ id: 'r1', name: 'Bob Jones', role: 'Designer', team: 'UX' }),
-        makePerson({ id: 'r2', name: 'Carol Ng', role: 'PM', team: 'Product' }),
+        makeNode({ id: 'r1', name: 'Bob Jones', role: 'Designer', team: 'UX' }),
+        makeNode({ id: 'r2', name: 'Carol Ng', role: 'PM', team: 'Product' }),
       ],
     })
     await expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(

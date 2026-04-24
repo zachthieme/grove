@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 function placeholderId(realId: string): string {
   return `__placeholder_${realId}`
 }
 
 export function useFilteredPeople(
-  rawPeople: Person[],
-  original: Person[],
-  working: Person[],
+  rawPeople: OrgNode[],
+  original: OrgNode[],
+  working: OrgNode[],
   hiddenEmploymentTypes: Set<string>,
   headSubtree: Set<string> | null,
   showChanges: boolean,
@@ -29,7 +29,7 @@ export function useFilteredPeople(
 
     if (managersNeeded.size === 0) return visible
 
-    const placeholders: (Person & { isPlaceholder: true })[] = []
+    const placeholders: (OrgNode & { isPlaceholder: true })[] = []
     for (const realId of managersNeeded) {
       const phId = placeholderId(realId)
       placeholders.push({
@@ -40,7 +40,7 @@ export function useFilteredPeople(
         managerId: rawPeople.find((p) => p.id === realId)?.managerId ?? '',
         team: '',
         additionalTeams: [],
-        status: '—' as Person['status'],
+        status: '—' as OrgNode['status'],
         isPlaceholder: true,
       })
     }

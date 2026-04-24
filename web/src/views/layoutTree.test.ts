@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
-import type { OrgNode } from './shared'
-import type { Person } from '../api/types'
+import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout, type ProductGroupLayout } from './layoutTree'
+import type { TreeNode } from './shared'
+import type { OrgNode } from '../api/types'
 
-const makePerson = (overrides: Partial<Person> & { id: string; name: string }): Person => ({
+const makeApiNode = (overrides: Partial<OrgNode> & { id: string; name: string }): OrgNode => ({
   role: 'Engineer',
   discipline: 'Eng',
   managerId: '',
@@ -14,10 +14,10 @@ const makePerson = (overrides: Partial<Person> & { id: string; name: string }): 
 })
 
 const makeNode = (
-  overrides: Partial<Person> & { id: string; name: string },
-  children: OrgNode[] = [],
-): OrgNode => ({
-  person: makePerson(overrides),
+  overrides: Partial<OrgNode> & { id: string; name: string },
+  children: TreeNode[] = [],
+): TreeNode => ({
+  person: makeApiNode(overrides),
   children,
 })
 
@@ -235,11 +235,40 @@ describe('computeLayoutTree', () => {
     expect(result.filter((c) => c.type === 'manager')).toHaveLength(1)
     expect(result.filter((c) => c.type === 'teamGroup')).toHaveLength(1)
   })
+
+  it('[LAYOUT-001] products grouped separately from ICs', () => {
+    const ic = makeNode({ id: '2', name: 'Bob', status: 'Active', managerId: '1' })
+    const product = makeNode({ id: '3', name: 'Widget', type: 'product', status: 'Active', managerId: '1' })
+    const root = makeNode({ id: '1', name: 'Alice', status: 'Active' }, [ic, product])
+
+    const layout = computeLayoutTree([root])
+    expect(layout).toHaveLength(1)
+    const aliceLayout = layout[0] as ManagerLayout
+    expect(aliceLayout.type).toBe('manager')
+    const productGroups = aliceLayout.children.filter((c): c is ProductGroupLayout => c.type === 'productGroup')
+    expect(productGroups).toHaveLength(1)
+    expect(productGroups[0].collapseKey).toBe('products:1')
+    expect(productGroups[0].members).toHaveLength(1)
+    expect(productGroups[0].members[0].type).toBe('product')
+    expect(productGroups[0].members[0].person.id).toBe('3')
+    const ics = aliceLayout.children.filter((c) => c.type === 'ic')
+    expect(ics).toHaveLength(1)
+  })
+
+  it('[LAYOUT-001] no product group when no products', () => {
+    const ic = makeNode({ id: '2', name: 'Bob', status: 'Active', managerId: '1' })
+    const root = makeNode({ id: '1', name: 'Alice', status: 'Active' }, [ic])
+
+    const layout = computeLayoutTree([root])
+    const aliceLayout = layout[0] as ManagerLayout
+    const productGroups = aliceLayout.children.filter((c) => c.type === 'productGroup')
+    expect(productGroups).toHaveLength(0)
+  })
 })
 
-/** Collect all Person instances from a LayoutNode tree. */
-function collectPersons(nodes: LayoutNode[]): Person[] {
-  const result: Person[] = []
+/** Collect all OrgNode instances from a LayoutNode tree. */
+function collectPersons(nodes: LayoutNode[]): OrgNode[] {
+  const result: OrgNode[] = []
   for (const node of nodes) {
     switch (node.type) {
       case 'manager':
@@ -254,6 +283,12 @@ function collectPersons(nodes: LayoutNode[]): Person[] {
         break
       case 'teamGroup':
         result.push(...node.members.map((m) => m.person))
+        break
+      case 'productGroup':
+        result.push(...node.members.map((m) => m.person))
+        break
+      case 'product':
+        result.push(node.person)
         break
     }
   }
@@ -276,6 +311,8 @@ const ALLOWED_FIELDS: Record<string, Set<string>> = {
   ic: new Set(['type', 'person', 'affiliation']),
   podGroup: new Set(['type', 'podName', 'managerId', 'collapseKey', 'members']),
   teamGroup: new Set(['type', 'teamName', 'collapseKey', 'members']),
+  productGroup: new Set(['type', 'collapseKey', 'members']),
+  product: new Set(['type', 'person']),
 }
 
 /** Recursively check that no LayoutNode has extra fields. */
@@ -289,6 +326,11 @@ function assertNoExtraFields(nodes: LayoutNode[]) {
       assertNoExtraFields(node.children)
     }
     if (node.type === 'podGroup' || node.type === 'teamGroup') {
+      for (const m of node.members) {
+        assertNoExtraFields([m])
+      }
+    }
+    if (node.type === 'productGroup') {
       for (const m of node.members) {
         assertNoExtraFields([m])
       }

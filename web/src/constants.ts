@@ -60,3 +60,37 @@ export const STATUS_DESCRIPTIONS: Record<Status, string> = {
   'Backfill': 'Replacing someone who left',
   'Planned': 'Future headcount, not yet approved or active',
 }
+
+/** Node type */
+export type NodeType = 'person' | 'product'
+
+/** All valid product statuses */
+export const PRODUCT_STATUSES = [
+  'Active', 'Deprecated', 'Planned', 'Sunsetting',
+] as const
+
+export type ProductStatus = (typeof PRODUCT_STATUSES)[number]
+
+/** Default status for new products */
+export const DEFAULT_PRODUCT_STATUS: ProductStatus = 'Active'
+
+/** Human-readable descriptions for product statuses */
+export const PRODUCT_STATUS_DESCRIPTIONS: Record<ProductStatus, string> = {
+  'Active': 'Currently maintained and supported',
+  'Deprecated': 'No longer actively maintained',
+  'Planned': 'Planned for development',
+  'Sunsetting': 'Being phased out',
+}
+
+/** Check valid status for a given node type */
+export function isValidStatusForType(status: string, type: NodeType | undefined): boolean {
+  if (type === 'product') {
+    return (PRODUCT_STATUSES as readonly string[]).includes(status)
+  }
+  return (STATUSES as readonly string[]).includes(status)
+}
+
+/** Get valid statuses for a node type */
+export function statusesForType(type: NodeType | undefined): readonly string[] {
+  return type === 'product' ? PRODUCT_STATUSES : STATUSES
+}

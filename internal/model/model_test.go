@@ -6,9 +6,9 @@ import "testing"
 
 func TestNewOrg_ValidPeople(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Engineering", Team: "Eng", Status: "Active"}},
-		{PersonFields: PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Manager: "Alice"},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Engineering", Team: "Eng", Status: "Active"}},
+		{OrgNodeFields: OrgNodeFields{Name: "Bob", Role: "Engineer", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Manager: "Alice"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -24,9 +24,9 @@ func TestNewOrg_ValidPeople(t *testing.T) {
 
 func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
-		{PersonFields: PersonFields{Name: "Alice", Role: "PM", Discipline: "PM", Team: "PM", Status: "Active"}},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "PM", Discipline: "PM", Team: "PM", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -39,8 +39,8 @@ func TestNewOrg_DuplicateNameAllowed(t *testing.T) {
 
 func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: "Active"}, Manager: "Nobody"},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: "Active"}, Manager: "Nobody"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -53,9 +53,9 @@ func TestNewOrg_DanglingManagerAllowed(t *testing.T) {
 
 func TestNewOrg_AnyOrderAllowed(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Manager: "Alice"},
-		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Manager: "Alice"},
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -68,8 +68,8 @@ func TestNewOrg_AnyOrderAllowed(t *testing.T) {
 
 func TestNewOrg_InvalidStatusWarns(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "TBD"}},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "TBD"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -87,8 +87,8 @@ func TestNewOrg_MissingFieldWarns(t *testing.T) {
 	t.Parallel()
 	// After validation relaxation, only Name and Status are required.
 	// Missing Name should still produce a warning.
-	people := []Person{
-		{PersonFields: PersonFields{Name: "", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -101,9 +101,9 @@ func TestNewOrg_MissingFieldWarns(t *testing.T) {
 
 func TestNewOrg_TransferAllowsBlankRoleAndDiscipline(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
-		{PersonFields: PersonFields{Name: "Incoming", Team: "Eng", Status: "Transfer In"}, Manager: "Alice"},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{OrgNodeFields: OrgNodeFields{Name: "Incoming", Team: "Eng", Status: "Transfer In"}, Manager: "Alice"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -126,8 +126,8 @@ func TestNewOrg_NewStatuses(t *testing.T) {
 		if s == StatusTransferIn || s == StatusTransferOut || s == StatusPlanned {
 			role, disc = "", ""
 		}
-		people := []Person{
-			{PersonFields: PersonFields{Name: "Test", Role: role, Discipline: disc, Team: "Eng", Status: s}},
+		people := []OrgNode{
+			{OrgNodeFields: OrgNodeFields{Name: "Test", Role: role, Discipline: disc, Team: "Eng", Status: s}},
 		}
 		org, err := NewOrg(people)
 		if err != nil {
@@ -143,8 +143,8 @@ func TestNewOrg_OldStatusesWarn(t *testing.T) {
 	t.Parallel()
 	oldStatuses := []string{"Hiring", "Transfer"}
 	for _, s := range oldStatuses {
-		people := []Person{
-			{PersonFields: PersonFields{Name: "Test", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: s}},
+		people := []OrgNode{
+			{OrgNodeFields: OrgNodeFields{Name: "Test", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: s}},
 		}
 		org, err := NewOrg(people)
 		if err != nil {
@@ -159,8 +159,8 @@ func TestNewOrg_OldStatusesWarn(t *testing.T) {
 
 func TestNewOrg_MultipleWarnings(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "", Role: "Eng", Discipline: "Eng", Status: "Bogus"}},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "", Role: "Eng", Discipline: "Eng", Status: "Bogus"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -182,10 +182,10 @@ func TestNewOrg_MultipleWarnings(t *testing.T) {
 
 func TestNewOrg_WarningDoesNotBlockOtherRows(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
-		{PersonFields: PersonFields{Status: "Bogus"}}, // bad row
-		{PersonFields: PersonFields{Name: "Carol", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: "Active"}, Manager: "Alice"},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{OrgNodeFields: OrgNodeFields{Status: "Bogus"}}, // bad row
+		{OrgNodeFields: OrgNodeFields{Name: "Carol", Role: "Eng", Discipline: "Eng", Team: "Eng", Status: "Active"}, Manager: "Alice"},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -226,8 +226,8 @@ func containsSubstr(s, sub string) bool {
 
 func TestNewOrg_ActiveAllowsBlankRoleDisciplineTeam(t *testing.T) {
 	t.Parallel()
-	people := []Person{
-		{PersonFields: PersonFields{Name: "Alice", Status: "Active"}},
+	people := []OrgNode{
+		{OrgNodeFields: OrgNodeFields{Name: "Alice", Status: "Active"}},
 	}
 	org, err := NewOrg(people)
 	if err != nil {
@@ -240,8 +240,89 @@ func TestNewOrg_ActiveAllowsBlankRoleDisciplineTeam(t *testing.T) {
 
 func TestNewOrg_Empty(t *testing.T) {
 	t.Parallel()
-	_, err := NewOrg([]Person{})
+	_, err := NewOrg([]OrgNode{})
 	if err == nil {
 		t.Error("expected error for empty data")
+	}
+}
+
+func TestValidStatuses_PersonType(t *testing.T) {
+	t.Parallel()
+	set := ValidStatuses("")
+	for _, s := range []string{StatusActive, StatusOpen, StatusTransferIn, StatusTransferOut, StatusBackfill, StatusPlanned} {
+		if !set[s] {
+			t.Errorf("expected person status %q to be valid", s)
+		}
+	}
+	for _, s := range []string{StatusDeprecated, StatusSunsetting} {
+		if set[s] {
+			t.Errorf("expected product status %q to be invalid for person type", s)
+		}
+	}
+}
+
+func TestValidStatuses_ProductType(t *testing.T) {
+	t.Parallel()
+	set := ValidStatuses("product")
+	for _, s := range []string{StatusActive, StatusDeprecated, StatusPlanned, StatusSunsetting} {
+		if !set[s] {
+			t.Errorf("expected product status %q to be valid", s)
+		}
+	}
+	for _, s := range []string{StatusOpen, StatusTransferIn, StatusTransferOut, StatusBackfill} {
+		if set[s] {
+			t.Errorf("expected person status %q to be invalid for product type", s)
+		}
+	}
+}
+
+func TestNewOrg_ProductStatusValid(t *testing.T) {
+	t.Parallel()
+	for _, s := range []string{StatusActive, StatusDeprecated, StatusPlanned, StatusSunsetting} {
+		people := []OrgNode{
+			{OrgNodeFields: OrgNodeFields{Type: "product", Name: "Search", Status: s}},
+		}
+		org, err := NewOrg(people)
+		if err != nil {
+			t.Errorf("product status %q: unexpected error: %v", s, err)
+			continue
+		}
+		if len(org.Warnings) != 0 {
+			t.Errorf("product status %q should be valid but got warnings: %v", s, org.Warnings)
+		}
+	}
+}
+
+func TestNewOrg_ProductStatusInvalidForPerson(t *testing.T) {
+	t.Parallel()
+	for _, s := range []string{StatusDeprecated, StatusSunsetting} {
+		people := []OrgNode{
+			{OrgNodeFields: OrgNodeFields{Name: "Alice", Status: s}},
+		}
+		org, err := NewOrg(people)
+		if err != nil {
+			t.Errorf("status %q: unexpected error: %v", s, err)
+			continue
+		}
+		if len(org.Warnings) == 0 {
+			t.Errorf("product-only status %q should warn on a person node", s)
+		}
+	}
+}
+
+func TestNewOrg_PersonStatusInvalidForProduct(t *testing.T) {
+	t.Parallel()
+	for _, s := range []string{StatusOpen, StatusTransferIn, StatusTransferOut, StatusBackfill} {
+		people := []OrgNode{
+			{OrgNodeFields: OrgNodeFields{Type: "product", Name: "Search", Status: s}},
+		}
+		org, err := NewOrg(people)
+		if err != nil {
+			t.Errorf("status %q: unexpected error: %v", s, err)
+			continue
+		}
+		if len(org.Warnings) == 0 {
+			t.Errorf("person-only status %q should warn on a product node", s)
+		}
 	}
 }

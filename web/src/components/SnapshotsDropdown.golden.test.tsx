@@ -1,14 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import SnapshotsDropdown from './SnapshotsDropdown'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 
 describe('SnapshotsDropdown golden', () => {
   afterEach(() => cleanup())
 
   it('Working label', async () => {
     const { container } = renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       currentSnapshotName: null,
     })
     await expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
@@ -18,7 +18,7 @@ describe('SnapshotsDropdown golden', () => {
 
   it('Original label', async () => {
     const { container } = renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       currentSnapshotName: '__original__',
     })
     await expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
@@ -28,7 +28,7 @@ describe('SnapshotsDropdown golden', () => {
 
   it('named snapshot label', async () => {
     const { container } = renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       currentSnapshotName: 'My Snapshot',
     })
     await expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(

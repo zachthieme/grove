@@ -51,7 +51,7 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 		}
 	}
 
-	var people []model.Person
+	var people []model.OrgNode
 	for _, row := range dataRows {
 		get := func(field string) string {
 			idx, ok := cols[field]
@@ -68,8 +68,9 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 			empType = "FTE"
 		}
 
-		p := model.Person{
-			PersonFields: model.PersonFields{
+		p := model.OrgNode{
+			OrgNodeFields: model.OrgNodeFields{
+				Type:           get("type"),
 				Name:           get("name"),
 				Role:           get("role"),
 				Discipline:     get("discipline"),

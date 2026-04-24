@@ -10,10 +10,10 @@ import (
 func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 	t.Parallel()
 	// People without Pod field → no pods created
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
-		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
-		{PersonFields: model.PersonFields{Name: "Carol", Team: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
 	}
 
 	pods := SeedPods(people)
@@ -30,11 +30,11 @@ func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 func TestSeedPods_GroupsByPodName(t *testing.T) {
 	t.Parallel()
 	// People with explicit Pod fields get grouped
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
-		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
-		{PersonFields: model.PersonFields{Name: "Carol", Team: "Platform", Pod: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
-		{PersonFields: model.PersonFields{Name: "Dave", Team: "Infra", Pod: "Infra"}, Id: "ic3", ManagerId: "mgr1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform", Pod: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Team: "Infra", Pod: "Infra"}, Id: "ic3", ManagerId: "mgr1"},
 	}
 
 	pods := SeedPods(people)
@@ -65,8 +65,8 @@ func TestSeedPods_GroupsByPodName(t *testing.T) {
 func TestSeedPods_RootNodesSkipped(t *testing.T) {
 	t.Parallel()
 	// Root-only person → 0 pods, Pod field stays empty
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "CEO", Team: "Exec"}, Id: "root1", ManagerId: ""},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "CEO", Team: "Exec"}, Id: "root1", ManagerId: ""},
 	}
 
 	pods := SeedPods(people)
@@ -83,10 +83,10 @@ func TestSeedPods_RootNodesSkipped(t *testing.T) {
 func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 	t.Parallel()
 	// Bob has Pod="Alpha Pod", Carol has no pod → only one pod created
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
-		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform", Pod: "Alpha Pod"}, Id: "ic1", ManagerId: "mgr1"},
-		{PersonFields: model.PersonFields{Name: "Carol", Team: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Alpha Pod"}, Id: "ic1", ManagerId: "mgr1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
 	}
 
 	pods := SeedPods(people)
@@ -114,8 +114,8 @@ func TestCleanupEmptyPods(t *testing.T) {
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 		{Id: "pod2", Name: "Ghost", Team: "Ghost", ManagerId: "mgr2"},
 	}
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
 	}
 
 	result := CleanupEmptyPods(pods, people)
@@ -178,10 +178,10 @@ func TestRenamePod(t *testing.T) {
 	pods := []Pod{
 		{Id: "pod1", Name: "OldName", Team: "Platform", ManagerId: "mgr1"},
 	}
-	people := []Person{
-		{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform", Pod: "OldName"}, Id: "ic1", ManagerId: "mgr1"},
-		{PersonFields: model.PersonFields{Name: "Carol", Team: "Platform", Pod: "OldName"}, Id: "ic2", ManagerId: "mgr1"},
-		{PersonFields: model.PersonFields{Name: "Dave", Team: "Infra", Pod: "Other"}, Id: "ic3", ManagerId: "mgr2"},
+	people := []OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "OldName"}, Id: "ic1", ManagerId: "mgr1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform", Pod: "OldName"}, Id: "ic2", ManagerId: "mgr1"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Team: "Infra", Pod: "Other"}, Id: "ic3", ManagerId: "mgr2"},
 	}
 
 	err := RenamePod(pods, people, "pod1", "NewName")
@@ -207,7 +207,7 @@ func TestRenamePod(t *testing.T) {
 func TestRenamePod_NotFound(t *testing.T) {
 	t.Parallel()
 	pods := []Pod{}
-	people := []Person{}
+	people := []OrgNode{}
 
 	err := RenamePod(pods, people, "nope", "NewName")
 	if err == nil {
@@ -218,7 +218,7 @@ func TestRenamePod_NotFound(t *testing.T) {
 // Scenarios: ORG-018
 func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 	t.Parallel()
-	person := Person{PersonFields: model.PersonFields{Name: "Root", Pod: "SomePod"}, Id: "p1", ManagerId: ""}
+	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Root", Pod: "SomePod"}, Id: "p1", ManagerId: ""}
 	pods := []Pod{{Id: "pod1", Name: "SomePod", Team: "T", ManagerId: "mgr1"}}
 
 	result := ReassignPersonPod(pods, &person)
@@ -237,7 +237,7 @@ func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	person := Person{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "p1", ManagerId: "mgr1"}
+	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "p1", ManagerId: "mgr1"}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -255,8 +255,8 @@ func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	// Person has a pod but under a different manager — pod is invalid
-	person := Person{PersonFields: model.PersonFields{Name: "Bob", Team: "Infra", Pod: "OldPod"}, Id: "p1", ManagerId: "mgr2"}
+	// OrgNode has a pod but under a different manager — pod is invalid
+	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Infra", Pod: "OldPod"}, Id: "p1", ManagerId: "mgr2"}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -274,8 +274,8 @@ func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 	pods := []Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	// Person has no pod — should stay without one
-	person := Person{PersonFields: model.PersonFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "mgr1"}
+	// OrgNode has no pod — should stay without one
+	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "mgr1"}
 
 	result := ReassignPersonPod(pods, &person)
 

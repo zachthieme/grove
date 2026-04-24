@@ -15,7 +15,7 @@ func isValidSnapshotName(name string) bool {
 }
 
 type snapshotData struct {
-	People    []Person
+	People    []OrgNode
 	Pods      []Pod
 	Settings  Settings
 	Timestamp time.Time
@@ -52,7 +52,7 @@ func NewSnapshotManager(store SnapshotStore) *SnapshotManager {
 }
 
 // Save stores a named snapshot of the given state. Returns an error for invalid or reserved names.
-func (sm *SnapshotManager) Save(name string, people []Person, pods []Pod, settings Settings) error {
+func (sm *SnapshotManager) Save(name string, people []OrgNode, pods []Pod, settings Settings) error {
 	if name == "" {
 		return errValidation("snapshot name is required")
 	}
@@ -69,7 +69,7 @@ func (sm *SnapshotManager) Save(name string, people []Person, pods []Pod, settin
 		sm.snapshots = make(map[string]snapshotData)
 	}
 	sm.snapshots[name] = snapshotData{
-		People:    deepCopyPeople(people),
+		People:    deepCopyNodes(people),
 		Pods:      CopyPods(pods),
 		Settings:  settings,
 		Timestamp: time.Now(),

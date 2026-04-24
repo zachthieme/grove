@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent } from 'react'
 import { useOrgData } from '../store/OrgContext'
 import { useSelection } from '../store/OrgContext'
-import type { Person, Pod } from '../api/types'
+import type { OrgNode, Pod } from '../api/types'
 import styles from './SearchBar.module.css'
 
 const MAX_RESULTS = 8
 
-type SearchResult = { kind: 'person'; person: Person } | { kind: 'pod'; pod: Pod }
+type SearchResult = { kind: 'person'; person: OrgNode } | { kind: 'pod'; pod: Pod }
 
 export default function SearchBar() {
   const { working, pods } = useOrgData()

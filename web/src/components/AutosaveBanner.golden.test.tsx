@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import AutosaveBanner from './AutosaveBanner'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 
 describe('AutosaveBanner golden', () => {
   afterEach(() => cleanup())
@@ -16,7 +16,7 @@ describe('AutosaveBanner golden', () => {
   it('with valid timestamp', async () => {
     const { container } = renderWithOrg(<AutosaveBanner />, {
       autosaveAvailable: {
-        original: [makePerson()], working: [makePerson()], recycled: [],
+        original: [makeNode()], working: [makeNode()], recycled: [],
         snapshotName: '', timestamp: '2025-01-15T10:30:00Z',
       },
     })
@@ -28,7 +28,7 @@ describe('AutosaveBanner golden', () => {
   it('with invalid timestamp', async () => {
     const { container } = renderWithOrg(<AutosaveBanner />, {
       autosaveAvailable: {
-        original: [makePerson()], working: [makePerson()], recycled: [],
+        original: [makeNode()], working: [makeNode()], recycled: [],
         snapshotName: '', timestamp: 'not-a-date',
       },
     })

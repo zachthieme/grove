@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
-export function useManagerSet(people: Person[]): Set<string> {
+export function useManagerSet(people: OrgNode[]): Set<string> {
   return useMemo(() => {
     const set = new Set<string>()
     for (const p of people) {

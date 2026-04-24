@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { type Person, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
+import { type OrgNode, type Pod, type AutosaveData, type MappedColumn, type SnapshotInfo, type Settings } from '../api/types'
 import * as api from '../api/client'
 import { setOnApiError } from '../api/client'
 import type { OrgDataStateValue, OrgMutationsValue } from './orgTypes'
@@ -10,9 +10,9 @@ import { useOrgMutations as useMutationCallbacks } from './useOrgMutations'
 import { useUndoRedo } from '../hooks/useUndoRedo'
 
 export interface OrgDataState {
-  original: Person[]
-  working: Person[]
-  recycled: Person[]
+  original: OrgNode[]
+  working: OrgNode[]
+  recycled: OrgNode[]
   pods: Pod[]
   originalPods: Pod[]
   settings: Settings
@@ -131,7 +131,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /** Shared state update for fresh org data loads (upload, confirmMapping). */
-  const applyOrgData = useCallback((data: { original: Person[]; working: Person[]; pods?: Pod[]; settings?: Settings }, extra?: Partial<OrgDataState>) => {
+  const applyOrgData = useCallback((data: { original: OrgNode[]; working: OrgNode[]; pods?: Pod[]; settings?: Settings }, extra?: Partial<OrgDataState>) => {
     setState((s) => ({
       ...s,
       original: data.original,

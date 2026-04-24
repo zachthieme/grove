@@ -3,13 +3,13 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import Toolbar from './Toolbar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 afterEach(() => cleanup())
 
 describe('Toolbar a11y', () => {
   it('has no axe violations when data loaded', async () => {
-    const alice = makePerson({ id: 'alice-001', name: 'Alice' })
+    const alice = makeNode({ id: 'alice-001', name: 'Alice' })
     const { container } = renderWithOrg(
       <Toolbar
         onExportPng={vi.fn()}

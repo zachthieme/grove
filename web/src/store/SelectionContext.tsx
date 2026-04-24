@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import type { SelectionContextValue } from './orgTypes'
 import { useInteractionState } from './useInteractionState'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 export const SelectionContext = createContext<SelectionContextValue | null>(null)
 
@@ -81,7 +81,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     }
   }, [interaction])
 
-  const enterEditing = useCallback((person: Person) => {
+  const enterEditing = useCallback((person: OrgNode) => {
     interaction.enterEditing(person)
   }, [interaction])
 

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Toolbar from './Toolbar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 vi.mock('../api/client', () => ({
   exportDataUrl: (fmt: string) => `/api/export?format=${fmt}`,
@@ -16,7 +16,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup()
     const setViewModeFn = vi.fn()
     renderWithOrg(<Toolbar />, {
-      working: [makePerson()],
+      working: [makeNode()],
       setViewMode: setViewModeFn,
     })
     await user.click(screen.getByRole('button', { name: 'Manager' }))
@@ -27,7 +27,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup()
     const setDataViewFn = vi.fn()
     renderWithOrg(<Toolbar />, {
-      working: [makePerson()],
+      working: [makeNode()],
       setDataView: setDataViewFn,
     })
     await user.click(screen.getByRole('button', { name: 'Diff' }))
@@ -38,7 +38,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup()
     const onExportPng = vi.fn()
     renderWithOrg(<Toolbar onExportPng={onExportPng} />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     await user.click(screen.getByRole('button', { name: 'Export options' }))
     await user.click(screen.getByRole('button', { name: 'PNG' }))
@@ -49,7 +49,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup()
     const onExportSvg = vi.fn()
     renderWithOrg(<Toolbar onExportSvg={onExportSvg} />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     await user.click(screen.getByRole('button', { name: 'Export options' }))
     await user.click(screen.getByRole('button', { name: 'SVG' }))
@@ -60,7 +60,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup()
     const reflowFn = vi.fn()
     renderWithOrg(<Toolbar />, {
-      working: [makePerson()],
+      working: [makeNode()],
       reflow: reflowFn,
       viewMode: 'detail',
     })
@@ -73,7 +73,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup()
     const onToggleLogs = vi.fn()
     renderWithOrg(<Toolbar loggingEnabled onToggleLogs={onToggleLogs} />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     await user.click(screen.getByRole('button', { name: 'Toggle log viewer' }))
     expect(onToggleLogs).toHaveBeenCalledTimes(1)
@@ -82,7 +82,7 @@ describe('Toolbar', () => {
   it('[UI-001] sets aria-expanded on hamburger menu button', async () => {
     const user = userEvent.setup()
     renderWithOrg(<Toolbar />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     const menuBtn = screen.getByRole('button', { name: 'Menu' })
     expect(menuBtn.getAttribute('aria-expanded')).toBe('false')
@@ -93,7 +93,7 @@ describe('Toolbar', () => {
   it('[UI-001] sets aria-expanded on export dropdown button', async () => {
     const user = userEvent.setup()
     renderWithOrg(<Toolbar />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     const exportBtn = screen.getByRole('button', { name: 'Export options' })
     expect(exportBtn.getAttribute('aria-expanded')).toBe('false')
@@ -105,7 +105,7 @@ describe('Toolbar', () => {
   describe('error and edge states', () => {
     it('does not render view modes or export actions when loaded is false', () => {
       renderWithOrg(<Toolbar />, {
-        working: [makePerson()],
+        working: [makeNode()],
         loaded: false,
       })
       expect(screen.queryByRole('button', { name: 'Manager' })).toBeNull()
@@ -115,7 +115,7 @@ describe('Toolbar', () => {
 
     it('shows "Exporting..." text on export button when exporting is true', () => {
       renderWithOrg(<Toolbar exporting />, {
-        working: [makePerson()],
+        working: [makeNode()],
       })
       expect(screen.getByText('Exporting...')).toBeDefined()
     })

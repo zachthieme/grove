@@ -1,10 +1,10 @@
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import { computeOrgMetrics } from '../hooks/useOrgMetrics'
 import styles from './ManagerInfoPopover.module.css'
 
 interface Props {
   personId: string
-  working: Person[]
+  working: OrgNode[]
   onClose: () => void
 }
 
@@ -28,6 +28,12 @@ export default function ManagerInfoPopover({ personId, working, onClose }: Props
           <span className={styles.label}>Total Headcount</span>
           <span className={styles.value}>{metrics.totalHeadcount}</span>
         </div>
+        {metrics.productCount > 0 && (
+          <div className={styles.row}>
+            <span className={styles.label}>Products</span>
+            <span className={styles.value}>{metrics.productCount}</span>
+          </div>
+        )}
         {metrics.recruiting > 0 && (
           <div className={styles.row}>
             <span className={styles.label}>Recruiting</span>

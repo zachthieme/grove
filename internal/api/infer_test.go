@@ -335,6 +335,33 @@ func TestInferMapping_Level(t *testing.T) {
 }
 
 // Scenarios: UPLOAD-005
+func TestInferMapping_TypeColumn(t *testing.T) {
+	t.Parallel()
+	headers := []string{"Name", "Type", "Status", "Manager"}
+	m := InferMapping(headers)
+	if mc, ok := m["type"]; !ok {
+		t.Error("expected 'type' field to be mapped")
+	} else if mc.Confidence != ConfidenceHigh {
+		t.Errorf("expected high confidence, got %s", mc.Confidence)
+	}
+}
+
+// Scenarios: UPLOAD-005
+func TestInferMapping_TypeSynonyms(t *testing.T) {
+	t.Parallel()
+	for _, header := range []string{"Node Type", "Kind", "node_type"} {
+		t.Run(header, func(t *testing.T) {
+			t.Parallel()
+			headers := []string{"Name", header, "Status"}
+			m := InferMapping(headers)
+			if _, ok := m["type"]; !ok {
+				t.Errorf("expected synonym '%s' to map to 'type'", header)
+			}
+		})
+	}
+}
+
+// Scenarios: UPLOAD-005
 func TestInferMapping_Private(t *testing.T) {
 	t.Parallel()
 	headers := []string{"Name", "Role", "private"}

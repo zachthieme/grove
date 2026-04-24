@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
-import type { Person } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
+import type { OrgNode } from '../api/types'
+import type { NodeChange } from '../hooks/useOrgDiff'
 import type { ColumnDef } from './tableColumns'
 import { getPersonValue } from './tableColumns'
 import TableCell from './TableCell'
@@ -8,10 +8,10 @@ import { STATUSES } from '../constants'
 import styles from './TableView.module.css'
 
 interface TableRowProps {
-  person: Person
+  person: OrgNode
   columns: ColumnDef[]
   managers: { value: string; label: string }[]
-  change?: PersonChange
+  change?: NodeChange
   readOnly?: boolean
   selected?: boolean
   onToggleSelect?: (personId: string) => void

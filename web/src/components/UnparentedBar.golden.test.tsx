@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 import UnparentedBar from './UnparentedBar'
 
 describe('UnparentedBar golden', () => {
   afterEach(() => cleanup())
 
   it('no orphans', () => {
-    const manager = makePerson({ id: 'm1', name: 'Manager', managerId: '' })
-    const report = makePerson({ id: 'r1', name: 'Report', managerId: 'm1' })
+    const manager = makeNode({ id: 'm1', name: 'Manager', managerId: '' })
+    const report = makeNode({ id: 'r1', name: 'Report', managerId: 'm1' })
     const { container } = renderWithOrg(<UnparentedBar />, {
       working: [manager, report],
       toggleSelect: vi.fn(),
@@ -20,7 +20,7 @@ describe('UnparentedBar golden', () => {
 
   it('singular orphan count', () => {
     const { container } = renderWithOrg(<UnparentedBar />, {
-      working: [makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' })],
+      working: [makeNode({ id: 'o1', name: 'Orphan Alice', managerId: '' })],
       toggleSelect: vi.fn(),
     })
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
@@ -31,8 +31,8 @@ describe('UnparentedBar golden', () => {
   it('plural orphan count', () => {
     const { container } = renderWithOrg(<UnparentedBar />, {
       working: [
-        makePerson({ id: 'o1', name: 'Orphan Alice', managerId: '' }),
-        makePerson({ id: 'o2', name: 'Orphan Bob', managerId: '' }),
+        makeNode({ id: 'o1', name: 'Orphan Alice', managerId: '' }),
+        makeNode({ id: 'o2', name: 'Orphan Bob', managerId: '' }),
       ],
       toggleSelect: vi.fn(),
     })
@@ -42,8 +42,8 @@ describe('UnparentedBar golden', () => {
   })
 
   it('tree roots not counted as orphans', () => {
-    const treeRoot = makePerson({ id: 'tr1', name: 'Tree Root', managerId: '' })
-    const report = makePerson({ id: 'r1', name: 'Report', managerId: 'tr1' })
+    const treeRoot = makeNode({ id: 'tr1', name: 'Tree Root', managerId: '' })
+    const report = makeNode({ id: 'r1', name: 'Report', managerId: 'tr1' })
     const { container } = renderWithOrg(<UnparentedBar />, {
       working: [treeRoot, report],
       toggleSelect: vi.fn(),

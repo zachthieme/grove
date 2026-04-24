@@ -102,7 +102,7 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 	store := NewMemorySnapshotStore()
 	// Pre-populate the store
 	_ = store.Write(map[string]snapshotData{
-		"saved": {People: []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active"}, Id: "1"}}},
+		"saved": {People: []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}},
 	})
 
 	svc := NewOrgService(store)
@@ -324,7 +324,7 @@ func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
 
 	// Write
 	snaps := map[string]snapshotData{
-		"v1": {People: []Person{{PersonFields: model.PersonFields{Name: "Alice"}, Id: "1"}}},
+		"v1": {People: []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice"}, Id: "1"}}},
 	}
 	if err := store.Write(snaps); err != nil {
 		t.Fatalf("write: %v", err)

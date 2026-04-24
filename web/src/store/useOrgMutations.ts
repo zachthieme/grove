@@ -1,5 +1,5 @@
 import { useCallback, useMemo, type MutableRefObject } from 'react'
-import type { Person, PersonUpdatePayload, PodUpdatePayload, Settings } from '../api/types'
+import type { OrgNode, OrgNodeUpdatePayload, PodUpdatePayload, Settings } from '../api/types'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
 import type { OrgDataState } from './OrgDataContext'
@@ -8,7 +8,7 @@ type SetState = React.Dispatch<React.SetStateAction<OrgDataState>>
 
 interface MutationDeps {
   setState: SetState
-  workingRef: MutableRefObject<Person[]>
+  workingRef: MutableRefObject<OrgNode[]>
   handleError: (err: unknown) => void
   setError: (msg: string | null) => void
   captureForUndo: () => void
@@ -18,7 +18,7 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
   const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => {
     captureForUndo()
     try {
-      const resp = await api.movePerson({ personId, newManagerId, newTeam, newPod }, correlationId)
+      const resp = await api.moveNode({ personId, newManagerId, newTeam, newPod }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setState])
@@ -27,7 +27,7 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
     captureForUndo()
     if (!newManagerId) {
       try {
-        const resp = await api.updatePerson({ personId, fields: { managerId: '' } }, correlationId)
+        const resp = await api.updateNode({ personId, fields: { managerId: '' } }, correlationId)
         setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
       } catch (err) { handleError(err) }
       return
@@ -38,7 +38,7 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
       return
     }
     try {
-      const resp = await api.movePerson({ personId, newManagerId, newTeam: newManager.team }, correlationId)
+      const resp = await api.moveNode({ personId, newManagerId, newTeam: newManager.team }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setError, setState, workingRef])
@@ -51,18 +51,18 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setState])
 
-  const update = useCallback(async (personId: string, fields: PersonUpdatePayload, correlationId?: string) => {
+  const update = useCallback(async (personId: string, fields: OrgNodeUpdatePayload, correlationId?: string) => {
     captureForUndo()
     try {
-      const resp = await api.updatePerson({ personId, fields }, correlationId)
+      const resp = await api.updateNode({ personId, fields }, correlationId)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setState])
 
-  const add = useCallback(async (person: Omit<Person, 'id'>) => {
+  const add = useCallback(async (person: Omit<OrgNode, 'id'>) => {
     captureForUndo()
     try {
-      const resp = await api.addPerson(person)
+      const resp = await api.addNode(person)
       setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setState])
@@ -78,7 +78,7 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
   const remove = useCallback(async (personId: string) => {
     captureForUndo()
     try {
-      const resp = await api.deletePerson({ personId })
+      const resp = await api.deleteNode({ personId })
       setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setState])
@@ -86,7 +86,7 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
   const restore = useCallback(async (personId: string) => {
     captureForUndo()
     try {
-      const resp = await api.restorePerson(personId)
+      const resp = await api.restoreNode(personId)
       setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
     } catch (err) { handleError(err) }
   }, [captureForUndo, handleError, setState])

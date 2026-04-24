@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 describe('EmploymentTypeFilter', () => {
   afterEach(() => cleanup())
@@ -12,7 +12,7 @@ describe('EmploymentTypeFilter', () => {
     const toggleFn = vi.fn()
     renderWithOrg(<EmploymentTypeFilter />, {
       toggleEmploymentTypeFilter: toggleFn,
-      working: [makePerson({ id: '1', employmentType: 'FTE' })],
+      working: [makeNode({ id: '1', employmentType: 'FTE' })],
     })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
     await user.click(screen.getByRole('menuitemcheckbox'))
@@ -24,7 +24,7 @@ describe('EmploymentTypeFilter', () => {
     const showAllFn = vi.fn()
     renderWithOrg(<EmploymentTypeFilter />, {
       showAllEmploymentTypes: showAllFn,
-      working: [makePerson({ id: '1', employmentType: 'FTE' })],
+      working: [makeNode({ id: '1', employmentType: 'FTE' })],
     })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
     await user.click(screen.getByText('Show All'))
@@ -37,8 +37,8 @@ describe('EmploymentTypeFilter', () => {
     renderWithOrg(<EmploymentTypeFilter />, {
       hideAllEmploymentTypes: hideAllFn,
       working: [
-        makePerson({ id: '1', employmentType: 'FTE' }),
-        makePerson({ id: '2', employmentType: 'CW' }),
+        makeNode({ id: '1', employmentType: 'FTE' }),
+        makeNode({ id: '2', employmentType: 'CW' }),
       ],
     })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))

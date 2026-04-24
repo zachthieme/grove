@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
-import type { Person, Pod } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
+import type { OrgNode, Pod } from '../api/types'
+import type { NodeChange } from '../hooks/useOrgDiff'
 import { useOrgData, useOrgMutations, useUI, useSelection } from './OrgContext'
 import { useOrgDiff } from '../hooks/useOrgDiff'
 import { useManagerSet } from '../hooks/useIsManager'
@@ -8,11 +8,11 @@ import { useHeadSubtree } from '../hooks/useHeadSubtree'
 import { useFilteredPeople } from '../hooks/useFilteredPeople'
 import { useSortedPeople } from '../hooks/useSortedPeople'
 import { DEFAULT_STATUS } from '../constants'
-import { dirtyToApiPayload } from '../utils/personFormUtils'
+import { dirtyToApiPayload } from '../utils/nodeFormUtils'
 
 export interface PeopleContextValue {
-  people: Person[]
-  ghostPeople: Person[]
+  people: OrgNode[]
+  ghostPeople: OrgNode[]
   managerSet: Set<string>
   readOnly: boolean
   pods: Pod[]
@@ -20,7 +20,7 @@ export interface PeopleContextValue {
 }
 
 export interface ChangesContextValue {
-  changes: Map<string, PersonChange> | undefined
+  changes: Map<string, NodeChange> | undefined
 }
 
 export interface ActionsContextValue {

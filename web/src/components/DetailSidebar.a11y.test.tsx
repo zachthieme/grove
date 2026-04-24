@@ -3,13 +3,13 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import DetailSidebar from './DetailSidebar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 afterEach(() => cleanup())
 
 describe('DetailSidebar a11y', () => {
   it('has no axe violations with single person selected', async () => {
-    const alice = makePerson({ id: 'alice-001', name: 'Alice', role: 'Engineer', managerId: '' })
+    const alice = makeNode({ id: 'alice-001', name: 'Alice', role: 'Engineer', managerId: '' })
     const { container } = renderWithOrg(<DetailSidebar />, {
       working: [alice],
       original: [alice],
@@ -20,8 +20,8 @@ describe('DetailSidebar a11y', () => {
   })
 
   it('has no axe violations with manager and reports', async () => {
-    const mgr = makePerson({ id: 'mgr-001', name: 'Manager', role: 'Manager', managerId: '' })
-    const ic = makePerson({ id: 'ic-001', name: 'IC Alice', role: 'Engineer', managerId: 'mgr-001' })
+    const mgr = makeNode({ id: 'mgr-001', name: 'Manager', role: 'Manager', managerId: '' })
+    const ic = makeNode({ id: 'ic-001', name: 'IC Alice', role: 'Engineer', managerId: 'mgr-001' })
     const { container } = renderWithOrg(<DetailSidebar />, {
       working: [mgr, ic],
       original: [mgr, ic],

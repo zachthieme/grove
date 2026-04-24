@@ -36,7 +36,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		return &UploadResponse{
 			Status:             UploadReady,
-			OrgData:            &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
+			OrgData:            &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
 			PersistenceWarning: persistWarn,
 		}, nil
 	}
@@ -112,7 +112,7 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	if err := s.snaps.DeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	resp.PersistenceWarning = persistWarn
@@ -163,7 +163,7 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
 	}
 
-	resp := &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)

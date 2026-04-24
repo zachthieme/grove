@@ -2,16 +2,16 @@ package api
 
 import "github.com/zachthieme/grove/internal/model"
 
-type Person struct {
-	model.PersonFields
+type OrgNode struct {
+	model.OrgNodeFields
 	Id        string `json:"id"`
 	ManagerId string `json:"managerId"`
 	SortIndex int    `json:"sortIndex"`
 }
 
-// PersonUpdate carries optional field updates for a person.
+// OrgNodeUpdate carries optional field updates for a person.
 // Pointer fields: nil = not sent, zero value = set to empty/zero/false.
-type PersonUpdate struct {
+type OrgNodeUpdate struct {
 	Name            *string `json:"name,omitempty"`
 	Role            *string `json:"role,omitempty"`
 	Discipline      *string `json:"discipline,omitempty"`
@@ -55,17 +55,17 @@ type Settings struct {
 }
 
 type OrgData struct {
-	Original           []Person  `json:"original"`
-	Working            []Person  `json:"working"`
+	Original           []OrgNode  `json:"original"`
+	Working            []OrgNode  `json:"working"`
 	Pods               []Pod     `json:"pods,omitempty"`
 	Settings           *Settings `json:"settings,omitempty"`
 	PersistenceWarning string    `json:"persistenceWarning,omitempty"`
 }
 
 type AutosaveData struct {
-	Original     []Person  `json:"original"`
-	Working      []Person  `json:"working"`
-	Recycled     []Person  `json:"recycled"`
+	Original     []OrgNode  `json:"original"`
+	Working      []OrgNode  `json:"working"`
+	Recycled     []OrgNode  `json:"recycled"`
 	Pods         []Pod     `json:"pods,omitempty"`
 	OriginalPods []Pod     `json:"originalPods,omitempty"`
 	Settings     *Settings `json:"settings,omitempty"`
@@ -102,28 +102,28 @@ type UploadResponse struct {
 // WorkingResponse is returned by mutations that affect working people and pods
 // (move, update, reorder, updatePod, createPod).
 type WorkingResponse struct {
-	Working []Person `json:"working"`
+	Working []OrgNode `json:"working"`
 	Pods    []Pod    `json:"pods"`
 }
 
 // AddResponse is returned when a person is added.
 type AddResponse struct {
-	Created Person   `json:"created"`
-	Working []Person `json:"working"`
+	Created OrgNode   `json:"created"`
+	Working []OrgNode `json:"working"`
 	Pods    []Pod    `json:"pods"`
 }
 
 // MutationResponse is returned by mutations that affect both working and
 // recycled slices (delete, restore).
 type MutationResponse struct {
-	Working  []Person `json:"working"`
-	Recycled []Person `json:"recycled"`
+	Working  []OrgNode `json:"working"`
+	Recycled []OrgNode `json:"recycled"`
 	Pods     []Pod    `json:"pods"`
 }
 
 // RecycledResponse is returned by empty-bin.
 type RecycledResponse struct {
-	Recycled []Person `json:"recycled"`
+	Recycled []OrgNode `json:"recycled"`
 }
 
 // HealthResponse is returned by the health endpoint.

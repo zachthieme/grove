@@ -17,9 +17,9 @@ import (
 
 type OrgService struct {
 	mu           sync.RWMutex
-	original     []Person
-	working      []Person
-	recycled     []Person
+	original     []OrgNode
+	working      []OrgNode
+	recycled     []OrgNode
 	settings     Settings
 	pending      *PendingUpload
 	pendingEpoch uint64
@@ -29,7 +29,7 @@ type OrgService struct {
 	idIndex      map[string]int
 }
 
-func deriveDisciplineOrder(people []Person) []string {
+func deriveDisciplineOrder(people []OrgNode) []string {
 	seen := map[string]bool{}
 	var disciplines []string
 	for _, p := range people {
@@ -45,7 +45,7 @@ func deriveDisciplineOrder(people []Person) []string {
 // MoveResult holds working people and pods, returned from mutations that
 // affect both (e.g. Move, Update, Reorder).
 type MoveResult struct {
-	Working []Person
+	Working []OrgNode
 	Pods    []Pod
 }
 
@@ -99,10 +99,10 @@ func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.original = deepCopyPeople(data.Original)
-	s.working = deepCopyPeople(data.Working)
+	s.original = deepCopyNodes(data.Original)
+	s.working = deepCopyNodes(data.Working)
 	s.rebuildIndex()
-	s.recycled = deepCopyPeople(data.Recycled)
+	s.recycled = deepCopyNodes(data.Recycled)
 	s.podMgr.SetState(CopyPods(data.Pods), CopyPods(data.OriginalPods))
 	if data.Settings != nil {
 		s.settings = *data.Settings
@@ -117,37 +117,37 @@ func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 }
 
-func (s *OrgService) GetWorking(ctx context.Context) []Person {
+func (s *OrgService) GetWorking(ctx context.Context) []OrgNode {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return deepCopyPeople(s.working)
+	return deepCopyNodes(s.working)
 }
 
-func (s *OrgService) GetRecycled(ctx context.Context) []Person {
+func (s *OrgService) GetRecycled(ctx context.Context) []OrgNode {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return deepCopyPeople(s.recycled)
+	return deepCopyNodes(s.recycled)
 }
 
 func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.working = deepCopyPeople(s.original)
+	s.working = deepCopyNodes(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
 	s.podMgr.Reset()
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
 }
 
 // resetState replaces the full org state after an import. Must be called with s.mu held.
 // Callers are responsible for setting s.settings and s.pending as appropriate.
-func (s *OrgService) resetState(original, working []Person, snaps map[string]snapshotData) {
+func (s *OrgService) resetState(original, working []OrgNode, snaps map[string]snapshotData) {
 	s.original = original
-	s.working = deepCopyPeople(working)
+	s.working = deepCopyNodes(working)
 	s.rebuildIndex()
 	s.recycled = nil
 	s.snaps.ReplaceAll(snaps)
@@ -166,7 +166,7 @@ func (s *OrgService) rebuildIndex() {
 }
 
 // findWorking finds a person by ID in the working slice. Must be called with s.mu held.
-func (s *OrgService) findWorking(id string) (int, *Person) {
+func (s *OrgService) findWorking(id string) (int, *OrgNode) {
 	if idx, ok := s.idIndex[id]; ok && idx < len(s.working) && s.working[idx].Id == id {
 		return idx, &s.working[idx]
 	}
@@ -176,20 +176,20 @@ func (s *OrgService) findWorking(id string) (int, *Person) {
 // MutationResult holds both working and recycled slices, returned atomically
 // from mutations that affect both (e.g. Delete, Restore).
 type MutationResult struct {
-	Working  []Person
-	Recycled []Person
+	Working  []OrgNode
+	Recycled []OrgNode
 	Pods     []Pod
 }
 
-// deepCopyPeople returns an independent copy of src, including each person's
+// deepCopyNodes returns an independent copy of src, including each person's
 // AdditionalTeams slice. This is the concurrency safety boundary: every value
 // returned from OrgService to a handler (or stored internally as a separate
-// generation, e.g. original vs working) MUST go through deepCopyPeople so
+// generation, e.g. original vs working) MUST go through deepCopyNodes so
 // that in-place mutations on one slice never corrupt another. The struct
 // fields themselves are value types (strings, ints) and are copied by the
 // range loop; only slice fields (AdditionalTeams) need explicit cloning.
-func deepCopyPeople(src []Person) []Person {
-	dst := make([]Person, len(src))
+func deepCopyNodes(src []OrgNode) []OrgNode {
+	dst := make([]OrgNode, len(src))
 	for i, p := range src {
 		dst[i] = p
 		if p.AdditionalTeams != nil {
@@ -211,16 +211,16 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 		return nil, errValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
-	p := Person{
-		PersonFields: model.PersonFields{Name: name, Status: "Active"},
-		Id:           uuid.NewString(),
+	p := OrgNode{
+		OrgNodeFields: model.OrgNodeFields{Name: name, Status: "Active"},
+		Id:            uuid.NewString(),
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.pending = nil
-	people := []Person{p}
+	people := []OrgNode{p}
 	var persistWarn string
 	if err := s.snaps.DeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
@@ -229,8 +229,8 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	s.settings = Settings{DisciplineOrder: []string{}}
 
 	return &OrgData{
-		Original:           deepCopyPeople(s.original),
-		Working:            deepCopyPeople(s.working),
+		Original:           deepCopyNodes(s.original),
+		Working:            deepCopyNodes(s.working),
 		Pods:               CopyPods(s.podMgr.GetPods()),
 		Settings:           &s.settings,
 		PersistenceWarning: persistWarn,

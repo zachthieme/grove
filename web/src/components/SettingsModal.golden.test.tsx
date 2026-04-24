@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 import SettingsModal from './SettingsModal'
 
 describe('SettingsModal golden', () => {
@@ -9,10 +9,10 @@ describe('SettingsModal golden', () => {
   it('with disciplines', () => {
     const { container } = renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a1', discipline: 'Engineering' }),
-        makePerson({ id: 'b2', discipline: 'Design' }),
-        makePerson({ id: 'c3', discipline: 'Product' }),
-        makePerson({ id: 'd4', discipline: 'Engineering' }),
+        makeNode({ id: 'a1', discipline: 'Engineering' }),
+        makeNode({ id: 'b2', discipline: 'Design' }),
+        makeNode({ id: 'c3', discipline: 'Product' }),
+        makeNode({ id: 'd4', discipline: 'Engineering' }),
       ],
       settings: { disciplineOrder: [] },
       updateSettings: vi.fn().mockResolvedValue(undefined),

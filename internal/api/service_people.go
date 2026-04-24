@@ -30,14 +30,14 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam s
 		s.podMgr.Reassign(p)
 		s.podMgr.Cleanup(s.working)
 	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
-func (s *OrgService) Update(ctx context.Context, personId string, fields PersonUpdate) (*MoveResult, error) {
+func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNodeUpdate) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if err := validatePersonUpdate(&fields); err != nil {
+	if err := validateNodeUpdate(&fields); err != nil {
 		return nil, err
 	}
 
@@ -80,13 +80,13 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields PersonU
 
 	// Status — requires validation
 	if fields.Status != nil {
-		if !model.ValidStatuses[*fields.Status] {
+		if !model.ValidStatuses(p.Type)[*fields.Status] {
 			return nil, errValidation("invalid status '%s'", *fields.Status)
 		}
 		p.Status = *fields.Status
 	}
 
-	// Notes — length already validated by validatePersonUpdate
+	// Notes — length already validated by validateNodeUpdate
 	if fields.PublicNote != nil {
 		p.PublicNote = *fields.PublicNote
 	}
@@ -111,7 +111,7 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields PersonU
 		s.applyPodChange(p, *fields.Pod)
 	}
 
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
@@ -123,10 +123,10 @@ func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*MoveResu
 			s.working[idx].SortIndex = i
 		}
 	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
-func (s *OrgService) Add(ctx context.Context, p Person) (Person, []Person, []Pod, error) {
+func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []Pod, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fields := map[string]string{
@@ -134,30 +134,30 @@ func (s *OrgService) Add(ctx context.Context, p Person) (Person, []Person, []Pod
 		"discipline": p.Discipline, "team": p.Team,
 	}
 	if err := validateFieldLengths(fields); err != nil {
-		return Person{}, nil, nil, err
+		return OrgNode{}, nil, nil, err
 	}
-	if p.Status != "" && !model.ValidStatuses[p.Status] {
-		return Person{}, nil, nil, errValidation("invalid status '%s'", p.Status)
+	if p.Status != "" && !model.ValidStatuses(p.Type)[p.Status] {
+		return OrgNode{}, nil, nil, errValidation("invalid status '%s'", p.Status)
 	}
 	if p.ManagerId != "" {
 		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
-			return Person{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
+			return OrgNode{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
 		}
 	}
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
 	s.rebuildIndex()
 	s.podMgr.Reassign(&s.working[len(s.working)-1])
-	return p, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
+	return p, deepCopyNodes(s.working), CopyPods(s.podMgr.GetPods()), nil
 }
 
-func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Person, []Person, []Pod, error) {
+func (s *OrgService) AddParent(ctx context.Context, childId, name string) (OrgNode, []OrgNode, []Pod, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return Person{}, nil, nil, errValidation("name is required")
+		return OrgNode{}, nil, nil, errValidation("name is required")
 	}
 	if len(name) > maxFieldLen {
-		return Person{}, nil, nil, errValidation("name too long (max %d characters)", maxFieldLen)
+		return OrgNode{}, nil, nil, errValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
 	s.mu.Lock()
@@ -165,12 +165,12 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Perso
 
 	_, child := s.findWorking(childId)
 	if child == nil {
-		return Person{}, nil, nil, errNotFound("person %s not found", childId)
+		return OrgNode{}, nil, nil, errNotFound("person %s not found", childId)
 	}
 
-	parent := Person{
-		PersonFields: model.PersonFields{Name: name, Status: "Active"},
-		Id:           uuid.NewString(),
+	parent := OrgNode{
+		OrgNodeFields: model.OrgNodeFields{Name: name, Status: "Active"},
+		Id:            uuid.NewString(),
 	}
 
 	// Insert between child and its existing manager (if any)
@@ -181,7 +181,7 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (Perso
 	s.working = append(s.working, parent)
 	s.rebuildIndex()
 	s.podMgr.Reassign(&s.working[len(s.working)-1])
-	return parent, deepCopyPeople(s.working), CopyPods(s.podMgr.GetPods()), nil
+	return parent, deepCopyNodes(s.working), CopyPods(s.podMgr.GetPods()), nil
 }
 
 func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResult, error) {
@@ -201,8 +201,8 @@ func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResu
 	s.rebuildIndex()
 	s.podMgr.Cleanup(s.working)
 	return &MutationResult{
-		Working:  deepCopyPeople(s.working),
-		Recycled: deepCopyPeople(s.recycled),
+		Working:  deepCopyNodes(s.working),
+		Recycled: deepCopyNodes(s.recycled),
 		Pods:     CopyPods(s.podMgr.GetPods()),
 	}, nil
 }
@@ -231,22 +231,22 @@ func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationRes
 	s.rebuildIndex()
 	s.podMgr.Reassign(&s.working[len(s.working)-1])
 	return &MutationResult{
-		Working:  deepCopyPeople(s.working),
-		Recycled: deepCopyPeople(s.recycled),
+		Working:  deepCopyNodes(s.working),
+		Recycled: deepCopyNodes(s.recycled),
 		Pods:     CopyPods(s.podMgr.GetPods()),
 	}, nil
 }
 
-func (s *OrgService) EmptyBin(ctx context.Context) []Person {
+func (s *OrgService) EmptyBin(ctx context.Context) []OrgNode {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.recycled = nil
-	return deepCopyPeople(s.recycled)
+	return deepCopyNodes(s.recycled)
 }
 
 // applyTeamChange updates a person's team and cascades to ICs of front-line managers.
 // Must be called with s.mu held.
-func (s *OrgService) applyTeamChange(p *Person, personId, team string) {
+func (s *OrgService) applyTeamChange(p *OrgNode, personId, team string) {
 	p.Team = team
 	s.podMgr.Reassign(p)
 	if isFrontlineManager(s.working, personId) {
@@ -262,7 +262,7 @@ func (s *OrgService) applyTeamChange(p *Person, personId, team string) {
 
 // applyManagerChange validates and applies a manager reassignment.
 // Must be called with s.mu held.
-func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string, hasTeamField bool) error {
+func (s *OrgService) applyManagerChange(p *OrgNode, personId, newManagerId string, hasTeamField bool) error {
 	if newManagerId != "" {
 		if err := validateManagerChange(s.working, personId, newManagerId); err != nil {
 			return err
@@ -281,7 +281,7 @@ func (s *OrgService) applyManagerChange(p *Person, personId, newManagerId string
 
 // applyPodChange assigns or clears a person's pod, auto-creating if needed.
 // Must be called with s.mu held.
-func (s *OrgService) applyPodChange(p *Person, podName string) {
+func (s *OrgService) applyPodChange(p *OrgNode, podName string) {
 	if podName == "" {
 		p.Pod = ""
 		s.podMgr.Cleanup(s.working)

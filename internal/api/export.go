@@ -11,7 +11,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var exportHeaders = []string{"Name", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
+var exportHeaders = []string{"Name", "Type", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 
 // sanitizeCell prevents CSV injection by prefixing cells that start with
 // formula-triggering characters. See OWASP CSV Injection guidance.
@@ -27,10 +27,10 @@ func sanitizeCell(s string) string {
 	}
 }
 
-// collectExtraKeys returns the sorted union of all Extra map keys across people.
-func collectExtraKeys(people []Person) []string {
+// collectExtraKeys returns the sorted union of all Extra map keys across nodes.
+func collectExtraKeys(nodes []OrgNode) []string {
 	seen := make(map[string]bool)
-	for _, p := range people {
+	for _, p := range nodes {
 		for k := range p.Extra {
 			seen[k] = true
 		}
@@ -43,15 +43,15 @@ func collectExtraKeys(people []Person) []string {
 	return keys
 }
 
-func personToRowWithExtra(p Person, idToName map[string]string, extraKeys []string) []string {
-	row := personToRow(p, idToName)
+func nodeToRowWithExtra(p OrgNode, idToName map[string]string, extraKeys []string) []string {
+	row := nodeToRow(p, idToName)
 	for _, k := range extraKeys {
 		row = append(row, sanitizeCell(p.Extra[k]))
 	}
 	return row
 }
 
-func ExportCSV(people []Person) ([]byte, error) {
+func ExportCSV(people []OrgNode) ([]byte, error) {
 	idToName := buildIDToName(people)
 	extraKeys := collectExtraKeys(people)
 	headers := append(append([]string{}, exportHeaders...), extraKeys...)
@@ -61,7 +61,7 @@ func ExportCSV(people []Person) ([]byte, error) {
 		return nil, fmt.Errorf("writing CSV headers: %w", err)
 	}
 	for _, p := range people {
-		if err := w.Write(personToRowWithExtra(p, idToName, extraKeys)); err != nil {
+		if err := w.Write(nodeToRowWithExtra(p, idToName, extraKeys)); err != nil {
 			return nil, fmt.Errorf("writing CSV row: %w", err)
 		}
 	}
@@ -72,7 +72,7 @@ func ExportCSV(people []Person) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ExportXLSX(people []Person) ([]byte, error) {
+func ExportXLSX(people []OrgNode) ([]byte, error) {
 	idToName := buildIDToName(people)
 	extraKeys := collectExtraKeys(people)
 	headers := append(append([]string{}, exportHeaders...), extraKeys...)
@@ -86,7 +86,7 @@ func ExportXLSX(people []Person) ([]byte, error) {
 		}
 	}
 	for rowIdx, p := range people {
-		row := personToRowWithExtra(p, idToName, extraKeys)
+		row := nodeToRowWithExtra(p, idToName, extraKeys)
 		for colIdx, val := range row {
 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx+2)
 			if err := f.SetCellValue(sheet, cell, val); err != nil {
@@ -101,7 +101,7 @@ func ExportXLSX(people []Person) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func buildIDToName(people []Person) map[string]string {
+func buildIDToName(people []OrgNode) map[string]string {
 	m := make(map[string]string, len(people))
 	for _, p := range people {
 		m[p.Id] = p.Name
@@ -111,7 +111,7 @@ func buildIDToName(people []Person) map[string]string {
 
 var podSidecarHeaders = []string{"Pod Name", "Manager", "Team", "Public Note", "Private Note"}
 
-func ExportPodsSidecarCSV(pods []Pod, people []Person) ([]byte, error) {
+func ExportPodsSidecarCSV(pods []Pod, people []OrgNode) ([]byte, error) {
 	idToName := buildIDToName(people)
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
@@ -149,7 +149,7 @@ func ExportSettingsSidecarCSV(settings Settings) ([]byte, error) {
 	return buf.Bytes(), w.Error()
 }
 
-func personToRow(p Person, idToName map[string]string) []string {
+func nodeToRow(p OrgNode, idToName map[string]string) []string {
 	managerName := idToName[p.ManagerId]
 	levelStr := ""
 	if p.Level != 0 {
@@ -160,7 +160,7 @@ func personToRow(p Person, idToName map[string]string) []string {
 		privateStr = "true"
 	}
 	return []string{
-		sanitizeCell(p.Name), sanitizeCell(p.Role), sanitizeCell(p.Discipline),
+		sanitizeCell(p.Name), sanitizeCell(p.Type), sanitizeCell(p.Role), sanitizeCell(p.Discipline),
 		sanitizeCell(managerName), sanitizeCell(p.Team),
 		sanitizeCell(strings.Join(p.AdditionalTeams, ",")),
 		sanitizeCell(p.Status), sanitizeCell(p.EmploymentType),

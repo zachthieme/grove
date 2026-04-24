@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 import Breadcrumbs from './Breadcrumbs'
 
 describe('Breadcrumbs golden', () => {
@@ -20,7 +20,7 @@ describe('Breadcrumbs golden', () => {
   it('single person', () => {
     const { container } = renderWithOrg(<Breadcrumbs />, {
       headPersonId: 'p1',
-      working: [makePerson({ id: 'p1', name: 'Solo', managerId: '' })],
+      working: [makeNode({ id: 'p1', name: 'Solo', managerId: '' })],
       setHead: vi.fn(),
     })
     expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
@@ -32,9 +32,9 @@ describe('Breadcrumbs golden', () => {
     const { container } = renderWithOrg(<Breadcrumbs />, {
       headPersonId: 'p3',
       working: [
-        makePerson({ id: 'p1', name: 'CEO', managerId: '' }),
-        makePerson({ id: 'p2', name: 'VP', managerId: 'p1' }),
-        makePerson({ id: 'p3', name: 'Director', managerId: 'p2' }),
+        makeNode({ id: 'p1', name: 'CEO', managerId: '' }),
+        makeNode({ id: 'p2', name: 'VP', managerId: 'p1' }),
+        makeNode({ id: 'p3', name: 'Director', managerId: 'p2' }),
       ],
       setHead: vi.fn(),
     })

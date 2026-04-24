@@ -2,22 +2,22 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { makePerson } from '../test-helpers'
-import PersonNode from './PersonNode'
+import { makeNode } from '../test-helpers'
+import OrgNodeCard from './OrgNodeCard'
 
 afterEach(() => cleanup())
 
-describe('PersonNode behavior', () => {
+describe('OrgNodeCard behavior', () => {
   it('click calls onClick', async () => {
     const onClick = vi.fn()
-    render(<PersonNode person={makePerson()} onClick={onClick} />)
+    render(<OrgNodeCard person={makeNode()} onClick={onClick} />)
     await userEvent.click(screen.getByTestId('person-Default Person'))
     expect(onClick).toHaveBeenCalledOnce()
   })
 
   it('Enter key calls onClick', async () => {
     const onClick = vi.fn()
-    render(<PersonNode person={makePerson()} onClick={onClick} />)
+    render(<OrgNodeCard person={makeNode()} onClick={onClick} />)
     screen.getByTestId('person-Default Person').focus()
     await userEvent.keyboard('{Enter}')
     expect(onClick).toHaveBeenCalledOnce()
@@ -25,7 +25,7 @@ describe('PersonNode behavior', () => {
 
   it('Space key calls onClick', async () => {
     const onClick = vi.fn()
-    render(<PersonNode person={makePerson()} onClick={onClick} />)
+    render(<OrgNodeCard person={makeNode()} onClick={onClick} />)
     screen.getByTestId('person-Default Person').focus()
     await userEvent.keyboard(' ')
     expect(onClick).toHaveBeenCalledOnce()
@@ -34,7 +34,7 @@ describe('PersonNode behavior', () => {
   it('hover shows action buttons, unhover hides them', async () => {
     const user = userEvent.setup()
     render(
-      <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
+      <OrgNodeCard person={makeNode()} onDelete={vi.fn()} onClick={vi.fn()} />,
     )
     const card = screen.getByTestId('person-Default Person')
     expect(screen.queryByLabelText('Delete')).toBeNull()
@@ -49,35 +49,35 @@ describe('PersonNode behavior', () => {
   it('ghost mode suppresses action buttons even on hover', async () => {
     const user = userEvent.setup()
     render(
-      <PersonNode person={makePerson()} ghost onDelete={vi.fn()} />,
+      <OrgNodeCard person={makeNode()} ghost onDelete={vi.fn()} />,
     )
     await user.hover(screen.getByTestId('person-Default Person'))
     expect(screen.queryByLabelText('Delete')).toBeNull()
   })
 
   it('warning dot renders with correct aria-label', () => {
-    render(<PersonNode person={makePerson({ warning: 'Span too wide' })} />)
+    render(<OrgNodeCard person={makeNode({ warning: 'Span too wide' })} />)
     expect(screen.getByLabelText('Warning: Span too wide')).toBeTruthy()
   })
 
   it('no warning means no warning dot', () => {
-    render(<PersonNode person={makePerson()} />)
+    render(<OrgNodeCard person={makeNode()} />)
     expect(screen.queryByLabelText(/Warning/)).toBeNull()
   })
 
   it('private icon renders when private=true', () => {
-    render(<PersonNode person={makePerson({ private: true })} />)
+    render(<OrgNodeCard person={makeNode({ private: true })} />)
     expect(screen.getByLabelText('Private')).toBeTruthy()
   })
 
   it('private icon hidden for placeholder people', () => {
-    const person = { ...makePerson({ private: true }), isPlaceholder: true }
-    render(<PersonNode person={person} />)
+    const person = { ...makeNode({ private: true }), isPlaceholder: true }
+    render(<OrgNodeCard person={person} />)
     expect(screen.queryByLabelText('Private')).toBeNull()
   })
 
   it('note toggle: click shows note panel, click again hides', async () => {
-    render(<PersonNode person={makePerson({ publicNote: 'Hello' })} />)
+    render(<OrgNodeCard person={makeNode({ publicNote: 'Hello' })} />)
     const btn = screen.getByLabelText('Toggle notes')
 
     await userEvent.click(btn)
@@ -88,7 +88,7 @@ describe('PersonNode behavior', () => {
   })
 
   it('note button aria-expanded reflects state', async () => {
-    render(<PersonNode person={makePerson({ publicNote: 'Note' })} />)
+    render(<OrgNodeCard person={makeNode({ publicNote: 'Note' })} />)
     const btn = screen.getByLabelText('Toggle notes')
     expect(btn.getAttribute('aria-expanded')).toBe('false')
 
@@ -100,62 +100,62 @@ describe('PersonNode behavior', () => {
   })
 
   it('no publicNote means no note button', () => {
-    render(<PersonNode person={makePerson()} />)
+    render(<OrgNodeCard person={makeNode()} />)
     expect(screen.queryByLabelText('Toggle notes')).toBeNull()
   })
 
   it('showTeam shows team name', () => {
-    render(<PersonNode person={makePerson({ team: 'Infra' })} showTeam />)
+    render(<OrgNodeCard person={makeNode({ team: 'Infra' })} showTeam />)
     expect(screen.getByText('Infra')).toBeTruthy()
   })
 
   it('no role shows TBD', () => {
-    render(<PersonNode person={makePerson({ role: '' })} />)
+    render(<OrgNodeCard person={makeNode({ role: '' })} />)
     expect(screen.getByText('TBD')).toBeTruthy()
   })
 
   describe('employment type abbreviations', () => {
     it('CW shows CW', () => {
-      render(<PersonNode person={makePerson({ employmentType: 'CW' })} />)
+      render(<OrgNodeCard person={makeNode({ employmentType: 'CW' })} />)
       expect(screen.getByText(/CW/)).toBeTruthy()
     })
 
     it('PSP shows PSP', () => {
-      render(<PersonNode person={makePerson({ employmentType: 'PSP' })} />)
+      render(<OrgNodeCard person={makeNode({ employmentType: 'PSP' })} />)
       expect(screen.getByText(/PSP/)).toBeTruthy()
     })
 
     it('Evergreen shows EVG', () => {
-      render(<PersonNode person={makePerson({ employmentType: 'Evergreen' })} />)
+      render(<OrgNodeCard person={makeNode({ employmentType: 'Evergreen' })} />)
       expect(screen.getByText(/EVG/)).toBeTruthy()
     })
 
     it('FTE shows nothing', () => {
       const { container } = render(
-        <PersonNode person={makePerson({ employmentType: 'FTE' })} />,
+        <OrgNodeCard person={makeNode({ employmentType: 'FTE' })} />,
       )
       expect(container.textContent).not.toContain('FTE')
     })
 
     it('Intern shows Intern', () => {
-      render(<PersonNode person={makePerson({ employmentType: 'Intern' })} />)
+      render(<OrgNodeCard person={makeNode({ employmentType: 'Intern' })} />)
       expect(screen.getByText(/Intern/)).toBeTruthy()
     })
 
     it('unknown type shows first 3 chars uppercase', () => {
-      render(<PersonNode person={makePerson({ employmentType: 'vendor' })} />)
+      render(<OrgNodeCard person={makeNode({ employmentType: 'vendor' })} />)
       expect(screen.getByText(/VEN/)).toBeTruthy()
     })
   })
 
   it('data-selected attribute reflects selected prop', () => {
     const { rerender } = render(
-      <PersonNode person={makePerson()} selected={false} />,
+      <OrgNodeCard person={makeNode()} selected={false} />,
     )
     const node = screen.getByTestId('person-Default Person')
     expect(node.dataset.selected).toBe('false')
 
-    rerender(<PersonNode person={makePerson()} selected />)
+    rerender(<OrgNodeCard person={makeNode()} selected />)
     expect(node.dataset.selected).toBe('true')
   })
 
@@ -165,7 +165,7 @@ describe('PersonNode behavior', () => {
       const user = userEvent.setup()
       const onAdd = vi.fn()
       render(
-        <PersonNode person={makePerson({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
+        <OrgNodeCard person={makeNode({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
       )
       await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.getByLabelText('Add direct report')).toBeTruthy()
@@ -175,7 +175,7 @@ describe('PersonNode behavior', () => {
       const user = userEvent.setup()
       const onAdd = vi.fn()
       render(
-        <PersonNode person={makePerson({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
+        <OrgNodeCard person={makeNode({ managerId: 'some-manager' })} onAdd={onAdd} onClick={vi.fn()} />,
       )
       await user.hover(screen.getByTestId('person-Default Person'))
       // fireEvent avoids pointer-move side effects that would trigger mouseLeave on the wrapper
@@ -186,7 +186,7 @@ describe('PersonNode behavior', () => {
     it('[CREATE-005] does not show "+" button when onAdd is not provided', async () => {
       const user = userEvent.setup()
       render(
-        <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
+        <OrgNodeCard person={makeNode()} onDelete={vi.fn()} onClick={vi.fn()} />,
       )
       await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.queryByLabelText('Add direct report')).toBeNull()
@@ -199,7 +199,7 @@ describe('PersonNode behavior', () => {
       const user = userEvent.setup()
       const onAddParent = vi.fn()
       render(
-        <PersonNode person={makePerson()} onAddParent={onAddParent} onClick={vi.fn()} />,
+        <OrgNodeCard person={makeNode()} onAddParent={onAddParent} onClick={vi.fn()} />,
       )
       await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.getByLabelText('Add manager above')).toBeTruthy()
@@ -208,7 +208,7 @@ describe('PersonNode behavior', () => {
     it('[CREATE-003] does not show "Add manager above" button when onAddParent is not provided', async () => {
       const user = userEvent.setup()
       render(
-        <PersonNode person={makePerson()} onDelete={vi.fn()} onClick={vi.fn()} />,
+        <OrgNodeCard person={makeNode()} onDelete={vi.fn()} onClick={vi.fn()} />,
       )
       await user.hover(screen.getByTestId('person-Default Person'))
       expect(screen.queryByLabelText('Add manager above')).toBeNull()
@@ -219,7 +219,7 @@ describe('PersonNode behavior', () => {
   describe('error and edge states', () => {
     it('renders with empty role showing TBD and no employment abbreviation', () => {
       const { container } = render(
-        <PersonNode person={makePerson({ role: '', employmentType: '' })} />,
+        <OrgNodeCard person={makeNode({ role: '', employmentType: '' })} />,
       )
       expect(screen.getByText('TBD')).toBeTruthy()
       // No employment abbreviation rendered for empty type
@@ -227,8 +227,27 @@ describe('PersonNode behavior', () => {
     })
 
     it('renders gracefully with empty name', () => {
-      render(<PersonNode person={makePerson({ name: '' })} />)
+      render(<OrgNodeCard person={makeNode({ name: '' })} />)
       expect(screen.getByTestId('person-')).toBeTruthy()
+    })
+  })
+
+  // Scenarios: PROD-001
+  describe('[PROD-001] product card rendering', () => {
+    it('[PROD-001] product card does not show TBD for empty role', () => {
+      render(
+        <OrgNodeCard person={makeNode({ type: 'product', role: '' })} />,
+      )
+      // Product cards don't show role section at all, so TBD should not appear
+      expect(screen.queryByText('TBD')).toBeNull()
+    })
+
+    it('[PROD-001] product card shows non-active status', () => {
+      render(
+        <OrgNodeCard person={makeNode({ type: 'product', status: 'Deprecated' as any })} />,
+      )
+      // Product cards show status text when not Active
+      expect(screen.getByText('Deprecated')).toBeTruthy()
     })
   })
 })

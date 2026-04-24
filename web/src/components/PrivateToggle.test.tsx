@@ -3,21 +3,21 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PrivateToggle from './PrivateToggle'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 afterEach(() => cleanup())
 
 describe('PrivateToggle', () => {
   it('returns null when no private people', () => {
     const { container } = renderWithOrg(<PrivateToggle />, {
-      working: [makePerson(), makePerson({ id: '2' })],
+      working: [makeNode(), makeNode({ id: '2' })],
     })
     expect(container.innerHTML).toBe('')
   })
 
   it('shows toggle button when private people exist', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true })],
+      working: [makeNode({ private: true })],
     })
     expect(screen.getByRole('button')).toBeTruthy()
   })
@@ -25,9 +25,9 @@ describe('PrivateToggle', () => {
   it('shows correct count in button text', () => {
     renderWithOrg(<PrivateToggle />, {
       working: [
-        makePerson({ id: '1', private: true }),
-        makePerson({ id: '2', private: true }),
-        makePerson({ id: '3', private: false }),
+        makeNode({ id: '1', private: true }),
+        makeNode({ id: '2', private: true }),
+        makeNode({ id: '3', private: false }),
       ],
     })
     expect(screen.getByText('2 hidden')).toBeTruthy()
@@ -37,7 +37,7 @@ describe('PrivateToggle', () => {
     const user = userEvent.setup()
     const setShowPrivate = vi.fn()
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true }), makePerson({ id: '2', private: true })],
+      working: [makeNode({ private: true }), makeNode({ id: '2', private: true })],
       showPrivate: false,
       setShowPrivate,
     })
@@ -48,7 +48,7 @@ describe('PrivateToggle', () => {
 
   it('aria-label includes count and hidden state when showPrivate is false', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true }), makePerson({ id: '2', private: true })],
+      working: [makeNode({ private: true }), makeNode({ id: '2', private: true })],
       showPrivate: false,
     })
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe(
@@ -58,7 +58,7 @@ describe('PrivateToggle', () => {
 
   it('aria-label includes count and shown state when showPrivate is true', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ id: '1', private: true })],
+      working: [makeNode({ id: '1', private: true })],
       showPrivate: true,
     })
     expect(screen.getByRole('button').getAttribute('aria-label')).toBe(
@@ -68,7 +68,7 @@ describe('PrivateToggle', () => {
 
   it('aria-pressed is false when showPrivate is false', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true })],
+      working: [makeNode({ private: true })],
       showPrivate: false,
     })
     expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe('false')
@@ -76,7 +76,7 @@ describe('PrivateToggle', () => {
 
   it('aria-pressed is true when showPrivate is true', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true })],
+      working: [makeNode({ private: true })],
       showPrivate: true,
     })
     expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe('true')
@@ -84,7 +84,7 @@ describe('PrivateToggle', () => {
 
   it('shows "hidden" text when showPrivate is false', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true })],
+      working: [makeNode({ private: true })],
       showPrivate: false,
     })
     expect(screen.getByText('1 hidden')).toBeTruthy()
@@ -92,7 +92,7 @@ describe('PrivateToggle', () => {
 
   it('shows "shown" text when showPrivate is true', () => {
     renderWithOrg(<PrivateToggle />, {
-      working: [makePerson({ private: true })],
+      working: [makeNode({ private: true })],
       showPrivate: true,
     })
     expect(screen.getByText('1 shown')).toBeTruthy()

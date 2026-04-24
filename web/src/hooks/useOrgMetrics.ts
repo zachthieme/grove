@@ -1,15 +1,17 @@
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 
 export interface TeamPodGroup {
   name: string
   count: number
   byDiscipline: Map<string, number>
+  productCount: number
 }
 
 export interface OrgMetrics {
   spanOfControl: number
   totalHeadcount: number
+  productCount: number
   recruiting: number
   planned: number
   transfers: number
@@ -17,8 +19,8 @@ export interface OrgMetrics {
   byTeamPod: TeamPodGroup[]
 }
 
-export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMetrics {
-  const childrenMap = new Map<string, Person[]>()
+export function computeOrgMetrics(personId: string, allPeople: OrgNode[]): OrgMetrics {
+  const childrenMap = new Map<string, OrgNode[]>()
   for (const p of allPeople) {
     if (p.managerId) {
       const list = childrenMap.get(p.managerId) ?? []
@@ -27,9 +29,11 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
     }
   }
 
+  const directReports = childrenMap.get(personId) || []
   const metrics: OrgMetrics = {
-    spanOfControl: (childrenMap.get(personId) || []).length,
+    spanOfControl: directReports.filter(p => p.type !== 'product').length,
     totalHeadcount: 0,
+    productCount: 0,
     recruiting: 0,
     planned: 0,
     transfers: 0,
@@ -40,10 +44,21 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
   // Collect all people in subtree, grouped by pod/team with discipline sub-counts
   const groupMap = new Map<string, Map<string, number>>()
   const groupCounts = new Map<string, number>()
+  const groupProductCounts = new Map<string, number>()
 
   function walk(pid: string) {
     const reports = childrenMap.get(pid) || []
     for (const r of reports) {
+      if (r.type === 'product') {
+        metrics.productCount++
+        const groupKey = r.pod || r.team || 'Unassigned'
+        groupCounts.set(groupKey, (groupCounts.get(groupKey) || 0) + 1)
+        if (!groupMap.has(groupKey)) groupMap.set(groupKey, new Map())
+        groupProductCounts.set(groupKey, (groupProductCounts.get(groupKey) || 0) + 1)
+        walk(r.id)
+        continue
+      }
+
       metrics.totalHeadcount++
 
       // Group key: use pod if set, otherwise team
@@ -78,6 +93,7 @@ export function computeOrgMetrics(personId: string, allPeople: Person[]): OrgMet
       name,
       count,
       byDiscipline: groupMap.get(name) || new Map(),
+      productCount: groupProductCounts.get(name) || 0,
     }))
 
   return metrics

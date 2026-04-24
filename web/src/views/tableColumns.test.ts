@@ -1,10 +1,10 @@
 // Scenarios: VIEW-003
 import { describe, it, expect } from 'vitest'
 import { getPersonValue, buildExtraColumns, TABLE_COLUMNS } from './tableColumns'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 // Helper to make a minimal person for testing
-function makePerson(overrides: Partial<Person> = {}): Person {
+function makeNode(overrides: Partial<OrgNode> = {}): OrgNode {
   return {
     id: 'test-id',
     name: 'Test Person',
@@ -15,65 +15,65 @@ function makePerson(overrides: Partial<Person> = {}): Person {
     additionalTeams: [],
     status: 'Active',
     ...overrides,
-  } as Person
+  } as OrgNode
 }
 
 describe('getPersonValue', () => {
   it('returns standard string fields', () => {
-    const p = makePerson({ name: 'Alice', role: 'VP', team: 'Exec' })
+    const p = makeNode({ name: 'Alice', role: 'VP', team: 'Exec' })
     expect(getPersonValue(p, 'name')).toBe('Alice')
     expect(getPersonValue(p, 'role')).toBe('VP')
     expect(getPersonValue(p, 'team')).toBe('Exec')
   })
 
   it('returns level as string or empty', () => {
-    expect(getPersonValue(makePerson({ level: 5 }), 'level')).toBe('5')
-    expect(getPersonValue(makePerson({ level: 0 }), 'level')).toBe('')
-    expect(getPersonValue(makePerson(), 'level')).toBe('')
+    expect(getPersonValue(makeNode({ level: 5 }), 'level')).toBe('5')
+    expect(getPersonValue(makeNode({ level: 0 }), 'level')).toBe('')
+    expect(getPersonValue(makeNode(), 'level')).toBe('')
   })
 
   it('joins additionalTeams with comma', () => {
-    const p = makePerson({ additionalTeams: ['Alpha', 'Beta'] })
+    const p = makeNode({ additionalTeams: ['Alpha', 'Beta'] })
     expect(getPersonValue(p, 'additionalTeams')).toBe('Alpha, Beta')
   })
 
   it('returns empty string for null additionalTeams', () => {
-    const p = makePerson({ additionalTeams: undefined as unknown as string[] })
+    const p = makeNode({ additionalTeams: undefined as unknown as string[] })
     expect(getPersonValue(p, 'additionalTeams')).toBe('')
   })
 
   it('returns private as string', () => {
-    expect(getPersonValue(makePerson({ private: true }), 'private')).toBe('true')
-    expect(getPersonValue(makePerson({ private: false }), 'private')).toBe('false')
-    expect(getPersonValue(makePerson(), 'private')).toBe('false')
+    expect(getPersonValue(makeNode({ private: true }), 'private')).toBe('true')
+    expect(getPersonValue(makeNode({ private: false }), 'private')).toBe('false')
+    expect(getPersonValue(makeNode(), 'private')).toBe('false')
   })
 
   it('returns extra field values', () => {
-    const p = makePerson({ extra: { 'Custom Field': 'custom value' } })
+    const p = makeNode({ extra: { 'Custom Field': 'custom value' } })
     expect(getPersonValue(p, 'extra:Custom Field')).toBe('custom value')
   })
 
   it('returns empty string for missing extra field', () => {
-    const p = makePerson()
+    const p = makeNode()
     expect(getPersonValue(p, 'extra:nonexistent')).toBe('')
   })
 
   it('returns empty string for unknown key', () => {
-    const p = makePerson()
+    const p = makeNode()
     expect(getPersonValue(p, 'nonexistent')).toBe('')
   })
 })
 
 describe('buildExtraColumns', () => {
   it('returns empty array when no people have extras', () => {
-    const people = [makePerson(), makePerson()]
+    const people = [makeNode(), makeNode()]
     expect(buildExtraColumns(people)).toEqual([])
   })
 
   it('collects unique extra keys sorted alphabetically', () => {
     const people = [
-      makePerson({ extra: { Zebra: 'z', Alpha: 'a' } }),
-      makePerson({ extra: { Alpha: 'a2', Beta: 'b' } }),
+      makeNode({ extra: { Zebra: 'z', Alpha: 'a' } }),
+      makeNode({ extra: { Alpha: 'a2', Beta: 'b' } }),
     ]
     const cols = buildExtraColumns(people)
     expect(cols.map(c => c.label)).toEqual(['Alpha', 'Beta', 'Zebra'])
@@ -83,8 +83,8 @@ describe('buildExtraColumns', () => {
 
   it('handles people with no extra field', () => {
     const people = [
-      makePerson(),
-      makePerson({ extra: { Foo: 'bar' } }),
+      makeNode(),
+      makeNode({ extra: { Foo: 'bar' } }),
     ]
     const cols = buildExtraColumns(people)
     expect(cols).toHaveLength(1)

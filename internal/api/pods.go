@@ -9,7 +9,7 @@ import (
 // SeedPods creates Pod objects for people who have an explicit Pod field set.
 // People without a Pod field are left unchanged. Root nodes (empty ManagerId)
 // are skipped. Does not modify people's Pod fields.
-func SeedPods(people []Person) []Pod {
+func SeedPods(people []OrgNode) []Pod {
 	type groupKey struct {
 		ManagerId string
 		PodName   string
@@ -47,7 +47,7 @@ func SeedPods(people []Person) []Pod {
 // CleanupEmptyPods returns only pods that have at least one member.
 // A person is a member of a pod if their ManagerId matches the pod's ManagerId
 // AND their Pod field matches the pod's Name.
-func CleanupEmptyPods(pods []Pod, people []Person) []Pod {
+func CleanupEmptyPods(pods []Pod, people []OrgNode) []Pod {
 	// Build O(n) membership set: "managerId:podName" → true
 	members := make(map[string]bool, len(people)/4)
 	for _, p := range people {
@@ -88,7 +88,7 @@ func findPodByID(pods []Pod, id string) *Pod {
 
 // RenamePod finds a pod by ID, updates its Name, and updates all members'
 // Pod field from the old name to the new name.
-func RenamePod(pods []Pod, people []Person, podID, newName string) error {
+func RenamePod(pods []Pod, people []OrgNode, podID, newName string) error {
 	pod := findPodByID(pods, podID)
 	if pod == nil {
 		return fmt.Errorf("pod %s not found", podID)
@@ -109,7 +109,7 @@ func RenamePod(pods []Pod, people []Person, podID, newName string) error {
 // ReassignPersonPod clears a person's pod if it's no longer valid (e.g. after
 // a manager or team change). Pods are optional — if a person has no pod, none
 // is assigned. Never auto-creates pods.
-func ReassignPersonPod(pods []Pod, person *Person) []Pod {
+func ReassignPersonPod(pods []Pod, person *OrgNode) []Pod {
 	if person.ManagerId == "" || person.Pod == "" {
 		person.Pod = ""
 		return pods

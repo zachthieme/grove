@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import RecycleBinDrawer from './RecycleBinDrawer'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 describe('RecycleBinDrawer branch coverage', () => {
   afterEach(() => cleanup())
@@ -26,7 +26,7 @@ describe('RecycleBinDrawer branch coverage', () => {
     const closeFn = vi.fn()
     renderWithOrg(<RecycleBinDrawer />, {
       binOpen: true,
-      recycled: [makePerson({ id: 'r1' })],
+      recycled: [makeNode({ id: 'r1' })],
       setBinOpen: closeFn,
       clearSelection: clearSelectionFn,
     })
@@ -39,8 +39,8 @@ describe('RecycleBinDrawer branch coverage', () => {
       binOpen: true,
       showPrivate: false,
       recycled: [
-        makePerson({ id: 'r1', name: 'Public Bob', private: false }),
-        makePerson({ id: 'r2', name: 'Private Alice', private: true }),
+        makeNode({ id: 'r1', name: 'Public Bob', private: false }),
+        makeNode({ id: 'r2', name: 'Private Alice', private: true }),
       ],
     })
     expect(screen.getByText('Public Bob')).toBeDefined()
@@ -54,8 +54,8 @@ describe('RecycleBinDrawer branch coverage', () => {
       binOpen: true,
       showPrivate: true,
       recycled: [
-        makePerson({ id: 'r1', name: 'Public Bob', private: false }),
-        makePerson({ id: 'r2', name: 'Private Alice', private: true }),
+        makeNode({ id: 'r1', name: 'Public Bob', private: false }),
+        makeNode({ id: 'r2', name: 'Private Alice', private: true }),
       ],
     })
     expect(screen.getByText('Public Bob')).toBeDefined()
@@ -68,7 +68,7 @@ describe('RecycleBinDrawer branch coverage', () => {
       binOpen: true,
       showPrivate: true,
       recycled: [
-        makePerson({ id: 'r1', name: 'Private Alice', private: true }),
+        makeNode({ id: 'r1', name: 'Private Alice', private: true }),
       ],
     })
     // The lock emoji (U+1F512) should be rendered
@@ -81,7 +81,7 @@ describe('RecycleBinDrawer branch coverage', () => {
       binOpen: true,
       showPrivate: true,
       recycled: [
-        makePerson({ id: 'r1', name: 'Public Bob', private: false }),
+        makeNode({ id: 'r1', name: 'Public Bob', private: false }),
       ],
     })
     expect(screen.queryByTitle('Private')).toBeNull()
@@ -92,7 +92,7 @@ describe('RecycleBinDrawer branch coverage', () => {
       binOpen: true,
       showPrivate: false,
       recycled: [
-        makePerson({ id: 'r1', name: 'Private Alice', private: true }),
+        makeNode({ id: 'r1', name: 'Private Alice', private: true }),
       ],
     })
     expect(screen.getByText('Bin is empty')).toBeDefined()

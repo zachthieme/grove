@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import ColumnView from './ColumnView'
-import { makePerson, renderWithViewData } from '../test-helpers'
+import { makeNode, renderWithViewData } from '../test-helpers'
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -41,8 +41,8 @@ describe('ColumnView', () => {
   })
 
   it('renders person names when people provided', () => {
-    const ceo = makePerson({ id: 'ceo', name: 'Alice CEO', role: 'CEO', managerId: '' })
-    const eng = makePerson({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', managerId: 'ceo' })
+    const ceo = makeNode({ id: 'ceo', name: 'Alice CEO', role: 'CEO', managerId: '' })
+    const eng = makeNode({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', managerId: 'ceo' })
 
     renderWithViewData(<ColumnView />, { working: [ceo, eng], original: [ceo, eng] })
 
@@ -51,9 +51,9 @@ describe('ColumnView', () => {
   })
 
   it('renders all people in the tree', () => {
-    const ceo = makePerson({ id: 'ceo', name: 'Alice CEO', role: 'CEO', managerId: '' })
-    const eng = makePerson({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', managerId: 'ceo' })
-    const des = makePerson({ id: 'des', name: 'Carol Designer', role: 'Designer', managerId: 'ceo' })
+    const ceo = makeNode({ id: 'ceo', name: 'Alice CEO', role: 'CEO', managerId: '' })
+    const eng = makeNode({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', managerId: 'ceo' })
+    const des = makeNode({ id: 'des', name: 'Carol Designer', role: 'Designer', managerId: 'ceo' })
 
     renderWithViewData(<ColumnView />, { working: [ceo, eng, des], original: [ceo, eng, des] })
 
@@ -63,8 +63,8 @@ describe('ColumnView', () => {
   })
 
   it('shows team on manager nodes', () => {
-    const ceo = makePerson({ id: 'ceo', name: 'Alice CEO', role: 'CEO', team: 'Leadership', managerId: '' })
-    const eng = makePerson({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', team: 'Platform', managerId: 'ceo' })
+    const ceo = makeNode({ id: 'ceo', name: 'Alice CEO', role: 'CEO', team: 'Leadership', managerId: '' })
+    const eng = makeNode({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', team: 'Platform', managerId: 'ceo' })
 
     renderWithViewData(<ColumnView />, { working: [ceo, eng], original: [ceo, eng] })
 
@@ -72,8 +72,8 @@ describe('ColumnView', () => {
   })
 
   it('renders chart container with data-role attribute', () => {
-    const ceo = makePerson({ id: 'ceo', name: 'Alice CEO', role: 'CEO', managerId: '' })
-    const eng = makePerson({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', managerId: 'ceo' })
+    const ceo = makeNode({ id: 'ceo', name: 'Alice CEO', role: 'CEO', managerId: '' })
+    const eng = makeNode({ id: 'eng', name: 'Bob Engineer', role: 'Engineer', managerId: 'ceo' })
 
     const { container } = renderWithViewData(<ColumnView />, { working: [ceo, eng], original: [ceo, eng] })
 

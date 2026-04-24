@@ -3,21 +3,21 @@ import { useOrgData, useOrgMutations, useUI, useSelection } from '../store/OrgCo
 import { useSaveStatus } from '../hooks/useSaveStatus'
 import { generateCorrelationId } from '../api/client'
 import {
-  type PersonFormValues,
-  personToForm,
+  type NodeFormValues,
+  nodeToForm,
   blankForm,
   computeDirtyFields,
   dirtyToApiPayload,
-} from '../utils/personFormUtils'
-import PersonForm from './PersonForm'
+} from '../utils/nodeFormUtils'
+import NodeForm from './NodeForm'
 import SidebarShell from './SidebarShell'
 import styles from './DetailSidebar.module.css'
 
-interface PersonEditSidebarProps {
+interface NodeEditSidebarProps {
   personId: string
 }
 
-export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) {
+export default function NodeEditSidebar({ personId }: NodeEditSidebarProps) {
   const { working } = useOrgData()
   const { update, remove, reparent } = useOrgMutations()
   const { showPrivate } = useUI()
@@ -25,8 +25,8 @@ export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) 
 
   const person = useMemo(() => working.find(p => p.id === personId), [working, personId])
 
-  const [sidebarForm, setSidebarForm] = useState<PersonFormValues>(() =>
-    person ? personToForm(person) : blankForm()
+  const [sidebarForm, setSidebarForm] = useState<NodeFormValues>(() =>
+    person ? nodeToForm(person) : blankForm()
   )
   const [showStatusInfo, setShowStatusInfo] = useState(false)
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
@@ -34,7 +34,7 @@ export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) 
 
   useEffect(() => {
     if (person) {
-      setSidebarForm(personToForm(person))
+      setSidebarForm(nodeToForm(person))
     }
   }, [person?.id])
 
@@ -49,7 +49,7 @@ export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) 
     return mgrs.sort((a, b) => a.name.localeCompare(b.name))
   }, [working, showPrivate])
 
-  const handleChange = (field: keyof PersonFormValues, value: string | boolean) => {
+  const handleChange = (field: keyof NodeFormValues, value: string | boolean) => {
     if (field === 'managerId') {
       const newManager = working.find(p => p.id === value as string)
       if (newManager) {
@@ -63,7 +63,7 @@ export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) 
   const handleSave = async () => {
     if (!person) return
     markSaving()
-    const dirty = computeDirtyFields(personToForm(person), sidebarForm)
+    const dirty = computeDirtyFields(nodeToForm(person), sidebarForm)
     if (!dirty) { markSaved(); return }
 
     const corrId = generateCorrelationId()
@@ -96,8 +96,8 @@ export default function PersonEditSidebar({ personId }: PersonEditSidebarProps) 
   if (!person) return null
 
   return (
-    <SidebarShell heading="Edit Person" onExit={() => { if (person) setSidebarForm(personToForm(person)) }} onSave={handleSave}>
-      <PersonForm
+    <SidebarShell heading={person.type === 'product' ? 'Edit Product' : 'Edit Person'} onExit={() => { if (person) setSidebarForm(nodeToForm(person)) }} onSave={handleSave}>
+      <NodeForm
         values={sidebarForm}
         onChange={handleChange}
         managers={managers}

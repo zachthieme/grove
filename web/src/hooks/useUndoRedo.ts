@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import type { Person, Pod } from '../api/types'
+import type { OrgNode, Pod } from '../api/types'
 
 export interface UndoRedoState {
-  working: Person[]
+  working: OrgNode[]
   pods: Pod[]
 }
 

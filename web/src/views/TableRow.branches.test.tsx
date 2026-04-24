@@ -11,9 +11,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableRow from './TableRow'
-import { makePerson } from '../test-helpers'
+import { makeNode } from '../test-helpers'
 import type { ColumnDef } from './tableColumns'
-import type { PersonChange, ChangeType } from '../hooks/useOrgDiff'
+import type { NodeChange, ChangeType } from '../hooks/useOrgDiff'
 
 afterEach(() => cleanup())
 
@@ -30,12 +30,12 @@ const defaultProps = {
   onDelete: vi.fn(),
 }
 
-function makeChange(...types: ChangeType[]): PersonChange {
+function makeChange(...types: ChangeType[]): NodeChange {
   return { types: new Set(types) }
 }
 
 function renderRow(props: Partial<Parameters<typeof TableRow>[0]> = {}) {
-  const person = props.person ?? makePerson({ id: 'p1', name: 'Test Person' })
+  const person = props.person ?? makeNode({ id: 'p1', name: 'Test Person' })
   return render(
     <table><tbody>
       <TableRow {...defaultProps} person={person} {...props} />
@@ -146,7 +146,7 @@ describe('TableRow — branch coverage', () => {
         { key: 'name', label: 'Name', width: '150px', cellType: 'text' },
         { key: 'extra:location', label: 'Location', width: '120px', cellType: 'text' },
       ]
-      const person = makePerson({ id: 'p1', name: 'Alice', extra: { location: 'NYC' } })
+      const person = makeNode({ id: 'p1', name: 'Alice', extra: { location: 'NYC' } })
       const { container } = render(
         <table><tbody>
           <TableRow {...defaultProps} columns={columnsWithExtra} person={person} />
@@ -194,7 +194,7 @@ describe('TableRow — branch coverage', () => {
         { key: 'name', label: 'Name', width: '150px', cellType: 'text' },
         { key: 'private', label: 'Private', width: '70px', cellType: 'checkbox' },
       ]
-      const person = makePerson({ id: 'p1', name: 'Alice', private: true })
+      const person = makeNode({ id: 'p1', name: 'Alice', private: true })
       renderRow({ columns: columnsWithCheckbox, person })
 
       const checkbox = screen.getByLabelText('Private for Alice') as HTMLInputElement
@@ -207,7 +207,7 @@ describe('TableRow — branch coverage', () => {
         { key: 'name', label: 'Name', width: '150px', cellType: 'text' },
         { key: 'private', label: 'Private', width: '70px', cellType: 'checkbox' },
       ]
-      const person = makePerson({ id: 'p1', name: 'Bob', private: false })
+      const person = makeNode({ id: 'p1', name: 'Bob', private: false })
       renderRow({ columns: columnsWithCheckbox, person })
 
       const checkbox = screen.getByLabelText('Private for Bob') as HTMLInputElement
@@ -218,7 +218,7 @@ describe('TableRow — branch coverage', () => {
   describe('onToggleSelect is optional', () => {
     it('does not crash when onToggleSelect is undefined and checkbox is clicked', async () => {
       const user = userEvent.setup()
-      const person = makePerson({ id: 'p1', name: 'Eve' })
+      const person = makeNode({ id: 'p1', name: 'Eve' })
       render(
         <table><tbody>
           <TableRow {...defaultProps} person={person} onToggleSelect={undefined} />

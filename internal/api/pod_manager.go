@@ -26,12 +26,12 @@ func (pm *PodManager) Reset() {
 	pm.pods = CopyPods(pm.originalPods)
 }
 
-func (pm *PodManager) Seed(working []Person) {
+func (pm *PodManager) Seed(working []OrgNode) {
 	pm.pods = SeedPods(working)
 	pm.originalPods = CopyPods(pm.pods)
 }
 
-func (pm *PodManager) ListPods(working []Person) []PodInfo {
+func (pm *PodManager) ListPods(working []OrgNode) []PodInfo {
 	counts := map[string]int{}
 	for _, p := range working {
 		if p.Pod != "" && p.ManagerId != "" {
@@ -45,7 +45,7 @@ func (pm *PodManager) ListPods(working []Person) []PodInfo {
 	return result
 }
 
-func (pm *PodManager) UpdatePod(podID string, fields PodUpdate, working []Person) error {
+func (pm *PodManager) UpdatePod(podID string, fields PodUpdate, working []OrgNode) error {
 	pod := findPodByID(pm.pods, podID)
 	if pod == nil {
 		return errNotFound("pod %s not found", podID)
@@ -81,11 +81,11 @@ func (pm *PodManager) CreatePod(managerID, name, team string) error {
 	return nil
 }
 
-func (pm *PodManager) Cleanup(working []Person) {
+func (pm *PodManager) Cleanup(working []OrgNode) {
 	pm.pods = CleanupEmptyPods(pm.pods, working)
 }
 
-func (pm *PodManager) Reassign(person *Person) {
+func (pm *PodManager) Reassign(person *OrgNode) {
 	pm.pods = ReassignPersonPod(pm.pods, person)
 }
 

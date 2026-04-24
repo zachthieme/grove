@@ -163,7 +163,7 @@ func handleRestoreState(svc OrgStateService) http.HandlerFunc {
 	})
 }
 
-func handleMove(svc PersonService) http.HandlerFunc {
+func handleMove(svc NodeService) http.HandlerFunc {
 	type req struct {
 		PersonId     string `json:"personId"`
 		NewManagerId string `json:"newManagerId"`
@@ -179,10 +179,10 @@ func handleMove(svc PersonService) http.HandlerFunc {
 	})
 }
 
-func handleUpdate(svc PersonService) http.HandlerFunc {
+func handleUpdate(svc NodeService) http.HandlerFunc {
 	type req struct {
 		PersonId string       `json:"personId"`
-		Fields   PersonUpdate `json:"fields"`
+		Fields   OrgNodeUpdate `json:"fields"`
 	}
 	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
 		result, err := svc.Update(ctx, r.PersonId, r.Fields)
@@ -193,8 +193,8 @@ func handleUpdate(svc PersonService) http.HandlerFunc {
 	})
 }
 
-func handleAdd(svc PersonService) http.HandlerFunc {
-	return jsonHandlerCtx(func(ctx context.Context, p Person) (*AddResponse, error) {
+func handleAdd(svc NodeService) http.HandlerFunc {
+	return jsonHandlerCtx(func(ctx context.Context, p OrgNode) (*AddResponse, error) {
 		created, working, pods, err := svc.Add(ctx, p)
 		if err != nil {
 			return nil, err
@@ -203,7 +203,7 @@ func handleAdd(svc PersonService) http.HandlerFunc {
 	})
 }
 
-func handleAddParent(svc PersonService) http.HandlerFunc {
+func handleAddParent(svc NodeService) http.HandlerFunc {
 	type req struct {
 		ChildId string `json:"childId"`
 		Name    string `json:"name"`
@@ -217,7 +217,7 @@ func handleAddParent(svc PersonService) http.HandlerFunc {
 	})
 }
 
-func handleDelete(svc PersonService) http.HandlerFunc {
+func handleDelete(svc NodeService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
@@ -236,7 +236,7 @@ func handleGetRecycled(svc OrgStateService) http.HandlerFunc {
 	}
 }
 
-func handleRestore(svc PersonService) http.HandlerFunc {
+func handleRestore(svc NodeService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`
 	}
@@ -249,7 +249,7 @@ func handleRestore(svc PersonService) http.HandlerFunc {
 	})
 }
 
-func handleEmptyBin(svc PersonService) http.HandlerFunc {
+func handleEmptyBin(svc NodeService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		recycled := svc.EmptyBin(r.Context())
@@ -412,7 +412,7 @@ func handleCreate(svc OrgStateService) http.HandlerFunc {
 	})
 }
 
-func handleReorder(svc PersonService) http.HandlerFunc {
+func handleReorder(svc NodeService) http.HandlerFunc {
 	type req struct {
 		PersonIds []string `json:"personIds"`
 	}
@@ -539,7 +539,7 @@ func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename
 
 // exportByFormat serializes people to the given format ("csv" or "xlsx").
 // Returns (nil, "", "", nil) for unsupported formats so callers can return 400.
-func exportByFormat(format string, people []Person, baseName string) ([]byte, string, string, error) {
+func exportByFormat(format string, people []OrgNode, baseName string) ([]byte, string, string, error) {
 	switch strings.ToLower(format) {
 	case FormatCSV:
 		data, err := ExportCSV(people)

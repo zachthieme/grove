@@ -14,8 +14,8 @@ func TestAutosave_WriteAndRead(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	data := AutosaveData{
-		Original:     []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
-		Working:      []Person{{PersonFields: model.PersonFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Original:     []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Working:      []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
 		SnapshotName: "v1",
 		Timestamp:    "2026-03-21T12:00:00Z",
 	}

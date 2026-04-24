@@ -48,9 +48,9 @@ const (
 	maxNoteLen  = 2000
 )
 
-// validatePersonUpdate checks field lengths on a PersonUpdate struct.
+// validateNodeUpdate checks field lengths on a OrgNodeUpdate struct.
 // Short fields use maxFieldLen; note fields use maxNoteLen.
-func validatePersonUpdate(u *PersonUpdate) error {
+func validateNodeUpdate(u *OrgNodeUpdate) error {
 	shortFields := []*string{
 		u.Name, u.Role, u.Discipline, u.Team, u.ManagerId,
 		u.Status, u.EmploymentType, u.AdditionalTeams,
@@ -88,12 +88,12 @@ func validateNoteLen(value string) error {
 	return nil
 }
 
-// findInSlice finds a person by ID in a people slice. Returns the index and a
+// findInSlice finds a node by ID in a nodes slice. Returns the index and a
 // pointer into the slice, or (-1, nil) if not found.
-func findInSlice(people []Person, id string) (int, *Person) {
-	for i := range people {
-		if people[i].Id == id {
-			return i, &people[i]
+func findInSlice(nodes []OrgNode, id string) (int, *OrgNode) {
+	for i := range nodes {
+		if nodes[i].Id == id {
+			return i, &nodes[i]
 		}
 	}
 	return -1, nil
@@ -101,7 +101,7 @@ func findInSlice(people []Person, id string) (int, *Person) {
 
 // isFrontlineManager returns true if personId has direct reports but none of
 // those reports have reports of their own.
-func isFrontlineManager(working []Person, personId string) bool {
+func isFrontlineManager(working []OrgNode, personId string) bool {
 	// Build set of IDs that have at least one direct report (O(n))
 	hasReports := make(map[string]bool, len(working)/4)
 	for _, p := range working {
@@ -122,12 +122,16 @@ func isFrontlineManager(working []Person, personId string) bool {
 }
 
 // validateManagerChange checks that setting person's manager to newManagerId is valid.
-func validateManagerChange(working []Person, personId, newManagerId string) error {
+func validateManagerChange(working []OrgNode, personId, newManagerId string) error {
 	if newManagerId == personId {
 		return errValidation("a person cannot be their own manager")
 	}
-	if _, mgr := findInSlice(working, newManagerId); mgr == nil {
+	_, mgr := findInSlice(working, newManagerId)
+	if mgr == nil {
 		return errNotFound("manager %s not found", newManagerId)
+	}
+	if mgr.Type == "product" {
+		return errValidation("cannot report to a product")
 	}
 	if wouldCreateCycle(working, personId, newManagerId) {
 		return errValidation("this move would create a circular reporting chain")
@@ -137,7 +141,7 @@ func validateManagerChange(working []Person, personId, newManagerId string) erro
 
 // wouldCreateCycle checks if setting personId's manager to newManagerId
 // would create a cycle. This happens if newManagerId is a descendant of personId.
-func wouldCreateCycle(working []Person, personId, newManagerId string) bool {
+func wouldCreateCycle(working []OrgNode, personId, newManagerId string) bool {
 	current := newManagerId
 	visited := map[string]bool{personId: true}
 	for current != "" {

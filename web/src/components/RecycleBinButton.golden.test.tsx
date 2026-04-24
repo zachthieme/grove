@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import RecycleBinButton from './RecycleBinButton'
-import { normalizeHTML, makePerson, renderWithOrg } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithOrg } from '../test-helpers'
 
 describe('RecycleBinButton golden', () => {
   afterEach(() => cleanup())
@@ -18,7 +18,7 @@ describe('RecycleBinButton golden', () => {
 
   it('with count, binOpen=false', async () => {
     const { container } = renderWithOrg(<RecycleBinButton />, {
-      recycled: [makePerson({ id: 'r1' }), makePerson({ id: 'r2' })],
+      recycled: [makeNode({ id: 'r1' }), makeNode({ id: 'r2' })],
       binOpen: false,
     })
     await expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(
@@ -28,7 +28,7 @@ describe('RecycleBinButton golden', () => {
 
   it('binOpen=true', async () => {
     const { container } = renderWithOrg(<RecycleBinButton />, {
-      recycled: [makePerson({ id: 'r1' })],
+      recycled: [makeNode({ id: 'r1' })],
       binOpen: true,
     })
     await expect(normalizeHTML(container.innerHTML)).toMatchFileSnapshot(

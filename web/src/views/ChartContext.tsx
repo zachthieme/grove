@@ -1,18 +1,18 @@
 import { createContext, useContext } from 'react'
-import type { Person, Pod } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
-import type { PersonFormValues } from '../utils/personFormUtils'
+import type { OrgNode, Pod } from '../api/types'
+import type { NodeChange } from '../hooks/useOrgDiff'
+import type { NodeFormValues } from '../utils/nodeFormUtils'
 import type { InteractionMode } from '../store/orgTypes'
 
 /** Data that changes on mutations, selections, and edits. */
 export interface ChartDataContextValue {
   selectedIds: Set<string>
-  changes?: Map<string, PersonChange>
+  changes?: Map<string, NodeChange>
   managerSet?: Set<string>
   pods?: Pod[]
   interactionMode?: InteractionMode
   editingPersonId?: string | null
-  editBuffer?: PersonFormValues | null
+  editBuffer?: NodeFormValues | null
   collapsedIds?: Set<string>
 }
 
@@ -26,8 +26,8 @@ export interface ChartActionsContextValue {
   onDeletePerson?: (id: string) => void
   onInfo?: (id: string) => void
   onFocus?: (id: string) => void
-  onEnterEditing?: (person: Person) => void
-  onUpdateBuffer?: (field: keyof PersonFormValues, value: string | boolean) => void
+  onEnterEditing?: (person: OrgNode) => void
+  onUpdateBuffer?: (field: keyof NodeFormValues, value: string | boolean) => void
   onCommitEdits?: () => void
   setNodeRef: (id: string) => (el: HTMLDivElement | null) => void
   onToggleCollapse?: (id: string) => void

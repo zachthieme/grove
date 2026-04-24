@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 // Test the diff logic directly (extracted from the hook's useMemo callback)
-function computeDiff(original: Person[], working: Person[]) {
+function computeDiff(original: OrgNode[], working: OrgNode[]) {
   const changes = new Map<string, { types: Set<string> }>()
   const origById = new Map(original.map((p) => [p.id, p]))
   const workById = new Map(working.map((p) => [p.id, p]))
@@ -16,6 +16,8 @@ function computeDiff(original: Person[], working: Person[]) {
       if (w.managerId !== o.managerId) types.add('reporting')
       if (w.role !== o.role || w.discipline !== o.discipline) types.add('title')
       if (w.team !== o.team) types.add('reorg')
+      if ((w.pod ?? '') !== (o.pod ?? '')) types.add('pod')
+      if ((w.type ?? 'person') !== (o.type ?? 'person')) types.add('type')
     }
     if (types.size > 0) changes.set(w.id, { types })
   }
@@ -29,7 +31,7 @@ function computeDiff(original: Person[], working: Person[]) {
   return changes
 }
 
-const base: Person = {
+const base: OrgNode = {
   id: '1', name: 'Alice', role: 'VP', discipline: 'Eng',
   managerId: '', team: 'Eng', additionalTeams: [], status: 'Active',
 }
@@ -41,7 +43,7 @@ describe('computeDiff', () => {
   })
 
   it('[VIEW-004] detects added person', () => {
-    const added: Person = { ...base, id: '2', name: 'Bob' }
+    const added: OrgNode = { ...base, id: '2', name: 'Bob' }
     const changes = computeDiff([base], [base, added])
     expect(changes.get('2')?.types.has('added')).toBe(true)
   })
@@ -94,8 +96,17 @@ describe('computeDiff', () => {
   })
 
   it('[VIEW-004] does not flag unchanged person', () => {
-    const other: Person = { ...base, id: '2', name: 'Bob' }
+    const other: OrgNode = { ...base, id: '2', name: 'Bob' }
     const changes = computeDiff([base, other], [base, other])
     expect(changes.size).toBe(0)
+  })
+})
+
+describe('computeDiff — type change', () => {
+  it('[PROD-008] detects type change', () => {
+    const original: OrgNode[] = [{ ...base, id: '1', name: 'Widget', type: 'person' }]
+    const working: OrgNode[] = [{ ...base, id: '1', name: 'Widget', type: 'product' }]
+    const changes = computeDiff(original, working)
+    expect(changes.get('1')?.types.has('type')).toBe(true)
   })
 })

@@ -1,9 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup, act } from '@testing-library/react'
 import { SelectionProvider, useSelection } from './SelectionContext'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
-const testPerson: Person = {
+const testPerson: OrgNode = {
   id: 'p1', name: 'Alice', role: 'Engineer', discipline: 'Eng',
   team: 'Core', managerId: '', status: 'Active', additionalTeams: [],
 }

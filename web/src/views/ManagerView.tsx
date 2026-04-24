@@ -1,18 +1,18 @@
 // Scenarios: VIEW-002
 import { memo, useCallback, type ReactNode } from 'react'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 import { useChart } from './ChartContext'
-import { usePersonNodeProps } from '../hooks/usePersonNodeProps'
-import { type OrgNode } from './shared'
-import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
-import PersonNode from '../components/PersonNode'
+import { useNodeProps } from '../hooks/useNodeProps'
+import { type TreeNode } from './shared'
+import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout, type TeamGroupLayout, type ProductGroupLayout } from './layoutTree'
+import OrgNodeCard from '../components/OrgNodeCard'
 import ChartShell from './ChartShell'
 import styles from './ManagerView.module.css'
 
 
-function computeManagerEdges(_people: Person[], _roots: OrgNode[], layoutRoots?: LayoutNode[]): ChartEdge[] {
+function computeManagerEdges(_people: OrgNode[], _roots: TreeNode[], layoutRoots?: LayoutNode[]): ChartEdge[] {
   if (!layoutRoots) return []
   const result: ChartEdge[] = []
   function walk(node: LayoutNode) {
@@ -29,10 +29,12 @@ function computeManagerEdges(_people: Person[], _roots: OrgNode[], layoutRoots?:
 }
 
 /** Build summary groups from a list of people, bucketing by status. */
-function buildStatusGroups(people: Person[]): { label: string; count: number }[] {
+function buildStatusGroups(people: OrgNode[]): { label: string; count: number }[] {
+  const nonProducts = people.filter((p) => p.type !== 'product')
+  const productCount = people.length - nonProducts.length
   const groups: { label: string; count: number }[] = []
 
-  const active = people.filter((p) => p.status === 'Active')
+  const active = nonProducts.filter((p) => p.status === 'Active')
   if (active.length > 0) {
     const byDiscipline = new Map<string, number>()
     for (const p of active) {
@@ -44,26 +46,30 @@ function buildStatusGroups(people: Person[]): { label: string; count: number }[]
     }
   }
 
-  const recruiting = people.filter((p) => isRecruitingStatus(p.status))
+  const recruiting = nonProducts.filter((p) => isRecruitingStatus(p.status))
   if (recruiting.length > 0) {
     groups.push({ label: 'Recruiting', count: recruiting.length })
   }
 
-  const planned = people.filter((p) => isPlannedStatus(p.status))
+  const planned = nonProducts.filter((p) => isPlannedStatus(p.status))
   if (planned.length > 0) {
     groups.push({ label: 'Planned', count: planned.length })
   }
 
-  const transfers = people.filter((p) => isTransferStatus(p.status))
+  const transfers = nonProducts.filter((p) => isTransferStatus(p.status))
   if (transfers.length > 0) {
     groups.push({ label: 'Transfers', count: transfers.length })
+  }
+
+  if (productCount > 0) {
+    groups.push({ label: 'Products', count: productCount })
   }
 
   return groups
 }
 
 function SummaryCard({ people, podName, publicNote, onClick }: {
-  people: Person[]
+  people: OrgNode[]
   podName?: string
   publicNote?: string
   onClick?: () => void
@@ -110,15 +116,16 @@ function PodSummaryCard({ group }: { group: PodGroupLayout }) {
 
 const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
   const { collapsedIds, onToggleCollapse } = useChart()
-  const managerProps = usePersonNodeProps(node.person)
+  const managerProps = useNodeProps(node.person)
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
 
   // Collect children by type
   const managers: ManagerLayout[] = []
-  const unpoddedPeople: Person[] = []
+  const unpoddedPeople: OrgNode[] = []
   const podGroups: PodGroupLayout[] = []
   const teamGroups: TeamGroupLayout[] = []
+  const productGroupLayouts: ProductGroupLayout[] = []
   for (const child of node.children) {
     switch (child.type) {
       case 'manager':
@@ -133,6 +140,12 @@ const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node
       case 'teamGroup':
         teamGroups.push(child)
         break
+      case 'productGroup':
+        productGroupLayouts.push(child)
+        break
+      case 'product':
+        unpoddedPeople.push(child.person)
+        break
       default:
         break
     }
@@ -141,7 +154,7 @@ const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node
   return (
     <div className={styles.subtree}>
       <div className={styles.nodeSlot}>
-        <PersonNode
+        <OrgNodeCard
           person={node.person}
           showTeam={node.children.length > 0 || !!managerProps.isManager}
           collapsed={node.children.length > 0 ? isCollapsed : undefined}
@@ -163,6 +176,9 @@ const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node
           ))}
           {teamGroups.map((group) => (
             <SummaryCard key={group.collapseKey} people={group.members.map(m => m.person)} podName={group.teamName} />
+          ))}
+          {productGroupLayouts.map((group) => (
+            <SummaryCard key={group.collapseKey} people={group.members.map(m => m.person)} podName="Products" />
           ))}
         </div>
       )}

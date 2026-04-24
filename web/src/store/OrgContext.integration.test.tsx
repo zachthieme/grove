@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, cleanup } from '@testing-library/react'
 import { OrgProvider, useOrgData, useOrgMutations, useUI, useSelection } from './OrgContext'
 import type { OrgDataStateValue, OrgMutationsValue, UIContextValue, SelectionContextValue } from './orgTypes'
-import type { Person, OrgData, UploadResponse, SnapshotInfo } from '../api/types'
+import type { OrgNode, OrgData, UploadResponse, SnapshotInfo } from '../api/types'
 
 // Mock the API client
 vi.mock('../api/client', () => ({
@@ -12,11 +12,11 @@ vi.mock('../api/client', () => ({
   uploadFile: vi.fn(),
   uploadZipFile: vi.fn(),
   confirmMapping: vi.fn(),
-  movePerson: vi.fn(),
-  updatePerson: vi.fn(),
-  addPerson: vi.fn(),
-  deletePerson: vi.fn(),
-  restorePerson: vi.fn(),
+  moveNode: vi.fn(),
+  updateNode: vi.fn(),
+  addNode: vi.fn(),
+  deleteNode: vi.fn(),
+  restoreNode: vi.fn(),
   emptyBin: vi.fn(),
   resetToOriginal: vi.fn(),
   saveSnapshot: vi.fn(),
@@ -29,15 +29,15 @@ vi.mock('../api/client', () => ({
 
 import * as api from '../api/client'
 
-const alice: Person = {
+const alice: OrgNode = {
   id: 'a1', name: 'Alice', role: 'VP', discipline: 'Eng',
   managerId: '', team: 'Eng', additionalTeams: [], status: 'Active',
 }
-const bob: Person = {
+const bob: OrgNode = {
   id: 'b2', name: 'Bob', role: 'Engineer', discipline: 'Eng',
   managerId: 'a1', team: 'Platform', additionalTeams: [], status: 'Active',
 }
-const carol: Person = {
+const carol: OrgNode = {
   id: 'c3', name: 'Carol', role: 'Designer', discipline: 'Design',
   managerId: 'a1', team: 'Design', additionalTeams: [], status: 'Active',
 }
@@ -203,7 +203,7 @@ describe('OrgContext integration', () => {
 
     it('[ORG-001] move updates working state', async () => {
       const updated = [alice, { ...bob, managerId: '' }]
-      vi.mocked(api.movePerson).mockResolvedValue({ working: updated, pods: [] })
+      vi.mocked(api.moveNode).mockResolvedValue({ working: updated, pods: [] })
 
       await setupLoaded()
       await act(async () => {
@@ -215,7 +215,7 @@ describe('OrgContext integration', () => {
 
     it('[ORG-005] update changes person fields', async () => {
       const updated = [alice, { ...bob, role: 'Senior Engineer' }]
-      vi.mocked(api.updatePerson).mockResolvedValue({ working: updated, pods: [] })
+      vi.mocked(api.updateNode).mockResolvedValue({ working: updated, pods: [] })
 
       await setupLoaded()
       await act(async () => {
@@ -226,7 +226,7 @@ describe('OrgContext integration', () => {
     })
 
     it('[ORG-012] delete moves person to recycled', async () => {
-      vi.mocked(api.deletePerson).mockResolvedValue({
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [alice],
         recycled: [bob],
         pods: [],
@@ -242,8 +242,8 @@ describe('OrgContext integration', () => {
     })
 
     it('[ORG-012] restore moves person back to working', async () => {
-      vi.mocked(api.deletePerson).mockResolvedValue({ working: [alice], recycled: [bob], pods: [] })
-      vi.mocked(api.restorePerson).mockResolvedValue({ working: [alice, bob], recycled: [], pods: [] })
+      vi.mocked(api.deleteNode).mockResolvedValue({ working: [alice], recycled: [bob], pods: [] })
+      vi.mocked(api.restoreNode).mockResolvedValue({ working: [alice, bob], recycled: [], pods: [] })
 
       await setupLoaded()
       await act(async () => { await captured!.remove('b2') })
@@ -278,7 +278,7 @@ describe('OrgContext integration', () => {
     })
 
     it('[SNAP-002] load snapshot updates working state', async () => {
-      const carol: Person = { ...alice, id: 'c3', name: 'Carol' }
+      const carol: OrgNode = { ...alice, id: 'c3', name: 'Carol' }
       const newData: OrgData = { original: orgData.original, working: [carol] }
       vi.mocked(api.loadSnapshot).mockResolvedValue(newData)
 
@@ -366,7 +366,7 @@ describe('OrgContext integration', () => {
       expect(captured!.selectedIds.size).toBe(3)
 
       // Delete carol — selectedIds should drop to 2
-      vi.mocked(api.deletePerson).mockResolvedValue({
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [alice, bob],
         recycled: [carol],
         pods: [],
@@ -391,7 +391,7 @@ describe('OrgContext integration', () => {
       expect(captured!.selectedIds.size).toBe(2)
 
       // Delete both
-      vi.mocked(api.deletePerson).mockResolvedValue({
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [bob],
         recycled: [alice],
         pods: [],
@@ -400,7 +400,7 @@ describe('OrgContext integration', () => {
       expect(captured!.selectedIds.size).toBe(1)
       expect(captured!.selectedIds.has('b2')).toBe(true)
 
-      vi.mocked(api.deletePerson).mockResolvedValue({
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [],
         recycled: [alice, bob],
         pods: [],

@@ -340,8 +340,8 @@ describe('resetToOriginal', () => {
 describe('fetchWithTimeout header handling', () => {
   it('handles Headers instance', async () => {
     mockFetch.mockResolvedValueOnce(okJson({ working: [], pods: [] }))
-    // addPerson uses Content-Type header as plain object, which exercises the object branch
-    await api.addPerson({ name: 'Test', role: '', discipline: '', managerId: '', team: '', additionalTeams: [], status: 'Active' })
+    // addNode uses Content-Type header as plain object, which exercises the object branch
+    await api.addNode({ name: 'Test', role: '', discipline: '', managerId: '', team: '', additionalTeams: [], status: 'Active' })
     const init = mockFetch.mock.calls[0][1]
     expect(init.headers['Content-Type']).toBe('application/json')
   })
@@ -351,7 +351,7 @@ describe('logging integration', () => {
   it('sends log entry on success when logging enabled', async () => {
     api.setLoggingEnabled(true)
     mockFetch.mockResolvedValue(okJson({ working: [], pods: [] }))
-    await api.movePerson({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
+    await api.moveNode({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
     // Should have made 2 fetch calls: one for the API and one for logging
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2)
     api.setLoggingEnabled(false)
@@ -363,7 +363,7 @@ describe('logging integration', () => {
       .mockResolvedValueOnce(errorResp(500, 'Server error'))
       .mockResolvedValue({ ok: true, status: 200 })  // for the log entry
     await expect(
-      api.movePerson({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
+      api.moveNode({ personId: 'a', newManagerId: 'b', newTeam: 'c' })
     ).rejects.toThrow('API 500')
     // Should have attempted to log the error
     expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2)

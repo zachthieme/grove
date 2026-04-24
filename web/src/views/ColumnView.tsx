@@ -1,19 +1,28 @@
 import { memo, useMemo, useCallback, type ReactNode } from 'react'
 import type { Pod } from '../api/types'
 import { computeEdges } from './columnEdges'
-import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout } from './layoutTree'
-import PersonNode from '../components/PersonNode'
+import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout, type ProductGroupLayout, type ProductLayout } from './layoutTree'
+import OrgNodeCard from '../components/OrgNodeCard'
 import GroupHeaderNode from '../components/GroupHeaderNode'
 import { useChart } from './ChartContext'
-import { usePersonNodeProps } from '../hooks/usePersonNodeProps'
+import { useNodeProps } from '../hooks/useNodeProps'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
 const ICNode = memo(function ICNode({ ic }: { ic: ICLayout }) {
-  const props = usePersonNodeProps(ic.person)
+  const props = useNodeProps(ic.person)
   return (
     <div className={styles.nodeSlot}>
-      <PersonNode person={ic.person} {...props} />
+      <OrgNodeCard person={ic.person} {...props} />
+    </div>
+  )
+})
+
+const ProductNode = memo(function ProductNode({ product }: { product: ProductLayout }) {
+  const props = useNodeProps(product.person)
+  return (
+    <div className={styles.nodeSlot}>
+      <OrgNodeCard person={product.person} {...props} />
     </div>
   )
 })
@@ -100,6 +109,14 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
           flushIcBatch()
           elements.push(<LayoutTeamGroup key={child.collapseKey} group={child} />)
           break
+        case 'productGroup':
+          flushIcBatch()
+          elements.push(<LayoutProductGroup key={child.collapseKey} group={child} />)
+          break
+        case 'product':
+          flushIcBatch()
+          elements.push(<ProductNode key={child.person.id} product={child} />)
+          break
         default:
           break
       }
@@ -109,10 +126,10 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
     return elements
   }, [node.children, renderPodGroup])
 
-  const managerProps = usePersonNodeProps(node.person)
+  const managerProps = useNodeProps(node.person)
   const managerNodeEl = (
     <div className={styles.nodeSlot}>
-      <PersonNode
+      <OrgNodeCard
         person={node.person}
         showTeam={node.children.length > 0 || !!managerProps.isManager}
         collapsed={node.children.length > 0 ? isCollapsed : undefined}
@@ -136,6 +153,35 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
     </div>
   )
 }
+
+const LayoutProductGroup = memo(function LayoutProductGroup({ group }: { group: ProductGroupLayout }) {
+  const { collapsedIds, onToggleCollapse, onSelect, selectedIds } = useChart()
+  const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
+
+  return (
+    <div className={styles.subtree}>
+      <div className={styles.nodeSlot}>
+        <GroupHeaderNode
+          nodeId={group.collapseKey}
+          name="Products"
+          count={group.members.length}
+          collapsed={isCollapsed}
+          onClick={(e) => onSelect(group.collapseKey, e)}
+          selected={selectedIds.has(group.collapseKey)}
+          onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
+          dragData={{ memberIds: group.members.map(m => m.person.id) }}
+        />
+      </div>
+      {!isCollapsed && (
+        <div className={styles.children}>
+          <div className={styles.icStack}>
+            {group.members.map((p) => <ProductNode key={p.person.id} product={p} />)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+})
 
 const LayoutTeamGroup = memo(function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
   const { collapsedIds, onToggleCollapse, onSelect, selectedIds } = useChart()

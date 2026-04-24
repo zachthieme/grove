@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SettingsModal from './SettingsModal'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 afterEach(() => cleanup())
 
@@ -11,10 +11,10 @@ describe('SettingsModal', () => {
     const updateSettings = vi.fn().mockResolvedValue(undefined)
     const ctx = {
       working: [
-        makePerson({ id: 'a1', discipline: 'Engineering' }),
-        makePerson({ id: 'b2', discipline: 'Design' }),
-        makePerson({ id: 'c3', discipline: 'Product' }),
-        makePerson({ id: 'd4', discipline: 'Engineering' }),
+        makeNode({ id: 'a1', discipline: 'Engineering' }),
+        makeNode({ id: 'b2', discipline: 'Design' }),
+        makeNode({ id: 'c3', discipline: 'Product' }),
+        makeNode({ id: 'd4', discipline: 'Engineering' }),
       ],
       settings: { disciplineOrder: [] as string[] },
       updateSettings,

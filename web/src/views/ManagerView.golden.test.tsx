@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import ManagerView from './ManagerView'
-import { normalizeHTML, makePerson, renderWithViewData } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithViewData } from '../test-helpers'
 
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
@@ -37,10 +37,10 @@ describe('ManagerView golden', () => {
   afterEach(() => cleanup())
 
   it('renders manager with summary cards', () => {
-    const manager = makePerson({ id: 'mgr-001', name: 'Manager Alice', role: 'Engineering Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic-002', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr-001' })
-    const ic2 = makePerson({ id: 'ic-003', name: 'IC Carol', role: 'Designer', discipline: 'Design', status: 'Active', managerId: 'mgr-001' })
-    const openReq = makePerson({ id: 'ic-004', name: 'Open Req', role: 'Engineer', discipline: 'Engineering', status: 'Open', managerId: 'mgr-001' })
+    const manager = makeNode({ id: 'mgr-001', name: 'Manager Alice', role: 'Engineering Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic-002', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr-001' })
+    const ic2 = makeNode({ id: 'ic-003', name: 'IC Carol', role: 'Designer', discipline: 'Design', status: 'Active', managerId: 'mgr-001' })
+    const openReq = makeNode({ id: 'ic-004', name: 'Open Req', role: 'Engineer', discipline: 'Engineering', status: 'Open', managerId: 'mgr-001' })
     const people = [manager, ic1, ic2, openReq]
 
     const { container } = renderWithViewData(
@@ -61,10 +61,10 @@ describe('ManagerView golden', () => {
   })
 
   it('renders multi-level hierarchy', () => {
-    const ceo = makePerson({ id: 'ceo-001', name: 'CEO Alice', role: 'CEO', managerId: '' })
-    const vp = makePerson({ id: 'vp-002', name: 'VP Bob', role: 'VP Engineering', managerId: 'ceo-001' })
-    const director = makePerson({ id: 'dir-003', name: 'Director Carol', role: 'Director', managerId: 'vp-002' })
-    const ic = makePerson({ id: 'ic-004', name: 'IC Dave', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'dir-003' })
+    const ceo = makeNode({ id: 'ceo-001', name: 'CEO Alice', role: 'CEO', managerId: '' })
+    const vp = makeNode({ id: 'vp-002', name: 'VP Bob', role: 'VP Engineering', managerId: 'ceo-001' })
+    const director = makeNode({ id: 'dir-003', name: 'Director Carol', role: 'Director', managerId: 'vp-002' })
+    const ic = makeNode({ id: 'ic-004', name: 'IC Dave', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'dir-003' })
     const people = [ceo, vp, director, ic]
 
     const { container } = renderWithViewData(

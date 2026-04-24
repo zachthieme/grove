@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, memo } from 'react'
-import styles from './PersonNode.module.css'
+import styles from './OrgNodeCard.module.css'
 import BaseNode from './BaseNode'
 import type { BaseNodeActions } from './BaseNode'
-import type { Person } from '../api/types'
-import type { PersonChange } from '../hooks/useOrgDiff'
-import type { PersonFormValues } from '../utils/personFormUtils'
+import type { OrgNode } from '../api/types'
+import type { NodeChange } from '../hooks/useOrgDiff'
+import type { NodeFormValues } from '../utils/nodeFormUtils'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
 
 function getEmpAbbrev(empType: string | undefined): string {
@@ -27,17 +27,17 @@ function getEmpColor(empType: string | undefined): string | undefined {
 }
 
 interface Props {
-  person: Person & { isPlaceholder?: boolean }
+  person: OrgNode & { isPlaceholder?: boolean }
   selected?: boolean
   ghost?: boolean
-  changes?: PersonChange
+  changes?: NodeChange
   showTeam?: boolean
   isManager?: boolean
   collapsed?: boolean
   /** When true, the card is in editing mode (driven by interaction state) */
   editing?: boolean
   /** Shared edit buffer from interaction state */
-  editBuffer?: PersonFormValues | null
+  editBuffer?: NodeFormValues | null
   /** Which field to auto-focus when entering edit mode */
   focusField?: 'name' | 'role' | 'team' | null
   onAdd?: () => void
@@ -53,7 +53,7 @@ interface Props {
   cardRef?: (el: HTMLDivElement | null) => void
 }
 
-function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
+function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
   const nameRef = useRef<HTMLInputElement>(null)
   const roleRef = useRef<HTMLInputElement>(null)
   const teamRef = useRef<HTMLInputElement>(null)
@@ -62,14 +62,16 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
   const cyclingRef = useRef(false)
 
   const isPlaceholder = !!person.isPlaceholder
-  const isRecruiting = isRecruitingStatus(person.status)
-  const isFuture = isPlannedStatus(person.status)
-  const isTransfer = isTransferStatus(person.status)
+  const isProduct = person.type === 'product'
+  const isRecruiting = !isProduct && isRecruitingStatus(person.status)
+  const isFuture = !isProduct && isPlannedStatus(person.status)
+  const isTransfer = !isProduct && isTransferStatus(person.status)
 
   const empAbbrev = getEmpAbbrev(person.employmentType)
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
   const statusLabel = isRecruiting ? 'Recruiting' : isFuture ? 'Planned' : isTransfer ? 'Transfer' : null
+  const productStatusLabel = isProduct && person.status !== 'Active' ? person.status : null
 
   const handleDoubleClick = (field: 'name' | 'role' | 'team') => (e: React.MouseEvent) => {
     if (!onEnterEditing || ghost || isPlaceholder) return
@@ -135,7 +137,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
 
   // Build actions for BaseNode
   const actions: BaseNodeActions = {}
-  if (onAdd) actions.onAdd = (e) => { e.stopPropagation(); onAdd() }
+  if (onAdd && !isProduct) actions.onAdd = (e) => { e.stopPropagation(); onAdd() }
   if (onAddParent) actions.onAddParent = (e) => { e.stopPropagation(); onAddParent() }
   if (onDelete) actions.onDelete = (e) => { e.stopPropagation(); onDelete() }
   if (onInfo) actions.onInfo = (e) => { e.stopPropagation(); onInfo() }
@@ -153,7 +155,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       nodeId={person.id}
       variant={isManager ? 'manager' : 'default'}
       statusStyle={statusStyle}
-      empAccent={getEmpColor(person.employmentType)}
+      empAccent={isProduct ? undefined : getEmpColor(person.employmentType)}
       ghost={ghost}
       isPlaceholder={isPlaceholder}
       noteText={person.publicNote}
@@ -164,7 +166,7 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
       warning={person.warning}
       isPrivate={!!person.private}
       draggable={!ghost && !isPlaceholder}
-      droppable={!ghost && !isPlaceholder}
+      droppable={!ghost && !isPlaceholder && !isProduct}
       dragData={{ person }}
       cardRef={cardRef}
       actions={actions}
@@ -188,16 +190,21 @@ function PersonNodeInner({ person, selected, ghost, changes, showTeam, isManager
           )}
         </div>
       )}
-      <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
-        {editing && editBuffer ? (
-          <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
-        ) : (
-          <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
-        )}
-      </div>
+      {!isProduct && (
+        <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
+          {editing && editBuffer ? (
+            <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
+          ) : (
+            <>{person.role || 'TBD'}{empAbbrev && <span className={styles.empAbbrev}> &middot; {empAbbrev}</span>}</>
+          )}
+        </div>
+      )}
+      {productStatusLabel && (
+        <div className={styles.role}>{productStatusLabel}</div>
+      )}
     </BaseNode>
   )
 }
 
-const PersonNode = memo(PersonNodeInner)
-export default PersonNode
+const OrgNodeCard = memo(OrgNodeCardInner)
+export default OrgNodeCard

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import TableView from './TableView'
-import { normalizeHTML, makePerson, renderWithViewData } from '../test-helpers'
+import { normalizeHTML, makeNode, renderWithViewData } from '../test-helpers'
 
 
 const basePeople = [
-  makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
-  makePerson({ id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform', employmentType: 'FTE' }),
+  makeNode({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
+  makeNode({ id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform', employmentType: 'FTE' }),
 ]
 
 describe('TableView golden', () => {
@@ -40,9 +40,9 @@ describe('TableView golden', () => {
   it('renders diff classes', () => {
     // To get diff changes, original and working must differ
     const modifiedPeople = [
-      makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
-      makePerson({ id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform', employmentType: 'FTE' }),
-      makePerson({ id: 'p-003', name: 'New Person', role: 'Intern', discipline: 'Eng', managerId: 'p-001', team: 'Platform' }),
+      makeNode({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
+      makeNode({ id: 'p-002', name: 'Bob Jones', role: 'Engineer', discipline: 'Eng', managerId: 'p-001', team: 'Platform', employmentType: 'FTE' }),
+      makeNode({ id: 'p-003', name: 'New Person', role: 'Intern', discipline: 'Eng', managerId: 'p-001', team: 'Platform' }),
     ]
 
     const { container } = renderWithViewData(<TableView />, {
@@ -68,7 +68,7 @@ describe('TableView golden', () => {
 
   it('renders single person table', () => {
     const singlePerson = [
-      makePerson({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
+      makeNode({ id: 'p-001', name: 'Alice Smith', role: 'VP', discipline: 'Eng', managerId: '', team: 'Engineering', employmentType: 'FTE' }),
     ]
     const { container } = renderWithViewData(<TableView />, {
       working: singlePerson,

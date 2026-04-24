@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import { computeOrgMetrics } from './useOrgMetrics'
 
-const makePerson = (overrides: Partial<Person>): Person => ({
+const makeNode = (overrides: Partial<OrgNode>): OrgNode => ({
   id: '', name: '', role: '', discipline: 'Eng',
   managerId: '', team: 'Eng', additionalTeams: [], status: 'Active',
   ...overrides,
@@ -10,12 +10,12 @@ const makePerson = (overrides: Partial<Person>): Person => ({
 
 // Scenarios: UI-016
 describe('computeOrgMetrics', () => {
-  const alice = makePerson({ id: '1', name: 'Alice', role: 'VP' })
-  const bob = makePerson({ id: '2', name: 'Bob', managerId: '1', discipline: 'Engineering' })
-  const carol = makePerson({ id: '3', name: 'Carol', managerId: '1', discipline: 'Design', team: 'Design' })
-  const open = makePerson({ id: '4', name: 'Open', managerId: '1', status: 'Open' })
-  const planned = makePerson({ id: '5', name: 'Planned', managerId: '2', status: 'Planned' })
-  const transfer = makePerson({ id: '6', name: 'Transfer', managerId: '1', status: 'Transfer In' })
+  const alice = makeNode({ id: '1', name: 'Alice', role: 'VP' })
+  const bob = makeNode({ id: '2', name: 'Bob', managerId: '1', discipline: 'Engineering' })
+  const carol = makeNode({ id: '3', name: 'Carol', managerId: '1', discipline: 'Design', team: 'Design' })
+  const open = makeNode({ id: '4', name: 'Open', managerId: '1', status: 'Open' })
+  const planned = makeNode({ id: '5', name: 'Planned', managerId: '2', status: 'Planned' })
+  const transfer = makeNode({ id: '6', name: 'Transfer', managerId: '1', status: 'Transfer In' })
 
   const all = [alice, bob, carol, open, planned, transfer]
 
@@ -59,5 +59,30 @@ describe('computeOrgMetrics', () => {
     expect(designGroup).toBeDefined()
     expect(designGroup!.count).toBe(1)
     expect(designGroup!.byDiscipline.get('Design')).toBe(1)
+  })
+})
+
+describe('computeOrgMetrics — products', () => {
+  it('[PROD-009] products excluded from headcount', () => {
+    const people = [
+      makeNode({ id: '1', name: 'Alice', status: 'Active' }),
+      makeNode({ id: '2', name: 'Bob', status: 'Active', managerId: '1' }),
+      makeNode({ id: '3', name: 'Widget', type: 'product', status: 'Active', managerId: '1' }),
+    ]
+    const metrics = computeOrgMetrics('1', people)
+    expect(metrics.totalHeadcount).toBe(1) // Only Bob
+    expect(metrics.productCount).toBe(1) // Widget
+  })
+
+  it('[PROD-010] products excluded from span of control', () => {
+    const people = [
+      makeNode({ id: '1', name: 'Alice', status: 'Active' }),
+      makeNode({ id: '2', name: 'Bob', status: 'Active', managerId: '1' }),
+      makeNode({ id: '3', name: 'Widget', type: 'product', status: 'Active', managerId: '1' }),
+      makeNode({ id: '4', name: 'Gadget', type: 'product', status: 'Active', managerId: '1' }),
+    ]
+    const metrics = computeOrgMetrics('1', people)
+    expect(metrics.spanOfControl).toBe(1) // Only Bob, not products
+    expect(metrics.productCount).toBe(2)
   })
 })

@@ -7,10 +7,10 @@ import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
-import { renderWithViewData, makePerson } from '../test-helpers'
-import type { Person } from '../api/types'
+import { renderWithViewData, makeNode } from '../test-helpers'
+import type { OrgNode } from '../api/types'
 
-const testPeople: Person[] = [
+const testPeople: OrgNode[] = [
   {
     id: '1', name: 'Alice', role: 'VP', discipline: 'Engineering', managerId: '', team: 'Platform',
     additionalTeams: [], status: 'Active', employmentType: 'FTE',
@@ -216,8 +216,8 @@ describe('TableView — branch coverage', () => {
 
   describe('diff highlighting', () => {
     it('shows diff class on rows with changes', () => {
-      const original = [makePerson({ id: '1', name: 'Alice', role: 'VP' })]
-      const working = [makePerson({ id: '1', name: 'Alice', role: 'CTO' })]
+      const original = [makeNode({ id: '1', name: 'Alice', role: 'VP' })]
+      const working = [makeNode({ id: '1', name: 'Alice', role: 'CTO' })]
 
       renderTable({
         working,

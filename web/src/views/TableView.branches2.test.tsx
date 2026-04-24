@@ -19,9 +19,9 @@ import { screen, cleanup, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableView from './TableView'
 import { renderWithViewData } from '../test-helpers'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
-const testPeople: Person[] = [
+const testPeople: OrgNode[] = [
   {
     id: '1', name: 'Alice', role: 'VP', discipline: 'Engineering', managerId: '', team: 'Platform',
     additionalTeams: ['Backend'], status: 'Active', employmentType: 'FTE', level: 5,
@@ -230,7 +230,7 @@ describe('TableView — branch coverage round 2', () => {
 
   describe('people with extra columns', () => {
     it('renders extra columns from person.extra data', () => {
-      const peopleWithExtra: Person[] = [
+      const peopleWithExtra: OrgNode[] = [
         {
           id: '1', name: 'Alice', role: 'VP', discipline: 'Eng', managerId: '', team: 'Platform',
           additionalTeams: [], status: 'Active', extra: { location: 'NYC', dept: 'R&D' },
@@ -468,10 +468,10 @@ describe('TableView — branch coverage round 2', () => {
 
   describe('diff mode with various change types', () => {
     it('renders rows with diff highlighting in diff dataView', () => {
-      const original: Person[] = [
+      const original: OrgNode[] = [
         { id: '1', name: 'Alice', role: 'VP', discipline: 'Eng', managerId: '', team: 'Platform', additionalTeams: [], status: 'Active' },
       ]
-      const working: Person[] = [
+      const working: OrgNode[] = [
         { id: '1', name: 'Alice', role: 'CTO', discipline: 'Eng', managerId: '', team: 'Platform', additionalTeams: [], status: 'Active' },
         { id: '2', name: 'New Person', role: 'Eng', discipline: 'Eng', managerId: '1', team: 'Platform', additionalTeams: [], status: 'Active' },
       ]

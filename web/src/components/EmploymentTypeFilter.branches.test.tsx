@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmploymentTypeFilter from './EmploymentTypeFilter'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 describe('EmploymentTypeFilter branch coverage', () => {
   afterEach(() => cleanup())
@@ -10,8 +10,8 @@ describe('EmploymentTypeFilter branch coverage', () => {
   it('displays badge with hidden count when hiddenEmploymentTypes is non-empty', async () => {
     renderWithOrg(<EmploymentTypeFilter />, {
       working: [
-        makePerson({ id: '1', employmentType: 'FTE' }),
-        makePerson({ id: '2', employmentType: 'CW' }),
+        makeNode({ id: '1', employmentType: 'FTE' }),
+        makeNode({ id: '2', employmentType: 'CW' }),
       ],
       hiddenEmploymentTypes: new Set(['FTE']),
     })
@@ -22,7 +22,7 @@ describe('EmploymentTypeFilter branch coverage', () => {
 
   it('does not display badge when hiddenEmploymentTypes is empty', () => {
     renderWithOrg(<EmploymentTypeFilter />, {
-      working: [makePerson({ id: '1', employmentType: 'FTE' })],
+      working: [makeNode({ id: '1', employmentType: 'FTE' })],
       hiddenEmploymentTypes: new Set(),
     })
     // The trigger button text is just "Filter" with no badge number
@@ -34,8 +34,8 @@ describe('EmploymentTypeFilter branch coverage', () => {
     const user = userEvent.setup()
     renderWithOrg(<EmploymentTypeFilter />, {
       working: [
-        makePerson({ id: '1', employmentType: 'FTE' }),
-        makePerson({ id: '2', employmentType: 'CW' }),
+        makeNode({ id: '1', employmentType: 'FTE' }),
+        makeNode({ id: '2', employmentType: 'CW' }),
       ],
       hiddenEmploymentTypes: new Set(['CW']),
     })
@@ -53,8 +53,8 @@ describe('EmploymentTypeFilter branch coverage', () => {
     const user = userEvent.setup()
     renderWithOrg(<EmploymentTypeFilter />, {
       working: [
-        makePerson({ id: '1', employmentType: '' }),
-        makePerson({ id: '2', employmentType: 'FTE' }),
+        makeNode({ id: '1', employmentType: '' }),
+        makeNode({ id: '2', employmentType: 'FTE' }),
       ],
     })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
@@ -65,10 +65,10 @@ describe('EmploymentTypeFilter branch coverage', () => {
     const user = userEvent.setup()
     renderWithOrg(<EmploymentTypeFilter />, {
       working: [
-        makePerson({ id: '1', employmentType: 'Vendor' }),
-        makePerson({ id: '2', employmentType: '' }),
-        makePerson({ id: '3', employmentType: 'CW' }),
-        makePerson({ id: '4', employmentType: 'FTE' }),
+        makeNode({ id: '1', employmentType: 'Vendor' }),
+        makeNode({ id: '2', employmentType: '' }),
+        makeNode({ id: '3', employmentType: 'CW' }),
+        makeNode({ id: '4', employmentType: 'FTE' }),
       ],
     })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
@@ -82,7 +82,7 @@ describe('EmploymentTypeFilter branch coverage', () => {
   it('opens and closes dropdown on toggle clicks', async () => {
     const user = userEvent.setup()
     renderWithOrg(<EmploymentTypeFilter />, {
-      working: [makePerson({ id: '1', employmentType: 'FTE' })],
+      working: [makeNode({ id: '1', employmentType: 'FTE' })],
     })
     const trigger = screen.getByRole('button', { name: 'Employment type filter' })
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
@@ -96,9 +96,9 @@ describe('EmploymentTypeFilter branch coverage', () => {
     const user = userEvent.setup()
     renderWithOrg(<EmploymentTypeFilter />, {
       working: [
-        makePerson({ id: '1', employmentType: 'FTE' }),
-        makePerson({ id: '2', employmentType: 'FTE' }),
-        makePerson({ id: '3', employmentType: 'CW' }),
+        makeNode({ id: '1', employmentType: 'FTE' }),
+        makeNode({ id: '2', employmentType: 'FTE' }),
+        makeNode({ id: '3', employmentType: 'CW' }),
       ],
     })
     await user.click(screen.getByRole('button', { name: 'Employment type filter' }))
@@ -110,9 +110,9 @@ describe('EmploymentTypeFilter branch coverage', () => {
   it('displays badge count matching number of hidden types', () => {
     renderWithOrg(<EmploymentTypeFilter />, {
       working: [
-        makePerson({ id: '1', employmentType: 'FTE' }),
-        makePerson({ id: '2', employmentType: 'CW' }),
-        makePerson({ id: '3', employmentType: 'Vendor' }),
+        makeNode({ id: '1', employmentType: 'FTE' }),
+        makeNode({ id: '2', employmentType: 'CW' }),
+        makeNode({ id: '3', employmentType: 'Vendor' }),
       ],
       hiddenEmploymentTypes: new Set(['FTE', 'CW']),
     })

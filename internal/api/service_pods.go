@@ -14,7 +14,7 @@ func (s *OrgService) UpdatePod(ctx context.Context, podID string, fields PodUpda
 	if err := s.podMgr.UpdatePod(podID, fields, s.working); err != nil {
 		return nil, err
 	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 func (s *OrgService) CreatePod(ctx context.Context, managerID, name, team string) (*MoveResult, error) {
@@ -23,12 +23,12 @@ func (s *OrgService) CreatePod(ctx context.Context, managerID, name, team string
 	if err := s.podMgr.CreatePod(managerID, name, team); err != nil {
 		return nil, err
 	}
-	return &MoveResult{Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
 
 // GetPodExportData returns a copy of pods and working people for export.
-func (s *OrgService) GetPodExportData(ctx context.Context) ([]Pod, []Person) {
+func (s *OrgService) GetPodExportData(ctx context.Context) ([]Pod, []OrgNode) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return CopyPods(s.podMgr.GetPods()), deepCopyPeople(s.working)
+	return CopyPods(s.podMgr.GetPods()), deepCopyNodes(s.working)
 }

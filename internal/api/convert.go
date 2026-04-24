@@ -5,15 +5,15 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
-func ConvertOrg(org *model.Org) []Person {
+func ConvertOrg(org *model.Org) []OrgNode {
 	return ConvertOrgWithIDMap(org, nil)
 }
 
-// ConvertOrgWithIDMap converts a model.Org to API []Person, reusing UUIDs from
+// ConvertOrgWithIDMap converts a model.Org to API []OrgNode, reusing UUIDs from
 // idMap where a person's name matches. This ensures people shared across
 // multiple files in a ZIP import get stable IDs so diff works correctly.
 // For duplicate names, IDs are matched in order of appearance.
-func ConvertOrgWithIDMap(org *model.Org, idMap map[string][]string) []Person {
+func ConvertOrgWithIDMap(org *model.Org, idMap map[string][]string) []OrgNode {
 	// Track how many IDs we've consumed per name (for duplicate handling).
 	nameUsed := make(map[string]int)
 
@@ -40,7 +40,7 @@ func ConvertOrgWithIDMap(org *model.Org, idMap map[string][]string) []Person {
 		}
 	}
 
-	result := make([]Person, len(org.People))
+	result := make([]OrgNode, len(org.People))
 	for i, p := range org.People {
 		var managerID string
 		if p.Manager != "" {
@@ -49,18 +49,18 @@ func ConvertOrgWithIDMap(org *model.Org, idMap map[string][]string) []Person {
 			}
 		}
 
-		result[i] = Person{
-			PersonFields: p.PersonFields,
-			Id:           indexToID[i],
-			ManagerId:    managerID,
+		result[i] = OrgNode{
+			OrgNodeFields: p.OrgNodeFields,
+			Id:            indexToID[i],
+			ManagerId:     managerID,
 		}
 	}
 	return result
 }
 
-// BuildIDMap creates a name→[]ID mapping from a slice of Person, preserving
+// BuildIDMap creates a name→[]ID mapping from a slice of OrgNode, preserving
 // order for duplicate name handling.
-func BuildIDMap(people []Person) map[string][]string {
+func BuildIDMap(people []OrgNode) map[string][]string {
 	m := make(map[string][]string)
 	for _, p := range people {
 		m[p.Name] = append(m[p.Name], p.Id)

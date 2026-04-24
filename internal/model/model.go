@@ -5,14 +5,31 @@ import (
 	"strings"
 )
 
-// ValidStatuses is the set of allowed person statuses.
-var ValidStatuses = map[string]bool{
+// ValidPersonStatuses is the set of allowed statuses for person-type nodes.
+var ValidPersonStatuses = map[string]bool{
 	StatusActive:      true,
 	StatusOpen:        true,
 	StatusTransferIn:  true,
 	StatusTransferOut: true,
 	StatusBackfill:    true,
 	StatusPlanned:     true,
+}
+
+// ValidProductStatuses is the set of allowed statuses for product-type nodes.
+var ValidProductStatuses = map[string]bool{
+	StatusActive:     true,
+	StatusDeprecated: true,
+	StatusPlanned:    true,
+	StatusSunsetting: true,
+}
+
+// ValidStatuses returns the correct status set for a given node type.
+// Empty type is treated as "person".
+func ValidStatuses(nodeType string) map[string]bool {
+	if nodeType == "product" {
+		return ValidProductStatuses
+	}
+	return ValidPersonStatuses
 }
 
 const (
@@ -22,12 +39,17 @@ const (
 	StatusTransferOut = "Transfer Out"
 	StatusBackfill    = "Backfill"
 	StatusPlanned     = "Planned"
+
+	// Product-specific statuses
+	StatusDeprecated = "Deprecated"
+	StatusSunsetting = "Sunsetting"
 )
 
-// PersonFields holds fields shared between the domain model and the API wire
-// format. When adding a new person field, add it here once rather than in both
-// Person and api.Person.
-type PersonFields struct {
+// OrgNodeFields holds fields shared between the domain model and the API wire
+// format. When adding a new field, add it here once rather than in both
+// OrgNode and api.OrgNode.
+type OrgNodeFields struct {
+	Type            string            `json:"type,omitempty"`
 	Name            string            `json:"name"`
 	Role            string            `json:"role"`
 	Discipline      string            `json:"discipline"`
@@ -46,19 +68,19 @@ type PersonFields struct {
 	Extra           map[string]string `json:"extra,omitempty"`
 }
 
-type Person struct {
-	PersonFields
+type OrgNode struct {
+	OrgNodeFields
 	Manager string // manager by name, used only during CSV import
 }
 
 type Org struct {
-	People   []Person
+	People   []OrgNode
 	Warnings []string
 }
 
-// NewOrg validates people. Rows with issues are kept but flagged with a Warning.
+// NewOrg validates nodes. Rows with issues are kept but flagged with a Warning.
 // Only truly empty/unparseable data returns an error.
-func NewOrg(people []Person) (*Org, error) {
+func NewOrg(people []OrgNode) (*Org, error) {
 	if len(people) == 0 {
 		return nil, fmt.Errorf("no data rows found")
 	}
@@ -72,9 +94,10 @@ func NewOrg(people []Person) (*Org, error) {
 		if p.Name == "" {
 			issues = append(issues, "missing Name")
 		}
+		statusSet := ValidStatuses(p.Type)
 		if p.Status == "" {
 			issues = append(issues, "missing Status")
-		} else if !ValidStatuses[p.Status] {
+		} else if !statusSet[p.Status] {
 			issues = append(issues, fmt.Sprintf("invalid status '%s'", p.Status))
 		}
 
@@ -87,4 +110,3 @@ func NewOrg(people []Person) (*Org, error) {
 
 	return &Org{People: people, Warnings: warnings}, nil
 }
-

@@ -9,9 +9,9 @@ import (
 // Scenarios: EXPORT-005
 func TestConvertOrg_AssignsIDs(t *testing.T) {
 	t.Parallel()
-	people := []model.Person{
-		{PersonFields: model.PersonFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
-		{PersonFields: model.PersonFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Manager: "Alice"},
+	people := []model.OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Eng", Status: "Active"}},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Manager: "Alice"},
 	}
 	org, err := model.NewOrg(people)
 	if err != nil {
@@ -50,8 +50,8 @@ func TestConvertOrg_AssignsIDs(t *testing.T) {
 // Scenarios: EXPORT-005
 func TestConvertOrg_PreservesFields(t *testing.T) {
 	t.Parallel()
-	people := []model.Person{
-		{PersonFields: model.PersonFields{Name: "Eve", Role: "TPM", Discipline: "TPM", Team: "Platform",
+	people := []model.OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Eve", Role: "TPM", Discipline: "TPM", Team: "Platform",
 			AdditionalTeams: []string{"Search", "Infra"}, Status: "Active",
 			NewRole: "Sr TPM", NewTeam: "Infra"}},
 	}
@@ -80,7 +80,7 @@ func TestConvertOrg_PreservesFields(t *testing.T) {
 	}
 }
 
-func findByName(people []Person, name string) *Person {
+func findByName(people []OrgNode, name string) *OrgNode {
 	for i := range people {
 		if people[i].Name == name {
 			return &people[i]
@@ -92,15 +92,15 @@ func findByName(people []Person, name string) *Person {
 func TestConvertOrg_PreservesExtra(t *testing.T) {
 	t.Parallel()
 	org := &model.Org{
-		People: []model.Person{
+		People: []model.OrgNode{
 			{
-				PersonFields: model.PersonFields{
+				OrgNodeFields: model.OrgNodeFields{
 					Name: "Alice", Role: "VP", Discipline: "Eng", Team: "T", Status: "Active",
 					Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"},
 				},
 			},
 			{
-				PersonFields: model.PersonFields{
+				OrgNodeFields: model.OrgNodeFields{
 					Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
 				},
 			},

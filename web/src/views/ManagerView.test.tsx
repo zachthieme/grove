@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import ManagerView from './ManagerView'
-import { makePerson, renderWithViewData } from '../test-helpers'
+import { makeNode, renderWithViewData } from '../test-helpers'
 
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
@@ -43,8 +43,8 @@ describe('ManagerView', () => {
   })
 
   it('renders manager names', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
 
     renderWithViewData(<ManagerView />, { working: [mgr, ic1], original: [mgr, ic1] })
 
@@ -52,8 +52,8 @@ describe('ManagerView', () => {
   })
 
   it('shows summary card with discipline breakdown for Active ICs', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
 
     renderWithViewData(<ManagerView />, { working: [mgr, ic1], original: [mgr, ic1] })
 
@@ -62,9 +62,9 @@ describe('ManagerView', () => {
   })
 
   it('shows "Recruiting" label in summary when Open/Backfill ICs exist', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
-    const ic2 = makePerson({ id: 'ic2', name: 'Open Req', role: 'Engineer', discipline: 'Engineering', status: 'Open', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
+    const ic2 = makeNode({ id: 'ic2', name: 'Open Req', role: 'Engineer', discipline: 'Engineering', status: 'Open', managerId: 'mgr' })
 
     renderWithViewData(<ManagerView />, { working: [mgr, ic1, ic2], original: [mgr, ic1, ic2] })
 
@@ -72,8 +72,8 @@ describe('ManagerView', () => {
   })
 
   it('renders chart container with data-role attribute', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager Alice', role: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC Bob', role: 'Engineer', discipline: 'Engineering', status: 'Active', managerId: 'mgr' })
 
     const { container } = renderWithViewData(<ManagerView />, { working: [mgr, ic1], original: [mgr, ic1] })
 

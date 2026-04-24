@@ -12,7 +12,7 @@ import (
 )
 
 // generateLargeCSV creates a CSV with n people in a realistic org structure:
-//   - Person 0: CEO (root, no manager)
+//   - OrgNode 0: CEO (root, no manager)
 //   - Persons 1-4: VPs (report to CEO)
 //   - Persons 5-24: Directors (report to a VP, round-robin)
 //   - Persons 25+: ICs (report to a Director, round-robin)
@@ -96,7 +96,7 @@ func TestLargeOrg_MoveChain(t *testing.T) {
 		t.Fatal("target director Person-10 not found")
 	}
 
-	// Move 50 ICs (Person-25 through Person-74) to the target director
+	// Move 50 ICs (OrgNode-25 through OrgNode-74) to the target director
 	for i := 25; i < 75; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(data.Working, name)
@@ -132,7 +132,7 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 	data := svc.GetOrg(context.Background())
 
-	// Update all ICs (Person-25 through Person-199) to have a new role
+	// Update all ICs (OrgNode-25 through OrgNode-199) to have a new role
 	for i := 25; i < 200; i++ {
 		name := fmt.Sprintf("Person-%d", i)
 		p := findByName(data.Working, name)
@@ -140,7 +140,7 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 			t.Fatalf("person %s not found", name)
 		}
 		newRole := fmt.Sprintf("Senior Engineer %d", i)
-		_, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr(newRole)})
+		_, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr(newRole)})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
@@ -201,7 +201,7 @@ func TestLargeOrg_DeleteAndRestore(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 	data := svc.GetOrg(context.Background())
 
-	// Delete 50 ICs (Person-150 through Person-199) — chosen from the end
+	// Delete 50 ICs (OrgNode-150 through OrgNode-199) — chosen from the end
 	// to avoid disrupting other people's manager references as much.
 	deletedIds := make([]string, 0, 50)
 	for i := 150; i < 200; i++ {
@@ -265,7 +265,7 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr("Mutated")})
+		_, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr("Mutated")})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
@@ -372,7 +372,7 @@ func TestLargeOrg_500People(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(context.Background(), p.Id, PersonUpdate{Role: ptr("Staff Engineer")})
+		_, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr("Staff Engineer")})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}

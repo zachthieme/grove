@@ -174,7 +174,7 @@ func applyPodSidecarNotes(pods []Pod, sidecar []podSidecarEntry, idToName map[st
 	}
 }
 
-func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []Person, working []Person, snaps map[string]snapshotData, warnings []string, err error) {
+func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []OrgNode, working []OrgNode, snaps map[string]snapshotData, warnings []string, err error) {
 	snaps = make(map[string]snapshotData)
 
 	// Parse raw orgs from all entries first.
@@ -206,7 +206,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 
 	if len(parsed) == 1 {
 		people := ConvertOrg(parsed[0].org)
-		return people, deepCopyPeople(people), nil, warnings, nil
+		return people, deepCopyNodes(people), nil, warnings, nil
 	}
 
 	// Find original (prefix 0) and working (prefix 1)
@@ -301,7 +301,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		}
 		resp := &UploadResponse{
 			Status:    UploadReady,
-			OrgData:   &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
+			OrgData:   &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
 			Snapshots: s.ListSnapshotsUnlocked(),
 		}
 		s.mu.Unlock()

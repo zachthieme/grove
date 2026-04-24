@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useCallback, useState, type ReactNode } from 'react'
 import { DndContext } from '@dnd-kit/core'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
 import { useChartLayout } from '../hooks/useChartLayout'
 import { useLassoSelect } from '../hooks/useLassoSelect'
-import { buildOrgTree, type OrgNode } from './shared'
+import { buildOrgTree, type TreeNode } from './shared'
 import type { LayoutNode } from './layoutTree'
 import { ChartProvider } from './ChartContext'
 import { DragBadgeOverlay } from './DragBadgeOverlay'
@@ -16,8 +16,8 @@ import DeleteConfirmPopover from '../components/DeleteConfirmPopover'
 import styles from './ChartShell.module.css'
 
 export interface ChartShellProps {
-  computeEdges: (people: Person[], roots: OrgNode[], layoutRoots?: LayoutNode[]) => ChartEdge[]
-  computeLayout: (roots: OrgNode[]) => LayoutNode[]
+  computeEdges: (people: OrgNode[], roots: TreeNode[], layoutRoots?: LayoutNode[]) => ChartEdge[]
+  computeLayout: (roots: TreeNode[]) => LayoutNode[]
   renderLayoutNode: (node: LayoutNode) => ReactNode
   dashedEdges?: boolean
   useGhostPeople?: boolean

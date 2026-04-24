@@ -11,7 +11,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableHeader from './TableHeader'
-import { makePerson } from '../test-helpers'
+import { makeNode } from '../test-helpers'
 import type { ColumnDef } from './tableColumns'
 
 afterEach(() => cleanup())
@@ -114,8 +114,8 @@ describe('TableHeader — branch coverage', () => {
   describe('openFilter renders dropdown', () => {
     it('renders TableFilterDropdown when openFilter matches a column', async () => {
       const people = [
-        makePerson({ id: '1', name: 'Alice' }),
-        makePerson({ id: '2', name: 'Bob' }),
+        makeNode({ id: '1', name: 'Alice' }),
+        makeNode({ id: '2', name: 'Bob' }),
       ]
       render(
         <table><thead>
@@ -148,7 +148,7 @@ describe('TableHeader — branch coverage', () => {
     })
 
     it('renders dropdown only for the matching column', async () => {
-      const people = [makePerson({ id: '1', name: 'Alice', role: 'VP' })]
+      const people = [makeNode({ id: '1', name: 'Alice', role: 'VP' })]
       // To get the filter dropdown to actually render, we need the anchorRef to
       // have a real button. The simplest way is to check the branch is entered.
       render(

@@ -10,11 +10,11 @@ beforeEach(() => {
 })
 
 describe('network error', () => {
-  it('[CONTRACT-004] updatePerson rejects with TypeError when network is down', async () => {
+  it('[CONTRACT-004] updateNode rejects with TypeError when network is down', async () => {
     mockFetch.mockRejectedValue(new TypeError('Failed to fetch'))
 
     await expect(
-      api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }),
+      api.updateNode({ personId: 'abc', fields: { name: 'Test' } }),
     ).rejects.toThrow('Failed to fetch')
   })
 
@@ -41,9 +41,9 @@ describe('HTTP 500 response', () => {
     })
   })
 
-  it('[CONTRACT-004] updatePerson throws with status and error body', async () => {
+  it('[CONTRACT-004] updateNode throws with status and error body', async () => {
     await expect(
-      api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }),
+      api.updateNode({ personId: 'abc', fields: { name: 'Test' } }),
     ).rejects.toThrow('API 500: Internal Server Error')
   })
 
@@ -68,9 +68,9 @@ describe('malformed JSON response', () => {
     })
   })
 
-  it('[CONTRACT-004] updatePerson rejects with SyntaxError on malformed JSON', async () => {
+  it('[CONTRACT-004] updateNode rejects with SyntaxError on malformed JSON', async () => {
     await expect(
-      api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }),
+      api.updateNode({ personId: 'abc', fields: { name: 'Test' } }),
     ).rejects.toThrow(SyntaxError)
   })
 
@@ -84,12 +84,12 @@ describe('malformed JSON response', () => {
 })
 
 describe('request timeout', () => {
-  it('[CONTRACT-004] updatePerson rejects with AbortError when request times out', async () => {
+  it('[CONTRACT-004] updateNode rejects with AbortError when request times out', async () => {
     const abortError = new DOMException('The operation was aborted', 'AbortError')
     mockFetch.mockRejectedValue(abortError)
 
     await expect(
-      api.updatePerson({ personId: 'abc', fields: { name: 'Test' } }),
+      api.updateNode({ personId: 'abc', fields: { name: 'Test' } }),
     ).rejects.toThrow('The operation was aborted')
   })
 
@@ -113,7 +113,7 @@ describe('request timeout', () => {
     mockFetch.mockRejectedValue(abortError)
 
     try {
-      await api.updatePerson({ personId: 'abc', fields: {} })
+      await api.updateNode({ personId: 'abc', fields: {} })
       expect.unreachable('should have thrown')
     } catch (err) {
       expect(err).toBeInstanceOf(DOMException)

@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup, fireEvent } from '@testing-library/react'
 import SettingsModal from './SettingsModal'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 afterEach(() => cleanup())
 
@@ -15,9 +15,9 @@ describe('SettingsModal — branch coverage', () => {
     const updateSettings = vi.fn().mockResolvedValue(undefined)
     renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a1', discipline: 'Engineering' }),
-        makePerson({ id: 'b2', discipline: 'Design' }),
-        makePerson({ id: 'c3', discipline: 'Product' }),
+        makeNode({ id: 'a1', discipline: 'Engineering' }),
+        makeNode({ id: 'b2', discipline: 'Design' }),
+        makeNode({ id: 'c3', discipline: 'Product' }),
       ],
       settings: { disciplineOrder: ['Design', 'Engineering'] },
       updateSettings,
@@ -34,7 +34,7 @@ describe('SettingsModal — branch coverage', () => {
   it('filters out stale disciplines from existing order', () => {
     renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a1', discipline: 'Engineering' }),
+        makeNode({ id: 'a1', discipline: 'Engineering' }),
       ],
       settings: { disciplineOrder: ['Stale Discipline', 'Engineering'] },
     })
@@ -46,9 +46,9 @@ describe('SettingsModal — branch coverage', () => {
   it('handles drag-over reordering', () => {
     renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a', discipline: 'Alpha' }),
-        makePerson({ id: 'b', discipline: 'Beta' }),
-        makePerson({ id: 'c', discipline: 'Charlie' }),
+        makeNode({ id: 'a', discipline: 'Alpha' }),
+        makeNode({ id: 'b', discipline: 'Beta' }),
+        makeNode({ id: 'c', discipline: 'Charlie' }),
       ],
       settings: { disciplineOrder: [] },
     })
@@ -71,8 +71,8 @@ describe('SettingsModal — branch coverage', () => {
   it('handles drag-over with same index (no-op)', () => {
     renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a', discipline: 'Alpha' }),
-        makePerson({ id: 'b', discipline: 'Beta' }),
+        makeNode({ id: 'a', discipline: 'Alpha' }),
+        makeNode({ id: 'b', discipline: 'Beta' }),
       ],
       settings: { disciplineOrder: [] },
     })
@@ -88,8 +88,8 @@ describe('SettingsModal — branch coverage', () => {
   it('handles drag-over without prior drag start (dragIdx is null)', () => {
     renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a', discipline: 'Alpha' }),
-        makePerson({ id: 'b', discipline: 'Beta' }),
+        makeNode({ id: 'a', discipline: 'Alpha' }),
+        makeNode({ id: 'b', discipline: 'Beta' }),
       ],
       settings: { disciplineOrder: [] },
     })
@@ -103,8 +103,8 @@ describe('SettingsModal — branch coverage', () => {
   it('handles people with empty discipline (skipped)', () => {
     renderWithOrg(<SettingsModal onClose={vi.fn()} />, {
       working: [
-        makePerson({ id: 'a', discipline: '' }),
-        makePerson({ id: 'b', discipline: 'Engineering' }),
+        makeNode({ id: 'a', discipline: '' }),
+        makeNode({ id: 'b', discipline: 'Engineering' }),
       ],
       settings: { disciplineOrder: [] },
     })

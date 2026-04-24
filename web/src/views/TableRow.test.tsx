@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TableRow from './TableRow'
-import { makePerson } from '../test-helpers'
+import { makeNode } from '../test-helpers'
 import type { ColumnDef } from './tableColumns'
 
 afterEach(() => cleanup())
@@ -22,7 +22,7 @@ const defaultProps = {
 
 describe('TableRow', () => {
   it('renders person name in cells', () => {
-    const person = makePerson({ id: 'p1', name: 'Alice', role: 'Designer' })
+    const person = makeNode({ id: 'p1', name: 'Alice', role: 'Designer' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} />
@@ -33,7 +33,7 @@ describe('TableRow', () => {
   })
 
   it('shows select checkbox with correct aria-label', () => {
-    const person = makePerson({ id: 'p1', name: 'Bob' })
+    const person = makeNode({ id: 'p1', name: 'Bob' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} />
@@ -45,7 +45,7 @@ describe('TableRow', () => {
   it('select checkbox calls onToggleSelect with person ID', async () => {
     const user = userEvent.setup()
     const onToggleSelect = vi.fn()
-    const person = makePerson({ id: 'p1', name: 'Carol' })
+    const person = makeNode({ id: 'p1', name: 'Carol' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} onToggleSelect={onToggleSelect} />
@@ -56,7 +56,7 @@ describe('TableRow', () => {
   })
 
   it('shows delete button when not readOnly', () => {
-    const person = makePerson({ id: 'p1', name: 'Dan' })
+    const person = makeNode({ id: 'p1', name: 'Dan' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} />
@@ -66,7 +66,7 @@ describe('TableRow', () => {
   })
 
   it('hides delete button when readOnly=true', () => {
-    const person = makePerson({ id: 'p1', name: 'Eve' })
+    const person = makeNode({ id: 'p1', name: 'Eve' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} readOnly />
@@ -78,7 +78,7 @@ describe('TableRow', () => {
   it('delete button calls onDelete with person ID', async () => {
     const user = userEvent.setup()
     const onDelete = vi.fn()
-    const person = makePerson({ id: 'p1', name: 'Frank' })
+    const person = makeNode({ id: 'p1', name: 'Frank' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} onDelete={onDelete} />
@@ -89,7 +89,7 @@ describe('TableRow', () => {
   })
 
   it('selected row has checked checkbox', () => {
-    const person = makePerson({ id: 'p1', name: 'Grace' })
+    const person = makeNode({ id: 'p1', name: 'Grace' })
     render(
       <table><tbody>
         <TableRow {...defaultProps} person={person} selected />

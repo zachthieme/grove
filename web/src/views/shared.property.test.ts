@@ -1,13 +1,13 @@
 import { describe, test, expect } from 'vitest'
 import fc from 'fast-check'
 import { buildOrgTree } from './shared'
-import type { Person } from '../api/types'
-import type { OrgNode } from './shared'
+import type { OrgNode } from '../api/types'
+import type { TreeNode } from './shared'
 
-/** Recursively collect all Person objects from a tree of OrgNodes. */
-function flattenTree(nodes: OrgNode[]): Person[] {
-  const result: Person[] = []
-  function walk(node: OrgNode) {
+/** Recursively collect all OrgNode objects from a tree of TreeNodes. */
+function flattenTree(nodes: TreeNode[]): OrgNode[] {
+  const result: OrgNode[] = []
+  function walk(node: TreeNode) {
     result.push(node.person)
     for (const child of node.children) {
       walk(child)
@@ -25,7 +25,7 @@ function flattenTree(nodes: OrgNode[]): Person[] {
  * Reachable people are roots plus anyone whose manager chain leads to a root
  * without encountering a cycle.
  */
-function computeReachableIds(people: Person[]): Set<string> {
+function computeReachableIds(people: OrgNode[]): Set<string> {
   const idSet = new Set(people.map((p) => p.id))
   const byId = new Map(people.map((p) => [p.id, p]))
   const reachable = new Set<string>()
@@ -68,7 +68,7 @@ function computeReachableIds(people: Person[]): Set<string> {
  * Generate an array of Person objects with unique IDs.
  * managerId may point to any other person or be empty, allowing cycles.
  */
-function makePeopleArb(minSize: number, maxSize: number): fc.Arbitrary<Person[]> {
+function makePeopleArb(minSize: number, maxSize: number): fc.Arbitrary<OrgNode[]> {
   return fc.integer({ min: minSize, max: maxSize }).chain((n) => {
     const ids = Array.from({ length: n }, (_, i) => `id-${i}`)
     const personArbs = ids.map((id, i) =>
@@ -89,7 +89,7 @@ function makePeopleArb(minSize: number, maxSize: number): fc.Arbitrary<Person[]>
     )
     return fc
       .tuple(...personArbs)
-      .map((records) => records as unknown as Person[])
+      .map((records) => records as unknown as OrgNode[])
   })
 }
 
@@ -98,7 +98,7 @@ function makePeopleArb(minSize: number, maxSize: number): fc.Arbitrary<Person[]>
  * Each person's managerId either is empty or points to a person with a lower index,
  * guaranteeing a DAG (and therefore no cycles).
  */
-function makeAcyclicPeopleArb(minSize: number, maxSize: number): fc.Arbitrary<Person[]> {
+function makeAcyclicPeopleArb(minSize: number, maxSize: number): fc.Arbitrary<OrgNode[]> {
   return fc.integer({ min: minSize, max: maxSize }).chain((n) => {
     const ids = Array.from({ length: n }, (_, i) => `id-${i}`)
     const personArbs = ids.map((id, i) =>
@@ -119,7 +119,7 @@ function makeAcyclicPeopleArb(minSize: number, maxSize: number): fc.Arbitrary<Pe
     )
     return fc
       .tuple(...personArbs)
-      .map((records) => records as unknown as Person[])
+      .map((records) => records as unknown as OrgNode[])
   })
 }
 
@@ -165,7 +165,7 @@ describe('buildOrgTree property-based tests', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
-        function check(node: OrgNode) {
+        function check(node: TreeNode) {
           for (const child of node.children) {
             expect(child.person.managerId).toBe(node.person.id)
             check(child)
@@ -195,7 +195,7 @@ describe('buildOrgTree property-based tests', () => {
           }),
         }),
         (person) => {
-          const tree = buildOrgTree([person as unknown as Person])
+          const tree = buildOrgTree([person as unknown as OrgNode])
           expect(tree).toHaveLength(1)
           expect(tree[0].person).toBe(person)
           expect(tree[0].children).toEqual([])
@@ -208,7 +208,7 @@ describe('buildOrgTree property-based tests', () => {
     fc.assert(
       fc.property(makePeopleArb(1, 30), (people) => {
         const tree = buildOrgTree(people)
-        function check(node: OrgNode) {
+        function check(node: TreeNode) {
           for (let i = 1; i < node.children.length; i++) {
             const prev = node.children[i - 1].person.sortIndex ?? 0
             const curr = node.children[i].person.sortIndex ?? 0

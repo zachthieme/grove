@@ -2,12 +2,12 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ManagerInfoPopover from './ManagerInfoPopover'
-import { makePerson } from '../test-helpers'
+import { makeNode } from '../test-helpers'
 
 afterEach(() => cleanup())
 
-const manager = makePerson({ id: 'm1', name: 'Manager Alice', managerId: '' })
-const report1 = makePerson({ id: 'r1', name: 'Bob', managerId: 'm1', discipline: 'Engineering', status: 'Active' })
+const manager = makeNode({ id: 'm1', name: 'Manager Alice', managerId: '' })
+const report1 = makeNode({ id: 'r1', name: 'Bob', managerId: 'm1', discipline: 'Engineering', status: 'Active' })
 
 describe('ManagerInfoPopover', () => {
   it('calls onClose when close button is clicked', async () => {

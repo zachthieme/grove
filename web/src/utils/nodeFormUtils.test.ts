@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 import {
-  personToForm,
+  nodeToForm,
   batchToForm,
   blankForm,
   computeDirtyFields,
   dirtyToApiPayload,
   batchDirtyToApiPayload,
-} from './personFormUtils'
+} from './nodeFormUtils'
 
-const alice: Person = {
+const alice: OrgNode = {
   id: '1',
   name: 'Alice',
   role: 'Engineer',
@@ -26,7 +26,7 @@ const alice: Person = {
   private: true,
 }
 
-const bob: Person = {
+const bob: OrgNode = {
   id: '2',
   name: 'Bob',
   role: 'Engineer',
@@ -43,9 +43,9 @@ const bob: Person = {
   private: false,
 }
 
-describe('personToForm', () => {
+describe('nodeToForm', () => {
   it('converts a full person to form values', () => {
-    const form = personToForm(alice)
+    const form = nodeToForm(alice)
     expect(form).toEqual({
       name: 'Alice',
       role: 'Engineer',
@@ -60,11 +60,12 @@ describe('personToForm', () => {
       publicNote: 'Leads backend',
       privateNote: 'Promo candidate',
       private: true,
+      type: 'person',
     })
   })
 
   it('handles missing optional fields', () => {
-    const minimal: Person = {
+    const minimal: OrgNode = {
       id: '3',
       name: 'Charlie',
       role: '',
@@ -74,7 +75,7 @@ describe('personToForm', () => {
       additionalTeams: [],
       status: 'Open',
     }
-    const form = personToForm(minimal)
+    const form = nodeToForm(minimal)
     expect(form.employmentType).toBe('FTE')
     expect(form.level).toBe('0')
     expect(form.pod).toBe('')
@@ -132,19 +133,19 @@ describe('blankForm', () => {
 
 describe('computeDirtyFields', () => {
   it('returns null when nothing changed', () => {
-    const form = personToForm(alice)
+    const form = nodeToForm(alice)
     expect(computeDirtyFields(form, { ...form })).toBeNull()
   })
 
   it('returns only changed fields', () => {
-    const original = personToForm(alice)
+    const original = nodeToForm(alice)
     const edited = { ...original, name: 'Alice 2', level: '6' }
     const dirty = computeDirtyFields(original, edited)
     expect(dirty).toEqual({ name: 'Alice 2', level: '6' })
   })
 
   it('detects boolean changes', () => {
-    const original = personToForm(alice)
+    const original = nodeToForm(alice)
     const edited = { ...original, private: false }
     const dirty = computeDirtyFields(original, edited)
     expect(dirty).toEqual({ private: false })
@@ -191,7 +192,7 @@ describe('dirtyToApiPayload', () => {
 })
 
 describe('batchDirtyToApiPayload', () => {
-  const form = personToForm(alice)
+  const form = nodeToForm(alice)
 
   it('converts touched fields to API payload', () => {
     const touched = new Set(['role', 'discipline'])

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SnapshotsDropdown from './SnapshotsDropdown'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
 describe('SnapshotsDropdown', () => {
   afterEach(() => cleanup())
@@ -10,7 +10,7 @@ describe('SnapshotsDropdown', () => {
   it('[UI-005] opens dropdown on click and sets aria-expanded="true"', async () => {
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     const trigger = screen.getByRole('button', { name: /Snapshot:/ })
     await user.click(trigger)
@@ -20,7 +20,7 @@ describe('SnapshotsDropdown', () => {
   it('[UI-005] closes dropdown on second click', async () => {
     const user = userEvent.setup()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
     })
     const trigger = screen.getByRole('button', { name: /Snapshot:/ })
     await user.click(trigger)
@@ -33,7 +33,7 @@ describe('SnapshotsDropdown', () => {
     const user = userEvent.setup()
     const loadFn = vi.fn()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       loadSnapshot: loadFn,
       snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
     })
@@ -46,7 +46,7 @@ describe('SnapshotsDropdown', () => {
     const user = userEvent.setup()
     const loadFn = vi.fn()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       loadSnapshot: loadFn,
     })
     await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
@@ -58,7 +58,7 @@ describe('SnapshotsDropdown', () => {
     const user = userEvent.setup()
     const deleteFn = vi.fn()
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       deleteSnapshot: deleteFn,
       snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
     })
@@ -72,7 +72,7 @@ describe('SnapshotsDropdown', () => {
     const saveFn = vi.fn()
     vi.spyOn(window, 'prompt').mockReturnValue('New Name')
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       saveSnapshot: saveFn,
     })
     await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
@@ -86,7 +86,7 @@ describe('SnapshotsDropdown', () => {
     const saveFn = vi.fn()
     vi.spyOn(window, 'prompt').mockReturnValue(null)
     renderWithOrg(<SnapshotsDropdown />, {
-      working: [makePerson()],
+      working: [makeNode()],
       saveSnapshot: saveFn,
     })
     await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
@@ -100,7 +100,7 @@ describe('SnapshotsDropdown', () => {
     it('renders no snapshot items when snapshots list is empty', async () => {
       const user = userEvent.setup()
       renderWithOrg(<SnapshotsDropdown />, {
-        working: [makePerson()],
+        working: [makeNode()],
         snapshots: [],
       })
       await user.click(screen.getByRole('button', { name: /Snapshot:/ }))
@@ -112,7 +112,7 @@ describe('SnapshotsDropdown', () => {
 
     it('displays current snapshot name label', () => {
       renderWithOrg(<SnapshotsDropdown />, {
-        working: [makePerson()],
+        working: [makeNode()],
         currentSnapshotName: 'Sprint 1',
         snapshots: [{ name: 'Sprint 1', timestamp: '2025-01-15T10:30:00Z' }],
       })
@@ -121,7 +121,7 @@ describe('SnapshotsDropdown', () => {
 
     it('displays "Original" label when currentSnapshotName is __original__', () => {
       renderWithOrg(<SnapshotsDropdown />, {
-        working: [makePerson()],
+        working: [makeNode()],
         currentSnapshotName: '__original__',
       })
       expect(screen.getByRole('button', { name: /Snapshot: Original/ })).toBeDefined()

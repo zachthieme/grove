@@ -9,14 +9,14 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PodSidebar from './PodSidebar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 import type { Pod } from '../api/types'
 
 afterEach(() => cleanup())
 
-const manager = makePerson({ id: 'm1', name: 'Manager Alice', managerId: '' })
-const member1 = makePerson({ id: 'p1', name: 'Bob Jones', managerId: 'm1', team: 'Platform', pod: 'Alpha' })
-const member2 = makePerson({ id: 'p2', name: 'Carol White', managerId: 'm1', team: 'Platform', pod: 'Alpha' })
+const manager = makeNode({ id: 'm1', name: 'Manager Alice', managerId: '' })
+const member1 = makeNode({ id: 'p1', name: 'Bob Jones', managerId: 'm1', team: 'Platform', pod: 'Alpha' })
+const member2 = makeNode({ id: 'p2', name: 'Carol White', managerId: 'm1', team: 'Platform', pod: 'Alpha' })
 
 const alphaPod: Pod = {
   id: 'pod-1',

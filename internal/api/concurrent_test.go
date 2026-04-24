@@ -85,7 +85,7 @@ func TestConcurrentUpdates(t *testing.T) {
 			defer wg.Done()
 			for range iterations {
 				role := fmt.Sprintf("Role-%d", g)
-				_, _ = svc.Update(context.Background(), bobID, PersonUpdate{Role: ptr(role)})
+				_, _ = svc.Update(context.Background(), bobID, OrgNodeUpdate{Role: ptr(role)})
 			}
 		}()
 	}
@@ -96,7 +96,7 @@ func TestConcurrentUpdates(t *testing.T) {
 		t.Fatal("expected non-nil org data after concurrent updates")
 	}
 
-	var bob *Person
+	var bob *OrgNode
 	for i := range data.Working {
 		if data.Working[i].Id == bobID {
 			bob = &data.Working[i]
@@ -293,11 +293,11 @@ func TestConcurrentMixedOperations(t *testing.T) {
 					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
 				case 2:
 					// Update Bob's role
-					_, _ = svc.Update(context.Background(), bobID, PersonUpdate{Role: ptr(fmt.Sprintf("Role-%d-%d", g, i))})
+					_, _ = svc.Update(context.Background(), bobID, OrgNodeUpdate{Role: ptr(fmt.Sprintf("Role-%d-%d", g, i))})
 				case 3:
 					// Add a new person
-					_, _, _, _ = svc.Add(context.Background(), Person{
-						PersonFields: model.PersonFields{
+					_, _, _, _ = svc.Add(context.Background(), OrgNode{
+						OrgNodeFields: model.OrgNodeFields{
 							Name:   fmt.Sprintf("NewPerson-%d-%d", g, i),
 							Role:   "IC",
 							Team:   "Eng",

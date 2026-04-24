@@ -17,20 +17,20 @@ func (s *OrgService) SaveSnapshot(ctx context.Context, name string) error {
 	return nil
 }
 
-func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]Person, error) {
+func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]OrgNode, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	switch name {
 	case SnapshotWorking:
-		return deepCopyPeople(s.working), nil
+		return deepCopyNodes(s.working), nil
 	case SnapshotOriginal:
-		return deepCopyPeople(s.original), nil
+		return deepCopyNodes(s.original), nil
 	default:
 		snap := s.snaps.Get(name)
 		if snap == nil {
 			return nil, errNotFound("snapshot '%s' not found", name)
 		}
-		return deepCopyPeople(snap.People), nil
+		return deepCopyNodes(snap.People), nil
 	}
 }
 
@@ -41,7 +41,7 @@ func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, e
 	if err != nil {
 		return nil, err
 	}
-	s.working = deepCopyPeople(snap.People)
+	s.working = deepCopyNodes(snap.People)
 	s.rebuildIndex()
 	if snap.Pods != nil {
 		s.podMgr.SetPods(CopyPods(snap.Pods))
@@ -54,7 +54,7 @@ func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, e
 	} else {
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	}
-	return &OrgData{Original: deepCopyPeople(s.original), Working: deepCopyPeople(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}, nil
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}, nil
 }
 
 func (s *OrgService) DeleteSnapshot(ctx context.Context, name string) error {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
 import { OrgDataProvider, useOrgData, useOrgMutations } from './OrgDataContext'
 import { UIProvider, useUI } from './UIContext'
-import type { Person, OrgData, UploadResponse, SnapshotInfo, AutosaveData, Settings } from '../api/types'
+import type { OrgNode, OrgData, UploadResponse, SnapshotInfo, AutosaveData, Settings } from '../api/types'
 import type { ReactNode } from 'react'
 
 // Mock the API client
@@ -14,11 +14,11 @@ vi.mock('../api/client', () => ({
   uploadZipFile: vi.fn(),
   createOrg: vi.fn(),
   confirmMapping: vi.fn(),
-  movePerson: vi.fn(),
-  updatePerson: vi.fn(),
-  addPerson: vi.fn(),
-  deletePerson: vi.fn(),
-  restorePerson: vi.fn(),
+  moveNode: vi.fn(),
+  updateNode: vi.fn(),
+  addNode: vi.fn(),
+  deleteNode: vi.fn(),
+  restoreNode: vi.fn(),
   emptyBin: vi.fn(),
   resetToOriginal: vi.fn(),
   saveSnapshot: vi.fn(),
@@ -35,11 +35,11 @@ vi.mock('../api/client', () => ({
 
 import * as api from '../api/client'
 
-const alice: Person = {
+const alice: OrgNode = {
   id: 'a1', name: 'Alice', role: 'VP', discipline: 'Eng',
   managerId: '', team: 'Eng', additionalTeams: [], status: 'Active',
 }
-const bob: Person = {
+const bob: OrgNode = {
   id: 'b2', name: 'Bob', role: 'Engineer', discipline: 'Eng',
   managerId: 'a1', team: 'Platform', additionalTeams: [], status: 'Active',
 }
@@ -198,24 +198,24 @@ describe('OrgDataContext', () => {
   })
 
   describe('update', () => {
-    it('[ORG-005] calls updatePerson API and updates working state', async () => {
+    it('[ORG-005] calls updateNode API and updates working state', async () => {
       const updated = [alice, { ...bob, role: 'Senior Engineer' }]
-      vi.mocked(api.updatePerson).mockResolvedValue({ working: updated, pods: [] })
+      vi.mocked(api.updateNode).mockResolvedValue({ working: updated, pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => {
         await result.current.update('b2', { role: 'Senior Engineer' })
       })
 
-      expect(api.updatePerson).toHaveBeenCalledWith(
+      expect(api.updateNode).toHaveBeenCalledWith(
         { personId: 'b2', fields: { role: 'Senior Engineer' } },
         undefined,
       )
       expect(result.current.working[1].role).toBe('Senior Engineer')
     })
 
-    it('[ORG-005] sets error when updatePerson API fails', async () => {
-      vi.mocked(api.updatePerson).mockRejectedValue(new Error('update failed'))
+    it('[ORG-005] sets error when updateNode API fails', async () => {
+      vi.mocked(api.updateNode).mockRejectedValue(new Error('update failed'))
 
       const { result } = await renderLoaded()
       await act(async () => {
@@ -228,14 +228,14 @@ describe('OrgDataContext', () => {
     })
 
     it('[CONTRACT-004] passes correlationId to API', async () => {
-      vi.mocked(api.updatePerson).mockResolvedValue({ working: [alice, bob], pods: [] })
+      vi.mocked(api.updateNode).mockResolvedValue({ working: [alice, bob], pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => {
         await result.current.update('b2', { role: 'X' }, 'corr-123')
       })
 
-      expect(api.updatePerson).toHaveBeenCalledWith(
+      expect(api.updateNode).toHaveBeenCalledWith(
         { personId: 'b2', fields: { role: 'X' } },
         'corr-123',
       )
@@ -243,8 +243,8 @@ describe('OrgDataContext', () => {
   })
 
   describe('remove', () => {
-    it('[ORG-012] calls deletePerson API and updates working and recycled', async () => {
-      vi.mocked(api.deletePerson).mockResolvedValue({
+    it('[ORG-012] calls deleteNode API and updates working and recycled', async () => {
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [alice],
         recycled: [bob],
         pods: [],
@@ -253,14 +253,14 @@ describe('OrgDataContext', () => {
       const { result } = await renderLoaded()
       await act(async () => { await result.current.remove('b2') })
 
-      expect(api.deletePerson).toHaveBeenCalledWith({ personId: 'b2' })
+      expect(api.deleteNode).toHaveBeenCalledWith({ personId: 'b2' })
       expect(result.current.working).toHaveLength(1)
       expect(result.current.recycled).toHaveLength(1)
       expect(result.current.recycled[0].id).toBe('b2')
     })
 
-    it('[ORG-012] sets error when deletePerson API fails', async () => {
-      vi.mocked(api.deletePerson).mockRejectedValue(new Error('delete failed'))
+    it('[ORG-012] sets error when deleteNode API fails', async () => {
+      vi.mocked(api.deleteNode).mockRejectedValue(new Error('delete failed'))
 
       const { result } = await renderLoaded()
       await act(async () => { await result.current.remove('b2') })
@@ -271,12 +271,12 @@ describe('OrgDataContext', () => {
   })
 
   describe('restore', () => {
-    it('[ORG-012] calls restorePerson API and moves person from recycled back to working', async () => {
+    it('[ORG-012] calls restoreNode API and moves person from recycled back to working', async () => {
       // First delete, then restore
-      vi.mocked(api.deletePerson).mockResolvedValue({
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [alice], recycled: [bob], pods: [],
       })
-      vi.mocked(api.restorePerson).mockResolvedValue({
+      vi.mocked(api.restoreNode).mockResolvedValue({
         working: [alice, bob], recycled: [], pods: [],
       })
 
@@ -286,16 +286,16 @@ describe('OrgDataContext', () => {
 
       await act(async () => { await result.current.restore('b2') })
 
-      expect(api.restorePerson).toHaveBeenCalledWith('b2')
+      expect(api.restoreNode).toHaveBeenCalledWith('b2')
       expect(result.current.working).toHaveLength(2)
       expect(result.current.recycled).toHaveLength(0)
     })
 
-    it('[ORG-012] sets error when restorePerson API fails', async () => {
-      vi.mocked(api.deletePerson).mockResolvedValue({
+    it('[ORG-012] sets error when restoreNode API fails', async () => {
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [alice], recycled: [bob], pods: [],
       })
-      vi.mocked(api.restorePerson).mockRejectedValue(new Error('restore failed'))
+      vi.mocked(api.restoreNode).mockRejectedValue(new Error('restore failed'))
 
       const { result } = await renderLoaded()
       await act(async () => { await result.current.remove('b2') })
@@ -306,12 +306,12 @@ describe('OrgDataContext', () => {
   })
 
   describe('add', () => {
-    it('calls addPerson API and adds person to working', async () => {
-      const carol: Person = {
+    it('calls addNode API and adds person to working', async () => {
+      const carol: OrgNode = {
         id: 'c3', name: 'Carol', role: 'Designer', discipline: 'Design',
         managerId: 'a1', team: 'Eng', additionalTeams: [], status: 'Active',
       }
-      vi.mocked(api.addPerson).mockResolvedValue({
+      vi.mocked(api.addNode).mockResolvedValue({
         created: carol,
         working: [alice, bob, carol],
         pods: [],
@@ -321,13 +321,13 @@ describe('OrgDataContext', () => {
       const { id: _, ...personWithoutId } = carol
       await act(async () => { await result.current.add(personWithoutId) })
 
-      expect(api.addPerson).toHaveBeenCalledWith(personWithoutId)
+      expect(api.addNode).toHaveBeenCalledWith(personWithoutId)
       expect(result.current.working).toHaveLength(3)
       expect(result.current.working[2].name).toBe('Carol')
     })
 
-    it('sets error when addPerson API fails', async () => {
-      vi.mocked(api.addPerson).mockRejectedValue(new Error('add failed'))
+    it('sets error when addNode API fails', async () => {
+      vi.mocked(api.addNode).mockRejectedValue(new Error('add failed'))
 
       const { result } = await renderLoaded()
       await act(async () => {
@@ -343,38 +343,38 @@ describe('OrgDataContext', () => {
   })
 
   describe('move', () => {
-    it('calls movePerson API with correct payload', async () => {
+    it('calls moveNode API with correct payload', async () => {
       const updated = [alice, { ...bob, managerId: '', team: 'NewTeam' }]
-      vi.mocked(api.movePerson).mockResolvedValue({ working: updated, pods: [] })
+      vi.mocked(api.moveNode).mockResolvedValue({ working: updated, pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => {
         await result.current.move('b2', '', 'NewTeam')
       })
 
-      expect(api.movePerson).toHaveBeenCalledWith(
+      expect(api.moveNode).toHaveBeenCalledWith(
         { personId: 'b2', newManagerId: '', newTeam: 'NewTeam' },
         undefined,
       )
       expect(result.current.working[1].team).toBe('NewTeam')
     })
 
-    it('passes correlationId to movePerson API', async () => {
-      vi.mocked(api.movePerson).mockResolvedValue({ working: [alice, bob], pods: [] })
+    it('passes correlationId to moveNode API', async () => {
+      vi.mocked(api.moveNode).mockResolvedValue({ working: [alice, bob], pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => {
         await result.current.move('b2', 'a1', 'Eng', 'corr-456')
       })
 
-      expect(api.movePerson).toHaveBeenCalledWith(
+      expect(api.moveNode).toHaveBeenCalledWith(
         { personId: 'b2', newManagerId: 'a1', newTeam: 'Eng' },
         'corr-456',
       )
     })
 
-    it('sets error when movePerson API fails', async () => {
-      vi.mocked(api.movePerson).mockRejectedValue(new Error('move failed'))
+    it('sets error when moveNode API fails', async () => {
+      vi.mocked(api.moveNode).mockRejectedValue(new Error('move failed'))
 
       const { result } = await renderLoaded()
       await act(async () => {
@@ -386,16 +386,16 @@ describe('OrgDataContext', () => {
   })
 
   describe('reparent', () => {
-    it('calls movePerson API using the new manager team', async () => {
+    it('calls moveNode API using the new manager team', async () => {
       const updated = [alice, { ...bob, managerId: 'a1', team: 'Eng' }]
-      vi.mocked(api.movePerson).mockResolvedValue({ working: updated, pods: [] })
+      vi.mocked(api.moveNode).mockResolvedValue({ working: updated, pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => {
         await result.current.reparent('b2', 'a1')
       })
 
-      expect(api.movePerson).toHaveBeenCalledWith(
+      expect(api.moveNode).toHaveBeenCalledWith(
         { personId: 'b2', newManagerId: 'a1', newTeam: 'Eng' },
         undefined,
       )
@@ -408,11 +408,11 @@ describe('OrgDataContext', () => {
       })
 
       expect(result.current.error).toContain('Manager not found')
-      expect(api.movePerson).not.toHaveBeenCalled()
+      expect(api.moveNode).not.toHaveBeenCalled()
     })
 
-    it('clears manager via updatePerson when newManagerId is empty', async () => {
-      vi.mocked(api.updatePerson).mockResolvedValue({
+    it('clears manager via updateNode when newManagerId is empty', async () => {
+      vi.mocked(api.updateNode).mockResolvedValue({
         working: [alice, { ...bob, managerId: '' }],
         pods: [],
       })
@@ -422,15 +422,15 @@ describe('OrgDataContext', () => {
         await result.current.reparent('b2', '')
       })
 
-      expect(api.updatePerson).toHaveBeenCalledWith(
+      expect(api.updateNode).toHaveBeenCalledWith(
         { personId: 'b2', fields: { managerId: '' } },
         undefined,
       )
-      expect(api.movePerson).not.toHaveBeenCalled()
+      expect(api.moveNode).not.toHaveBeenCalled()
     })
 
     it('sets error when reparent API fails', async () => {
-      vi.mocked(api.movePerson).mockRejectedValue(new Error('reparent failed'))
+      vi.mocked(api.moveNode).mockRejectedValue(new Error('reparent failed'))
 
       const { result } = await renderLoaded()
       await act(async () => {
@@ -561,7 +561,7 @@ describe('OrgDataContext', () => {
 
   describe('emptyBin', () => {
     it('calls emptyBin API and clears recycled', async () => {
-      vi.mocked(api.deletePerson).mockResolvedValue({
+      vi.mocked(api.deleteNode).mockResolvedValue({
         working: [alice], recycled: [bob], pods: [],
       })
       vi.mocked(api.emptyBin).mockResolvedValue({ recycled: [] })
@@ -600,7 +600,7 @@ describe('OrgDataContext', () => {
     })
 
     it('loadSnapshot calls API and updates working state', async () => {
-      const carol: Person = { ...alice, id: 'c3', name: 'Carol' }
+      const carol: OrgNode = { ...alice, id: 'c3', name: 'Carol' }
       const snapData: OrgData = { original: [alice], working: [carol] }
       vi.mocked(api.loadSnapshot).mockResolvedValue(snapData)
 
@@ -939,7 +939,7 @@ describe('OrgDataContext', () => {
   describe('currentSnapshotName clears on mutations', () => {
     it('clears currentSnapshotName after move', async () => {
       vi.mocked(api.saveSnapshot).mockResolvedValue([{ name: 'v1', timestamp: '2026-01-01T00:00:00Z' }])
-      vi.mocked(api.movePerson).mockResolvedValue({ working: [alice, bob], pods: [] })
+      vi.mocked(api.moveNode).mockResolvedValue({ working: [alice, bob], pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => { await result.current.saveSnapshot('v1') })
@@ -951,7 +951,7 @@ describe('OrgDataContext', () => {
 
     it('clears currentSnapshotName after update', async () => {
       vi.mocked(api.saveSnapshot).mockResolvedValue([{ name: 'v1', timestamp: '2026-01-01T00:00:00Z' }])
-      vi.mocked(api.updatePerson).mockResolvedValue({ working: [alice, bob], pods: [] })
+      vi.mocked(api.updateNode).mockResolvedValue({ working: [alice, bob], pods: [] })
 
       const { result } = await renderLoaded()
       await act(async () => { await result.current.saveSnapshot('v1') })

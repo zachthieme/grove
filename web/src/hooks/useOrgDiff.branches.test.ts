@@ -6,9 +6,9 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useOrgDiff } from './useOrgDiff'
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
-const base: Person = {
+const base: OrgNode = {
   id: '1', name: 'Alice', role: 'VP', discipline: 'Eng',
   managerId: '', team: 'Eng', additionalTeams: [], status: 'Active',
 }

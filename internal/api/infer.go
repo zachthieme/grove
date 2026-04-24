@@ -8,6 +8,7 @@ import (
 // exactMatches maps trimmed, lowercased header text to the app field name.
 var exactMatches = map[string]string{
 	"name":             "name",
+	"type":             "type",
 	"role":             "role",
 	"discipline":       "discipline",
 	"manager":          "manager",
@@ -26,6 +27,10 @@ var exactMatches = map[string]string{
 
 // synonyms maps lowercased synonym phrases to the app field name.
 var synonyms = map[string]string{
+	// type
+	"node type":  "type",
+	"node_type":  "type",
+	"kind":       "type",
 	// name
 	"full name":      "name",
 	"person":         "name",

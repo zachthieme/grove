@@ -3,11 +3,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SearchBar from './SearchBar'
-import { makePerson, renderWithOrg } from '../test-helpers'
+import { makeNode, renderWithOrg } from '../test-helpers'
 
-const alice = makePerson({ id: 'p1', name: 'Alice Anderson', role: 'Engineer', team: 'Platform' })
-const bob = makePerson({ id: 'p2', name: 'Bob Brown', role: 'Designer', team: 'Growth' })
-const carol = makePerson({ id: 'p3', name: 'Carol Clark', role: 'Manager', team: 'Platform' })
+const alice = makeNode({ id: 'p1', name: 'Alice Anderson', role: 'Engineer', team: 'Platform' })
+const bob = makeNode({ id: 'p2', name: 'Bob Brown', role: 'Designer', team: 'Growth' })
+const carol = makeNode({ id: 'p3', name: 'Carol Clark', role: 'Manager', team: 'Platform' })
 
 describe('SearchBar', () => {
   afterEach(() => cleanup())
@@ -91,7 +91,7 @@ describe('SearchBar', () => {
   it('[UI-017] limits results to 8 matches', async () => {
     const user = userEvent.setup()
     const manyPeople = Array.from({ length: 15 }, (_, i) =>
-      makePerson({ id: `p${i}`, name: `Person ${i}` }),
+      makeNode({ id: `p${i}`, name: `Person ${i}` }),
     )
     renderWithOrg(<SearchBar />, { working: manyPeople })
     await user.type(screen.getByRole('combobox'), 'person')

@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, cleanup } from '@testing-library/react'
 import ColumnView from './ColumnView'
-import { makePerson, renderWithViewData } from '../test-helpers'
+import { makeNode, renderWithViewData } from '../test-helpers'
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -40,10 +40,10 @@ afterEach(() => cleanup())
 
 describe('ColumnView — branch coverage', () => {
   it('renders ICs grouped by pod when all children are ICs', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'mgr', pod: 'Alpha' })
-    const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'mgr', pod: 'Alpha' })
-    const ic3 = makePerson({ id: 'ic3', name: 'IC3', managerId: 'mgr', pod: 'Beta' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'mgr', pod: 'Alpha' })
+    const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'mgr', pod: 'Alpha' })
+    const ic3 = makeNode({ id: 'ic3', name: 'IC3', managerId: 'mgr', pod: 'Beta' })
 
     renderWithViewData(<ColumnView />, {
       working: [mgr, ic1, ic2, ic3],
@@ -60,9 +60,9 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders unpodded ICs separately from podded ICs', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC Podded', managerId: 'mgr', pod: 'Alpha' })
-    const ic2 = makePerson({ id: 'ic2', name: 'IC Unpodded', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC Podded', managerId: 'mgr', pod: 'Alpha' })
+    const ic2 = makeNode({ id: 'ic2', name: 'IC Unpodded', managerId: 'mgr' })
 
     renderWithViewData(<ColumnView />, {
       working: [mgr, ic1, ic2],
@@ -75,9 +75,9 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders all ICs in a flat stack when no pods are used', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager', managerId: '' })
-    const ic1 = makePerson({ id: 'ic1', name: 'IC1', managerId: 'mgr' })
-    const ic2 = makePerson({ id: 'ic2', name: 'IC2', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'mgr' })
+    const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'mgr' })
 
     renderWithViewData(<ColumnView />, {
       working: [mgr, ic1, ic2],
@@ -89,10 +89,10 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders mixed children: managers + ICs', () => {
-    const vp = makePerson({ id: 'vp', name: 'VP', managerId: '' })
-    const mgr = makePerson({ id: 'mgr', name: 'Sub Manager', managerId: 'vp' })
-    const ic1 = makePerson({ id: 'ic1', name: 'VP IC', managerId: 'vp' })
-    const ic2 = makePerson({ id: 'ic2', name: 'Mgr IC', managerId: 'mgr' })
+    const vp = makeNode({ id: 'vp', name: 'VP', managerId: '' })
+    const mgr = makeNode({ id: 'mgr', name: 'Sub Manager', managerId: 'vp' })
+    const ic1 = makeNode({ id: 'ic1', name: 'VP IC', managerId: 'vp' })
+    const ic2 = makeNode({ id: 'ic2', name: 'Mgr IC', managerId: 'mgr' })
 
     renderWithViewData(<ColumnView />, {
       working: [vp, mgr, ic1, ic2],
@@ -106,11 +106,11 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders cross-team ICs (with additionalTeams) separately', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager', managerId: '' })
-    const subMgr = makePerson({ id: 'sub', name: 'Sub', managerId: 'mgr' })
-    const subIc = makePerson({ id: 'sub-ic', name: 'Sub IC', managerId: 'sub' })
-    const crossTeamIc = makePerson({ id: 'cross', name: 'Cross Team IC', managerId: 'mgr', additionalTeams: ['Other'] })
-    const normalIc = makePerson({ id: 'normal', name: 'Normal IC', managerId: 'mgr' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const subMgr = makeNode({ id: 'sub', name: 'Sub', managerId: 'mgr' })
+    const subIc = makeNode({ id: 'sub-ic', name: 'Sub IC', managerId: 'sub' })
+    const crossTeamIc = makeNode({ id: 'cross', name: 'Cross Team IC', managerId: 'mgr', additionalTeams: ['Other'] })
+    const normalIc = makeNode({ id: 'normal', name: 'Normal IC', managerId: 'mgr' })
 
     renderWithViewData(<ColumnView />, {
       working: [mgr, subMgr, subIc, crossTeamIc, normalIc],
@@ -122,9 +122,9 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders in diff mode showing changes', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager', managerId: '' })
-    const originalIc = makePerson({ id: 'ic1', name: 'IC', managerId: 'mgr', role: 'Engineer' })
-    const changedIc = makePerson({ id: 'ic1', name: 'IC', managerId: 'mgr', role: 'Senior Engineer' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const originalIc = makeNode({ id: 'ic1', name: 'IC', managerId: 'mgr', role: 'Engineer' })
+    const changedIc = makeNode({ id: 'ic1', name: 'IC', managerId: 'mgr', role: 'Senior Engineer' })
 
     renderWithViewData(<ColumnView />, {
       working: [mgr, changedIc],
@@ -136,11 +136,11 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders mixed children with pod groups using icGroup items', () => {
-    const mgr = makePerson({ id: 'mgr', name: 'Manager', managerId: '' })
-    const subMgr = makePerson({ id: 'sub', name: 'Sub', managerId: 'mgr' })
-    const subIc = makePerson({ id: 'sub-ic', name: 'Sub IC', managerId: 'sub' })
-    const ic1 = makePerson({ id: 'ic1', name: 'Pod IC1', managerId: 'mgr', pod: 'Alpha' })
-    const ic2 = makePerson({ id: 'ic2', name: 'Pod IC2', managerId: 'mgr', pod: 'Alpha' })
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const subMgr = makeNode({ id: 'sub', name: 'Sub', managerId: 'mgr' })
+    const subIc = makeNode({ id: 'sub-ic', name: 'Sub IC', managerId: 'sub' })
+    const ic1 = makeNode({ id: 'ic1', name: 'Pod IC1', managerId: 'mgr', pod: 'Alpha' })
+    const ic2 = makeNode({ id: 'ic2', name: 'Pod IC2', managerId: 'mgr', pod: 'Alpha' })
 
     renderWithViewData(<ColumnView />, {
       working: [mgr, subMgr, subIc, ic1, ic2],
@@ -153,8 +153,8 @@ describe('ColumnView — branch coverage', () => {
   })
 
   it('renders orphan people when they have no manager in the data', () => {
-    const solo1 = makePerson({ id: 'a', name: 'Orphan A', team: 'Eng', managerId: '' })
-    const solo2 = makePerson({ id: 'b', name: 'Orphan B', team: 'Design', managerId: '' })
+    const solo1 = makeNode({ id: 'a', name: 'Orphan A', team: 'Eng', managerId: '' })
+    const solo2 = makeNode({ id: 'b', name: 'Orphan B', team: 'Design', managerId: '' })
 
     renderWithViewData(<ColumnView />, {
       working: [solo1, solo2],

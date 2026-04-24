@@ -108,6 +108,36 @@ func TestBuildPeopleWithMapping_ExtraColumns(t *testing.T) {
 	}
 }
 
+// Scenarios: CONTRACT-009
+func TestBuildPeopleWithMapping_ProductRows(t *testing.T) {
+	t.Parallel()
+	header := []string{"Name", "Type", "Status", "Manager"}
+	rows := [][]string{
+		{"Alice", "person", "Active", ""},
+		{"Widget", "product", "Active", "Alice"},
+		{"Bob", "", "Active", "Alice"},
+	}
+	mapping := map[string]string{
+		"name": "Name", "type": "Type", "status": "Status", "manager": "Manager",
+	}
+	org, err := BuildPeopleWithMapping(header, rows, mapping)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(org.People) != 3 {
+		t.Fatalf("expected 3 people, got %d", len(org.People))
+	}
+	if org.People[0].Type != "person" {
+		t.Errorf("expected Alice type 'person', got '%s'", org.People[0].Type)
+	}
+	if org.People[1].Type != "product" {
+		t.Errorf("expected Widget type 'product', got '%s'", org.People[1].Type)
+	}
+	if org.People[2].Type != "" {
+		t.Errorf("expected Bob type '' (empty), got '%s'", org.People[2].Type)
+	}
+}
+
 func TestBuildPeopleWithMapping_NoExtraColumns(t *testing.T) {
 	t.Parallel()
 	header := []string{"Full Name", "Job Title"}

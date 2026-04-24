@@ -1,4 +1,4 @@
-import type { Person } from '../api/types'
+import type { OrgNode } from '../api/types'
 
 export type CellType = 'text' | 'number' | 'dropdown' | 'checkbox'
 
@@ -9,7 +9,7 @@ export interface ColumnDef {
   width?: string
 }
 
-export function getPersonValue(person: Person, key: string): string {
+export function getPersonValue(person: OrgNode, key: string): string {
   if (key.startsWith('extra:')) {
     return person.extra?.[key.slice(6)] ?? ''
   }
@@ -21,7 +21,7 @@ export function getPersonValue(person: Person, key: string): string {
   }
 }
 
-export function buildExtraColumns(people: Person[]): ColumnDef[] {
+export function buildExtraColumns(people: OrgNode[]): ColumnDef[] {
   const keys = new Set<string>()
   for (const p of people) {
     if (p.extra) {

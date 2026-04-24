@@ -2,8 +2,8 @@ import type { ReactElement } from 'react'
 import { render, type RenderOptions } from '@testing-library/react'
 import { OrgOverrideProvider } from './store/OrgContext'
 import { ViewDataProvider } from './store/ViewDataContext'
-import type { Person } from './api/types'
-import { type PersonFormValues, personToForm } from './utils/personFormUtils'
+import type { OrgNode } from './api/types'
+import { type NodeFormValues, nodeToForm } from './utils/nodeFormUtils'
 import type { OrgDataStateValue, OrgMutationsValue, UIContextValue, SelectionContextValue } from './store/orgTypes'
 
 type OrgTestContext = OrgDataStateValue & OrgMutationsValue & UIContextValue & SelectionContextValue
@@ -16,7 +16,7 @@ export function normalizeHTML(html: string): string {
     .trim()
 }
 
-export function makePerson(overrides: Partial<Person> = {}): Person {
+export function makeNode(overrides: Partial<OrgNode> = {}): OrgNode {
   return {
     id: 'default-id',
     name: 'Default Person',
@@ -30,9 +30,9 @@ export function makePerson(overrides: Partial<Person> = {}): Person {
   }
 }
 
-/** Create a PersonFormValues from a Person for test assertions. */
-export function makeEditBuffer(p: Person): PersonFormValues {
-  return personToForm(p)
+/** Create a NodeFormValues from a Person for test assertions. */
+export function makeEditBuffer(p: OrgNode): NodeFormValues {
+  return nodeToForm(p)
 }
 
 const noop = () => {}
