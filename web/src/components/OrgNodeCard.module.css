@@ -39,6 +39,10 @@
   color: var(--text-tertiary);
 }
 
+.productTeam {
+  color: var(--grove-product);
+}
+
 /* Diff annotations */
 .added {
   border-color: var(--grove-green-light);

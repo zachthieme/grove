@@ -153,7 +153,7 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
   return (
     <BaseNode
       nodeId={person.id}
-      variant={isManager ? 'manager' : 'default'}
+      variant={isProduct ? 'product' : isManager ? 'manager' : 'default'}
       statusStyle={statusStyle}
       empAccent={isProduct ? undefined : getEmpColor(person.employmentType)}
       ghost={ghost}
@@ -182,7 +182,7 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
         )}
       </div>
       {showTeam && (
-        <div className={styles.team} onDoubleClick={handleDoubleClick('team')}>
+        <div className={`${styles.team}${isProduct ? ` ${styles.productTeam}` : ''}`} onDoubleClick={handleDoubleClick('team')}>
           {editing && editBuffer ? (
             <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
           ) : (

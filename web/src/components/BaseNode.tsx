@@ -15,7 +15,7 @@ export interface BaseNodeActions {
 export interface BaseNodeProps {
   nodeId: string
   children: ReactNode
-  variant?: 'default' | 'manager' | 'group'
+  variant?: 'default' | 'manager' | 'group' | 'product' | 'productGroup'
   statusStyle?: 'recruiting' | 'planned' | 'transfer'
   empAccent?: string
   ghost?: boolean
@@ -99,6 +99,8 @@ function BaseNodeInner({
     styles.node,
     variant === 'manager' && styles.manager,
     variant === 'group' && styles.group,
+    variant === 'product' && styles.product,
+    variant === 'productGroup' && styles.productGroup,
     selected && styles.selected,
     statusStyle === 'recruiting' && styles.recruiting,
     statusStyle === 'planned' && styles.future,

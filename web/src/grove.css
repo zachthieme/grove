@@ -12,6 +12,8 @@
   --grove-amber: #c4873b;
   --grove-red: #a13b2d;
   --grove-red-light: #f5e6e3;
+  --grove-product: #5b6b7d;
+  --grove-product-soft: #e6ebf0;
 
   /* Surfaces */
   --surface-page: #faf8f5;
@@ -130,6 +132,8 @@ input, select, button {
     --grove-amber: #d4983b;
     --grove-red: #cf5a4a;
     --grove-red-light: rgba(207, 90, 74, 0.12);
+    --grove-product: #8a9aae;
+    --grove-product-soft: rgba(138, 154, 174, 0.12);
 
     --surface-page: #1a1814;
     --surface-raised: #242019;

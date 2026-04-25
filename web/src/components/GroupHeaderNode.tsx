@@ -6,6 +6,8 @@ interface Props {
   nodeId: string
   name: string
   count?: number
+  /** Visual variant. 'group' (default, green) or 'productGroup' (slate). */
+  variant?: 'group' | 'productGroup'
   noteText?: string
   collapsed?: boolean
   onToggleCollapse?: () => void
@@ -18,7 +20,7 @@ interface Props {
   dragData?: Record<string, unknown>
 }
 
-export default memo(function GroupHeaderNode({ nodeId, name, count, noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId, dragData }: Props) {
+export default memo(function GroupHeaderNode({ nodeId, name, count, variant = 'group', noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId, dragData }: Props) {
   const actions: BaseNodeActions | undefined = (onAdd || onInfo)
     ? {
         onAdd: onAdd ? (e) => { e.stopPropagation(); onAdd() } : undefined,
@@ -29,7 +31,7 @@ export default memo(function GroupHeaderNode({ nodeId, name, count, noteText, co
   return (
     <BaseNode
       nodeId={nodeId}
-      variant="group"
+      variant={variant}
       noteText={noteText}
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}

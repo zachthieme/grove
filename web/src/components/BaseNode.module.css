@@ -38,6 +38,16 @@
   border-left: 3.5px solid var(--grove-green);
 }
 
+.product {
+  border-color: var(--grove-product);
+  border-left: 3.5px solid var(--grove-product);
+  background: var(--grove-product-soft);
+}
+
+.productGroup {
+  border-left: 3.5px solid var(--grove-product);
+}
+
 .selected,
 .selected:hover {
   border-color: var(--grove-green);

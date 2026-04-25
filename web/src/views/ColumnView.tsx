@@ -164,6 +164,7 @@ const LayoutProductGroup = memo(function LayoutProductGroup({ group }: { group: 
         <GroupHeaderNode
           nodeId={group.collapseKey}
           name="Products"
+          variant="productGroup"
           collapsed={isCollapsed}
           onClick={(e) => onSelect(group.collapseKey, e)}
           selected={selectedIds.has(group.collapseKey)}
