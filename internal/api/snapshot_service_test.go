@@ -202,3 +202,72 @@ func TestSnapshotService_Delete_RemovesEntry(t *testing.T) {
 		t.Errorf("expected empty list after delete, got %v", got)
 	}
 }
+
+// Scenarios: SNAP-006
+func TestSnapshotService_Export_Working(t *testing.T) {
+	t.Parallel()
+	provider := newStubOrgProvider()
+	provider.getWorking = func(context.Context) []OrgNode {
+		return []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "WorkingPerson"}, Id: "w1"}}
+	}
+
+	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	people, err := ss.Export(context.Background(), SnapshotWorking)
+	if err != nil {
+		t.Fatalf("Export working: %v", err)
+	}
+	if len(people) != 1 || people[0].Name != "WorkingPerson" {
+		t.Errorf("expected [WorkingPerson], got %v", people)
+	}
+}
+
+// Scenarios: SNAP-006
+func TestSnapshotService_Export_Original(t *testing.T) {
+	t.Parallel()
+	provider := newStubOrgProvider()
+	provider.getOrig = func(context.Context) []OrgNode {
+		return []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "OrigPerson"}, Id: "o1"}}
+	}
+
+	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	people, err := ss.Export(context.Background(), SnapshotOriginal)
+	if err != nil {
+		t.Fatalf("Export original: %v", err)
+	}
+	if len(people) != 1 || people[0].Name != "OrigPerson" {
+		t.Errorf("expected [OrigPerson], got %v", people)
+	}
+}
+
+// Scenarios: SNAP-006
+func TestSnapshotService_Export_NamedSnapshot(t *testing.T) {
+	t.Parallel()
+	provider := newStubOrgProvider()
+	provider.captureFn = func() OrgState {
+		return OrgState{
+			People: []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Frozen"}, Id: "f1"}},
+		}
+	}
+
+	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	if err := ss.Save(context.Background(), "snap1"); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	people, err := ss.Export(context.Background(), "snap1")
+	if err != nil {
+		t.Fatalf("Export named: %v", err)
+	}
+	if len(people) != 1 || people[0].Name != "Frozen" {
+		t.Errorf("expected [Frozen], got %v", people)
+	}
+}
+
+// Scenarios: SNAP-006
+func TestSnapshotService_Export_NotFound(t *testing.T) {
+	t.Parallel()
+	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	_, err := ss.Export(context.Background(), "missing")
+	if err == nil || !isNotFound(err) {
+		t.Errorf("expected NotFoundError, got %v", err)
+	}
+}

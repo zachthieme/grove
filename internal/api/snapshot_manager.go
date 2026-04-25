@@ -289,3 +289,23 @@ func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
 	}
 	return nil
 }
+
+// Export returns the People slice for a snapshot. Special names route to
+// the live working/original via the orgStateProvider. Named snapshots are
+// read under mu_snap.RLock and deep-copied so callers can mutate freely.
+func (ss *SnapshotService) Export(ctx context.Context, name string) ([]OrgNode, error) {
+	switch name {
+	case SnapshotWorking:
+		return ss.org.GetWorking(ctx), nil
+	case SnapshotOriginal:
+		return ss.org.GetOriginal(ctx), nil
+	}
+
+	ss.mu.RLock()
+	defer ss.mu.RUnlock()
+	snap, ok := ss.snaps[name]
+	if !ok {
+		return nil, errNotFound("snapshot '%s' not found", name)
+	}
+	return deepCopyNodes(snap.People), nil
+}
