@@ -35,6 +35,46 @@ function postLogEntry(entry: Record<string, unknown>): void {
   }).catch(() => {})
 }
 
+/** Report an app-level event to the backend log buffer. No-op when logging is off. */
+export function reportLog(
+  level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR',
+  message: string,
+  opts?: { error?: unknown; attrs?: Record<string, unknown>; correlationId?: string },
+): void {
+  const errMsg = opts?.error == null
+    ? undefined
+    : opts.error instanceof Error
+      ? `${opts.error.message}\n${opts.error.stack ?? ''}`.trim()
+      : String(opts.error)
+  postLogEntry({
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    source: 'web',
+    correlationId: opts?.correlationId,
+    error: errMsg,
+    attrs: opts?.attrs,
+  })
+}
+
+let globalErrorReporterInstalled = false
+
+/** Hook window.error + unhandledrejection so render crashes and stray promise
+ * rejects show up in the in-app log viewer. Idempotent. */
+export function installGlobalErrorReporter(): void {
+  if (globalErrorReporterInstalled || typeof window === 'undefined') return
+  globalErrorReporterInstalled = true
+  window.addEventListener('error', (ev) => {
+    reportLog('ERROR', 'window.onerror', {
+      error: ev.error ?? ev.message,
+      attrs: { filename: ev.filename, lineno: ev.lineno, colno: ev.colno },
+    })
+  })
+  window.addEventListener('unhandledrejection', (ev) => {
+    reportLog('ERROR', 'unhandledrejection', { error: ev.reason })
+  })
+}
+
 const MAX_RETRIES = 1
 
 function isRetryable(err: unknown): boolean {
@@ -446,15 +486,18 @@ export async function getConfig(): Promise<AppConfig> {
 export interface LogEntry {
   id: string
   timestamp: string
+  level?: string
+  message?: string
   correlationId?: string
   source: string
-  method: string
-  path: string
+  method?: string
+  path?: string
   requestBody?: unknown
   responseStatus?: number
   responseBody?: unknown
   durationMs?: number
   error?: string
+  attrs?: Record<string, unknown>
 }
 
 export interface LogsResponse {

@@ -58,11 +58,17 @@ type SnapshotService struct {
 }
 
 // NewSnapshotService constructs a SnapshotService and loads any persisted
-// snapshots from the store.
+// snapshots from the store. Read failures are logged and the service starts
+// empty — desktop tool, no remote operator to halt for.
 func NewSnapshotService(store SnapshotStore, org orgStateProvider) *SnapshotService {
 	ss := &SnapshotService{store: store, org: org}
-	if snaps, err := store.Read(); err == nil && snaps != nil {
+	snaps, err := store.Read()
+	switch {
+	case err != nil:
+		Logger().Warn("snapshot store unreadable, starting empty", "source", "snap", "op", "load", "err", err.Error())
+	case snaps != nil:
 		ss.snaps = snaps
+		Logger().Info("snapshots loaded", "source", "snap", "count", len(snaps))
 	}
 	return ss
 }
@@ -143,8 +149,10 @@ func (ss *SnapshotService) Save(ctx context.Context, name string) error {
 		} else {
 			delete(ss.snaps, name)
 		}
+		Logger().Error("snapshot persist failed", "source", "snap", "op", "save", "name", name, "err", err.Error())
 		return fmt.Errorf("persisting snapshot: %w", err)
 	}
+	Logger().Info("snapshot saved", "source", "snap", "op", "save", "name", name, "people", len(state.People), "pods", len(state.Pods), "overwrote", existed)
 	return nil
 }
 
@@ -166,6 +174,7 @@ func (ss *SnapshotService) Load(ctx context.Context, name string) error {
 	ss.mu.RUnlock()
 
 	ss.org.ApplyState(state)
+	Logger().Info("snapshot loaded", "source", "snap", "op", "load", "name", name, "people", len(state.People))
 	return nil
 }
 
@@ -182,8 +191,10 @@ func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
 	if err := ss.store.Write(ss.snaps); err != nil {
 		// Roll back so map and disk stay in sync.
 		ss.snaps[name] = prev
+		Logger().Error("snapshot delete persist failed", "source", "snap", "op", "delete", "name", name, "err", err.Error())
 		return fmt.Errorf("persisting snapshot deletion: %w", err)
 	}
+	Logger().Info("snapshot deleted", "source", "snap", "op", "delete", "name", name)
 	return nil
 }
 
@@ -220,9 +231,17 @@ type SnapshotClearer interface {
 func (ss *SnapshotService) Clear() error {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
+	prev := len(ss.snaps)
 	ss.snaps = nil
 	ss.epoch++
-	return ss.store.Delete()
+	if err := ss.store.Delete(); err != nil {
+		Logger().Error("snapshot clear persist failed", "source", "snap", "op", "clear", "err", err.Error())
+		return err
+	}
+	if prev > 0 {
+		Logger().Info("snapshots cleared", "source", "snap", "op", "clear", "evicted", prev)
+	}
+	return nil
 }
 
 // ReplaceAll replaces the snapshot map (used by zip import to install
@@ -239,15 +258,19 @@ func (ss *SnapshotService) ReplaceAll(snaps map[string]snapshotData) error {
 		if err := ss.store.Delete(); err != nil {
 			ss.snaps = prevSnaps
 			ss.epoch = prevEpoch
+			Logger().Error("snapshot replaceAll delete failed", "source", "snap", "op", "replaceAll", "err", err.Error())
 			return fmt.Errorf("deleting snapshot store: %w", err)
 		}
+		Logger().Info("snapshots replaced (cleared)", "source", "snap", "op", "replaceAll", "previous", len(prevSnaps))
 		return nil
 	}
 	if err := ss.store.Write(ss.snaps); err != nil {
 		ss.snaps = prevSnaps
 		ss.epoch = prevEpoch
+		Logger().Error("snapshot replaceAll persist failed", "source", "snap", "op", "replaceAll", "err", err.Error())
 		return fmt.Errorf("persisting snapshots: %w", err)
 	}
+	Logger().Info("snapshots replaced", "source", "snap", "op", "replaceAll", "previous", len(prevSnaps), "new", len(snaps))
 	return nil
 }
 

@@ -1939,3 +1939,80 @@ func TestCSRFProtect_DeleteWithoutHeader_Returns403(t *testing.T) {
 		t.Errorf("expected 403, got %d", rec.Code)
 	}
 }
+
+// Scenarios: SEC-002
+func TestCSRFProtect_CrossOriginPost_Returns403(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	req := httptest.NewRequest("POST", "/api/move", strings.NewReader(`{}`))
+	req.Host = "grove.local:8080"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Origin", "http://evil.com")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for cross-origin POST, got %d", rec.Code)
+	}
+}
+
+// Scenarios: SEC-002
+func TestCSRFProtect_SameOriginPost_Succeeds(t *testing.T) {
+	t.Parallel()
+	svc := NewOrgService(NewMemorySnapshotStore())
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	uploadCSV(t, handler)
+
+	req := httptest.NewRequest("POST", "/api/snapshots/save", strings.NewReader(`{"name":"sec002"}`))
+	req.Host = "grove.local:8080"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Origin", "http://grove.local:8080")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 for same-origin POST, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// Scenarios: SEC-002
+func TestCSRFProtect_CrossOriginReferer_Returns403(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	req := httptest.NewRequest("POST", "/api/move", strings.NewReader(`{}`))
+	req.Host = "grove.local:8080"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Referer", "http://evil.com/page")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for cross-origin Referer, got %d", rec.Code)
+	}
+}
+
+// Scenarios: SEC-002
+func TestCSRFProtect_MalformedOrigin_Returns403(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+
+	req := httptest.NewRequest("POST", "/api/move", strings.NewReader(`{}`))
+	req.Host = "grove.local:8080"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Origin", "not a url")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for malformed Origin, got %d", rec.Code)
+	}
+}

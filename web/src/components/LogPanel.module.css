@@ -67,8 +67,22 @@
 }
 .sourceApi { background: #1e3a5f; color: #6cb6ff; }
 .sourceWeb { background: #3a1e3a; color: #d69fd6; }
+.sourceApp { background: #1e3a2f; color: #6cffb6; }
+.level {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  text-transform: uppercase;
+  min-width: 36px;
+  text-align: center;
+}
+.levelDebug { background: #2a2a2a; color: #888; }
+.levelInfo  { background: #1e3a5f; color: #6cb6ff; }
+.levelWarn  { background: #3a3010; color: #dcdcaa; }
+.levelError { background: #4a1e1e; color: #f44747; }
 .method { color: #dcdcaa; min-width: 40px; }
 .path { flex: 1; color: #9cdcfe; }
+.message { flex: 1; color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status { min-width: 30px; text-align: right; }
 .statusOk { color: #4ec9b0; }
 .statusWarn { color: #dcdcaa; }

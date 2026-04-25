@@ -312,6 +312,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		resp.Snapshots = s.snap.List()
 		resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
 
+		Logger().Info("zip upload completed", "source", "import", "people", len(work), "snapshots", len(snaps), "fileWarns", len(fileWarns), "parseWarns", len(parseWarns), "diskWarns", len(diskWarns))
 		return resp, nil
 	}
 
@@ -321,6 +322,8 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 	s.pendingEpoch++
 	s.pending = &PendingUpload{File: data, Filename: "upload.zip", IsZip: true}
 	s.mu.Unlock()
+
+	Logger().Info("zip upload needs mapping", "source", "import", "headers", len(header), "rows", len(dataRows))
 
 	preview := [][]string{header}
 	for i, row := range dataRows {

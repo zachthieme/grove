@@ -130,7 +130,6 @@ func normalizeEmploymentType(nodes []OrgNode) {
 // syncing the backend with a frontend that restored from autosave.
 func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.original = deepCopyNodes(data.Original)
 	s.working = deepCopyNodes(data.Working)
 	normalizeEmploymentType(s.original)
@@ -144,6 +143,10 @@ func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	} else {
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
 	}
+	people := len(s.working)
+	recycled := len(s.recycled)
+	s.mu.Unlock()
+	Logger().Info("state restored from autosave", "source", "org", "op", "restoreState", "people", people, "recycled", recycled, "snapshot", data.SnapshotName)
 }
 
 func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
@@ -188,9 +191,13 @@ func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	// Clear snapshots after releasing org lock — load-bearing rule:
 	// never hold mu_org and mu_snap simultaneously. Bumping snap epoch
 	// invalidates any in-flight Save that captured pre-Reset state.
-	// Signature returns *OrgData (no error), so disk failures here are
-	// silently dropped — consistent with podMgr.unsafeReset semantics.
-	_ = s.snap.Clear()
+	// Signature returns *OrgData (no error), so disk failures here surface
+	// only via the structured logger — consistent with podMgr.unsafeReset
+	// semantics, but no longer silent.
+	if err := s.snap.Clear(); err != nil {
+		Logger().Error("snapshot clear during reset failed", "source", "org", "op", "reset", "err", err.Error())
+	}
+	Logger().Info("org reset to original", "source", "org", "op", "reset")
 	return resp
 }
 
@@ -211,6 +218,15 @@ func (s *OrgService) resetState(original, working []OrgNode) {
 // rebuildIndex rebuilds the idIndex from the current working slice.
 // Must be called with s.mu held after any operation that changes the
 // working slice's structure (append, remove, replace).
+//
+// O(n) on every structural mutation. Intentional: at Grove's product scope
+// (single-user, hundreds of people, occasional thousands) the rebuild is
+// microseconds and never appears in profiles — TestLargeOrg_500People and the
+// benchmark suite verify this. Switching to incremental index maintenance
+// (add on append, swap-and-pop on delete, refresh on replace) would distribute
+// the same work across mutation sites and add a class of "forgot to update the
+// index" bugs for no observable gain. Revisit only if a benchmark regression
+// makes this hot.
 func (s *OrgService) rebuildIndex() {
 	s.idIndex = make(map[string]int, len(s.working))
 	for i, p := range s.working {
@@ -330,5 +346,6 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	resp.PersistenceWarning = persistWarn
+	Logger().Info("org created", "source", "org", "name", name)
 	return resp, nil
 }

@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
+import { reportLog } from '../api/client'
 
 interface Props {
   children: ReactNode
@@ -20,7 +21,13 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info.componentStack)
+    reportLog('ERROR', 'ErrorBoundary caught render error', {
+      error,
+      attrs: {
+        boundaryLabel: this.props.label ?? 'unlabeled',
+        componentStack: info.componentStack ?? '',
+      },
+    })
   }
 
   render() {

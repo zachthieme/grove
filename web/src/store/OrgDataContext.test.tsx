@@ -31,6 +31,7 @@ vi.mock('../api/client', () => ({
   createPod: vi.fn(),
   updateSettings: vi.fn(),
   setOnApiError: vi.fn().mockReturnValue(() => {}),
+  reportLog: vi.fn(),
 }))
 
 import * as api from '../api/client'
@@ -505,7 +506,6 @@ describe('OrgDataContext', () => {
     })
 
     it('[AUTO-003] still restores UI state when restoreState API fails (backend sync failure)', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       vi.mocked(api.restoreState).mockRejectedValue(new Error('network error'))
 
       const autosaveData: AutosaveData = {
@@ -526,11 +526,13 @@ describe('OrgDataContext', () => {
       expect(result.current.loaded).toBe(true)
       expect(result.current.working).toEqual([alice, bob])
       expect(result.current.autosaveAvailable).toBeNull()
-      // No user-visible error — only a console.warn
+      // No user-visible error — only a structured WARN report to the log buffer.
       expect(result.current.error).toBeNull()
-      expect(warnSpy).toHaveBeenCalledWith('Failed to sync restored state to backend')
-
-      warnSpy.mockRestore()
+      expect(api.reportLog).toHaveBeenCalledWith(
+        'WARN',
+        'Failed to sync restored state to backend',
+        expect.objectContaining({ error: expect.any(Error) }),
+      )
     })
   })
 

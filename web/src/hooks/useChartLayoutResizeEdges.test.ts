@@ -1,13 +1,3 @@
-/**
- * Additional branch coverage for useChartLayout (round 2).
- * Targets uncovered branches:
- * - ResizeObserver callback triggers re-render (resizeKey increment)
- * - useLayoutEffect: edges with container producing lines
- * - Edge line computation: dashed=true vs dashed=false (lines 64-79)
- * - Edge with one missing node ref (continue branch, line 60)
- * - Multiple edges: mixed dashed/non-dashed
- * - handleDragEnd without prior dragStart
- */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import type { ChartEdge } from './useChartLayout'
@@ -70,7 +60,7 @@ function renderWithContainer(edges: ChartEdge[] = [], layoutDeps: unknown = 0) {
   return { ...result, containerEl }
 }
 
-describe('useChartLayout — branch coverage round 2', () => {
+describe('useChartLayout — resize observer and edge lines', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resizeObserverCallback = null

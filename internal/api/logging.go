@@ -16,15 +16,18 @@ import (
 type LogEntry struct {
 	ID             string          `json:"id"`
 	Timestamp      time.Time       `json:"timestamp"`
+	Level          string          `json:"level,omitempty"`
+	Message        string          `json:"message,omitempty"`
 	CorrelationID  string          `json:"correlationId,omitempty"`
 	Source         string          `json:"source"`
-	Method         string          `json:"method"`
-	Path           string          `json:"path"`
+	Method         string          `json:"method,omitempty"`
+	Path           string          `json:"path,omitempty"`
 	RequestBody    json.RawMessage `json:"requestBody,omitempty"`
 	ResponseStatus int             `json:"responseStatus,omitempty"`
 	ResponseBody   json.RawMessage `json:"responseBody,omitempty"`
 	DurationMs     int64           `json:"durationMs,omitempty"`
 	Error          string          `json:"error,omitempty"`
+	Attrs          json.RawMessage `json:"attrs,omitempty"`
 }
 
 type LogFilter struct {

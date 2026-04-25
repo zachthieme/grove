@@ -65,6 +65,22 @@ export default function LogPanel({ onClose }: LogPanelProps) {
     return styles.statusOk
   }
 
+  const levelClass = (level?: string) => {
+    switch (level) {
+      case 'DEBUG': return styles.levelDebug
+      case 'INFO':  return styles.levelInfo
+      case 'WARN':  return styles.levelWarn
+      case 'ERROR': return styles.levelError
+      default:      return undefined
+    }
+  }
+
+  const sourceClass = (source: string) => {
+    if (source === 'api') return styles.sourceApi
+    if (source === 'web') return styles.sourceWeb
+    return styles.sourceApp
+  }
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
@@ -77,6 +93,7 @@ export default function LogPanel({ onClose }: LogPanelProps) {
             <option value="">All sources</option>
             <option value="api">API</option>
             <option value="web">Web</option>
+            <option value="app">App</option>
           </select>
           {filter.correlationId && (
             <button className={styles.filterTag} onClick={() => setFilter((f) => ({ ...f, correlationId: undefined }))} aria-label={`Remove filter ${filter.correlationId}`}>
@@ -99,15 +116,21 @@ export default function LogPanel({ onClose }: LogPanelProps) {
           <div key={entry.id} className={styles.entry}>
             <div className={styles.entryRow} onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expandedId === entry.id ? null : entry.id) } }} role="button" tabIndex={0}>
               <span className={styles.timestamp}>{new Date(entry.timestamp).toLocaleTimeString()}</span>
-              <span className={`${styles.source} ${entry.source === 'api' ? styles.sourceApi : styles.sourceWeb}`}>
+              <span className={`${styles.source} ${sourceClass(entry.source)}`}>
                 {entry.source}
               </span>
-              <span className={styles.method}>{entry.method}</span>
-              <span className={styles.path}>{entry.path}</span>
-              <span className={`${styles.status} ${statusColor(entry.responseStatus)}`}>
-                {entry.responseStatus}
-              </span>
-              <span className={styles.duration}>{entry.durationMs}ms</span>
+              {entry.level && (
+                <span className={`${styles.level} ${levelClass(entry.level)}`}>{entry.level}</span>
+              )}
+              {entry.method && <span className={styles.method}>{entry.method}</span>}
+              {entry.path && <span className={styles.path}>{entry.path}</span>}
+              {entry.message && !entry.path && <span className={styles.message}>{entry.message}</span>}
+              {entry.responseStatus != null && (
+                <span className={`${styles.status} ${statusColor(entry.responseStatus)}`}>
+                  {entry.responseStatus}
+                </span>
+              )}
+              {entry.durationMs != null && <span className={styles.duration}>{entry.durationMs}ms</span>}
               {entry.correlationId && (
                 <button
                   className={styles.corrId}
@@ -119,6 +142,15 @@ export default function LogPanel({ onClose }: LogPanelProps) {
             </div>
             {expandedId === entry.id && (
               <div className={styles.detail}>
+                {entry.message && entry.path && (
+                  <div><strong>Message:</strong> {entry.message}</div>
+                )}
+                {entry.attrs != null && (
+                  <div>
+                    <strong>Attrs:</strong>
+                    <pre>{JSON.stringify(entry.attrs, null, 2)}</pre>
+                  </div>
+                )}
                 {entry.requestBody != null && (
                   <div>
                     <strong>Request:</strong>

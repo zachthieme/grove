@@ -3,11 +3,13 @@ import { type OrgNode, type Pod, type AutosaveData, type MappedColumn, type Snap
 import * as api from '../api/client'
 import { setOnApiError } from '../api/client'
 import type { OrgDataStateValue, OrgMutationsValue } from './orgTypes'
-import { AUTOSAVE_STORAGE_KEY } from '../constants'
 import { useUI } from './UIContext'
 import { useDirtyTracking } from './useDirtyTracking'
 import { useOrgMutations as useMutationCallbacks } from './useOrgMutations'
 import { useUndoRedo } from '../hooks/useUndoRedo'
+import { useInitialBootstrap } from './useInitialBootstrap'
+import { useUndoRedoActions } from './useUndoRedoActions'
+import { useAutosaveActions } from './useAutosaveActions'
 
 export interface OrgDataState {
   original: OrgNode[]
@@ -41,28 +43,28 @@ export function useOrgMutations(): OrgMutationsValue {
   return ctx
 }
 
+const INITIAL_STATE: OrgDataState = {
+  original: [],
+  working: [],
+  recycled: [],
+  pods: [],
+  originalPods: [],
+  settings: { disciplineOrder: [] },
+  loaded: false,
+  pendingMapping: null,
+  snapshots: [],
+  currentSnapshotName: null,
+  autosaveAvailable: null,
+}
+
 export function OrgDataProvider({ children }: { children: ReactNode }) {
   const { setError } = useUI()
 
-  useEffect(() => {
-    return setOnApiError((msg) => setError(msg))
-  }, [setError])
+  useEffect(() => setOnApiError((msg) => setError(msg)), [setError])
 
-  const [state, setState] = useState<OrgDataState>({
-    original: [],
-    working: [],
-    recycled: [],
-    pods: [],
-    originalPods: [],
-    settings: { disciplineOrder: [] },
-    loaded: false,
-    pendingMapping: null,
-    snapshots: [],
-    currentSnapshotName: null,
-    autosaveAvailable: null,
-  })
+  const [state, setState] = useState<OrgDataState>(INITIAL_STATE)
 
-  // Ref for synchronous latest-state access in reparent (needs to read working to find manager)
+  // Sync ref for callbacks that need latest working without re-binding (reparent).
   const workingRef = useRef(state.working)
   workingRef.current = state.working
 
@@ -75,64 +77,24 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     })
   }, [pushUndo])
 
-  // On mount: check for autosave first, then fall back to loading org data
-  useEffect(() => {
-    async function init() {
-      // Check localStorage first
-      let localRaw = localStorage.getItem(AUTOSAVE_STORAGE_KEY)
-      if (localRaw) {
-        try {
-          const data = JSON.parse(localRaw) as AutosaveData
-          setState((s) => ({ ...s, autosaveAvailable: data }))
-        } catch {
-          // Corrupt data — clear it so the app doesn't get stuck
-          localStorage.removeItem(AUTOSAVE_STORAGE_KEY)
-          localRaw = null
-        }
-      }
-
-      // Check server autosave if nothing in localStorage. The client returns
-      // null on 204 (no autosave), so any thrown error here is a real failure.
-      if (!localRaw) {
-        try {
-          const serverAutosave = await api.readAutosave()
-          if (serverAutosave) {
-            setState((s) => ({ ...s, autosaveAvailable: serverAutosave }))
-          }
-        } catch (err) {
-          console.warn('readAutosave failed:', err)
-        }
-      }
-
-      // Load org data (whether or not autosave was found). 204 returns null;
-      // any throw is a real failure.
-      try {
-        const data = await api.getOrg()
-        if (data) {
-          setState((s) => ({
-            ...s,
-            original: data.original,
-            working: data.working,
-            pods: data.pods ?? [],
-            settings: data.settings ?? { disciplineOrder: [] },
-            loaded: s.autosaveAvailable ? s.loaded : true,
-          }))
-        }
-      } catch (err) {
-        console.warn('getOrg failed:', err)
-      }
-
-      try {
-        const snapshots = await api.listSnapshots()
-        setState((s) => ({ ...s, snapshots }))
-      } catch (err) {
-        console.warn('listSnapshots failed (UI will work without snapshots):', err)
-      }
-    }
-    init()
-    // init runs once on mount; intentionally no deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useInitialBootstrap({
+    onAutosaveFound: useCallback((data: AutosaveData) => {
+      setState(s => ({ ...s, autosaveAvailable: data }))
+    }, []),
+    onOrgLoaded: useCallback((data, hasAutosave) => {
+      setState(s => ({
+        ...s,
+        original: data.original,
+        working: data.working,
+        pods: data.pods ?? [],
+        settings: data.settings ?? { disciplineOrder: [] },
+        loaded: hasAutosave ? s.loaded : true,
+      }))
+    }, []),
+    onSnapshotsLoaded: useCallback((snapshots) => {
+      setState(s => ({ ...s, snapshots }))
+    }, []),
+  })
 
   /** Shared state update for fresh org data loads (upload, confirmMapping). */
   const applyOrgData = useCallback((data: { original: OrgNode[]; working: OrgNode[]; pods?: Pod[]; settings?: Settings }, extra?: Partial<OrgDataState>) => {
@@ -151,8 +113,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const handleError = useCallback((err: unknown) => {
-    const msg = err instanceof Error ? err.message : String(err)
-    setError(msg)
+    setError(err instanceof Error ? err.message : String(err))
   }, [setError])
 
   const upload = useCallback(async (file: File) => {
@@ -209,99 +170,11 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
 
   const mutations = useMutationCallbacks({ setState, workingRef, handleError, setError, captureForUndo })
 
-  const restoreAutosave = useCallback(() => {
-    setState(s => {
-      const ad = s.autosaveAvailable
-      if (!ad) return s
-      api.restoreState(ad).catch(() => {
-        console.warn('Failed to sync restored state to backend')
-      })
-      return {
-        ...s,
-        original: ad.original,
-        working: ad.working,
-        recycled: ad.recycled,
-        pods: ad.pods ?? [],
-        originalPods: ad.originalPods ?? [],
-        settings: ad.settings ?? { disciplineOrder: [] },
-        currentSnapshotName: ad.snapshotName || null,
-        loaded: true,
-        autosaveAvailable: null,
-      }
-    })
-  }, [])
-
-  const dismissAutosave = useCallback(async () => {
-    localStorage.removeItem(AUTOSAVE_STORAGE_KEY)
-    try { await api.deleteAutosave() } catch { /* ignore */ }
-    // Clear everything — go back to fresh upload state
-    setState((s) => ({
-      ...s,
-      autosaveAvailable: null,
-      original: [],
-      working: [],
-      recycled: [],
-      pods: [],
-      originalPods: [],
-      settings: { disciplineOrder: [] },
-      loaded: false,
-      snapshots: [],
-      currentSnapshotName: null,
-    }))
-  }, [])
+  const { restoreAutosave, dismissAutosave } = useAutosaveActions({ setState })
+  const { undo, redo } = useUndoRedoActions({ setState, undoStack, redoStack, setUndoStack, setRedoStack })
 
   // Warn before navigating away with unsaved changes
   useDirtyTracking(state.loaded, state.working)
-
-  // Serialize backend syncs from undo/redo so rapid clicks don't race. Each call
-  // chains onto the previous promise; only the latest committed local state is
-  // ever sent — out-of-order replies cannot clobber newer state.
-  const syncQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const enqueueRestore = useCallback((label: string, payload: AutosaveData) => {
-    syncQueueRef.current = syncQueueRef.current
-      .then(() => api.restoreState(payload))
-      .catch((err) => { console.warn(`Failed to sync ${label} state to backend:`, err) })
-  }, [])
-
-  const undo = useCallback(() => {
-    if (undoStack.length === 0) return
-    const prev = undoStack[undoStack.length - 1]
-    setUndoStack(s => s.slice(0, -1))
-    setState(s => {
-      setRedoStack(r => [...r, { working: s.working, pods: s.pods }])
-      enqueueRestore('undo', {
-        original: s.original,
-        working: prev.working,
-        recycled: s.recycled,
-        pods: prev.pods,
-        originalPods: s.originalPods,
-        settings: s.settings,
-        snapshotName: '',
-        timestamp: new Date().toISOString(),
-      })
-      return { ...s, working: prev.working, pods: prev.pods, currentSnapshotName: null }
-    })
-  }, [undoStack, setUndoStack, setRedoStack, enqueueRestore])
-
-  const redo = useCallback(() => {
-    if (redoStack.length === 0) return
-    const next = redoStack[redoStack.length - 1]
-    setRedoStack(s => s.slice(0, -1))
-    setState(s => {
-      setUndoStack(u => [...u, { working: s.working, pods: s.pods }])
-      enqueueRestore('redo', {
-        original: s.original,
-        working: next.working,
-        recycled: s.recycled,
-        pods: next.pods,
-        originalPods: s.originalPods,
-        settings: s.settings,
-        snapshotName: '',
-        timestamp: new Date().toISOString(),
-      })
-      return { ...s, working: next.working, pods: next.pods, currentSnapshotName: null }
-    })
-  }, [redoStack, setUndoStack, setRedoStack, enqueueRestore])
 
   const stateValue: OrgDataStateValue = useMemo(() => ({
     original: state.original, working: state.working, recycled: state.recycled,

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -26,14 +28,16 @@ var (
 )
 
 func runServe(cmd *cobra.Command, args []string) error {
-	svc := api.NewOrgService(api.FileSnapshotStore{})
-	autoStore := api.FileAutosaveStore{}
-	mux := http.NewServeMux()
-
 	var logBuf *api.LogBuffer
 	if serveLog {
 		logBuf = api.NewLogBuffer(1000)
 	}
+	configureLogging(logBuf)
+
+	svc := api.NewOrgService(api.FileSnapshotStore{})
+	autoStore := api.FileAutosaveStore{}
+	mux := http.NewServeMux()
+
 	apiRouter := api.NewRouter(api.NewServices(svc), logBuf, autoStore)
 	if logBuf != nil {
 		mux.Handle("/api/", api.LoggingMiddleware(logBuf)(apiRouter))
@@ -80,18 +84,38 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 
 	url := fmt.Sprintf("http://localhost%s", addr)
-	fmt.Fprintf(os.Stderr, "Listening on %s\n", url)
-	if serveLog {
-		fmt.Fprintln(os.Stderr, "Request logging enabled (--log)")
-	}
+	api.Logger().Info("server listening", "source", "server", "url", url, "dev", serveDev, "log", serveLog)
 	if !serveDev {
 		go openBrowser(url)
 	}
 	err = server.Serve(ln)
 	if errors.Is(err, http.ErrServerClosed) {
+		api.Logger().Info("server shut down", "source", "server")
 		return nil
 	}
 	return err
+}
+
+// configureLogging installs the package logger used across the api package and
+// reroutes stdlib log output through slog. When --log is on, records also land
+// in the in-app LogBuffer alongside HTTP request entries.
+func configureLogging(buf *api.LogBuffer) {
+	level := slog.LevelInfo
+	if serveLog {
+		level = slog.LevelDebug
+	}
+	textOpts := &slog.HandlerOptions{Level: level}
+	textHandler := slog.NewTextHandler(os.Stderr, textOpts)
+
+	var handler slog.Handler = textHandler
+	if buf != nil {
+		handler = api.NewMultiHandler(textHandler, api.NewBufferHandler(buf, level))
+	}
+	logger := slog.New(handler)
+	api.SetLogger(logger)
+	slog.SetDefault(logger)
+	log.SetOutput(api.SlogWriter{Logger: logger, Level: slog.LevelWarn})
+	log.SetFlags(0)
 }
 
 // corsDevMiddleware adds permissive CORS headers for development mode,

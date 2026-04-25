@@ -49,30 +49,59 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNode
 		return nil, errNotFound("person %s not found", personId)
 	}
 
-	// Clear warning on any edit
+	// Clear warning on any edit.
 	p.Warning = ""
 
-	// Type — must be applied before Status so status validation uses new type.
-	// Switching to product clears person-only fields; switching to person leaves
-	// fields as the caller passes them (frontend already sends defaults).
-	if fields.Type != nil {
-		p.Type = *fields.Type
-		if model.IsProduct(p.Type) {
-			p.Role = ""
-			p.Discipline = ""
-			p.EmploymentType = ""
-			p.Level = 0
-			p.AdditionalTeams = nil
-		}
-		// If the existing status isn't valid for the new type and the caller
-		// didn't supply a replacement, default to Active rather than leaving
-		// the node in an invalid state. (Active is valid for both types.)
-		if fields.Status == nil && !model.ValidStatuses(p.Type)[p.Status] {
-			p.Status = model.StatusActive
+	// Order is load-bearing: Type first (it constrains valid Status); identity
+	// next (purely local writes); Status validates against the now-current Type;
+	// Notes are content-only; relational fields last because they trigger pod
+	// reassignment / cycle detection / cascading team writes.
+	applyTypeChange(p, fields)
+	applyIdentityFields(p, fields)
+	if err := applyStatus(p, fields); err != nil {
+		return nil, err
+	}
+	applyNotes(p, fields)
+
+	if fields.ManagerId != nil {
+		if err := s.applyManagerChange(p, personId, *fields.ManagerId, fields.Team != nil); err != nil {
+			return nil, err
 		}
 	}
+	if fields.Team != nil {
+		s.applyTeamChange(p, personId, *fields.Team)
+	}
+	if fields.Pod != nil {
+		s.applyPodChange(p, *fields.Pod)
+	}
 
-	// Simple fields
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
+}
+
+// applyTypeChange flips Type and, when switching to product, clears the
+// person-only fields. If the caller omitted Status and the existing status
+// isn't valid under the new Type, defaults to Active so the node is never
+// left in an invalid state. Active is valid for both types.
+func applyTypeChange(p *OrgNode, fields OrgNodeUpdate) {
+	if fields.Type == nil {
+		return
+	}
+	p.Type = *fields.Type
+	if model.IsProduct(p.Type) {
+		p.Role = ""
+		p.Discipline = ""
+		p.EmploymentType = ""
+		p.Level = 0
+		p.AdditionalTeams = nil
+	}
+	if fields.Status == nil && !model.ValidStatuses(p.Type)[p.Status] {
+		p.Status = model.StatusActive
+	}
+}
+
+// applyIdentityFields writes the purely-local string/scalar fields. None of
+// these mutate relationships or affect pod/team membership.
+func applyIdentityFields(p *OrgNode, fields OrgNodeUpdate) {
 	if fields.Name != nil {
 		p.Name = *fields.Name
 	}
@@ -100,41 +129,30 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNode
 	if fields.Level != nil {
 		p.Level = *fields.Level
 	}
+}
 
-	// Status — requires validation
-	if fields.Status != nil {
-		if !model.ValidStatuses(p.Type)[*fields.Status] {
-			return nil, errValidation("invalid status '%s'", *fields.Status)
-		}
-		p.Status = *fields.Status
+// applyStatus validates the requested status against the (possibly just-changed)
+// Type and writes it. Returns errValidation for an unknown status.
+func applyStatus(p *OrgNode, fields OrgNodeUpdate) error {
+	if fields.Status == nil {
+		return nil
 	}
+	if !model.ValidStatuses(p.Type)[*fields.Status] {
+		return errValidation("invalid status '%s'", *fields.Status)
+	}
+	p.Status = *fields.Status
+	return nil
+}
 
-	// Notes — length already validated by validateNodeUpdate
+// applyNotes writes public/private notes. Length already enforced upstream by
+// validateNodeUpdate.
+func applyNotes(p *OrgNode, fields OrgNodeUpdate) {
 	if fields.PublicNote != nil {
 		p.PublicNote = *fields.PublicNote
 	}
 	if fields.PrivateNote != nil {
 		p.PrivateNote = *fields.PrivateNote
 	}
-
-	// Manager change — requires cycle detection and team inheritance
-	if fields.ManagerId != nil {
-		if err := s.applyManagerChange(p, personId, *fields.ManagerId, fields.Team != nil); err != nil {
-			return nil, err
-		}
-	}
-
-	// Team change — cascades to ICs of front-line managers
-	if fields.Team != nil {
-		s.applyTeamChange(p, personId, *fields.Team)
-	}
-
-	// Pod change — may auto-create pod
-	if fields.Pod != nil {
-		s.applyPodChange(p, *fields.Pod)
-	}
-
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.

@@ -42,6 +42,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
 		resp.PersistenceWarning = persistWarn
+		Logger().Info("upload completed", "source", "import", "filename", filename, "people", len(people), "auto", true)
 		return resp, nil
 	}
 
@@ -50,6 +51,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 	s.pending = &PendingUpload{File: data, Filename: filename}
 	s.mu.Unlock()
 
+	Logger().Info("upload needs mapping", "source", "import", "filename", filename, "headers", len(header), "rows", len(dataRows))
 	preview := [][]string{header}
 	for i, row := range dataRows {
 		if i >= 3 {
@@ -123,6 +125,7 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	resp.PersistenceWarning = persistWarn
+	Logger().Info("mapping confirmed", "source", "import", "filename", pending.Filename, "people", len(people))
 	return resp, nil
 }
 
@@ -179,5 +182,6 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 	}
 
 	resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
+	Logger().Info("zip import completed", "source", "import", "people", len(work), "snapshots", len(snaps), "fileWarns", len(fileWarns), "parseWarns", len(parseWarns), "diskWarns", len(diskWarns))
 	return resp, nil
 }

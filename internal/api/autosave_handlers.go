@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -15,10 +14,11 @@ func handleWriteAutosave(store AutosaveStore) http.HandlerFunc {
 			return
 		}
 		if err := store.Write(data); err != nil {
-			log.Printf("autosave write failed: %v", err)
+			Logger().Error("autosave write failed", "source", "autosave", "op", "write", "err", err.Error())
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		Logger().Debug("autosave written", "source", "autosave", "people", len(data.Working), "pods", len(data.Pods))
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }
@@ -27,7 +27,7 @@ func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := store.Read()
 		if err != nil {
-			log.Printf("autosave read failed: %v", err)
+			Logger().Error("autosave read failed", "source", "autosave", "op", "read", "err", err.Error())
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -42,7 +42,7 @@ func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
 func handleDeleteAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := store.Delete(); err != nil {
-			log.Printf("autosave delete failed: %v", err)
+			Logger().Error("autosave delete failed", "source", "autosave", "op", "delete", "err", err.Error())
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
