@@ -269,6 +269,15 @@ describe('snapshot operations', () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string)
     expect(body.name).toBe('My Snapshot')
   })
+
+  it('[SNAP-011] saveSnapshot rejects with superseded message on 409 conflict', async () => {
+    mockFetch.mockResolvedValueOnce(
+      errorResp(409, JSON.stringify({ error: 'snapshot superseded — org state was reset' })),
+    )
+    await expect(api.saveSnapshot('v1')).rejects.toMatchObject({
+      message: expect.stringContaining('superseded'),
+    })
+  })
 })
 
 describe('pod operations', () => {

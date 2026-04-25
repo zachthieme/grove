@@ -646,6 +646,17 @@ describe('OrgDataContext', () => {
       expect(result.current.error).toContain('save snap error')
     })
 
+    it('[SNAP-011] surfaces 409 snapshot conflict as error banner text containing superseded', async () => {
+      vi.mocked(api.saveSnapshot).mockRejectedValue(
+        new Error('API 409: snapshot superseded — org state was reset'),
+      )
+
+      const { result } = await renderLoaded()
+      await act(async () => { await result.current.saveSnapshot('v1') })
+
+      expect(result.current.error).toContain('superseded')
+    })
+
     it('sets error when loadSnapshot fails', async () => {
       vi.mocked(api.loadSnapshot).mockRejectedValue(new Error('load snap error'))
 
