@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // setupConcurrentService creates a fresh OrgService with 3 people:
@@ -349,4 +350,91 @@ func TestConcurrentMixedOperations(t *testing.T) {
 			t.Error("expected non-nil org data after stress test cleanup")
 		}
 	})
+}
+
+// blockingSnapshotStore is a SnapshotStore whose Write blocks until a
+// release channel is closed. Used to prove that snapshot persist does not
+// hold mu_org — concurrent Move must complete while Write is blocked.
+type blockingSnapshotStore struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (b *blockingSnapshotStore) Write(snaps map[string]snapshotData) error {
+	select {
+	case b.started <- struct{}{}:
+	default:
+		// Already signaled (subsequent writes don't re-block).
+	}
+	<-b.release
+	return nil
+}
+
+func (b *blockingSnapshotStore) Read() (map[string]snapshotData, error) { return nil, nil }
+func (b *blockingSnapshotStore) Delete() error                          { return nil }
+
+// Scenarios: SNAP-009
+func TestSnapshotPersist_DoesNotBlockEdits(t *testing.T) {
+	store := &blockingSnapshotStore{
+		started: make(chan struct{}, 1),
+		release: make(chan struct{}),
+	}
+	svc := NewOrgService(store)
+	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
+	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	working := svc.GetWorking(context.Background())
+	var aliceID, bobID string
+	for _, p := range working {
+		if p.Name == "Alice" {
+			aliceID = p.Id
+		}
+		if p.Name == "Bob" {
+			bobID = p.Id
+		}
+	}
+	if aliceID == "" || bobID == "" {
+		t.Fatalf("could not find Alice and Bob after upload")
+	}
+
+	saveDone := make(chan error, 1)
+	go func() {
+		// SaveSnapshot calls store.Write — which will block until release.
+		saveDone <- svc.SaveSnapshot(context.Background(), "v1")
+	}()
+
+	// Wait for the save to enter store.Write (proves persist phase started).
+	select {
+	case <-store.started:
+		// Save is now in store.Write, holding mu_snap. mu_org should be free.
+	case <-time.After(2 * time.Second):
+		t.Fatal("Save never entered store.Write within 2s")
+	}
+
+	moveDone := make(chan error, 1)
+	go func() {
+		_, err := svc.Move(context.Background(), bobID, aliceID, "Eng", "")
+		moveDone <- err
+	}()
+
+	// Move must complete BEFORE we release the snapshot persist —
+	// proving mu_org was not held during the snapshot disk write.
+	select {
+	case err := <-moveDone:
+		if err != nil {
+			t.Errorf("Move failed: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		close(store.release) // unblock Save so the test exits cleanly
+		<-saveDone
+		t.Fatal("Move did not complete while snapshot persist was blocked — mu_org was held during persist")
+	}
+
+	// Release the save and verify it succeeds.
+	close(store.release)
+	if err := <-saveDone; err != nil {
+		t.Errorf("Save returned error: %v", err)
+	}
 }
