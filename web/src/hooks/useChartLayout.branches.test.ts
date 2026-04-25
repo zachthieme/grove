@@ -13,11 +13,8 @@ vi.mock('./useDragDrop', () => ({
   useDragDrop: () => ({ onDragEnd: mockOnDragEnd }),
 }))
 
-globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+class MockResizeObserver { observe() {} unobserve() {} disconnect() {} }
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
 
 const { useChartLayout } = await import('./useChartLayout')
 

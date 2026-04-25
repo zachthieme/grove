@@ -116,7 +116,7 @@ func TestSnapshotRecovery_ManagerStartsClean(t *testing.T) {
 
 	store := FileSnapshotStore{}
 	sm := NewSnapshotManager(store)
-	list := sm.List()
+	list := sm.unsafeList()
 	if len(list) != 0 {
 		t.Errorf("expected empty snapshot list after corrupt store, got %d", len(list))
 	}

@@ -114,7 +114,7 @@ func handleUpload(svc ImportService) http.HandlerFunc {
 		}
 		resp, err := svc.Upload(r.Context(), filename, data)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+			serviceError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -129,7 +129,7 @@ func handleUploadZip(svc ImportService) http.HandlerFunc {
 		}
 		resp, err := svc.UploadZip(r.Context(), data)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+			serviceError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -489,22 +489,6 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(map[string]string{"error": msg}); err != nil {
 		log.Printf("writeError encode error: %v", err)
-	}
-}
-
-// serviceError maps typed service errors to the appropriate HTTP status code.
-// Typed errors (Validation, NotFound, Conflict) get 4xx; untyped errors
-// (e.g. disk I/O failures) get 500.
-func serviceError(w http.ResponseWriter, err error) {
-	switch {
-	case isNotFound(err):
-		writeError(w, http.StatusNotFound, err.Error())
-	case isConflict(err):
-		writeError(w, http.StatusConflict, err.Error())
-	case isValidation(err):
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
-	default:
-		writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }
 

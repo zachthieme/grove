@@ -1,5 +1,6 @@
 .superpowers/
 .claude/worktrees/
+.worktrees/
 orgchart
 grove
 org-*.md

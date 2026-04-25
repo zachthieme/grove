@@ -8,10 +8,10 @@ import (
 func (s *OrgService) SaveSnapshot(ctx context.Context, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.snaps.Save(name, s.working, s.podMgr.GetPods(), s.settings); err != nil {
+	if err := s.snaps.unsafeSave(name, s.working, s.podMgr.unsafeGetPods(), s.settings); err != nil {
 		return err
 	}
-	if err := s.snaps.PersistAll(); err != nil {
+	if err := s.snaps.unsafePersistAll(); err != nil {
 		return fmt.Errorf("persisting snapshot: %w", err)
 	}
 	return nil
@@ -26,7 +26,7 @@ func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]OrgNode
 	case SnapshotOriginal:
 		return deepCopyNodes(s.original), nil
 	default:
-		snap := s.snaps.Get(name)
+		snap := s.snaps.unsafeGet(name)
 		if snap == nil {
 			return nil, errNotFound("snapshot '%s' not found", name)
 		}
@@ -37,16 +37,16 @@ func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]OrgNode
 func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap, err := s.snaps.Load(name)
+	snap, err := s.snaps.unsafeLoad(name)
 	if err != nil {
 		return nil, err
 	}
 	s.working = deepCopyNodes(snap.People)
 	s.rebuildIndex()
 	if snap.Pods != nil {
-		s.podMgr.SetPods(CopyPods(snap.Pods))
+		s.podMgr.unsafeSetPods(CopyPods(snap.Pods))
 	} else {
-		s.podMgr.SetPods(SeedPods(s.working))
+		s.podMgr.unsafeSetPods(SeedPods(s.working))
 	}
 	s.recycled = nil
 	if len(snap.Settings.DisciplineOrder) > 0 {
@@ -54,14 +54,14 @@ func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, e
 	} else {
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	}
-	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}, nil
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}, nil
 }
 
 func (s *OrgService) DeleteSnapshot(ctx context.Context, name string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.snaps.Delete(name)
-	if err := s.snaps.PersistAll(); err != nil {
+	s.snaps.unsafeDelete(name)
+	if err := s.snaps.unsafePersistAll(); err != nil {
 		return fmt.Errorf("persisting snapshot deletion: %w", err)
 	}
 	return nil
@@ -70,11 +70,11 @@ func (s *OrgService) DeleteSnapshot(ctx context.Context, name string) error {
 // ListSnapshotsUnlocked returns snapshot info without acquiring the lock.
 // Must be called with s.mu held.
 func (s *OrgService) ListSnapshotsUnlocked() []SnapshotInfo {
-	return s.snaps.List()
+	return s.snaps.unsafeList()
 }
 
 func (s *OrgService) ListSnapshots(ctx context.Context) []SnapshotInfo {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.snaps.List()
+	return s.snaps.unsafeList()
 }

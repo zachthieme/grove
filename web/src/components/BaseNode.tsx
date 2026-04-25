@@ -174,9 +174,11 @@ function BaseNodeInner({
           {'\u{1F512}'}
         </div>
       )}
-      <div className={styles.cardArea}>
+      {/* cardRef is on .cardArea so getBoundingClientRect captures the
+          expanded note panel — the chart edges anchor to the visual bottom
+          of the card+note, not just the card. */}
+      <div className={styles.cardArea} ref={cardRef}>
         <div
-          ref={cardRef}
           className={nodeClassNames}
           style={computedNodeStyle}
           onClick={handleClick}

@@ -30,12 +30,34 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
     onDragEnd(event)
   }, [onDragEnd])
 
+  const [resizeKey, setResizeKey] = useState(0)
+
+  // One observer covers every registered card. Cards resize when notes
+  // expand/collapse — bump resizeKey so edges re-anchor to the new bottom.
+  const nodeObserverRef = useRef<ResizeObserver | null>(null)
+
   const setNodeRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
-    if (el) nodeRefs.current.set(id, el)
-    else nodeRefs.current.delete(id)
+    const prev = nodeRefs.current.get(id)
+    if (prev && prev !== el) nodeObserverRef.current?.unobserve(prev)
+    if (el) {
+      nodeRefs.current.set(id, el)
+      nodeObserverRef.current?.observe(el)
+    } else {
+      nodeRefs.current.delete(id)
+    }
   }, [])
 
-  const [resizeKey, setResizeKey] = useState(0)
+  useEffect(() => {
+    nodeObserverRef.current = new ResizeObserver(() => setResizeKey((k) => k + 1))
+    // Pick up any refs registered before this effect ran (initial mount).
+    for (const el of nodeRefs.current.values()) nodeObserverRef.current.observe(el)
+    const observer = nodeObserverRef.current
+    return () => {
+      observer.disconnect()
+      nodeObserverRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     const el = containerRef.current
     if (!el) return

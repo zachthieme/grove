@@ -1,49 +1,10 @@
 package api
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/zachthieme/grove/internal/model"
 )
-
-// Error types for distinguishing HTTP status codes in handlers.
-type (
-	// ValidationError indicates invalid input data (422).
-	ValidationError struct{ msg string }
-	// NotFoundError indicates a requested resource doesn't exist (404).
-	NotFoundError struct{ msg string }
-	// ConflictError indicates a duplicate or conflicting state (409).
-	ConflictError struct{ msg string }
-)
-
-func (e *ValidationError) Error() string { return e.msg }
-func (e *NotFoundError) Error() string   { return e.msg }
-func (e *ConflictError) Error() string   { return e.msg }
-
-// Error constructors
-func errValidation(format string, args ...any) error { return &ValidationError{fmt.Sprintf(format, args...)} }
-func errNotFound(format string, args ...any) error   { return &NotFoundError{fmt.Sprintf(format, args...)} }
-func errConflict(format string, args ...any) error    { return &ConflictError{fmt.Sprintf(format, args...)} }
-
-// isNotFound checks if an error is a NotFoundError.
-func isNotFound(err error) bool {
-	var e *NotFoundError
-	return errors.As(err, &e)
-}
-
-// isConflict checks if an error is a ConflictError.
-func isConflict(err error) bool {
-	var e *ConflictError
-	return errors.As(err, &e)
-}
-
-// isValidation checks if an error is a ValidationError.
-func isValidation(err error) bool {
-	var e *ValidationError
-	return errors.As(err, &e)
-}
 
 const (
 	maxFieldLen = 500

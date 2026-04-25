@@ -275,7 +275,7 @@ describe('BaseNode', () => {
     expect(container.querySelector('[data-dnd-draggable]')).toBeNull()
   })
 
-  it('cardRef called with .node element', () => {
+  it('cardRef receives the cardArea element (contains the role=button card and the note panel)', () => {
     const ref = vi.fn()
     render(
       <BaseNode nodeId="n1" cardRef={ref} testId="card">
@@ -285,7 +285,10 @@ describe('BaseNode', () => {
     expect(ref).toHaveBeenCalledOnce()
     const el = ref.mock.calls[0][0]
     expect(el).toBeInstanceOf(HTMLDivElement)
-    expect(el.getAttribute('role')).toBe('button')
+    // cardArea is not a button itself; it wraps the button card so that
+    // edge layout reads the bottom of card+note instead of card alone.
+    expect(el.getAttribute('role')).toBeNull()
+    expect(el.querySelector('[role="button"]')).not.toBeNull()
   })
 
   it('note icon NOT inside role=button card (a11y)', () => {

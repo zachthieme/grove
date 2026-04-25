@@ -66,7 +66,7 @@ func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 	case ExtXLSX:
 		return extractRowsXLSX(data)
 	default:
-		return nil, nil, fmt.Errorf("unsupported file format '%s'", ext)
+		return nil, nil, errValidation("unsupported file format '%s'", ext)
 	}
 }
 
@@ -74,10 +74,10 @@ func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 	reader := csv.NewReader(bytes.NewReader(data))
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading CSV: %w", err)
+		return nil, nil, errValidation("reading CSV: %v", err)
 	}
 	if len(records) < 2 {
-		return nil, nil, fmt.Errorf("CSV must have a header and at least one data row")
+		return nil, nil, errValidation("CSV must have a header and at least one data row")
 	}
 	return records[0], records[1:], nil
 }
@@ -85,16 +85,16 @@ func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 	f, err := excelize.OpenReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, nil, fmt.Errorf("opening xlsx: %w", err)
+		return nil, nil, errValidation("opening xlsx: %v", err)
 	}
 	defer func() { _ = f.Close() }()
 	sheet := f.GetSheetName(0)
 	rows, err := f.GetRows(sheet)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading rows: %w", err)
+		return nil, nil, errValidation("reading rows: %v", err)
 	}
 	if len(rows) < 2 {
-		return nil, nil, fmt.Errorf("xlsx must have a header and at least one data row")
+		return nil, nil, errValidation("xlsx must have a header and at least one data row")
 	}
 	return rows[0], rows[1:], nil
 }
@@ -123,7 +123,7 @@ func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	s.rebuildIndex()
 	s.recycled = deepCopyNodes(data.Recycled)
 	normalizeEmploymentType(s.recycled)
-	s.podMgr.SetState(CopyPods(data.Pods), CopyPods(data.OriginalPods))
+	s.podMgr.unsafeSetState(CopyPods(data.Pods), CopyPods(data.OriginalPods))
 	if data.Settings != nil {
 		s.settings = *data.Settings
 	} else {
@@ -137,7 +137,7 @@ func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 }
 
 func (s *OrgService) GetWorking(ctx context.Context) []OrgNode {
@@ -158,9 +158,9 @@ func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.working = deepCopyNodes(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
-	s.podMgr.Reset()
+	s.podMgr.unsafeReset()
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
-	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 }
 
 // resetState replaces the full org state after an import. Must be called with s.mu held.
@@ -170,8 +170,8 @@ func (s *OrgService) resetState(original, working []OrgNode, snaps map[string]sn
 	s.working = deepCopyNodes(working)
 	s.rebuildIndex()
 	s.recycled = nil
-	s.snaps.ReplaceAll(snaps)
-	s.podMgr.Seed(s.working)
+	s.snaps.unsafeReplaceAll(snaps)
+	s.podMgr.unsafeSeed(s.working)
 	_ = SeedPods(s.original)
 }
 
@@ -242,7 +242,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	s.pending = nil
 	people := []OrgNode{p}
 	var persistWarn string
-	if err := s.snaps.DeleteStore(); err != nil {
+	if err := s.snaps.unsafeDeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	s.resetState(people, people, nil)
@@ -251,7 +251,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	return &OrgData{
 		Original:           deepCopyNodes(s.original),
 		Working:            deepCopyNodes(s.working),
-		Pods:               CopyPods(s.podMgr.GetPods()),
+		Pods:               CopyPods(s.podMgr.unsafeGetPods()),
 		Settings:           &s.settings,
 		PersistenceWarning: persistWarn,
 	}, nil

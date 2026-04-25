@@ -51,8 +51,9 @@ func NewSnapshotManager(store SnapshotStore) *SnapshotManager {
 	return sm
 }
 
-// Save stores a named snapshot of the given state. Returns an error for invalid or reserved names.
-func (sm *SnapshotManager) Save(name string, people []OrgNode, pods []Pod, settings Settings) error {
+// unsafeSave stores a named snapshot of the given state. Returns an error for invalid or reserved names.
+// Caller must hold the external lock.
+func (sm *SnapshotManager) unsafeSave(name string, people []OrgNode, pods []Pod, settings Settings) error {
 	if name == "" {
 		return errValidation("snapshot name is required")
 	}
@@ -78,7 +79,7 @@ func (sm *SnapshotManager) Save(name string, people []OrgNode, pods []Pod, setti
 }
 
 // Load returns the snapshot data for a given name.
-func (sm *SnapshotManager) Load(name string) (*snapshotData, error) {
+func (sm *SnapshotManager) unsafeLoad(name string) (*snapshotData, error) {
 	snap, ok := sm.snapshots[name]
 	if !ok {
 		return nil, errNotFound("snapshot '%s' not found", name)
@@ -87,7 +88,7 @@ func (sm *SnapshotManager) Load(name string) (*snapshotData, error) {
 }
 
 // Get returns snapshot data if it exists, or nil.
-func (sm *SnapshotManager) Get(name string) *snapshotData {
+func (sm *SnapshotManager) unsafeGet(name string) *snapshotData {
 	snap, ok := sm.snapshots[name]
 	if !ok {
 		return nil
@@ -96,13 +97,13 @@ func (sm *SnapshotManager) Get(name string) *snapshotData {
 }
 
 // Delete removes a named snapshot.
-func (sm *SnapshotManager) Delete(name string) {
+func (sm *SnapshotManager) unsafeDelete(name string) {
 	delete(sm.snapshots, name)
 }
 
 // List returns all snapshots sorted by timestamp (newest first), excluding
 // the internal export-temp snapshot.
-func (sm *SnapshotManager) List() []SnapshotInfo {
+func (sm *SnapshotManager) unsafeList() []SnapshotInfo {
 	list := make([]SnapshotInfo, 0)
 	for name, snap := range sm.snapshots {
 		if name == SnapshotExportTemp {
@@ -120,17 +121,17 @@ func (sm *SnapshotManager) List() []SnapshotInfo {
 }
 
 // ReplaceAll replaces the entire snapshot map (used by import and autosave restore).
-func (sm *SnapshotManager) ReplaceAll(snapshots map[string]snapshotData) {
+func (sm *SnapshotManager) unsafeReplaceAll(snapshots map[string]snapshotData) {
 	sm.snapshots = snapshots
 }
 
 // PersistAll writes the current snapshot map to the store.
 // Must be called with the external lock held.
-func (sm *SnapshotManager) PersistAll() error {
+func (sm *SnapshotManager) unsafePersistAll() error {
 	return sm.store.Write(sm.snapshots)
 }
 
 // DeleteStore removes the persisted snapshot file.
-func (sm *SnapshotManager) DeleteStore() error {
+func (sm *SnapshotManager) unsafeDeleteStore() error {
 	return sm.store.Delete()
 }

@@ -13,25 +13,25 @@ func NewPodManager() *PodManager {
 	return &PodManager{}
 }
 
-func (pm *PodManager) SetState(pods, originalPods []Pod) {
+func (pm *PodManager) unsafeSetState(pods, originalPods []Pod) {
 	pm.pods = pods
 	pm.originalPods = originalPods
 }
 
-func (pm *PodManager) GetPods() []Pod         { return pm.pods }
-func (pm *PodManager) GetOriginalPods() []Pod { return pm.originalPods }
-func (pm *PodManager) SetPods(pods []Pod)     { pm.pods = pods }
+func (pm *PodManager) unsafeGetPods() []Pod         { return pm.pods }
+func (pm *PodManager) unsafeGetOriginalPods() []Pod { return pm.originalPods }
+func (pm *PodManager) unsafeSetPods(pods []Pod)     { pm.pods = pods }
 
-func (pm *PodManager) Reset() {
+func (pm *PodManager) unsafeReset() {
 	pm.pods = CopyPods(pm.originalPods)
 }
 
-func (pm *PodManager) Seed(working []OrgNode) {
+func (pm *PodManager) unsafeSeed(working []OrgNode) {
 	pm.pods = SeedPods(working)
 	pm.originalPods = CopyPods(pm.pods)
 }
 
-func (pm *PodManager) ListPods(working []OrgNode) []PodInfo {
+func (pm *PodManager) unsafeListPods(working []OrgNode) []PodInfo {
 	counts := map[string]int{}
 	for _, p := range working {
 		if p.Pod != "" && p.ManagerId != "" {
@@ -45,7 +45,7 @@ func (pm *PodManager) ListPods(working []OrgNode) []PodInfo {
 	return result
 }
 
-func (pm *PodManager) UpdatePod(podID string, fields PodUpdate, working []OrgNode) error {
+func (pm *PodManager) unsafeUpdatePod(podID string, fields PodUpdate, working []OrgNode) error {
 	pod := findPodByID(pm.pods, podID)
 	if pod == nil {
 		return errNotFound("pod %s not found", podID)
@@ -70,7 +70,7 @@ func (pm *PodManager) UpdatePod(podID string, fields PodUpdate, working []OrgNod
 	return nil
 }
 
-func (pm *PodManager) CreatePod(managerID, name, team string) error {
+func (pm *PodManager) unsafeCreatePod(managerID, name, team string) error {
 	for _, p := range pm.pods {
 		if p.ManagerId == managerID && p.Team == team {
 			return errConflict("pod already exists for this manager and team")
@@ -81,15 +81,15 @@ func (pm *PodManager) CreatePod(managerID, name, team string) error {
 	return nil
 }
 
-func (pm *PodManager) Cleanup(working []OrgNode) {
+func (pm *PodManager) unsafeCleanup(working []OrgNode) {
 	pm.pods = CleanupEmptyPods(pm.pods, working)
 }
 
-func (pm *PodManager) Reassign(person *OrgNode) {
+func (pm *PodManager) unsafeReassign(person *OrgNode) {
 	pm.pods = ReassignPersonPod(pm.pods, person)
 }
 
-func (pm *PodManager) ApplyNotes(sidecar []podSidecarEntry, idToName map[string]string) {
+func (pm *PodManager) unsafeApplyNotes(sidecar []podSidecarEntry, idToName map[string]string) {
 	applyPodSidecarNotes(pm.pods, sidecar, idToName)
 	applyPodSidecarNotes(pm.originalPods, sidecar, idToName)
 }

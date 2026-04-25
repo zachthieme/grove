@@ -14,7 +14,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 
 	header, dataRows, err := extractRows(filename, data)
 	if err != nil {
-		return nil, fmt.Errorf("parsing file: %w", err)
+		return nil, err
 	}
 
 	mapping := InferMapping(header)
@@ -25,18 +25,18 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		}
 		org, err := parser.BuildPeopleWithMapping(header, dataRows, simpleMapping)
 		if err != nil {
-			return nil, fmt.Errorf("building org: %w", err)
+			return nil, errValidation("building org: %v", err)
 		}
 		people := ConvertOrg(org)
 		var persistWarn string
-		if err := s.snaps.DeleteStore(); err != nil {
+		if err := s.snaps.unsafeDeleteStore(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
 		s.resetState(people, people, nil)
 		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		return &UploadResponse{
 			Status:             UploadReady,
-			OrgData:            &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
+			OrgData:            &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
 			PersistenceWarning: persistWarn,
 		}, nil
 	}
@@ -109,10 +109,10 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	s.resetState(people, people, nil)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	var persistWarn string
-	if err := s.snaps.DeleteStore(); err != nil {
+	if err := s.snaps.unsafeDeleteStore(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
-	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	resp.PersistenceWarning = persistWarn
@@ -144,7 +144,7 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		sidecarEntries := parsePodsSidecar(podsSidecar)
 		if len(sidecarEntries) > 0 {
 			idToName := buildIDToName(s.working)
-			s.podMgr.ApplyNotes(sidecarEntries, idToName)
+			s.podMgr.unsafeApplyNotes(sidecarEntries, idToName)
 		}
 	}
 
@@ -156,14 +156,14 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 	}
 
 	var diskWarns []string
-	if err := s.snaps.DeleteStore(); err != nil {
+	if err := s.snaps.unsafeDeleteStore(); err != nil {
 		diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
 	}
-	if err := s.snaps.PersistAll(); err != nil {
+	if err := s.snaps.unsafePersistAll(); err != nil {
 		diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
 	}
 
-	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)

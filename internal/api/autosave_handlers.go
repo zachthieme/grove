@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -14,6 +15,7 @@ func handleWriteAutosave(store AutosaveStore) http.HandlerFunc {
 			return
 		}
 		if err := store.Write(data); err != nil {
+			log.Printf("autosave write failed: %v", err)
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -25,6 +27,7 @@ func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := store.Read()
 		if err != nil {
+			log.Printf("autosave read failed: %v", err)
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -39,6 +42,7 @@ func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
 func handleDeleteAutosave(store AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := store.Delete(); err != nil {
+			log.Printf("autosave delete failed: %v", err)
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

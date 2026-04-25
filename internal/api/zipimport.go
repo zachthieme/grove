@@ -32,7 +32,7 @@ type zipEntry struct {
 func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("opening zip: %w", err)
+		return nil, nil, nil, nil, errValidation("opening zip: %v", err)
 	}
 
 	var entries []zipEntry
@@ -61,7 +61,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error)
 		}
 		totalSize += int64(len(content))
 		if totalSize > maxDecompressedSize {
-			return nil, nil, nil, nil, fmt.Errorf("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
+			return nil, nil, nil, nil, errValidation("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
 		}
 
 		nameNoExt := strings.TrimSuffix(base, filepath.Ext(base))
@@ -95,7 +95,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error)
 	}
 
 	if len(entries) == 0 {
-		return nil, nil, nil, nil, fmt.Errorf("ZIP contains no CSV or XLSX files")
+		return nil, nil, nil, nil, errValidation("ZIP contains no CSV or XLSX files")
 	}
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -201,7 +201,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	}
 
 	if len(parsed) == 0 {
-		return nil, nil, nil, nil, fmt.Errorf("no files in ZIP could be parsed")
+		return nil, nil, nil, nil, errValidation("no files in ZIP could be parsed")
 	}
 
 	if len(parsed) == 1 {
@@ -254,7 +254,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 	first := entries[0]
 	header, dataRows, err := extractRows(first.filename, first.data)
 	if err != nil {
-		return nil, fmt.Errorf("parsing first file: %w", err)
+		return nil, err
 	}
 
 	mapping := InferMapping(header)
@@ -270,7 +270,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		orig, work, snaps, parseWarns, err := parseZipEntries(entries, simpleMapping)
 		if err != nil {
 			s.mu.Unlock()
-			return nil, fmt.Errorf("parsing zip: %w", err)
+			return nil, err
 		}
 
 		// All parsing succeeded — now commit state atomically
@@ -281,7 +281,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 			sidecarEntries := parsePodsSidecar(podsSidecar)
 			if len(sidecarEntries) > 0 {
 				idToName := buildIDToName(s.working)
-				s.podMgr.ApplyNotes(sidecarEntries, idToName)
+				s.podMgr.unsafeApplyNotes(sidecarEntries, idToName)
 			}
 		}
 
@@ -293,15 +293,15 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		}
 
 		var diskWarns []string
-		if err := s.snaps.DeleteStore(); err != nil {
+		if err := s.snaps.unsafeDeleteStore(); err != nil {
 			diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
 		}
-		if err := s.snaps.PersistAll(); err != nil {
+		if err := s.snaps.unsafePersistAll(); err != nil {
 			diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
 		}
 		resp := &UploadResponse{
 			Status:    UploadReady,
-			OrgData:   &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods()), Settings: &s.settings},
+			OrgData:   &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
 			Snapshots: s.ListSnapshotsUnlocked(),
 		}
 		s.mu.Unlock()

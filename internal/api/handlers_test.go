@@ -1191,8 +1191,8 @@ func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

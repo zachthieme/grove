@@ -18,19 +18,21 @@ vi.mock('./useDragDrop', () => ({
   useDragDrop: () => ({ onDragEnd: mockOnDragEnd }),
 }))
 
-// Capture the ResizeObserver callback so we can trigger it
+// Capture the ResizeObserver callback so we can trigger it. Use a class so
+// `new ResizeObserver(...)` works (arrow-function mocks aren't constructors).
 let resizeObserverCallback: (() => void) | null = null
 const mockObserve = vi.fn()
 const mockDisconnect = vi.fn()
 
-globalThis.ResizeObserver = vi.fn().mockImplementation((cb: () => void) => {
-  resizeObserverCallback = cb
-  return {
-    observe: mockObserve,
-    unobserve: vi.fn(),
-    disconnect: mockDisconnect,
+class MockResizeObserver {
+  constructor(cb: () => void) {
+    resizeObserverCallback = cb
   }
-})
+  observe = mockObserve
+  unobserve = vi.fn()
+  disconnect = mockDisconnect
+}
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
 
 const { useChartLayout } = await import('./useChartLayout')
 
