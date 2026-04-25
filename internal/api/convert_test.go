@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -80,7 +81,7 @@ func TestConvertOrg_PreservesFields(t *testing.T) {
 	}
 }
 
-func findByName(people []OrgNode, name string) *OrgNode {
+func findByName(people []apitypes.OrgNode, name string) *apitypes.OrgNode {
 	for i := range people {
 		if people[i].Name == name {
 			return &people[i]

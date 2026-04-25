@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
 )
@@ -161,7 +162,7 @@ func parseSettingsSidecar(data []byte) []string {
 	return order
 }
 
-func applyPodSidecarNotes(pods []Pod, sidecar []podSidecarEntry, idToName map[string]string) {
+func applyPodSidecarNotes(pods []apitypes.Pod, sidecar []podSidecarEntry, idToName map[string]string) {
 	for i := range pods {
 		mgrName := idToName[pods[i].ManagerId]
 		for _, entry := range sidecar {
@@ -174,7 +175,7 @@ func applyPodSidecarNotes(pods []Pod, sidecar []podSidecarEntry, idToName map[st
 	}
 }
 
-func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []OrgNode, working []OrgNode, snaps map[string]snapshotData, warnings []string, err error) {
+func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []apitypes.OrgNode, working []apitypes.OrgNode, snaps map[string]snapshotData, warnings []string, err error) {
 	snaps = make(map[string]snapshotData)
 
 	// Parse raw orgs from all entries first.
@@ -285,10 +286,10 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 			}
 		}
 
-		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		if settingsSidecar != nil {
 			if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
-				s.settings = Settings{DisciplineOrder: order}
+				s.settings = apitypes.Settings{DisciplineOrder: order}
 			}
 		}
 
@@ -320,7 +321,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 	// Don't clear snapshots yet — user may cancel the mapping dialog.
 	// Snapshots are cleared when the mapping is confirmed in ConfirmMapping.
 	s.pendingEpoch++
-	s.pending = &PendingUpload{File: data, Filename: "upload.zip", IsZip: true}
+	s.pending = &apitypes.PendingUpload{File: data, Filename: "upload.zip", IsZip: true}
 	s.mu.Unlock()
 
 	Logger().Info("zip upload needs mapping", "source", "import", "headers", len(header), "rows", len(dataRows))

@@ -34,9 +34,15 @@ func (e *ConflictError) Error() string   { return e.msg }
 func (e *ConflictError) HTTPStatus() int { return http.StatusConflict }
 
 // Constructors.
-func errValidation(format string, args ...any) error { return &ValidationError{fmt.Sprintf(format, args...)} }
-func errNotFound(format string, args ...any) error   { return &NotFoundError{fmt.Sprintf(format, args...)} }
-func errConflict(format string, args ...any) error   { return &ConflictError{fmt.Sprintf(format, args...)} }
+func errValidation(format string, args ...any) error {
+	return &ValidationError{fmt.Sprintf(format, args...)}
+}
+func errNotFound(format string, args ...any) error {
+	return &NotFoundError{fmt.Sprintf(format, args...)}
+}
+func errConflict(format string, args ...any) error {
+	return &ConflictError{fmt.Sprintf(format, args...)}
+}
 
 // Predicates — convenience for tests and internal type checks.
 func isNotFound(err error) bool {

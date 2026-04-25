@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/api"
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // Scenarios: CONTRACT-007
@@ -123,7 +124,7 @@ func TestIntegration_PodWorkflow(t *testing.T) {
 	if len(workResp.Pods) == 0 {
 		t.Fatal("expected at least one pod after creation")
 	}
-	var alphaPod *api.Pod
+	var alphaPod *apitypes.Pod
 	for i := range workResp.Pods {
 		if workResp.Pods[i].Name == "Alpha" {
 			alphaPod = &workResp.Pods[i]
@@ -273,7 +274,7 @@ func postJSON(t *testing.T, handler http.Handler, path, payload string, wantStat
 	return rec.Body.Bytes()
 }
 
-func findAPINodeByName(people []api.OrgNode, name string) *api.OrgNode {
+func findAPINodeByName(people []apitypes.OrgNode, name string) *apitypes.OrgNode {
 	for i := range people {
 		if people[i].Name == name {
 			return &people[i]

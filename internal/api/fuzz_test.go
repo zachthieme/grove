@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/zachthieme/grove/internal/model"
 	"strings"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 func FuzzInferMapping(f *testing.F) {
@@ -84,7 +86,7 @@ func FuzzAllRequiredHigh(f *testing.F) {
 	f.Add("name", "none")
 
 	f.Fuzz(func(t *testing.T, field, confidence string) {
-		m := map[string]MappedColumn{
+		m := map[string]apitypes.MappedColumn{
 			field: {Column: "TestCol", Confidence: confidence},
 		}
 		// Should never panic; result is always a bool
@@ -103,7 +105,7 @@ func FuzzAllRequiredHighMultiField(f *testing.F) {
 	f.Fuzz(func(t *testing.T, fieldsStr, confidencesStr string) {
 		fields := strings.Split(fieldsStr, ",")
 		confidences := strings.Split(confidencesStr, ",")
-		m := make(map[string]MappedColumn)
+		m := make(map[string]apitypes.MappedColumn)
 		for i, field := range fields {
 			if i >= len(confidences) {
 				break
@@ -111,7 +113,7 @@ func FuzzAllRequiredHighMultiField(f *testing.F) {
 			if field == "" {
 				continue
 			}
-			m[field] = MappedColumn{
+			m[field] = apitypes.MappedColumn{
 				Column:     fmt.Sprintf("Col%d", i),
 				Confidence: confidences[i],
 			}
@@ -140,7 +142,7 @@ func FuzzUpdateFields(f *testing.F) {
 			return
 		}
 		// Should never panic; errors are expected for invalid values
-		_, _ = svc.Update(context.Background(), people[0].Id, OrgNodeUpdate{
+		_, _ = svc.Update(context.Background(), people[0].Id, apitypes.OrgNodeUpdate{
 			Name: &name, Role: &role, Discipline: &disc,
 		})
 	})
@@ -245,7 +247,7 @@ func FuzzWouldCreateCycle(f *testing.F) {
 			nameList = nameList[:50]
 		}
 
-		var people []OrgNode
+		var people []apitypes.OrgNode
 		for i, name := range nameList {
 			if name == "" {
 				continue
@@ -254,7 +256,7 @@ func FuzzWouldCreateCycle(f *testing.F) {
 			if i < len(managerList) {
 				mgr = managerList[i]
 			}
-			people = append(people, OrgNode{OrgNodeFields: model.OrgNodeFields{Name: name}, Id: name,
+			people = append(people, apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: name}, Id: name,
 
 				ManagerId: mgr,
 			})

@@ -3,8 +3,9 @@ package api
 import (
 	"context"
 	"testing"
-)
 
+	"github.com/zachthieme/grove/internal/apitypes"
+)
 
 // Scenarios: SETTINGS-001
 func TestOrgService_UpdateSettings_Validation(t *testing.T) {
@@ -12,7 +13,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	svc := newTestService(t)
 
 	t.Run("[SETTINGS-001] rejects empty discipline name", func(t *testing.T) {
-		_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng", "", "Design"}})
+		_, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{"Eng", "", "Design"}})
 		if err == nil {
 			t.Fatal("expected error for empty discipline name")
 		}
@@ -22,14 +23,14 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	})
 
 	t.Run("[SETTINGS-001] rejects duplicate discipline names", func(t *testing.T) {
-		_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng", "Design", "Eng"}})
+		_, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{"Eng", "Design", "Eng"}})
 		if err == nil {
 			t.Fatal("expected error for duplicate discipline")
 		}
 	})
 
 	t.Run("[SETTINGS-001] accepts valid settings", func(t *testing.T) {
-		result, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng", "Design", "PM"}})
+		result, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{"Eng", "Design", "PM"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -39,7 +40,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	})
 
 	t.Run("[SETTINGS-001] accepts empty list (clears order)", func(t *testing.T) {
-		result, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{}})
+		result, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -49,7 +50,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 	})
 
 	t.Run("[SETTINGS-001] trims whitespace from discipline names", func(t *testing.T) {
-		result, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"  Eng  ", " Design"}})
+		result, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{"  Eng  ", " Design"}})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -79,7 +80,7 @@ func TestOrgService_Settings_RoundTrip(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	newSettings := Settings{DisciplineOrder: []string{"Design", "PM", "Eng"}}
+	newSettings := apitypes.Settings{DisciplineOrder: []string{"Design", "PM", "Eng"}}
 	result, err := svc.UpdateSettings(ctx, newSettings)
 	if err != nil {
 		t.Fatalf("update settings: %v", err)
@@ -99,7 +100,7 @@ func TestOrgService_Settings_RoundTrip(t *testing.T) {
 func TestOrgService_UpdateSettings_RejectsInvalidChars(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{"Eng\nDesign"}})
+	_, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{"Eng\nDesign"}})
 	if err == nil {
 		t.Fatal("expected error for newline in discipline name")
 	}
@@ -113,7 +114,7 @@ func TestOrgService_UpdateSettings_RejectsOversizedName(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 	longName := string(make([]byte, maxFieldLen+1))
-	_, err := svc.UpdateSettings(context.Background(), Settings{DisciplineOrder: []string{longName}})
+	_, err := svc.UpdateSettings(context.Background(), apitypes.Settings{DisciplineOrder: []string{longName}})
 	if err == nil {
 		t.Fatal("expected error for oversized discipline name")
 	}
@@ -121,4 +122,3 @@ func TestOrgService_UpdateSettings_RejectsOversizedName(t *testing.T) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
-

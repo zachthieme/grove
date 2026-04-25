@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -15,7 +16,7 @@ func TestOrgService_AddProduct(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 
-	created, _, _, err := svc.Add(context.Background(), OrgNode{
+	created, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{
 		OrgNodeFields: model.OrgNodeFields{Name: "Widget", Type: "product", Status: "Active"},
 		ManagerId:     alice.Id,
 	})
@@ -166,7 +167,7 @@ func TestOrgService_Update_RejectProductAsManager(t *testing.T) {
 	if widgetId == "" || bobId == "" {
 		t.Fatal("test data setup failed: could not find Widget or Bob")
 	}
-	_, err := svc.Update(context.Background(), bobId, OrgNodeUpdate{ManagerId: ptr(widgetId)})
+	_, err := svc.Update(context.Background(), bobId, apitypes.OrgNodeUpdate{ManagerId: ptr(widgetId)})
 	if err == nil {
 		t.Fatal("expected error when reparenting to a product via Update")
 	}
@@ -218,7 +219,7 @@ func TestOrgService_Update_TypeChange(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{
 		Type:   ptr("product"),
 		Status: ptr("Active"),
 	})
@@ -239,11 +240,11 @@ func TestOrgService_Update_TypeChange_RevalidatesStatus(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Bob is Active (valid for both). Switch type to product without changing status.
-	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("product")}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Type: ptr("product")}); err != nil {
 		t.Fatalf("update to product failed: %v", err)
 	}
 	// Setting a person-only status on a product must be rejected.
-	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Status: ptr("Backfill")})
+	_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Status: ptr("Backfill")})
 	if err == nil {
 		t.Fatal("expected validation error for person-only status on product")
 	}
@@ -257,13 +258,13 @@ func TestOrgService_Update_TypeChange_AutoCorrectsStatus(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Bob -> product, then set product-only "Deprecated" status.
-	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("product"), Status: ptr("Deprecated")}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Type: ptr("product"), Status: ptr("Deprecated")}); err != nil {
 		t.Fatalf("update to product failed: %v", err)
 	}
 
 	// Switch back to person without supplying a status. "Deprecated" isn't valid
 	// for person — Update must auto-correct rather than leave the node invalid.
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("person")})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Type: ptr("person")})
 	if err != nil {
 		t.Fatalf("update back to person failed: %v", err)
 	}
@@ -278,7 +279,7 @@ func TestOrgService_Add_InvalidType(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
 
-	_, _, _, err := svc.Add(context.Background(), OrgNode{
+	_, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{
 		OrgNodeFields: model.OrgNodeFields{Name: "Bogus", Type: "widget", Status: "Active"},
 	})
 	if err == nil {
@@ -296,7 +297,7 @@ func TestOrgService_Update_InvalidType(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("widget")})
+	_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Type: ptr("widget")})
 	if err == nil {
 		t.Fatal("expected validation error for invalid type")
 	}

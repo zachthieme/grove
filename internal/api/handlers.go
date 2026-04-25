@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.Handler {
@@ -209,8 +211,8 @@ func handleMove(svc NodeService) http.HandlerFunc {
 
 func handleUpdate(svc NodeService) http.HandlerFunc {
 	type req struct {
-		PersonId string       `json:"personId"`
-		Fields   OrgNodeUpdate `json:"fields"`
+		PersonId string                 `json:"personId"`
+		Fields   apitypes.OrgNodeUpdate `json:"fields"`
 	}
 	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
 		result, err := svc.Update(ctx, r.PersonId, r.Fields)
@@ -222,7 +224,7 @@ func handleUpdate(svc NodeService) http.HandlerFunc {
 }
 
 func handleAdd(svc NodeService) http.HandlerFunc {
-	return jsonHandlerCtx(func(ctx context.Context, p OrgNode) (*AddResponse, error) {
+	return jsonHandlerCtx(func(ctx context.Context, p apitypes.OrgNode) (*AddResponse, error) {
 		created, working, pods, err := svc.Add(ctx, p)
 		if err != nil {
 			return nil, err
@@ -396,8 +398,8 @@ func handleListPods(svc PodService) http.HandlerFunc {
 
 func handleUpdatePod(svc PodService) http.HandlerFunc {
 	type req struct {
-		PodId  string    `json:"podId"`
-		Fields PodUpdate `json:"fields"`
+		PodId  string             `json:"podId"`
+		Fields apitypes.PodUpdate `json:"fields"`
 	}
 	return jsonHandlerCtx(func(ctx context.Context, r req) (*WorkingResponse, error) {
 		result, err := svc.UpdatePod(ctx, r.PodId, r.Fields)
@@ -460,7 +462,7 @@ func handleGetSettings(svc SettingsService) http.HandlerFunc {
 }
 
 func handleUpdateSettings(svc SettingsService) http.HandlerFunc {
-	return jsonHandlerCtx(func(ctx context.Context, settings Settings) (Settings, error) {
+	return jsonHandlerCtx(func(ctx context.Context, settings apitypes.Settings) (apitypes.Settings, error) {
 		return svc.UpdateSettings(ctx, settings)
 	})
 }
@@ -551,7 +553,7 @@ func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename
 
 // exportByFormat serializes people to the given format ("csv" or "xlsx").
 // Returns (nil, "", "", nil) for unsupported formats so callers can return 400.
-func exportByFormat(format string, people []OrgNode, baseName string) ([]byte, string, string, error) {
+func exportByFormat(format string, people []apitypes.OrgNode, baseName string) ([]byte, string, string, error) {
 	switch strings.ToLower(format) {
 	case FormatCSV:
 		data, err := ExportCSV(people)

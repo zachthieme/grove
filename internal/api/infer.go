@@ -3,6 +3,8 @@ package api
 import (
 	"sort"
 	"strings"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // exactMatches maps trimmed, lowercased header text to the app field name.
@@ -28,27 +30,27 @@ var exactMatches = map[string]string{
 // synonyms maps lowercased synonym phrases to the app field name.
 var synonyms = map[string]string{
 	// type
-	"node type":  "type",
-	"node_type":  "type",
-	"kind":       "type",
+	"node type": "type",
+	"node_type": "type",
+	"kind":      "type",
 	// name
-	"full name":      "name",
-	"person":         "name",
-	"employee":       "name",
-	"employee name":  "name",
+	"full name":     "name",
+	"person":        "name",
+	"employee":      "name",
+	"employee name": "name",
 	// role
 	"title":     "role",
-	"job title":  "role",
-	"position":   "role",
+	"job title": "role",
+	"position":  "role",
 	// discipline
 	"function":     "discipline",
 	"job family":   "discipline",
 	"job function": "discipline",
 	// manager
-	"reports to":    "manager",
-	"supervisor":    "manager",
-	"manager name":  "manager",
-	"reporting to":  "manager",
+	"reports to":   "manager",
+	"supervisor":   "manager",
+	"manager name": "manager",
+	"reporting to": "manager",
 	// team
 	"department":   "team",
 	"group":        "team",
@@ -67,25 +69,25 @@ var synonyms = map[string]string{
 	"future team":  "newTeam",
 	"planned team": "newTeam",
 	// pod
-	"pod name":      "pod",
-	"sub-team":      "pod",
-	"subteam":       "pod",
+	"pod name": "pod",
+	"sub-team": "pod",
+	"subteam":  "pod",
 	// publicNote
-	"note":          "publicNote",
-	"notes":         "publicNote",
-	"public notes":  "publicNote",
+	"note":         "publicNote",
+	"notes":        "publicNote",
+	"public notes": "publicNote",
 	// privateNote
 	"private notes": "privateNote",
 	// level
-	"seniority":         "level",
-	"grade":             "level",
-	"job level":         "level",
+	"seniority": "level",
+	"grade":     "level",
+	"job level": "level",
 	// employmentType
-	"worker type":       "employmentType",
-	"employee type":     "employmentType",
-	"classification":    "employmentType",
-	"employment class":  "employmentType",
-	"vendor type":       "employmentType",
+	"worker type":      "employmentType",
+	"employee type":    "employmentType",
+	"classification":   "employmentType",
+	"employment class": "employmentType",
+	"vendor type":      "employmentType",
 }
 
 // fuzzyKeywords maps a substring keyword to the app field name.
@@ -116,8 +118,8 @@ func init() {
 // InferMapping takes a list of spreadsheet headers and returns a mapping from
 // app field names to MappedColumn structs. Each app field is mapped at most once
 // and each header is consumed at most once (first match wins across tiers).
-func InferMapping(headers []string) map[string]MappedColumn {
-	result := make(map[string]MappedColumn)
+func InferMapping(headers []string) map[string]apitypes.MappedColumn {
+	result := make(map[string]apitypes.MappedColumn)
 	assigned := make(map[string]bool) // tracks which app fields are already mapped
 	used := make(map[int]bool)        // tracks which header indices are consumed
 
@@ -129,7 +131,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 		normalized := strings.ToLower(strings.TrimSpace(h))
 		if field, ok := exactMatches[normalized]; ok {
 			if !assigned[field] {
-				result[field] = MappedColumn{Column: h, Confidence: ConfidenceHigh}
+				result[field] = apitypes.MappedColumn{Column: h, Confidence: ConfidenceHigh}
 				assigned[field] = true
 				used[i] = true
 			}
@@ -144,7 +146,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 		normalized := strings.ToLower(strings.TrimSpace(h))
 		if field, ok := synonyms[normalized]; ok {
 			if !assigned[field] {
-				result[field] = MappedColumn{Column: h, Confidence: ConfidenceHigh}
+				result[field] = apitypes.MappedColumn{Column: h, Confidence: ConfidenceHigh}
 				assigned[field] = true
 				used[i] = true
 			}
@@ -163,7 +165,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 				continue
 			}
 			if strings.Contains(normalized, kw) {
-				result[field] = MappedColumn{Column: h, Confidence: ConfidenceMedium}
+				result[field] = apitypes.MappedColumn{Column: h, Confidence: ConfidenceMedium}
 				assigned[field] = true
 				used[i] = true
 				break
@@ -177,7 +179,7 @@ func InferMapping(headers []string) map[string]MappedColumn {
 // AllRequiredHigh returns true if all required fields are present in the
 // mapping with high confidence. Only "name" is truly required — other fields
 // default to empty if unmapped.
-func AllRequiredHigh(m map[string]MappedColumn) bool {
+func AllRequiredHigh(m map[string]apitypes.MappedColumn) bool {
 	required := []string{"name"}
 	for _, field := range required {
 		mc, ok := m[field]

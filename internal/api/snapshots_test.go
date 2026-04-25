@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // Scenarios: SNAP-001
@@ -46,7 +48,7 @@ func TestSnapshot_Load(t *testing.T) {
 		t.Fatalf("save snapshot: %v", err)
 	}
 	bob := findByName(svc.GetWorking(context.Background()), "Bob")
-	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Role: ptr("Senior Engineer")}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Role: ptr("Senior Engineer")}); err != nil {
 		t.Fatalf("update: %v", err)
 	}
 

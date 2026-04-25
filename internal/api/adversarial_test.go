@@ -1,13 +1,15 @@
 package api
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // setupService creates a fresh OrgService with a simple 3-person org:
@@ -130,11 +132,11 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	names := []string{
-		"\U0001F469\u200D\U0001F4BB",  // 👩‍💻 (woman technologist, with ZWJ)
-		"\u7530\u4E2D\u592A\u90CE",    // 田中太郎
-		"\u0645\u062D\u0645\u062F",    // محمد
-		"Jos\u00E9 Garc\u00EDa",       // José García
-		"a\u200Db",                     // zero-width joiner between a and b
+		"\U0001F469\u200D\U0001F4BB", // 👩‍💻 (woman technologist, with ZWJ)
+		"\u7530\u4E2D\u592A\u90CE",   // 田中太郎
+		"\u0645\u062D\u0645\u062F",   // محمد
+		"Jos\u00E9 Garc\u00EDa",      // José García
+		"a\u200Db",                   // zero-width joiner between a and b
 	}
 
 	rows := [][]string{{"Name", "Role", "Manager", "Team", "Status"}}
@@ -225,7 +227,7 @@ func TestAdversarial_OversizedFields(t *testing.T) {
 
 	// 501 characters should fail
 	tooLong := strings.Repeat("x", 501)
-	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Name: ptr(tooLong)})
+	_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Name: ptr(tooLong)})
 	if err == nil {
 		t.Fatal("expected error for 501-char name, got nil")
 	}
@@ -235,7 +237,7 @@ func TestAdversarial_OversizedFields(t *testing.T) {
 
 	// Exactly 500 characters should succeed
 	exact := strings.Repeat("y", 500)
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Name: ptr(exact)})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Name: ptr(exact)})
 	if err != nil {
 		t.Fatalf("expected success for 500-char name, got: %v", err)
 	}
@@ -254,7 +256,7 @@ func TestAdversarial_OversizedNote(t *testing.T) {
 
 	// 2001 characters should fail
 	tooLong := strings.Repeat("n", 2001)
-	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{PublicNote: ptr(tooLong)})
+	_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{PublicNote: ptr(tooLong)})
 	if err == nil {
 		t.Fatal("expected error for 2001-char note, got nil")
 	}
@@ -264,7 +266,7 @@ func TestAdversarial_OversizedNote(t *testing.T) {
 
 	// Exactly 2000 characters should succeed
 	exact := strings.Repeat("m", 2000)
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{PublicNote: ptr(exact)})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{PublicNote: ptr(exact)})
 	if err != nil {
 		t.Fatalf("expected success for 2000-char note, got: %v", err)
 	}
@@ -441,7 +443,7 @@ func TestAdversarial_InvalidStatus(t *testing.T) {
 	org := svc.GetOrg(context.Background())
 	bob := findByName(org.Working, "Bob")
 
-	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Status: ptr("InvalidStatus")})
+	_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Status: ptr("InvalidStatus")})
 	if err == nil {
 		t.Fatal("expected error for invalid status, got nil")
 	}

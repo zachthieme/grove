@@ -3,11 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/zachthieme/grove/internal/model"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 // setupConcurrentService creates a fresh OrgService with 3 people:
@@ -86,7 +88,7 @@ func TestConcurrentUpdates(t *testing.T) {
 			defer wg.Done()
 			for range iterations {
 				role := fmt.Sprintf("Role-%d", g)
-				_, _ = svc.Update(context.Background(), bobID, OrgNodeUpdate{Role: ptr(role)})
+				_, _ = svc.Update(context.Background(), bobID, apitypes.OrgNodeUpdate{Role: ptr(role)})
 			}
 		}()
 	}
@@ -97,7 +99,7 @@ func TestConcurrentUpdates(t *testing.T) {
 		t.Fatal("expected non-nil org data after concurrent updates")
 	}
 
-	var bob *OrgNode
+	var bob *apitypes.OrgNode
 	for i := range data.Working {
 		if data.Working[i].Id == bobID {
 			bob = &data.Working[i]
@@ -294,10 +296,10 @@ func TestConcurrentMixedOperations(t *testing.T) {
 					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform", "")
 				case 2:
 					// Update Bob's role
-					_, _ = svc.Update(context.Background(), bobID, OrgNodeUpdate{Role: ptr(fmt.Sprintf("Role-%d-%d", g, i))})
+					_, _ = svc.Update(context.Background(), bobID, apitypes.OrgNodeUpdate{Role: ptr(fmt.Sprintf("Role-%d-%d", g, i))})
 				case 3:
 					// Add a new person
-					_, _, _, _ = svc.Add(context.Background(), OrgNode{
+					_, _, _, _ = svc.Add(context.Background(), apitypes.OrgNode{
 						OrgNodeFields: model.OrgNodeFields{
 							Name:   fmt.Sprintf("NewPerson-%d-%d", g, i),
 							Role:   "IC",

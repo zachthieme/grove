@@ -22,22 +22,22 @@ type AutosaveStore interface {
 // FileSnapshotStore implements SnapshotStore using the filesystem (~/.grove/snapshots.json).
 type FileSnapshotStore struct{}
 
-func (FileSnapshotStore) Read() (map[string]snapshotData, error)          { return ReadSnapshots() }
-func (FileSnapshotStore) Write(s map[string]snapshotData) error           { return WriteSnapshots(s) }
-func (FileSnapshotStore) Delete() error                                   { return DeleteSnapshotStore() }
+func (FileSnapshotStore) Read() (map[string]snapshotData, error) { return ReadSnapshots() }
+func (FileSnapshotStore) Write(s map[string]snapshotData) error  { return WriteSnapshots(s) }
+func (FileSnapshotStore) Delete() error                          { return DeleteSnapshotStore() }
 
 // FileAutosaveStore implements AutosaveStore using the filesystem (~/.grove/autosave.json).
 type FileAutosaveStore struct{}
 
-func (FileAutosaveStore) Read() (*AutosaveData, error)  { return ReadAutosave() }
-func (FileAutosaveStore) Write(d AutosaveData) error    { return WriteAutosave(d) }
-func (FileAutosaveStore) Delete() error                 { return DeleteAutosave() }
+func (FileAutosaveStore) Read() (*AutosaveData, error) { return ReadAutosave() }
+func (FileAutosaveStore) Write(d AutosaveData) error   { return WriteAutosave(d) }
+func (FileAutosaveStore) Delete() error                { return DeleteAutosave() }
 
 // MemorySnapshotStore implements SnapshotStore in memory (for tests).
 type MemorySnapshotStore struct {
-	data    map[string]snapshotData
-	writeErr error
-	readErr  error
+	data      map[string]snapshotData
+	writeErr  error
+	readErr   error
 	deleteErr error
 }
 

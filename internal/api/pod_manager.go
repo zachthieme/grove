@@ -1,51 +1,54 @@
 package api
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"github.com/zachthieme/grove/internal/apitypes"
+)
 
 // PodManager owns the in-memory pod state. It is NOT thread-safe — callers
 // must hold an external lock (typically OrgService.mu) around all method calls.
 type PodManager struct {
-	pods         []Pod
-	originalPods []Pod
+	pods         []apitypes.Pod
+	originalPods []apitypes.Pod
 }
 
 func NewPodManager() *PodManager {
 	return &PodManager{}
 }
 
-func (pm *PodManager) unsafeSetState(pods, originalPods []Pod) {
+func (pm *PodManager) unsafeSetState(pods, originalPods []apitypes.Pod) {
 	pm.pods = pods
 	pm.originalPods = originalPods
 }
 
-func (pm *PodManager) unsafeGetPods() []Pod         { return pm.pods }
-func (pm *PodManager) unsafeGetOriginalPods() []Pod { return pm.originalPods }
-func (pm *PodManager) unsafeSetPods(pods []Pod)     { pm.pods = pods }
+func (pm *PodManager) unsafeGetPods() []apitypes.Pod         { return pm.pods }
+func (pm *PodManager) unsafeGetOriginalPods() []apitypes.Pod { return pm.originalPods }
+func (pm *PodManager) unsafeSetPods(pods []apitypes.Pod)     { pm.pods = pods }
 
 func (pm *PodManager) unsafeReset() {
 	pm.pods = CopyPods(pm.originalPods)
 }
 
-func (pm *PodManager) unsafeSeed(working []OrgNode) {
+func (pm *PodManager) unsafeSeed(working []apitypes.OrgNode) {
 	pm.pods = SeedPods(working)
 	pm.originalPods = CopyPods(pm.pods)
 }
 
-func (pm *PodManager) unsafeListPods(working []OrgNode) []PodInfo {
+func (pm *PodManager) unsafeListPods(working []apitypes.OrgNode) []apitypes.PodInfo {
 	counts := map[string]int{}
 	for _, p := range working {
 		if p.Pod != "" && p.ManagerId != "" {
 			counts[p.ManagerId+":"+p.Pod]++
 		}
 	}
-	result := make([]PodInfo, len(pm.pods))
+	result := make([]apitypes.PodInfo, len(pm.pods))
 	for i, pod := range pm.pods {
-		result[i] = PodInfo{Pod: pod, MemberCount: counts[pod.ManagerId+":"+pod.Name]}
+		result[i] = apitypes.PodInfo{Pod: pod, MemberCount: counts[pod.ManagerId+":"+pod.Name]}
 	}
 	return result
 }
 
-func (pm *PodManager) unsafeUpdatePod(podID string, fields PodUpdate, working []OrgNode) error {
+func (pm *PodManager) unsafeUpdatePod(podID string, fields apitypes.PodUpdate, working []apitypes.OrgNode) error {
 	pod := findPodByID(pm.pods, podID)
 	if pod == nil {
 		return errNotFound("pod %s not found", podID)
@@ -76,16 +79,16 @@ func (pm *PodManager) unsafeCreatePod(managerID, name, team string) error {
 			return errConflict("pod already exists for this manager and team")
 		}
 	}
-	pod := Pod{Id: uuid.NewString(), Name: name, Team: team, ManagerId: managerID}
+	pod := apitypes.Pod{Id: uuid.NewString(), Name: name, Team: team, ManagerId: managerID}
 	pm.pods = append(pm.pods, pod)
 	return nil
 }
 
-func (pm *PodManager) unsafeCleanup(working []OrgNode) {
+func (pm *PodManager) unsafeCleanup(working []apitypes.OrgNode) {
 	pm.pods = CleanupEmptyPods(pm.pods, working)
 }
 
-func (pm *PodManager) unsafeReassign(person *OrgNode) {
+func (pm *PodManager) unsafeReassign(person *apitypes.OrgNode) {
 	pm.pods = ReassignPersonPod(pm.pods, person)
 }
 

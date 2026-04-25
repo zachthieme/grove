@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -22,6 +23,7 @@ func newTestService(t *testing.T) *OrgService {
 	}
 	return svc
 }
+
 // Scenarios: ORG-001
 func TestOrgService_Move(t *testing.T) {
 	t.Parallel()
@@ -99,7 +101,7 @@ func TestOrgService_Update(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Role: ptr("Senior Engineer"), Discipline: ptr("SRE")})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Role: ptr("Senior Engineer"), Discipline: ptr("SRE")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -119,7 +121,7 @@ func TestOrgService_Add(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	alice := findByName(data.Working, "Alice")
 
-	added, _, _, err := svc.Add(context.Background(), OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
+	added, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
 		Team: "Eng", Status: "Active"}, ManagerId: alice.Id,
 	})
 	if err != nil {
@@ -272,6 +274,7 @@ func TestOrgService_EmptyBin(t *testing.T) {
 		t.Errorf("expected 0 recycled after empty bin")
 	}
 }
+
 // Scenarios: ORG-015
 func TestOrgService_Reorder(t *testing.T) {
 	t.Parallel()
@@ -390,7 +393,7 @@ func TestOrgService_Update_AllFields(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 
 	// Update every supported field
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{
 		Name:            ptr("Robert"),
 		Role:            ptr("Staff Engineer"),
 		Discipline:      ptr("SRE"),
@@ -443,7 +446,7 @@ func TestOrgService_Update_InvalidStatus(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Status: ptr("INVALID")})
+	_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Status: ptr("INVALID")})
 	if err == nil {
 		t.Fatal("expected error for invalid status, got nil")
 	}
@@ -457,12 +460,12 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// First set additional teams
-	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 
 	// Then clear them
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{AdditionalTeams: ptr("")})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{AdditionalTeams: ptr("")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -480,7 +483,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Set private to true
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Private: ptr(true)})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Private: ptr(true)})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -490,7 +493,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 	}
 
 	// Set private to false
-	result, err = svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Private: ptr(false)})
+	result, err = svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Private: ptr(false)})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -504,7 +507,7 @@ func TestOrgService_Update_Private(t *testing.T) {
 func TestOrgService_Update_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Update(context.Background(), "nonexistent", OrgNodeUpdate{Role: ptr("VP")})
+	_, err := svc.Update(context.Background(), "nonexistent", apitypes.OrgNodeUpdate{Role: ptr("VP")})
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -593,7 +596,7 @@ func TestOrgService_Update_CycleDetection(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 
 	// Alice -> Bob -> Carol; setting Alice's manager to Carol creates cycle
-	_, err := svc.Update(context.Background(), alice.Id, OrgNodeUpdate{ManagerId: ptr(carol.Id)})
+	_, err := svc.Update(context.Background(), alice.Id, apitypes.OrgNodeUpdate{ManagerId: ptr(carol.Id)})
 	if err == nil {
 		t.Fatal("expected error when creating circular manager chain via Update")
 	}
@@ -687,7 +690,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Set additional teams on Bob
-	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
 
@@ -724,7 +727,7 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 	longStr := string(make([]byte, maxFieldLen+1))
 
 	t.Run("[ORG-009] Update rejects long field", func(t *testing.T) {
-		_, err := svc.Update(context.Background(), alice.Id, OrgNodeUpdate{Name: ptr(longStr)})
+		_, err := svc.Update(context.Background(), alice.Id, apitypes.OrgNodeUpdate{Name: ptr(longStr)})
 		if err == nil {
 			t.Error("expected error for field too long")
 		}
@@ -732,14 +735,14 @@ func TestOrgService_FieldLengthValidation(t *testing.T) {
 
 	t.Run("[ORG-009] Update accepts max-length field", func(t *testing.T) {
 		okStr := string(make([]byte, maxFieldLen))
-		_, err := svc.Update(context.Background(), alice.Id, OrgNodeUpdate{Name: ptr(okStr)})
+		_, err := svc.Update(context.Background(), alice.Id, apitypes.OrgNodeUpdate{Name: ptr(okStr)})
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
 	})
 
 	t.Run("[ORG-009] Add rejects long name", func(t *testing.T) {
-		_, _, _, err := svc.Add(context.Background(), OrgNode{OrgNodeFields: model.OrgNodeFields{Name: longStr, Role: "Eng", Discipline: "Eng",
+		_, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: longStr, Role: "Eng", Discipline: "Eng",
 			Team: "Eng", Status: "Active"},
 		})
 		if err == nil {
@@ -765,7 +768,7 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 	})
 
 	t.Run("[ORG-002] self-reference via Update", func(t *testing.T) {
-		_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{ManagerId: ptr(bob.Id)})
+		_, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{ManagerId: ptr(bob.Id)})
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
@@ -867,7 +870,7 @@ func TestOrgService_SaveSnapshot_RejectsReservedNames(t *testing.T) {
 func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, _, _, err := svc.Add(context.Background(), OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Test", Status: "BOGUS", Team: "Eng"}})
+	_, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Test", Status: "BOGUS", Team: "Eng"}})
 	if err == nil {
 		t.Fatal("expected error for invalid status")
 	}
@@ -877,7 +880,7 @@ func TestOrgService_Add_RejectsInvalidStatus(t *testing.T) {
 func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, _, _, err := svc.Add(context.Background(), OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Test", Status: "Active", Team: "Eng"}, ManagerId: "nonexistent"})
+	_, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Test", Status: "Active", Team: "Eng"}, ManagerId: "nonexistent"})
 	if err == nil {
 		t.Fatal("expected error for invalid manager")
 	}
@@ -887,21 +890,21 @@ func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 func TestOrgService_RestoreState_FullState(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	settings := &Settings{DisciplineOrder: []string{"Eng", "Product"}}
+	settings := &apitypes.Settings{DisciplineOrder: []string{"Eng", "Product"}}
 	data := AutosaveData{
-		Original: []OrgNode{
+		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
-		Working: []OrgNode{
+		Working: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Senior Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
-		Recycled: []OrgNode{
+		Recycled: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "3"},
 		},
-		Pods:         []Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
-		OriginalPods: []Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
+		Pods:         []apitypes.Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
+		OriginalPods: []apitypes.Pod{{Id: "p1", Name: "Platform", Team: "Platform", ManagerId: "1"}},
 		Settings:     settings,
 	}
 
@@ -940,17 +943,17 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
-		Original: []OrgNode{
+		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "2"},
 		},
-		Working: []OrgNode{
+		Working: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "2"},
 		},
-		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
+		Settings: &apitypes.Settings{DisciplineOrder: []string{"Eng"}},
 	}
 
 	svc.RestoreState(context.Background(), data)
@@ -968,7 +971,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	}
 
 	// Update should work on restored data
-	updateResult, err := svc.Update(context.Background(), "2", OrgNodeUpdate{Role: ptr("Staff Engineer")})
+	updateResult, err := svc.Update(context.Background(), "2", apitypes.OrgNodeUpdate{Role: ptr("Staff Engineer")})
 	if err != nil {
 		t.Fatalf("update after restore failed: %v", err)
 	}
@@ -986,11 +989,11 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	data := AutosaveData{
-		Original: []OrgNode{
+		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
-		Working: []OrgNode{
+		Working: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
@@ -1099,7 +1102,7 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 	dave := findByName(data.Working, "Dave")
 
-	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Team: ptr("Infra")})
+	result, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{Team: ptr("Infra")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1129,7 +1132,7 @@ func TestOrgService_Update_TeamNoCascadeNonFrontlineManager(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 	carol := findByName(data.Working, "Carol")
 
-	result, err := svc.Update(context.Background(), alice.Id, OrgNodeUpdate{Team: ptr("NewTeam")})
+	result, err := svc.Update(context.Background(), alice.Id, apitypes.OrgNodeUpdate{Team: ptr("NewTeam")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1159,7 +1162,7 @@ func TestOrgService_Update_PodAutoCreate(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Setting a new pod name should auto-create the pod
-	result, err := svc.Update(context.Background(), carol.Id, OrgNodeUpdate{Pod: ptr("Alpha")})
+	result, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("update failed: %v", err)
 	}
@@ -1189,20 +1192,20 @@ func TestOrgService_Update_PodReusesExisting(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Create pod "Alpha" first by setting it on Carol
-	_, err := svc.Update(context.Background(), carol.Id, OrgNodeUpdate{Pod: ptr("Alpha")})
+	_, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("first pod update failed: %v", err)
 	}
 
 	// Add a new person under Bob and assign same pod "Alpha"
-	added, _, _, err := svc.Add(context.Background(), OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Eve", Role: "Engineer", Discipline: "Eng",
+	added, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Eve", Role: "Engineer", Discipline: "Eng",
 		Team: "Platform", Status: "Active"}, ManagerId: bob.Id,
 	})
 	if err != nil {
 		t.Fatalf("add failed: %v", err)
 	}
 
-	result, err := svc.Update(context.Background(), added.Id, OrgNodeUpdate{Pod: ptr("Alpha")})
+	result, err := svc.Update(context.Background(), added.Id, apitypes.OrgNodeUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("second pod update failed: %v", err)
 	}
@@ -1227,13 +1230,13 @@ func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 
 	// Set pod first
-	_, err := svc.Update(context.Background(), carol.Id, OrgNodeUpdate{Pod: ptr("Alpha")})
+	_, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("set pod failed: %v", err)
 	}
 
 	// Clear pod
-	result, err := svc.Update(context.Background(), carol.Id, OrgNodeUpdate{Pod: ptr("")})
+	result, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("")})
 	if err != nil {
 		t.Fatalf("clear pod failed: %v", err)
 	}
@@ -1243,7 +1246,7 @@ func TestOrgService_Update_PodClearRemovesAssignment(t *testing.T) {
 	}
 }
 
-func findById(people []OrgNode, id string) *OrgNode {
+func findById(people []apitypes.OrgNode, id string) *apitypes.OrgNode {
 	for i := range people {
 		if people[i].Id == id {
 			return &people[i]
@@ -1251,6 +1254,7 @@ func findById(people []OrgNode, id string) *OrgNode {
 	}
 	return nil
 }
+
 // Scenarios: CREATE-002
 func TestOrgService_AddParent(t *testing.T) {
 	t.Parallel()
@@ -1432,7 +1436,7 @@ func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
 	alice := data.Working[0]
 
 	// Step 2: Add a direct report
-	bob, working, _, err := svc.Add(context.Background(), OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Status: "Active"}, ManagerId: alice.Id})
+	bob, working, _, err := svc.Add(context.Background(), apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Status: "Active"}, ManagerId: alice.Id})
 	if err != nil {
 		t.Fatalf("add failed: %v", err)
 	}
@@ -1492,14 +1496,14 @@ func TestOrgService_CaptureState_DeepCopiesAdditionalTeams(t *testing.T) {
 	bob := findByName(data.Working, "Bob")
 
 	// Seed Bob with a non-empty AdditionalTeams so we can mutate an existing element.
-	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
+	if _, err := svc.Update(context.Background(), bob.Id, apitypes.OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
 		t.Fatalf("seeding AdditionalTeams failed: %v", err)
 	}
 
 	state := svc.CaptureState()
 
 	// Find Bob in the captured state.
-	var capturedBob *OrgNode
+	var capturedBob *apitypes.OrgNode
 	for i := range state.People {
 		if state.People[i].Id == bob.Id {
 			capturedBob = &state.People[i]
@@ -1554,12 +1558,12 @@ func TestOrgService_ApplyState_ReplacesWorkingPodsSettings(t *testing.T) {
 
 	// Build a state with one synthetic person and replace.
 	newState := OrgState{
-		People: []OrgNode{{
+		People: []apitypes.OrgNode{{
 			OrgNodeFields: model.OrgNodeFields{Name: "Solo", Status: "Active"},
 			Id:            "synthetic-id",
 		}},
-		Pods:     []Pod{},
-		Settings: Settings{DisciplineOrder: []string{"Synthetic"}},
+		Pods:     []apitypes.Pod{},
+		Settings: apitypes.Settings{DisciplineOrder: []string{"Synthetic"}},
 	}
 	svc.ApplyState(newState)
 
@@ -1589,4 +1593,3 @@ func newTestServiceFromNodes(t *testing.T, nodes []model.OrgNode) *OrgService {
 	})
 	return svc
 }
-

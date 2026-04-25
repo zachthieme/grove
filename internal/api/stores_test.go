@@ -3,11 +3,13 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"github.com/zachthieme/grove/internal/model"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 // --- Snapshot store error path tests ---
@@ -102,7 +104,7 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 	store := NewMemorySnapshotStore()
 	// Pre-populate the store
 	_ = store.Write(map[string]snapshotData{
-		"saved": {People: []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}},
+		"saved": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}},
 	})
 
 	svc := NewOrgService(store)
@@ -324,7 +326,7 @@ func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
 
 	// Write
 	snaps := map[string]snapshotData{
-		"v1": {People: []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice"}, Id: "1"}}},
+		"v1": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice"}, Id: "1"}}},
 	}
 	if err := store.Write(snaps); err != nil {
 		t.Fatalf("write: %v", err)

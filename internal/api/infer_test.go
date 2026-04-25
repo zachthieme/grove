@@ -2,6 +2,8 @@ package api
 
 import (
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // Scenarios: UPLOAD-005
@@ -276,7 +278,7 @@ func TestInferMapping_PodAndNotes(t *testing.T) {
 // Scenarios: UPLOAD-004
 func TestAllRequiredHigh_True(t *testing.T) {
 	t.Parallel()
-	m := map[string]MappedColumn{
+	m := map[string]apitypes.MappedColumn{
 		"name":       {Column: "Name", Confidence: "high"},
 		"role":       {Column: "Role", Confidence: "high"},
 		"discipline": {Column: "Discipline", Confidence: "high"},
@@ -291,7 +293,7 @@ func TestAllRequiredHigh_True(t *testing.T) {
 // Scenarios: UPLOAD-004
 func TestAllRequiredHigh_MissingName(t *testing.T) {
 	t.Parallel()
-	m := map[string]MappedColumn{
+	m := map[string]apitypes.MappedColumn{
 		"role":       {Column: "Role", Confidence: "high"},
 		"discipline": {Column: "Discipline", Confidence: "high"},
 		"team":       {Column: "Team", Confidence: "high"},
@@ -305,7 +307,7 @@ func TestAllRequiredHigh_MissingName(t *testing.T) {
 // Scenarios: UPLOAD-004
 func TestAllRequiredHigh_NameMediumConfidence(t *testing.T) {
 	t.Parallel()
-	m := map[string]MappedColumn{
+	m := map[string]apitypes.MappedColumn{
 		"name": {Column: "Name", Confidence: "medium"},
 	}
 	if AllRequiredHigh(m) {
@@ -316,7 +318,7 @@ func TestAllRequiredHigh_NameMediumConfidence(t *testing.T) {
 // Scenarios: UPLOAD-004
 func TestAllRequiredHigh_OnlyNameRequired(t *testing.T) {
 	t.Parallel()
-	m := map[string]MappedColumn{
+	m := map[string]apitypes.MappedColumn{
 		"name": {Column: "Name", Confidence: "high"},
 	}
 	if !AllRequiredHigh(m) {

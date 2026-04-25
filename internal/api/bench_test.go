@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // generateBenchCSV creates a CSV with n people arranged as a hierarchy:
@@ -132,7 +134,7 @@ func BenchmarkUpdate(b *testing.B) {
 	for b.Loop() {
 		role := roles[i%len(roles)]
 		i++
-		if _, err := svc.Update(context.Background(), personID, OrgNodeUpdate{Role: ptr(role)}); err != nil {
+		if _, err := svc.Update(context.Background(), personID, apitypes.OrgNodeUpdate{Role: ptr(role)}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -216,7 +218,7 @@ func BenchmarkBulkUpdate_175(b *testing.B) {
 				b.Fatalf("Person-%d not found", i)
 			}
 			newRole := fmt.Sprintf("Senior Engineer %d", i)
-			if _, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr(newRole)}); err != nil {
+			if _, err := svc.Update(context.Background(), p.Id, apitypes.OrgNodeUpdate{Role: ptr(newRole)}); err != nil {
 				b.Fatal(err)
 			}
 		}

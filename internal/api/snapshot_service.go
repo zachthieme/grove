@@ -7,6 +7,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // validSnapshotName allows names starting with a letter or digit, followed by
@@ -18,9 +20,9 @@ func isValidSnapshotName(name string) bool {
 }
 
 type snapshotData struct {
-	People    []OrgNode
-	Pods      []Pod
-	Settings  Settings
+	People    []apitypes.OrgNode
+	Pods      []apitypes.Pod
+	Settings  apitypes.Settings
 	Timestamp time.Time
 }
 
@@ -41,8 +43,8 @@ var reservedSnapshotNames = map[string]bool{
 type orgStateProvider interface {
 	CaptureState() OrgState
 	ApplyState(OrgState)
-	GetWorking(ctx context.Context) []OrgNode
-	GetOriginal(ctx context.Context) []OrgNode
+	GetWorking(ctx context.Context) []apitypes.OrgNode
+	GetOriginal(ctx context.Context) []apitypes.OrgNode
 }
 
 // SnapshotService owns the snapshot map and disk store under its own mutex.
@@ -201,7 +203,7 @@ func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
 // Export returns the People slice for a snapshot. Special names route to
 // the live working/original via the orgStateProvider. Named snapshots are
 // read under mu_snap.RLock and deep-copied so callers can mutate freely.
-func (ss *SnapshotService) Export(ctx context.Context, name string) ([]OrgNode, error) {
+func (ss *SnapshotService) Export(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
 	switch name {
 	case SnapshotWorking:
 		return ss.org.GetWorking(ctx), nil

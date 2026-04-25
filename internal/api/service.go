@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -19,18 +20,18 @@ import (
 // Used as the bridge format between OrgService and SnapshotService for
 // Save/Load, and stored as the in-memory snapshot payload.
 type OrgState struct {
-	People   []OrgNode
-	Pods     []Pod
-	Settings Settings
+	People   []apitypes.OrgNode
+	Pods     []apitypes.Pod
+	Settings apitypes.Settings
 }
 
 type OrgService struct {
 	mu       sync.RWMutex
-	original []OrgNode
-	working  []OrgNode
-	recycled []OrgNode
-	settings Settings
-	pending  *PendingUpload
+	original []apitypes.OrgNode
+	working  []apitypes.OrgNode
+	recycled []apitypes.OrgNode
+	settings apitypes.Settings
+	pending  *apitypes.PendingUpload
 	// pendingEpoch increments on each Upload that creates a pending mapping;
 	// confirmedEpoch is set when a ConfirmMapping commits. ConfirmMapping
 	// captures the expected epoch (confirmedEpoch+1) before parsing outside
@@ -43,7 +44,7 @@ type OrgService struct {
 	idIndex        map[string]int
 }
 
-func deriveDisciplineOrder(people []OrgNode) []string {
+func deriveDisciplineOrder(people []apitypes.OrgNode) []string {
 	seen := map[string]bool{}
 	var disciplines []string
 	for _, p := range people {
@@ -59,8 +60,8 @@ func deriveDisciplineOrder(people []OrgNode) []string {
 // MoveResult holds working people and pods, returned from mutations that
 // affect both (e.g. Move, Update, Reorder).
 type MoveResult struct {
-	Working []OrgNode
-	Pods    []Pod
+	Working []apitypes.OrgNode
+	Pods    []apitypes.Pod
 }
 
 func NewOrgService(snapStore SnapshotStore) *OrgService {
@@ -118,7 +119,7 @@ func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 // missing one. FTE is the canonical default — the codebase treats empty as FTE
 // (form default, card abbrev, status colors), so normalize at ingress to avoid a
 // "No type" bucket appearing for what is effectively unset/legacy data.
-func normalizeEmploymentType(nodes []OrgNode) {
+func normalizeEmploymentType(nodes []apitypes.OrgNode) {
 	for i := range nodes {
 		if !model.IsProduct(nodes[i].Type) && nodes[i].EmploymentType == "" {
 			nodes[i].EmploymentType = "FTE"
@@ -141,7 +142,7 @@ func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	if data.Settings != nil {
 		s.settings = *data.Settings
 	} else {
-		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
+		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
 	}
 	people := len(s.working)
 	recycled := len(s.recycled)
@@ -158,7 +159,7 @@ func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
 	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 }
 
-func (s *OrgService) GetWorking(ctx context.Context) []OrgNode {
+func (s *OrgService) GetWorking(ctx context.Context) []apitypes.OrgNode {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return deepCopyNodes(s.working)
@@ -166,13 +167,13 @@ func (s *OrgService) GetWorking(ctx context.Context) []OrgNode {
 
 // GetOriginal returns a deep-copy of the original (pre-import) state.
 // Like GetWorking but for the immutable original slice.
-func (s *OrgService) GetOriginal(ctx context.Context) []OrgNode {
+func (s *OrgService) GetOriginal(ctx context.Context) []apitypes.OrgNode {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return deepCopyNodes(s.original)
 }
 
-func (s *OrgService) GetRecycled(ctx context.Context) []OrgNode {
+func (s *OrgService) GetRecycled(ctx context.Context) []apitypes.OrgNode {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return deepCopyNodes(s.recycled)
@@ -184,7 +185,7 @@ func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.rebuildIndex()
 	s.recycled = nil
 	s.podMgr.unsafeReset()
-	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
+	s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
 	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
@@ -206,7 +207,7 @@ func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 // Snapshot replacement (if needed) is the caller's responsibility — call
 // s.snap.ReplaceAll() or s.snap.Clear() AFTER s.mu is released to avoid
 // violating the "never hold both locks" invariant.
-func (s *OrgService) resetState(original, working []OrgNode) {
+func (s *OrgService) resetState(original, working []apitypes.OrgNode) {
 	s.original = original
 	s.working = deepCopyNodes(working)
 	s.rebuildIndex()
@@ -235,7 +236,7 @@ func (s *OrgService) rebuildIndex() {
 }
 
 // findWorking finds a person by ID in the working slice. Must be called with s.mu held.
-func (s *OrgService) findWorking(id string) (int, *OrgNode) {
+func (s *OrgService) findWorking(id string) (int, *apitypes.OrgNode) {
 	if idx, ok := s.idIndex[id]; ok && idx < len(s.working) && s.working[idx].Id == id {
 		return idx, &s.working[idx]
 	}
@@ -245,9 +246,9 @@ func (s *OrgService) findWorking(id string) (int, *OrgNode) {
 // MutationResult holds both working and recycled slices, returned atomically
 // from mutations that affect both (e.g. Delete, Restore).
 type MutationResult struct {
-	Working  []OrgNode
-	Recycled []OrgNode
-	Pods     []Pod
+	Working  []apitypes.OrgNode
+	Recycled []apitypes.OrgNode
+	Pods     []apitypes.Pod
 }
 
 // deepCopyNodes returns an independent copy of src, including each person's
@@ -257,8 +258,8 @@ type MutationResult struct {
 // that in-place mutations on one slice never corrupt another. The struct
 // fields themselves are value types (strings, ints) and are copied by the
 // range loop; only slice fields (AdditionalTeams) need explicit cloning.
-func deepCopyNodes(src []OrgNode) []OrgNode {
-	dst := make([]OrgNode, len(src))
+func deepCopyNodes(src []apitypes.OrgNode) []apitypes.OrgNode {
+	dst := make([]apitypes.OrgNode, len(src))
 	for i, p := range src {
 		dst[i] = p
 		if p.AdditionalTeams != nil {
@@ -278,14 +279,14 @@ func (s *OrgService) CaptureState() OrgState {
 	defer s.mu.RUnlock()
 	pods := CopyPods(s.podMgr.unsafeGetPods())
 	if pods == nil {
-		pods = []Pod{}
+		pods = []apitypes.Pod{}
 	}
 	order := make([]string, len(s.settings.DisciplineOrder))
 	copy(order, s.settings.DisciplineOrder)
 	return OrgState{
 		People:   deepCopyNodes(s.working),
 		Pods:     pods,
-		Settings: Settings{DisciplineOrder: order},
+		Settings: apitypes.Settings{DisciplineOrder: order},
 	}
 }
 
@@ -305,9 +306,9 @@ func (s *OrgService) ApplyState(state OrgState) {
 	if len(state.Settings.DisciplineOrder) > 0 {
 		order := make([]string, len(state.Settings.DisciplineOrder))
 		copy(order, state.Settings.DisciplineOrder)
-		s.settings = Settings{DisciplineOrder: order}
+		s.settings = apitypes.Settings{DisciplineOrder: order}
 	} else {
-		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	}
 }
 
@@ -322,16 +323,16 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 		return nil, errValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
-	p := OrgNode{
+	p := apitypes.OrgNode{
 		OrgNodeFields: model.OrgNodeFields{Name: name, Status: "Active"},
 		Id:            uuid.NewString(),
 	}
 
 	s.mu.Lock()
 	s.pending = nil
-	people := []OrgNode{p}
+	people := []apitypes.OrgNode{p}
 	s.resetState(people, people)
-	s.settings = Settings{DisciplineOrder: []string{}}
+	s.settings = apitypes.Settings{DisciplineOrder: []string{}}
 	resp := &OrgData{
 		Original: deepCopyNodes(s.original),
 		Working:  deepCopyNodes(s.working),

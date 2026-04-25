@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/xuri/excelize/v2"
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 var exportHeaders = []string{"Name", "Type", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
@@ -28,7 +29,7 @@ func sanitizeCell(s string) string {
 }
 
 // collectExtraKeys returns the sorted union of all Extra map keys across nodes.
-func collectExtraKeys(nodes []OrgNode) []string {
+func collectExtraKeys(nodes []apitypes.OrgNode) []string {
 	seen := make(map[string]bool)
 	for _, p := range nodes {
 		for k := range p.Extra {
@@ -43,7 +44,7 @@ func collectExtraKeys(nodes []OrgNode) []string {
 	return keys
 }
 
-func nodeToRowWithExtra(p OrgNode, idToName map[string]string, extraKeys []string) []string {
+func nodeToRowWithExtra(p apitypes.OrgNode, idToName map[string]string, extraKeys []string) []string {
 	row := nodeToRow(p, idToName)
 	for _, k := range extraKeys {
 		row = append(row, sanitizeCell(p.Extra[k]))
@@ -51,7 +52,7 @@ func nodeToRowWithExtra(p OrgNode, idToName map[string]string, extraKeys []strin
 	return row
 }
 
-func ExportCSV(people []OrgNode) ([]byte, error) {
+func ExportCSV(people []apitypes.OrgNode) ([]byte, error) {
 	idToName := buildIDToName(people)
 	extraKeys := collectExtraKeys(people)
 	headers := append(append([]string{}, exportHeaders...), extraKeys...)
@@ -72,7 +73,7 @@ func ExportCSV(people []OrgNode) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ExportXLSX(people []OrgNode) ([]byte, error) {
+func ExportXLSX(people []apitypes.OrgNode) ([]byte, error) {
 	idToName := buildIDToName(people)
 	extraKeys := collectExtraKeys(people)
 	headers := append(append([]string{}, exportHeaders...), extraKeys...)
@@ -101,7 +102,7 @@ func ExportXLSX(people []OrgNode) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func buildIDToName(people []OrgNode) map[string]string {
+func buildIDToName(people []apitypes.OrgNode) map[string]string {
 	m := make(map[string]string, len(people))
 	for _, p := range people {
 		m[p.Id] = p.Name
@@ -111,7 +112,7 @@ func buildIDToName(people []OrgNode) map[string]string {
 
 var podSidecarHeaders = []string{"Pod Name", "Manager", "Team", "Public Note", "Private Note"}
 
-func ExportPodsSidecarCSV(pods []Pod, people []OrgNode) ([]byte, error) {
+func ExportPodsSidecarCSV(pods []apitypes.Pod, people []apitypes.OrgNode) ([]byte, error) {
 	idToName := buildIDToName(people)
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
@@ -134,7 +135,7 @@ func ExportPodsSidecarCSV(pods []Pod, people []OrgNode) ([]byte, error) {
 	return buf.Bytes(), w.Error()
 }
 
-func ExportSettingsSidecarCSV(settings Settings) ([]byte, error) {
+func ExportSettingsSidecarCSV(settings apitypes.Settings) ([]byte, error) {
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
 	if err := w.Write([]string{"Discipline Order"}); err != nil {
@@ -149,7 +150,7 @@ func ExportSettingsSidecarCSV(settings Settings) ([]byte, error) {
 	return buf.Bytes(), w.Error()
 }
 
-func nodeToRow(p OrgNode, idToName map[string]string) []string {
+func nodeToRow(p apitypes.OrgNode, idToName map[string]string) []string {
 	managerName := idToName[p.ManagerId]
 	levelStr := ""
 	if p.Level != 0 {

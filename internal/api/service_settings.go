@@ -1,16 +1,20 @@
 package api
 
-import "context"
+import (
+	"context"
 
-func (s *OrgService) GetSettings(ctx context.Context) Settings {
+	"github.com/zachthieme/grove/internal/apitypes"
+)
+
+func (s *OrgService) GetSettings(ctx context.Context) apitypes.Settings {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.settings
 }
 
-func (s *OrgService) UpdateSettings(ctx context.Context, settings Settings) (Settings, error) {
+func (s *OrgService) UpdateSettings(ctx context.Context, settings apitypes.Settings) (apitypes.Settings, error) {
 	if err := validateSettings(&settings); err != nil {
-		return Settings{}, err
+		return apitypes.Settings{}, err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

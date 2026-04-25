@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/zachthieme/grove/internal/model"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -20,6 +19,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 // tsTypesSrc reads web/src/api/types.ts once per test run. Used as the source
@@ -109,14 +111,14 @@ func collectJSONFields(t reflect.Type) []string {
 func TestContractPersonFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "OrgNode")
-	got := jsonFieldNames(OrgNode{})
+	got := jsonFieldNames(apitypes.OrgNode{})
 	assertFieldsMatch(t, "OrgNode", expected, got)
 }
 
 func TestContractPodFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "Pod")
-	got := jsonFieldNames(Pod{})
+	got := jsonFieldNames(apitypes.Pod{})
 	assertFieldsMatch(t, "Pod", expected, got)
 }
 
@@ -126,7 +128,7 @@ func TestContractPodInfoFields(t *testing.T) {
 	// fields. Combine with Pod fields to get the full set.
 	expected := append(tsInterfaceFields(t, "Pod"), tsInterfaceFields(t, "PodInfo")...)
 	sort.Strings(expected)
-	got := jsonFieldNames(PodInfo{})
+	got := jsonFieldNames(apitypes.PodInfo{})
 	assertFieldsMatch(t, "PodInfo", expected, got)
 }
 
@@ -154,7 +156,7 @@ func TestContractSnapshotInfoFields(t *testing.T) {
 func TestContractMappedColumnFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "MappedColumn")
-	got := jsonFieldNames(MappedColumn{})
+	got := jsonFieldNames(apitypes.MappedColumn{})
 	assertFieldsMatch(t, "MappedColumn", expected, got)
 }
 
@@ -168,27 +170,27 @@ func TestContractUploadResponseFields(t *testing.T) {
 func TestContractSettingsFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "Settings")
-	got := jsonFieldNames(Settings{})
+	got := jsonFieldNames(apitypes.Settings{})
 	assertFieldsMatch(t, "Settings", expected, got)
 }
 
 func TestContractPersonUpdateFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "OrgNodeUpdatePayload")
-	got := jsonFieldNames(OrgNodeUpdate{})
+	got := jsonFieldNames(apitypes.OrgNodeUpdate{})
 	assertFieldsMatch(t, "OrgNodeUpdate", expected, got)
 }
 
 func TestContractPodUpdateFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "PodUpdatePayload")
-	got := jsonFieldNames(PodUpdate{})
+	got := jsonFieldNames(apitypes.PodUpdate{})
 	assertFieldsMatch(t, "PodUpdate", expected, got)
 }
 
 func TestContractPersonJSONRoundTrip(t *testing.T) {
 	t.Parallel()
-	original := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Jane Doe",
+	original := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Jane Doe",
 		Role:       "Staff Engineer",
 		Discipline: "Engineering",
 
@@ -216,7 +218,7 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 		t.Fatalf("failed to marshal OrgNode: %v", err)
 	}
 
-	var roundTripped OrgNode
+	var roundTripped apitypes.OrgNode
 	if err := json.Unmarshal(data, &roundTripped); err != nil {
 		t.Fatalf("failed to unmarshal OrgNode: %v", err)
 	}
@@ -248,7 +250,7 @@ func TestContractPersonJSONRoundTrip(t *testing.T) {
 
 func TestContractPersonFieldTypes(t *testing.T) {
 	t.Parallel()
-	p := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng",
+	p := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng",
 		Team: "Platform", AdditionalTeams: []string{"Infra"},
 		Status: "Active", EmploymentType: "FTE", Level: 5, Private: true,
 		Extra: map[string]string{"Custom": "val"}}, Id: "uuid-1",

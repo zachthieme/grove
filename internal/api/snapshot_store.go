@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 func snapshotStorePath() (string, error) {
@@ -19,10 +21,10 @@ func snapshotStorePath() (string, error) {
 }
 
 type persistedSnapshot struct {
-	People    []OrgNode  `json:"people"`
-	Pods      []Pod     `json:"pods,omitempty"`
-	Settings  Settings  `json:"settings,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
+	People    []apitypes.OrgNode `json:"people"`
+	Pods      []apitypes.Pod     `json:"pods,omitempty"`
+	Settings  apitypes.Settings  `json:"settings,omitempty"`
+	Timestamp time.Time          `json:"timestamp"`
 }
 
 // WriteSnapshots persists all snapshots to disk.

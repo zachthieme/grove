@@ -5,6 +5,7 @@ package api
 import (
 	"testing"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -14,8 +15,8 @@ func TestAutosave_WriteAndRead(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	data := AutosaveData{
-		Original:     []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
-		Working:      []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Original:     []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Working:      []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
 		SnapshotName: "v1",
 		Timestamp:    "2026-03-21T12:00:00Z",
 	}

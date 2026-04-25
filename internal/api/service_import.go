@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/parser"
 )
 
@@ -30,7 +31,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		}
 		people := ConvertOrg(org)
 		s.resetState(people, people)
-		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		resp := &UploadResponse{
 			Status:  UploadReady,
 			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
@@ -48,7 +49,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 
 	// Required field (name) not matched with high confidence — hold as pending.
 	s.pendingEpoch++
-	s.pending = &PendingUpload{File: data, Filename: filename}
+	s.pending = &apitypes.PendingUpload{File: data, Filename: filename}
 	s.mu.Unlock()
 
 	Logger().Info("upload needs mapping", "source", "import", "filename", filename, "headers", len(header), "rows", len(dataRows))
@@ -96,7 +97,7 @@ func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]stri
 
 // confirmMappingCSV handles the non-zip ConfirmMapping path.
 // Called without holding s.mu.
-func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
+func (s *OrgService) confirmMappingCSV(pending *apitypes.PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
 	header, dataRows, err := extractRows(pending.Filename, pending.File)
 	if err != nil {
 		return nil, errValidation("parsing pending file: %v", err)
@@ -115,7 +116,7 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	}
 	s.confirmedEpoch = s.pendingEpoch
 	s.resetState(people, people)
-	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+	s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
@@ -131,7 +132,7 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 
 // confirmMappingZip handles the zip ConfirmMapping path.
 // Called without holding s.mu.
-func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
+func (s *OrgService) confirmMappingZip(pending *apitypes.PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
 	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(pending.File)
 	if err != nil {
 		return nil, errValidation("parsing pending zip: %v", err)
@@ -158,10 +159,10 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		}
 	}
 
-	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+	s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 	if settingsSidecar != nil {
 		if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
-			s.settings = Settings{DisciplineOrder: order}
+			s.settings = apitypes.Settings{DisciplineOrder: order}
 		}
 	}
 

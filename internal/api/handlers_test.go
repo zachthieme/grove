@@ -6,12 +6,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/zachthieme/grove/internal/model"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/model"
 )
 
 func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
@@ -139,8 +141,8 @@ func TestMoveHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working []OrgNode `json:"working"`
-		Pods    []Pod    `json:"pods"`
+		Working []apitypes.OrgNode `json:"working"`
+		Pods    []apitypes.Pod     `json:"pods"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -185,8 +187,8 @@ func TestUpdateHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working []OrgNode `json:"working"`
-		Pods    []Pod    `json:"pods"`
+		Working []apitypes.OrgNode `json:"working"`
+		Pods    []apitypes.Pod     `json:"pods"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -205,7 +207,7 @@ func TestAddHandler(t *testing.T) {
 
 	uploadCSV(t, handler)
 
-	body, _ := json.Marshal(OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
+	body, _ := json.Marshal(apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Role: "Engineer", Discipline: "Eng",
 		Team: "Eng", Status: "Active"},
 	})
 
@@ -220,8 +222,8 @@ func TestAddHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Created OrgNode   `json:"created"`
-		Working []OrgNode `json:"working"`
+		Created apitypes.OrgNode   `json:"created"`
+		Working []apitypes.OrgNode `json:"working"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -259,8 +261,8 @@ func TestDeleteHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working  []OrgNode `json:"working"`
-		Recycled []OrgNode `json:"recycled"`
+		Working  []apitypes.OrgNode `json:"working"`
+		Recycled []apitypes.OrgNode `json:"recycled"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -302,7 +304,7 @@ func TestRecycledHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var recycled []OrgNode
+	var recycled []apitypes.OrgNode
 	if err := json.NewDecoder(rec.Body).Decode(&recycled); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -344,8 +346,8 @@ func TestRestoreHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working  []OrgNode `json:"working"`
-		Recycled []OrgNode `json:"recycled"`
+		Working  []apitypes.OrgNode `json:"working"`
+		Recycled []apitypes.OrgNode `json:"recycled"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -389,7 +391,7 @@ func TestEmptyBinHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Recycled []OrgNode `json:"recycled"`
+		Recycled []apitypes.OrgNode `json:"recycled"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -552,8 +554,8 @@ func TestReorderHandler(t *testing.T) {
 	}
 
 	var resp struct {
-		Working []OrgNode `json:"working"`
-		Pods    []Pod    `json:"pods"`
+		Working []apitypes.OrgNode `json:"working"`
+		Pods    []apitypes.Pod     `json:"pods"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding response: %v", err)
@@ -672,7 +674,7 @@ func TestResetHandler(t *testing.T) {
 	req = httptest.NewRequest("GET", "/api/recycled", nil)
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
-	var recycled []OrgNode
+	var recycled []apitypes.OrgNode
 	if err := json.NewDecoder(rec.Body).Decode(&recycled); err != nil {
 		t.Fatalf("decoding recycled: %v", err)
 	}
@@ -1209,8 +1211,8 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 
 	// Write autosave
 	data := AutosaveData{
-		Original:  []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
-		Working:   []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Original:  []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
+		Working:   []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active", Team: "Eng"}, Id: "1"}},
 		Timestamp: "2026-03-21T12:00:00Z",
 	}
 	body, _ := json.Marshal(data)
@@ -1474,7 +1476,7 @@ func TestSettingsHandler_GetAndPost(t *testing.T) {
 	if w.Code != 200 {
 		t.Fatalf("GET: expected 200, got %d", w.Code)
 	}
-	var settings Settings
+	var settings apitypes.Settings
 	_ = json.Unmarshal(w.Body.Bytes(), &settings)
 	if len(settings.DisciplineOrder) == 0 {
 		t.Error("expected non-empty discipline order")
@@ -1499,15 +1501,15 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
 
 	data := AutosaveData{
-		Original: []OrgNode{
+		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
-		Working: []OrgNode{
+		Working: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Senior Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
 		},
-		Settings: &Settings{DisciplineOrder: []string{"Eng"}},
+		Settings: &apitypes.Settings{DisciplineOrder: []string{"Eng"}},
 	}
 	body, _ := json.Marshal(data)
 	req := httptest.NewRequest("POST", "/api/restore-state", bytes.NewReader(body))

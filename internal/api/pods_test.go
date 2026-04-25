@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -10,7 +11,7 @@ import (
 func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 	t.Parallel()
 	// People without Pod field → no pods created
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
@@ -30,7 +31,7 @@ func TestSeedPods_OnlyCreatesPodsForExplicitPodFields(t *testing.T) {
 func TestSeedPods_GroupsByPodName(t *testing.T) {
 	t.Parallel()
 	// People with explicit Pod fields get grouped
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform", Pod: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
@@ -65,7 +66,7 @@ func TestSeedPods_GroupsByPodName(t *testing.T) {
 func TestSeedPods_RootNodesSkipped(t *testing.T) {
 	t.Parallel()
 	// Root-only person → 0 pods, Pod field stays empty
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "CEO", Team: "Exec"}, Id: "root1", ManagerId: ""},
 	}
 
@@ -83,7 +84,7 @@ func TestSeedPods_RootNodesSkipped(t *testing.T) {
 func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 	t.Parallel()
 	// Bob has Pod="Alpha Pod", Carol has no pod → only one pod created
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Platform"}, Id: "mgr1", ManagerId: ""},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Alpha Pod"}, Id: "ic1", ManagerId: "mgr1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform"}, Id: "ic2", ManagerId: "mgr1"},
@@ -110,11 +111,11 @@ func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 func TestCleanupEmptyPods(t *testing.T) {
 	t.Parallel()
 	// 2 pods, only 1 has members → cleanup returns 1 pod
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 		{Id: "pod2", Name: "Ghost", Team: "Ghost", ManagerId: "mgr2"},
 	}
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
 	}
 
@@ -131,7 +132,7 @@ func TestCleanupEmptyPods(t *testing.T) {
 // Scenarios: ORG-018
 func TestFindPod(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
 	}
@@ -153,7 +154,7 @@ func TestFindPod(t *testing.T) {
 // Scenarios: ORG-018
 func TestFindPodByID(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
 	}
@@ -175,10 +176,10 @@ func TestFindPodByID(t *testing.T) {
 // Scenarios: ORG-018
 func TestRenamePod(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "OldName", Team: "Platform", ManagerId: "mgr1"},
 	}
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "OldName"}, Id: "ic1", ManagerId: "mgr1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Carol", Team: "Platform", Pod: "OldName"}, Id: "ic2", ManagerId: "mgr1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Team: "Infra", Pod: "Other"}, Id: "ic3", ManagerId: "mgr2"},
@@ -206,8 +207,8 @@ func TestRenamePod(t *testing.T) {
 // Scenarios: ORG-018
 func TestRenamePod_NotFound(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{}
-	people := []OrgNode{}
+	pods := []apitypes.Pod{}
+	people := []apitypes.OrgNode{}
 
 	err := RenamePod(pods, people, "nope", "NewName")
 	if err == nil {
@@ -218,8 +219,8 @@ func TestRenamePod_NotFound(t *testing.T) {
 // Scenarios: ORG-018
 func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 	t.Parallel()
-	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Root", Pod: "SomePod"}, Id: "p1", ManagerId: ""}
-	pods := []Pod{{Id: "pod1", Name: "SomePod", Team: "T", ManagerId: "mgr1"}}
+	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Root", Pod: "SomePod"}, Id: "p1", ManagerId: ""}
+	pods := []apitypes.Pod{{Id: "pod1", Name: "SomePod", Team: "T", ManagerId: "mgr1"}}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -234,10 +235,10 @@ func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 // Scenarios: ORG-018
 func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
-	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "p1", ManagerId: "mgr1"}
+	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "p1", ManagerId: "mgr1"}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -252,11 +253,11 @@ func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 // Scenarios: ORG-018
 func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
 	// OrgNode has a pod but under a different manager — pod is invalid
-	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Infra", Pod: "OldPod"}, Id: "p1", ManagerId: "mgr2"}
+	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Infra", Pod: "OldPod"}, Id: "p1", ManagerId: "mgr2"}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -271,11 +272,11 @@ func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 // Scenarios: ORG-018
 func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 	t.Parallel()
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
 	// OrgNode has no pod — should stay without one
-	person := OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "mgr1"}
+	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "mgr1"}
 
 	result := ReassignPersonPod(pods, &person)
 
@@ -290,7 +291,7 @@ func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 // Scenarios: ORG-018
 func TestCopyPods(t *testing.T) {
 	t.Parallel()
-	src := []Pod{
+	src := []apitypes.Pod{
 		{Id: "pod1", Name: "A", Team: "T1", ManagerId: "m1"},
 		{Id: "pod2", Name: "B", Team: "T2", ManagerId: "m2"},
 	}

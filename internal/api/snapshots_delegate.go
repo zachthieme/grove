@@ -1,6 +1,10 @@
 package api
 
-import "context"
+import (
+	"context"
+
+	"github.com/zachthieme/grove/internal/apitypes"
+)
 
 // Snapshot delegate methods on *OrgService — thin wrappers that forward to
 // the embedded *SnapshotService. These satisfy the SnapshotOps interface so
@@ -27,6 +31,6 @@ func (s *OrgService) ListSnapshots(ctx context.Context) []SnapshotInfo {
 	return s.snap.List()
 }
 
-func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]OrgNode, error) {
+func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
 	return s.snap.Export(ctx, name)
 }

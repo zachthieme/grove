@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-
 // Scenarios: UPLOAD-001
 func TestOrgService_Upload(t *testing.T) {
 	t.Parallel()
@@ -25,7 +24,6 @@ func TestOrgService_Upload(t *testing.T) {
 		t.Error("expected original and working to share IDs")
 	}
 }
-
 
 // Scenarios: UPLOAD-001
 func TestOrgService_Upload_AutoProceed(t *testing.T) {
@@ -144,7 +142,6 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 		t.Errorf("expected 2 working, got %d", len(data.Working))
 	}
 }
-
 
 // Scenarios: UPLOAD-011
 func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {

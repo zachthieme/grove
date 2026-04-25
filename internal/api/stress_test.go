@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // generateLargeCSV creates a CSV with n people in a realistic org structure:
@@ -140,7 +142,7 @@ func TestLargeOrg_BulkUpdate(t *testing.T) {
 			t.Fatalf("person %s not found", name)
 		}
 		newRole := fmt.Sprintf("Senior Engineer %d", i)
-		_, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr(newRole)})
+		_, err := svc.Update(context.Background(), p.Id, apitypes.OrgNodeUpdate{Role: ptr(newRole)})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
@@ -265,7 +267,7 @@ func TestLargeOrg_SnapshotRoundTrip(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr("Mutated")})
+		_, err := svc.Update(context.Background(), p.Id, apitypes.OrgNodeUpdate{Role: ptr("Mutated")})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}
@@ -372,7 +374,7 @@ func TestLargeOrg_500People(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Update(context.Background(), p.Id, OrgNodeUpdate{Role: ptr("Staff Engineer")})
+		_, err := svc.Update(context.Background(), p.Id, apitypes.OrgNodeUpdate{Role: ptr("Staff Engineer")})
 		if err != nil {
 			t.Fatalf("update %s failed: %v", name, err)
 		}

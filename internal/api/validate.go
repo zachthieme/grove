@@ -3,6 +3,7 @@ package api
 import (
 	"strings"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -13,7 +14,7 @@ const (
 
 // validateNodeUpdate checks field lengths on a OrgNodeUpdate struct.
 // Short fields use maxFieldLen; note fields use maxNoteLen.
-func validateNodeUpdate(u *OrgNodeUpdate) error {
+func validateNodeUpdate(u *apitypes.OrgNodeUpdate) error {
 	shortFields := []*string{
 		u.Name, u.Role, u.Discipline, u.Team, u.ManagerId,
 		u.Status, u.EmploymentType, u.AdditionalTeams,
@@ -57,7 +58,7 @@ func validateNoteLen(value string) error {
 // findInSlice finds a node by ID with a linear scan. Use only when no index
 // is available (tests, fuzz harness). OrgService callers should use findWorking,
 // which is O(1) via idIndex.
-func findInSlice(nodes []OrgNode, id string) (int, *OrgNode) {
+func findInSlice(nodes []apitypes.OrgNode, id string) (int, *apitypes.OrgNode) {
 	for i := range nodes {
 		if nodes[i].Id == id {
 			return i, &nodes[i]
@@ -68,7 +69,7 @@ func findInSlice(nodes []OrgNode, id string) (int, *OrgNode) {
 
 // findByID looks up a node via an index map and verifies the entry against the
 // slice. Returns (-1, nil) on miss or stale index. O(1).
-func findByID(nodes []OrgNode, idIndex map[string]int, id string) (int, *OrgNode) {
+func findByID(nodes []apitypes.OrgNode, idIndex map[string]int, id string) (int, *apitypes.OrgNode) {
 	if i, ok := idIndex[id]; ok && i < len(nodes) && nodes[i].Id == id {
 		return i, &nodes[i]
 	}
@@ -77,7 +78,7 @@ func findByID(nodes []OrgNode, idIndex map[string]int, id string) (int, *OrgNode
 
 // isFrontlineManager returns true if personId has direct reports but none of
 // those reports have reports of their own.
-func isFrontlineManager(working []OrgNode, personId string) bool {
+func isFrontlineManager(working []apitypes.OrgNode, personId string) bool {
 	// Build set of IDs that have at least one direct report (O(n))
 	hasReports := make(map[string]bool, len(working)/4)
 	for _, p := range working {
@@ -100,7 +101,7 @@ func isFrontlineManager(working []OrgNode, personId string) bool {
 // validateManagerChange checks that setting person's manager to newManagerId is
 // valid against the working slice + idIndex. Cycle detection is O(depth) thanks
 // to the index lookup.
-func validateManagerChange(working []OrgNode, idIndex map[string]int, personId, newManagerId string) error {
+func validateManagerChange(working []apitypes.OrgNode, idIndex map[string]int, personId, newManagerId string) error {
 	if newManagerId == personId {
 		return errValidation("a person cannot be their own manager")
 	}
@@ -119,7 +120,7 @@ func validateManagerChange(working []OrgNode, idIndex map[string]int, personId, 
 
 // wouldCreateCycle reports whether setting personId's manager to newManagerId
 // would create a cycle (newManagerId is a descendant of personId).
-func wouldCreateCycle(working []OrgNode, idIndex map[string]int, personId, newManagerId string) bool {
+func wouldCreateCycle(working []apitypes.OrgNode, idIndex map[string]int, personId, newManagerId string) bool {
 	current := newManagerId
 	visited := map[string]bool{personId: true}
 	for current != "" {
@@ -146,7 +147,7 @@ func (s *OrgService) validateManagerChange(personId, newManagerId string) error 
 // and don't contain characters that break CSV export (newlines, NUL).
 // It normalizes entries in-place (trims whitespace) so the stored value matches
 // what was validated.
-func validateSettings(s *Settings) error {
+func validateSettings(s *apitypes.Settings) error {
 	seen := make(map[string]bool, len(s.DisciplineOrder))
 	for i, d := range s.DisciplineOrder {
 		d = strings.TrimSpace(d)

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
 )
@@ -122,11 +123,11 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 // Scenarios: EXPORT-004
 func TestExportPodsSidecarCSV(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Team: "Eng"}, Id: "m1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "m1"},
 	}
-	pods := []Pod{
+	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "m1",
 			PublicNote: "owns pipeline", PrivateNote: "needs headcount"},
 	}
@@ -152,7 +153,7 @@ func TestExportPodsSidecarCSV(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesLevel(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active", Level: 7}, Id: "1"},
 	}
 	data, err := ExportCSV(people)
@@ -171,7 +172,7 @@ func TestExportCSV_IncludesLevel(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesExtraColumns(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active",
 			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC"}}, Id: "1",
 		},
@@ -217,7 +218,7 @@ func TestExportCSV_IncludesExtraColumns(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_NoExtraColumns(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
 	}
 	data, err := ExportCSV(people)
@@ -237,7 +238,7 @@ func TestExportCSV_NoExtraColumns(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_RoundTrip_ExtraColumns(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Discipline: "Eng", Team: "Engineering", Status: "Active",
 			Extra: map[string]string{"CostCenter": "CC001", "Location": "NYC", "StartDate": "2020-01-15"}}, Id: "1",
 		},
@@ -332,7 +333,7 @@ func TestSanitizeCell(t *testing.T) {
 // Scenarios: EXPORT-008
 func TestExportCSV_FormulaEscaping(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "=SUM(1,1)", Role: "+cmd|'/c calc'!A1", Discipline: "Eng", Team: "T", Status: "Active"}, Id: "1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "-2+3", Role: "@SUM(1,1)", Discipline: "Design", Team: "T", Status: "Active"}, Id: "2", ManagerId: "1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Senior Engineer", Discipline: "Eng", Team: "Platform", Status: "Active"}, Id: "3", ManagerId: "1"},
@@ -385,7 +386,7 @@ func TestExportCSV_FormulaEscaping(t *testing.T) {
 // Scenarios: EXPORT-001, PROD-007
 func TestExportCSV_WithProducts(t *testing.T) {
 	t.Parallel()
-	nodes := []OrgNode{
+	nodes := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Type: "person", Name: "Alice", Role: "Eng", Status: "Active"}, Id: "1"},
 		{OrgNodeFields: model.OrgNodeFields{Type: "product", Name: "Widget", Status: "Active"}, Id: "2", ManagerId: "1"},
 	}
@@ -408,7 +409,7 @@ func TestExportCSV_WithProducts(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportCSV_IncludesPrivateColumn(t *testing.T) {
 	t.Parallel()
-	people := []OrgNode{
+	people := []apitypes.OrgNode{
 		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: true}, Id: "1"},
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Eng", Discipline: "Eng", Team: "T", Status: "Active", Private: false}, Id: "2"},
 	}

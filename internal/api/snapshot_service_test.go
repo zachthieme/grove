@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -12,21 +13,23 @@ import (
 type stubOrgProvider struct {
 	captureFn  func() OrgState
 	applyFn    func(OrgState)
-	getWorking func(context.Context) []OrgNode
-	getOrig    func(context.Context) []OrgNode
+	getWorking func(context.Context) []apitypes.OrgNode
+	getOrig    func(context.Context) []apitypes.OrgNode
 }
 
-func (s *stubOrgProvider) CaptureState() OrgState                    { return s.captureFn() }
-func (s *stubOrgProvider) ApplyState(st OrgState)                    { s.applyFn(st) }
-func (s *stubOrgProvider) GetWorking(ctx context.Context) []OrgNode  { return s.getWorking(ctx) }
-func (s *stubOrgProvider) GetOriginal(ctx context.Context) []OrgNode { return s.getOrig(ctx) }
+func (s *stubOrgProvider) CaptureState() OrgState { return s.captureFn() }
+func (s *stubOrgProvider) ApplyState(st OrgState) { s.applyFn(st) }
+func (s *stubOrgProvider) GetWorking(ctx context.Context) []apitypes.OrgNode {
+	return s.getWorking(ctx)
+}
+func (s *stubOrgProvider) GetOriginal(ctx context.Context) []apitypes.OrgNode { return s.getOrig(ctx) }
 
 func newStubOrgProvider() *stubOrgProvider {
 	return &stubOrgProvider{
 		captureFn:  func() OrgState { return OrgState{} },
 		applyFn:    func(OrgState) {},
-		getWorking: func(context.Context) []OrgNode { return nil },
-		getOrig:    func(context.Context) []OrgNode { return nil },
+		getWorking: func(context.Context) []apitypes.OrgNode { return nil },
+		getOrig:    func(context.Context) []apitypes.OrgNode { return nil },
 	}
 }
 
@@ -45,7 +48,7 @@ func TestNewSnapshotService_LoadsFromStore(t *testing.T) {
 	store := NewMemorySnapshotStore()
 	// Pre-populate the store with one snapshot.
 	preload := map[string]snapshotData{
-		"v1": {People: []OrgNode{}, Pods: []Pod{}, Settings: Settings{}},
+		"v1": {People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}, Settings: apitypes.Settings{}},
 	}
 	if err := store.Write(preload); err != nil {
 		t.Fatalf("preload write: %v", err)
@@ -62,12 +65,12 @@ func TestNewSnapshotService_LoadsFromStore(t *testing.T) {
 func TestSnapshotService_Save_StoresSnapshot(t *testing.T) {
 	t.Parallel()
 	captured := OrgState{
-		People: []OrgNode{{
+		People: []apitypes.OrgNode{{
 			OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"},
 			Id:            "a1",
 		}},
-		Pods:     []Pod{},
-		Settings: Settings{DisciplineOrder: []string{"Eng"}},
+		Pods:     []apitypes.Pod{},
+		Settings: apitypes.Settings{DisciplineOrder: []string{"Eng"}},
 	}
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState { return captured }
@@ -107,7 +110,7 @@ func TestSnapshotService_Save_PersistsToStore(t *testing.T) {
 	t.Parallel()
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState {
-		return OrgState{People: []OrgNode{}, Pods: []Pod{}}
+		return OrgState{People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}}
 	}
 	store := NewMemorySnapshotStore()
 
@@ -139,7 +142,7 @@ func TestSnapshotService_Save_AbortsWhenEpochAdvances(t *testing.T) {
 		ss.mu.Lock()
 		ss.epoch++
 		ss.mu.Unlock()
-		return OrgState{People: []OrgNode{}, Pods: []Pod{}}
+		return OrgState{People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}}
 	}
 
 	err := ss.Save(context.Background(), "racing")
@@ -155,9 +158,9 @@ func TestSnapshotService_Save_AbortsWhenEpochAdvances(t *testing.T) {
 func TestSnapshotService_Load_AppliesToOrg(t *testing.T) {
 	t.Parallel()
 	captured := OrgState{
-		People:   []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "a1"}},
-		Pods:     []Pod{},
-		Settings: Settings{DisciplineOrder: []string{"Eng"}},
+		People:   []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "a1"}},
+		Pods:     []apitypes.Pod{},
+		Settings: apitypes.Settings{DisciplineOrder: []string{"Eng"}},
 	}
 	var applied OrgState
 	provider := newStubOrgProvider()
@@ -208,8 +211,8 @@ func TestSnapshotService_Delete_RemovesEntry(t *testing.T) {
 func TestSnapshotService_Export_Working(t *testing.T) {
 	t.Parallel()
 	provider := newStubOrgProvider()
-	provider.getWorking = func(context.Context) []OrgNode {
-		return []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "WorkingPerson"}, Id: "w1"}}
+	provider.getWorking = func(context.Context) []apitypes.OrgNode {
+		return []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "WorkingPerson"}, Id: "w1"}}
 	}
 
 	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
@@ -226,8 +229,8 @@ func TestSnapshotService_Export_Working(t *testing.T) {
 func TestSnapshotService_Export_Original(t *testing.T) {
 	t.Parallel()
 	provider := newStubOrgProvider()
-	provider.getOrig = func(context.Context) []OrgNode {
-		return []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "OrigPerson"}, Id: "o1"}}
+	provider.getOrig = func(context.Context) []apitypes.OrgNode {
+		return []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "OrigPerson"}, Id: "o1"}}
 	}
 
 	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
@@ -246,7 +249,7 @@ func TestSnapshotService_Export_NamedSnapshot(t *testing.T) {
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState {
 		return OrgState{
-			People: []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Frozen"}, Id: "f1"}},
+			People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Frozen"}, Id: "f1"}},
 		}
 	}
 
@@ -333,7 +336,7 @@ func TestSnapshotService_ReplaceAll_PersistsNewMap(t *testing.T) {
 	ss := NewSnapshotService(store, newStubOrgProvider())
 
 	newMap := map[string]snapshotData{
-		"imported": {People: []OrgNode{{Id: "x"}}, Timestamp: time.Now()},
+		"imported": {People: []apitypes.OrgNode{{Id: "x"}}, Timestamp: time.Now()},
 	}
 	if err := ss.ReplaceAll(newMap); err != nil {
 		t.Fatalf("ReplaceAll: %v", err)

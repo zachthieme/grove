@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/apitypes"
 )
 
 // --- Direct service_pods.go tests ---
@@ -21,7 +23,7 @@ func TestOrgService_ListPods_MemberCounts(t *testing.T) {
 		t.Fatalf("create pod: %v", err)
 	}
 	// Assign Bob to the pod
-	_, err = svc.Update(ctx, bob.Id, OrgNodeUpdate{Pod: ptr("Alpha")})
+	_, err = svc.Update(ctx, bob.Id, apitypes.OrgNodeUpdate{Pod: ptr("Alpha")})
 	if err != nil {
 		t.Fatalf("assign pod: %v", err)
 	}
@@ -30,7 +32,7 @@ func TestOrgService_ListPods_MemberCounts(t *testing.T) {
 	if len(pods) == 0 {
 		t.Fatal("expected at least one pod")
 	}
-	var alpha *PodInfo
+	var alpha *apitypes.PodInfo
 	for i := range pods {
 		if pods[i].Name == "Alpha" {
 			alpha = &pods[i]
@@ -48,7 +50,7 @@ func TestOrgService_ListPods_MemberCounts(t *testing.T) {
 func TestOrgService_UpdatePod_NotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.UpdatePod(context.Background(), "nonexistent-pod-id", PodUpdate{PublicNote: ptr("hello")})
+	_, err := svc.UpdatePod(context.Background(), "nonexistent-pod-id", apitypes.PodUpdate{PublicNote: ptr("hello")})
 	if err == nil {
 		t.Fatal("expected error for nonexistent pod")
 	}
@@ -71,7 +73,7 @@ func TestOrgService_UpdatePod_NoteTooLong(t *testing.T) {
 	pods := svc.ListPods(ctx)
 
 	longNote := string(make([]byte, maxNoteLen+1))
-	_, err = svc.UpdatePod(ctx, pods[0].Id, PodUpdate{PublicNote: ptr(longNote)})
+	_, err = svc.UpdatePod(ctx, pods[0].Id, apitypes.PodUpdate{PublicNote: ptr(longNote)})
 	if err == nil {
 		t.Fatal("expected error for oversized note")
 	}
@@ -102,4 +104,3 @@ func TestOrgService_CreatePod_Duplicate(t *testing.T) {
 }
 
 // --- Direct service_settings.go tests ---
-

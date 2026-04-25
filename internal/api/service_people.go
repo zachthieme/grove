@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -36,7 +37,7 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, 
 	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
 }
 
-func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNodeUpdate) (*MoveResult, error) {
+func (s *OrgService) Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -82,7 +83,7 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNode
 // person-only fields. If the caller omitted Status and the existing status
 // isn't valid under the new Type, defaults to Active so the node is never
 // left in an invalid state. Active is valid for both types.
-func applyTypeChange(p *OrgNode, fields OrgNodeUpdate) {
+func applyTypeChange(p *apitypes.OrgNode, fields apitypes.OrgNodeUpdate) {
 	if fields.Type == nil {
 		return
 	}
@@ -101,7 +102,7 @@ func applyTypeChange(p *OrgNode, fields OrgNodeUpdate) {
 
 // applyIdentityFields writes the purely-local string/scalar fields. None of
 // these mutate relationships or affect pod/team membership.
-func applyIdentityFields(p *OrgNode, fields OrgNodeUpdate) {
+func applyIdentityFields(p *apitypes.OrgNode, fields apitypes.OrgNodeUpdate) {
 	if fields.Name != nil {
 		p.Name = *fields.Name
 	}
@@ -133,7 +134,7 @@ func applyIdentityFields(p *OrgNode, fields OrgNodeUpdate) {
 
 // applyStatus validates the requested status against the (possibly just-changed)
 // Type and writes it. Returns errValidation for an unknown status.
-func applyStatus(p *OrgNode, fields OrgNodeUpdate) error {
+func applyStatus(p *apitypes.OrgNode, fields apitypes.OrgNodeUpdate) error {
 	if fields.Status == nil {
 		return nil
 	}
@@ -146,7 +147,7 @@ func applyStatus(p *OrgNode, fields OrgNodeUpdate) error {
 
 // applyNotes writes public/private notes. Length already enforced upstream by
 // validateNodeUpdate.
-func applyNotes(p *OrgNode, fields OrgNodeUpdate) {
+func applyNotes(p *apitypes.OrgNode, fields apitypes.OrgNodeUpdate) {
 	if fields.PublicNote != nil {
 		p.PublicNote = *fields.PublicNote
 	}
@@ -173,7 +174,7 @@ func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*MoveResu
 	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
 }
 
-func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []Pod, error) {
+func (s *OrgService) Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fields := map[string]string{
@@ -181,17 +182,17 @@ func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []
 		"discipline": p.Discipline, "team": p.Team,
 	}
 	if err := validateFieldLengths(fields); err != nil {
-		return OrgNode{}, nil, nil, err
+		return apitypes.OrgNode{}, nil, nil, err
 	}
 	if p.Type != "" && p.Type != model.NodeTypePerson && p.Type != model.NodeTypeProduct {
-		return OrgNode{}, nil, nil, errValidation("invalid type '%s'", p.Type)
+		return apitypes.OrgNode{}, nil, nil, errValidation("invalid type '%s'", p.Type)
 	}
 	if p.Status != "" && !model.ValidStatuses(p.Type)[p.Status] {
-		return OrgNode{}, nil, nil, errValidation("invalid status '%s'", p.Status)
+		return apitypes.OrgNode{}, nil, nil, errValidation("invalid status '%s'", p.Status)
 	}
 	if p.ManagerId != "" {
 		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
-			return OrgNode{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
+			return apitypes.OrgNode{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
 		}
 	}
 	if !model.IsProduct(p.Type) && p.EmploymentType == "" {
@@ -204,13 +205,13 @@ func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []
 	return p, deepCopyNodes(s.working), CopyPods(s.podMgr.unsafeGetPods()), nil
 }
 
-func (s *OrgService) AddParent(ctx context.Context, childId, name string) (OrgNode, []OrgNode, []Pod, error) {
+func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return OrgNode{}, nil, nil, errValidation("name is required")
+		return apitypes.OrgNode{}, nil, nil, errValidation("name is required")
 	}
 	if len(name) > maxFieldLen {
-		return OrgNode{}, nil, nil, errValidation("name too long (max %d characters)", maxFieldLen)
+		return apitypes.OrgNode{}, nil, nil, errValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
 	s.mu.Lock()
@@ -218,10 +219,10 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (OrgNo
 
 	_, child := s.findWorking(childId)
 	if child == nil {
-		return OrgNode{}, nil, nil, errNotFound("person %s not found", childId)
+		return apitypes.OrgNode{}, nil, nil, errNotFound("person %s not found", childId)
 	}
 
-	parent := OrgNode{
+	parent := apitypes.OrgNode{
 		OrgNodeFields: model.OrgNodeFields{Name: name, Status: "Active"},
 		Id:            uuid.NewString(),
 	}
@@ -290,16 +291,16 @@ func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationRes
 	}, nil
 }
 
-func (s *OrgService) EmptyBin(ctx context.Context) []OrgNode {
+func (s *OrgService) EmptyBin(ctx context.Context) []apitypes.OrgNode {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.recycled = nil
-	return []OrgNode{}
+	return []apitypes.OrgNode{}
 }
 
 // applyTeamChange updates a person's team and cascades to ICs of front-line managers.
 // Must be called with s.mu held.
-func (s *OrgService) applyTeamChange(p *OrgNode, personId, team string) {
+func (s *OrgService) applyTeamChange(p *apitypes.OrgNode, personId, team string) {
 	p.Team = team
 	s.podMgr.unsafeReassign(p)
 	if isFrontlineManager(s.working, personId) {
@@ -315,7 +316,7 @@ func (s *OrgService) applyTeamChange(p *OrgNode, personId, team string) {
 
 // applyManagerChange validates and applies a manager reassignment.
 // Must be called with s.mu held.
-func (s *OrgService) applyManagerChange(p *OrgNode, personId, newManagerId string, hasTeamField bool) error {
+func (s *OrgService) applyManagerChange(p *apitypes.OrgNode, personId, newManagerId string, hasTeamField bool) error {
 	if newManagerId != "" {
 		if err := s.validateManagerChange(personId, newManagerId); err != nil {
 			return err
@@ -334,7 +335,7 @@ func (s *OrgService) applyManagerChange(p *OrgNode, personId, newManagerId strin
 
 // applyPodChange assigns or clears a node's pod, auto-creating if needed.
 // Must be called with s.mu held.
-func (s *OrgService) applyPodChange(p *OrgNode, podName string) {
+func (s *OrgService) applyPodChange(p *apitypes.OrgNode, podName string) {
 	if podName == "" {
 		p.Pod = ""
 		s.podMgr.unsafeCleanup(s.working)
@@ -342,7 +343,7 @@ func (s *OrgService) applyPodChange(p *OrgNode, podName string) {
 	}
 	pod := findPod(s.podMgr.unsafeGetPods(), podName, p.ManagerId)
 	if pod == nil {
-		s.podMgr.unsafeSetPods(append(s.podMgr.unsafeGetPods(), Pod{
+		s.podMgr.unsafeSetPods(append(s.podMgr.unsafeGetPods(), apitypes.Pod{
 			Id:        uuid.NewString(),
 			Name:      podName,
 			Team:      p.Team,
