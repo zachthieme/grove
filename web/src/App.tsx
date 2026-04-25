@@ -182,7 +182,7 @@ function AppContent() {
   const { remove, move, reparent, canUndo, canRedo, undo, redo, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgMutations()
   const { viewMode, headPersonId, setHead, showAllEmploymentTypes } = useUI()
   const { selectedIds, clearSelection, batchSelect } = useSelection()
-  const { infoPopoverId, clearInfoPopover, handleAddParent, handleAddReport } = useActions()
+  const { infoPopoverId, clearInfoPopover, handleAddParent, handleAddReport, handleAddProduct } = useActions()
 
   const { themePref, changeTheme } = useTheme()
   const { vimMode, toggleVimMode } = useVimMode()
@@ -202,7 +202,7 @@ function AppContent() {
 
   const { cutIds, cancelCut } = useVimNav({
     working, pods, selectedId, batchSelect,
-    onDelete: remove, onAddReport: handleAddReport, onAddParent: handleAddParent, move, reparent,
+    onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddParent: handleAddParent, move, reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })
 

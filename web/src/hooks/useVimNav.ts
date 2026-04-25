@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { OrgNode, Pod } from '../api/types'
+import { isProduct } from '../constants'
 import { findSpatialNeighbor } from './useSpatialNav'
 import { moveToTarget } from '../utils/moveToTarget'
 
@@ -10,6 +11,7 @@ interface VimNavOptions {
   batchSelect?: (ids: Set<string>) => void
   onDelete?: (id: string) => void
   onAddReport?: (id: string) => void
+  onAddProduct?: (parentId: string, team?: string, podName?: string) => void
   onAddParent?: (childId: string) => void
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
@@ -36,7 +38,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  *
  * j/k / ArrowDown/Up   — move down/up spatially
  * h/l / ArrowLeft/Right — move left/right spatially
- * o    — add report under selected
+ * o    — add report under selected (or sibling product if selected is a product)
  * O    — add parent above selected
  * d    — delete selected (sends to recycle bin)
  * x    — cut selected (mark for move)
@@ -45,7 +47,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * Ctrl+A / Cmd+A — select all people
  * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, onAddReport, onAddParent, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, onAddReport, onAddProduct, onAddParent, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
 
@@ -90,7 +92,15 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
 
     switch (key) {
       case 'o': {
-        if (onAddReport && personIds.length === 1) onAddReport(personIds[0])
+        if (personIds.length !== 1) break
+        const node = working.find(p => p.id === personIds[0])
+        // On a product, create a sibling product (same parent + team + pod)
+        // rather than a child person — products can't have reports.
+        if (node && isProduct(node)) {
+          onAddProduct?.(node.managerId, node.team, node.pod)
+        } else {
+          onAddReport?.(personIds[0])
+        }
         break
       }
       case 'O': {
@@ -114,7 +124,7 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
         break
       }
     }
-  }, [selectedId, working, pods, onDelete, onAddReport, onAddParent, move, reparent, cutIds])
+  }, [selectedId, working, pods, onDelete, onAddReport, onAddProduct, onAddParent, move, reparent, cutIds])
 
   useEffect(() => {
     if (!enabled) return
