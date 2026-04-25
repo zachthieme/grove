@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
 )
@@ -130,7 +131,7 @@ func normalizeEmploymentType(nodes []apitypes.OrgNode) {
 
 // RestoreState loads full state from an autosave payload into the service,
 // syncing the backend with a frontend that restored from autosave.
-func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
+func (s *OrgService) RestoreState(ctx context.Context, data autosave.AutosaveData) {
 	s.mu.Lock()
 	s.original = deepCopyNodes(data.Original)
 	s.working = deepCopyNodes(data.Working)

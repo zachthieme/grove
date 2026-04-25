@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 )
 
-func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore AutosaveStore) http.Handler {
+func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore autosave.AutosaveStore) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +189,7 @@ func handleGetOrg(svc OrgStateService) http.HandlerFunc {
 }
 
 func handleRestoreState(svc OrgStateService) http.HandlerFunc {
-	return jsonHandlerCtx(func(ctx context.Context, data AutosaveData) (HealthResponse, error) {
+	return jsonHandlerCtx(func(ctx context.Context, data autosave.AutosaveData) (HealthResponse, error) {
 		svc.RestoreState(ctx, data)
 		return HealthResponse{Status: "ok"}, nil
 	})

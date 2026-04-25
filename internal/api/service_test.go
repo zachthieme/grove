@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -891,7 +892,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	settings := &apitypes.Settings{DisciplineOrder: []string{"Eng", "Product"}}
-	data := AutosaveData{
+	data := autosave.AutosaveData{
 		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
@@ -942,7 +943,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	data := AutosaveData{
+	data := autosave.AutosaveData{
 		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Role: "Engineer", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
@@ -988,7 +989,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	data := AutosaveData{
+	data := autosave.AutosaveData{
 		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"}, Id: "1"},
 			{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Discipline: "Engineering", Team: "Platform", Status: "Active"}, Id: "2", ManagerId: "1"},
@@ -1587,7 +1588,7 @@ func newTestServiceFromNodes(t *testing.T, nodes []model.OrgNode) *OrgService {
 	}
 	apiNodes := ConvertOrg(org)
 	svc := NewOrgService(NewMemorySnapshotStore())
-	svc.RestoreState(context.Background(), AutosaveData{
+	svc.RestoreState(context.Background(), autosave.AutosaveData{
 		Original: apiNodes,
 		Working:  apiNodes,
 	})

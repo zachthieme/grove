@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -117,12 +118,12 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 	}
 }
 
-// --- Autosave store error path tests ---
+// --- Autosave store error path tests (handler-level — exercised via NewRouter) ---
 
 // Scenarios: AUTO-006
 func TestAutosaveHandler_WriteError(t *testing.T) {
 	t.Parallel()
-	store := NewMemoryAutosaveStore()
+	store := autosave.NewMemoryStore()
 	store.SetWriteErr("disk full")
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, store)
@@ -149,7 +150,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 // Scenarios: AUTO-006
 func TestAutosaveHandler_ReadError(t *testing.T) {
 	t.Parallel()
-	store := NewMemoryAutosaveStore()
+	store := autosave.NewMemoryStore()
 	store.SetReadErr("corrupted file")
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, store)
@@ -166,7 +167,7 @@ func TestAutosaveHandler_ReadError(t *testing.T) {
 // Scenarios: AUTO-006
 func TestAutosaveHandler_DeleteError(t *testing.T) {
 	t.Parallel()
-	store := NewMemoryAutosaveStore()
+	store := autosave.NewMemoryStore()
 	store.SetDeleteErr("permission denied")
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, store)
@@ -184,7 +185,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 // Scenarios: AUTO-006
 func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	t.Parallel()
-	store := NewMemoryAutosaveStore()
+	store := autosave.NewMemoryStore()
 	svc := NewOrgService(NewMemorySnapshotStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
@@ -206,7 +207,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("read: expected 200, got %d", rec.Code)
 	}
-	var data AutosaveData
+	var data autosave.AutosaveData
 	if err := json.NewDecoder(rec.Body).Decode(&data); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -239,7 +240,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
-	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	// Upload data first
 	uploadCSV(t, handler)
@@ -264,7 +265,7 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := NewMemorySnapshotStore()
 	svc := NewOrgService(store)
-	handler := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	uploadCSV(t, handler)
 
@@ -301,13 +302,6 @@ func TestMemorySnapshotStore_Implements_Interface(t *testing.T) {
 	t.Parallel()
 	var _ SnapshotStore = NewMemorySnapshotStore()
 	var _ SnapshotStore = FileSnapshotStore{}
-}
-
-// Scenarios: CONTRACT-008
-func TestMemoryAutosaveStore_Implements_Interface(t *testing.T) {
-	t.Parallel()
-	var _ AutosaveStore = NewMemoryAutosaveStore()
-	var _ AutosaveStore = FileAutosaveStore{}
 }
 
 // Scenarios: CONTRACT-008
@@ -352,44 +346,6 @@ func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read after delete: %v", err)
 	}
-	if data != nil {
-		t.Error("expected nil after delete")
-	}
-}
-
-// Scenarios: CONTRACT-008
-func TestMemoryAutosaveStore_BasicOperations(t *testing.T) {
-	t.Parallel()
-	store := NewMemoryAutosaveStore()
-
-	// Read empty
-	data, err := store.Read()
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if data != nil {
-		t.Error("expected nil for empty store")
-	}
-
-	// Write
-	if err := store.Write(AutosaveData{SnapshotName: "test"}); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-
-	// Read back
-	data, err = store.Read()
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if data == nil || data.SnapshotName != "test" {
-		t.Error("expected snapshot name 'test'")
-	}
-
-	// Delete
-	if err := store.Delete(); err != nil {
-		t.Fatalf("delete: %v", err)
-	}
-	data, _ = store.Read()
 	if data != nil {
 		t.Error("expected nil after delete")
 	}

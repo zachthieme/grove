@@ -10,17 +10,6 @@ type OrgData struct {
 	PersistenceWarning string             `json:"persistenceWarning,omitempty"`
 }
 
-type AutosaveData struct {
-	Original     []apitypes.OrgNode `json:"original"`
-	Working      []apitypes.OrgNode `json:"working"`
-	Recycled     []apitypes.OrgNode `json:"recycled"`
-	Pods         []apitypes.Pod     `json:"pods,omitempty"`
-	OriginalPods []apitypes.Pod     `json:"originalPods,omitempty"`
-	Settings     *apitypes.Settings `json:"settings,omitempty"`
-	SnapshotName string             `json:"snapshotName"`
-	Timestamp    string             `json:"timestamp"`
-}
-
 type SnapshotInfo struct {
 	Name      string `json:"name"`
 	Timestamp string `json:"timestamp"`

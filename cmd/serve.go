@@ -17,6 +17,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/zachthieme/grove/internal/api"
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 )
 
@@ -36,7 +37,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	configureLogging(logBuf)
 
 	svc := api.NewOrgService(api.FileSnapshotStore{})
-	autoStore := api.FileAutosaveStore{}
+	autoStore := autosave.NewFileStore()
 	mux := http.NewServeMux()
 
 	apiRouter := api.NewRouter(api.NewServices(svc), logBuf, autoStore)

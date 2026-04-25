@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -142,7 +143,7 @@ func TestContractOrgDataFields(t *testing.T) {
 func TestContractAutosaveDataFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "AutosaveData")
-	got := jsonFieldNames(AutosaveData{})
+	got := jsonFieldNames(autosave.AutosaveData{})
 	assertFieldsMatch(t, "AutosaveData", expected, got)
 }
 
@@ -296,7 +297,7 @@ func TestContractPersonFieldTypes(t *testing.T) {
 func TestContractErrorResponseShape(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	router := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	cases := []struct {
 		name   string
@@ -347,7 +348,7 @@ func TestContractErrorResponseShape(t *testing.T) {
 func TestContractGetOrgResponseShape(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	router := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/org", nil)
 	rec := httptest.NewRecorder()
@@ -392,7 +393,7 @@ func TestContractGetOrgResponseShape(t *testing.T) {
 func TestContractUploadResponseShape(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(NewMemorySnapshotStore())
-	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	router := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	// Upload via handler
 	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n"

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 )
 
 // NodeService handles people mutations (move, update, add, delete, restore, reorder).
@@ -24,7 +25,7 @@ type OrgStateService interface {
 	GetWorking(ctx context.Context) []apitypes.OrgNode
 	GetRecycled(ctx context.Context) []apitypes.OrgNode
 	ResetToOriginal(ctx context.Context) *OrgData
-	RestoreState(ctx context.Context, data AutosaveData)
+	RestoreState(ctx context.Context, data autosave.AutosaveData)
 	Create(ctx context.Context, name string) (*OrgData, error)
 }
 

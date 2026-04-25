@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 )
 
-func handleWriteAutosave(store AutosaveStore) http.HandlerFunc {
+func handleWriteAutosave(store autosave.AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
-		var data AutosaveData
+		var data autosave.AutosaveData
 		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON")
 			return
@@ -25,7 +26,7 @@ func handleWriteAutosave(store AutosaveStore) http.HandlerFunc {
 	}
 }
 
-func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
+func handleReadAutosave(store autosave.AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := store.Read()
 		if err != nil {
@@ -41,7 +42,7 @@ func handleReadAutosave(store AutosaveStore) http.HandlerFunc {
 	}
 }
 
-func handleDeleteAutosave(store AutosaveStore) http.HandlerFunc {
+func handleDeleteAutosave(store autosave.AutosaveStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := store.Delete(); err != nil {
 			logbuf.Logger().Error("autosave delete failed", "source", "autosave", "op", "delete", "err", err.Error())

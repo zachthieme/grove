@@ -1,4 +1,4 @@
-package api
+package autosave
 
 // Scenarios: AUTO-006 — all tests in this file
 

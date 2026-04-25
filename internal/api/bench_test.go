@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/autosave"
 )
 
 // generateBenchCSV creates a CSV with n people arranged as a hierarchy:
@@ -167,7 +168,7 @@ func BenchmarkSnapshotSaveLoad(b *testing.B) {
 
 func BenchmarkGetOrgHandler(b *testing.B) {
 	svc := benchService(b, 200)
-	router := NewRouter(NewServices(svc), nil, NewMemoryAutosaveStore())
+	router := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	for b.Loop() {
 		req := httptest.NewRequest(http.MethodGet, "/api/org", nil)
 		rec := httptest.NewRecorder()
