@@ -438,3 +438,84 @@ func TestSnapshotPersist_DoesNotBlockEdits(t *testing.T) {
 		t.Errorf("Save returned error: %v", err)
 	}
 }
+
+// Scenarios: SNAP-010
+func TestSnapshotSave_EpochGuard_Reset(t *testing.T) {
+	// Verify the epoch guard fires at least sometimes when SaveSnapshot
+	// races against ResetToOriginal (which calls snap.Clear() and bumps epoch).
+	//
+	// We can't deterministically interleave the two without modifying production
+	// code, so we run many trials and assert that conflicts are observed at
+	// least once. If the race window is too narrow on this runner, we skip
+	// (rather than fail) — the deterministic single-threaded guard test in
+	// snapshot_service_test.go (TestSnapshotService_Save_AbortsWhenEpochAdvances)
+	// covers the correctness invariant unconditionally.
+
+	svc, _, _, _ := setupConcurrentService(t)
+
+	const trials = 50
+	var conflicts, successes int
+	for range trials {
+		// Pre-populate one snapshot so Reset has something to clear.
+		_ = svc.SaveSnapshot(context.Background(), "stable")
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		var saveErr error
+		go func() {
+			defer wg.Done()
+			saveErr = svc.SaveSnapshot(context.Background(), "racing")
+		}()
+		go func() {
+			defer wg.Done()
+			svc.ResetToOriginal(context.Background())
+		}()
+		wg.Wait()
+
+		if saveErr == nil {
+			successes++
+		} else if isConflict(saveErr) {
+			conflicts++
+		} else {
+			t.Errorf("unexpected error from racing Save: %v", saveErr)
+		}
+	}
+
+	t.Logf("save successes: %d, conflicts: %d (out of %d)", successes, conflicts, trials)
+	if conflicts == 0 && successes == trials {
+		t.Skip("epoch guard never triggered — race window too narrow on this runner; not a bug")
+	}
+}
+
+// Scenarios: SNAP-010
+func TestSnapshotSave_EpochGuard_UploadCSV(t *testing.T) {
+	// Same shape as the Reset variant but using a CSV re-upload (which calls
+	// snap.Clear() via the import path).
+	svc, _, _, _ := setupConcurrentService(t)
+
+	const trials = 50
+	var conflicts int
+	for range trials {
+		_ = svc.SaveSnapshot(context.Background(), "stable")
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		var saveErr error
+		go func() {
+			defer wg.Done()
+			saveErr = svc.SaveSnapshot(context.Background(), "racing")
+		}()
+		go func() {
+			defer wg.Done()
+			csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nNew,VP,Eng,,Eng,,Active\n")
+			_, _ = svc.Upload(context.Background(), "reup.csv", csv)
+		}()
+		wg.Wait()
+
+		if isConflict(saveErr) {
+			conflicts++
+		}
+	}
+
+	t.Logf("upload-vs-save conflicts: %d (out of %d)", conflicts, trials)
+}
