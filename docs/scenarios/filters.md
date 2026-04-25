@@ -126,7 +126,7 @@ The Filters dropdown exposes an "ICs" checkbox alongside Private/Products. When 
 
 ## Invariants
 - `useFilteredPeople` accepts a `showICs` flag (default true).
-- Manager identification uses `working` (the source of truth), so an IC stays hidden in original/diff views even if its row drifts between slices.
+- Manager identification is computed from the slice being rendered (`rawPeople`), so an original-only manager whose reports exist only in `original` is still recognized as a manager in original view.
 - When `showICs` is false, `people` excludes any node where `!isProduct(p) && !managerIds.has(p.id)`.
-- When `showICs` is false in diff mode, `ghostPeople` applies the same predicate against the original-derived manager set.
+- When `showICs` is false in diff mode, `ghostPeople` applies the same predicate against the `original`-derived manager set.
 - Toggling the flag does not affect employment-type, private, or product filters — they compose multiplicatively.

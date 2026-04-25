@@ -4,7 +4,7 @@ import type { NodeChange } from '../hooks/useOrgDiff'
 import type { ColumnDef } from './tableColumns'
 import { getPersonValue } from './tableColumns'
 import TableCell from './TableCell'
-import { STATUSES } from '../constants'
+import { STATUSES, NODE_TYPE_PERSON, NODE_TYPE_PRODUCT } from '../constants'
 import styles from './TableView.module.css'
 
 interface TableRowProps {
@@ -25,6 +25,11 @@ function getDropdownOptions(key: string, managers: { value: string; label: strin
       return STATUSES.map(s => ({ value: s, label: s }))
     case 'managerId':
       return managers
+    case 'type':
+      return [
+        { value: NODE_TYPE_PERSON, label: 'Person' },
+        { value: NODE_TYPE_PRODUCT, label: 'Product' },
+      ]
     default:
       return undefined
   }

@@ -137,4 +137,28 @@ describe('GroupHeaderNode', () => {
     fireEvent.click(infoBtn)
     expect(onInfo).toHaveBeenCalled()
   })
+
+  // Scenarios: PROD-015
+  it('[PROD-015] shows Add product action on hover when onAddProduct is provided', () => {
+    const onAddProduct = vi.fn()
+    const { container } = renderWithDnd(
+      <GroupHeaderNode nodeId="p1" name="Pod" count={3} onAddProduct={onAddProduct} />
+    )
+    const wrapper = container.querySelector('[data-dnd-draggable]')!.firstChild as HTMLElement
+    fireEvent.mouseEnter(wrapper)
+
+    const btn = screen.getByLabelText('Add product')
+    fireEvent.click(btn)
+    expect(onAddProduct).toHaveBeenCalled()
+  })
+
+  it('[PROD-015] omits Add product action when onAddProduct is not provided', () => {
+    const { container } = renderWithDnd(
+      <GroupHeaderNode nodeId="p1" name="Pod" count={3} onAdd={vi.fn()} />
+    )
+    const wrapper = container.querySelector('[data-dnd-draggable]')!.firstChild as HTMLElement
+    fireEvent.mouseEnter(wrapper)
+
+    expect(screen.queryByLabelText('Add product')).toBeNull()
+  })
 })

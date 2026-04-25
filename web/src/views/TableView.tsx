@@ -17,16 +17,18 @@ interface DraftRow {
 }
 
 function draftToPerson(values: Record<string, string>): Omit<OrgNode, 'id'> {
+  const isProductDraft = values.type === 'product'
   return {
+    type: (values.type as OrgNode['type']) || 'person',
     name: values.name || '',
-    role: values.role || '',
-    discipline: values.discipline || '',
+    role: isProductDraft ? '' : values.role || '',
+    discipline: isProductDraft ? '' : values.discipline || '',
     team: values.team || '',
     managerId: values.managerId || '',
     status: (values.status || DEFAULT_STATUS) as OrgNode['status'],
-    additionalTeams: values.additionalTeams ? values.additionalTeams.split(',').map(s => s.trim()).filter(Boolean) : [],
-    employmentType: values.employmentType || 'FTE',
-    level: values.level ? parseInt(values.level, 10) : undefined,
+    additionalTeams: !isProductDraft && values.additionalTeams ? values.additionalTeams.split(',').map(s => s.trim()).filter(Boolean) : [],
+    employmentType: isProductDraft ? '' : values.employmentType || 'FTE',
+    level: !isProductDraft && values.level ? parseInt(values.level, 10) : undefined,
     pod: values.pod || '',
     publicNote: values.publicNote || '',
     privateNote: values.privateNote || '',

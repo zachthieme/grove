@@ -265,3 +265,4 @@ describe('useLassoSelect', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 })
+

@@ -194,6 +194,19 @@ describe('useFilteredPeople', () => {
       expect(result.current.people.length).toBe(4)
     })
 
+    it('[FILTER-005] keeps original-only managers visible in original view when ICs hidden', () => {
+      // alice managed bob in original; both deleted in working. Viewing
+      // original with ICs hidden — alice still has a report in `original`
+      // so she must be classified as a manager (visible), and bob is an IC
+      // (hidden).
+      const original = [alice, bob]
+      const working: OrgNode[] = []
+      const { result } = renderHook(() =>
+        useFilteredPeople(original, original, working, new Set(), null, false, true, true, false),
+      )
+      expect(result.current.people.map((p) => p.name)).toEqual(['Alice'])
+    })
+
     it('[FILTER-005] filters IC ghosts in diff mode when showICs is false', () => {
       // dave existed originally but was deleted; diff renders him as a ghost IC.
       const original = [alice, bob, carol, dave]

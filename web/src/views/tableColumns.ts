@@ -1,4 +1,5 @@
 import type { OrgNode } from '../api/types'
+import { nodeTypeOf } from '../constants'
 
 export type CellType = 'text' | 'number' | 'dropdown' | 'checkbox'
 
@@ -14,6 +15,7 @@ export function getPersonValue(person: OrgNode, key: string): string {
     return person.extra?.[key.slice(6)] ?? ''
   }
   switch (key) {
+    case 'type': return nodeTypeOf(person)
     case 'level': return person.level ? String(person.level) : ''
     case 'additionalTeams': return (person.additionalTeams ?? []).join(', ')
     case 'private': return person.private ? 'true' : 'false'
@@ -38,6 +40,7 @@ export function buildExtraColumns(people: OrgNode[]): ColumnDef[] {
 
 export const TABLE_COLUMNS: ColumnDef[] = [
   { key: 'name', label: 'Name', cellType: 'text', width: '160px' },
+  { key: 'type', label: 'Type', cellType: 'dropdown', width: '90px' },
   { key: 'role', label: 'Role', cellType: 'text', width: '140px' },
   { key: 'discipline', label: 'Discipline', cellType: 'text', width: '120px' },
   { key: 'team', label: 'Team', cellType: 'text', width: '120px' },

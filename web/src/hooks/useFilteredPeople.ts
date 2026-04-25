@@ -17,20 +17,17 @@ export function useFilteredPeople(
   showProducts: boolean = true,
   showICs: boolean = true,
 ) {
-  // Manager set computed from working (source of truth) so an IC remains
-  // hidden in original/diff views too when its rows differ from working.
-  const managerIds = useMemo(() => {
-    const set = new Set<string>()
-    for (const p of working) {
-      if (p.managerId) set.add(p.managerId)
-    }
-    return set
-  }, [working])
-
+  // Derive the manager set from the slice we're about to filter so that an
+  // original-only manager (whose reports exist only in `original`) is
+  // recognized as a manager in original/diff views too.
   const icFiltered = useMemo(() => {
     if (showICs) return rawPeople
+    const managerIds = new Set<string>()
+    for (const p of rawPeople) {
+      if (p.managerId) managerIds.add(p.managerId)
+    }
     return rawPeople.filter((p) => isProduct(p) || managerIds.has(p.id))
-  }, [rawPeople, showICs, managerIds])
+  }, [rawPeople, showICs])
 
   const productFiltered = useMemo(() => {
     if (showProducts) return icFiltered

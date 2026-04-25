@@ -209,6 +209,7 @@ User click-drags on empty space to draw a selection rectangle. All person nodes 
 - Right-click does not start lasso
 - Clicking on draggable elements does not start lasso
 - Selection cleared when clicking empty space without dragging
+- Lasso responds across the full visible chart area: the chart container fills its `<main>` parent vertically (`.main` is a flex column, `ChartShell.module.css .container` carries `flex: 1`) so empty space below short content stays a lasso surface.
 
 ## Edge cases
 - Container offset and scroll offset accounted for
