@@ -24,8 +24,8 @@ type OrgStateService interface {
 	Create(ctx context.Context, name string) (*OrgData, error)
 }
 
-// SnapshotService manages named save points.
-type SnapshotService interface {
+// SnapshotOps is the HTTP-facing snapshot interface (handler-named methods).
+type SnapshotOps interface {
 	SaveSnapshot(ctx context.Context, name string) error
 	LoadSnapshot(ctx context.Context, name string) (*OrgData, error)
 	DeleteSnapshot(ctx context.Context, name string) error
@@ -58,7 +58,7 @@ type SettingsService interface {
 type Services struct {
 	People   NodeService
 	Pods     PodService
-	Snaps    SnapshotService
+	Snaps    SnapshotOps    // renamed from SnapshotService
 	Import   ImportService
 	Settings SettingsService
 	Org      OrgStateService
@@ -78,9 +78,9 @@ func NewServices(svc *OrgService) Services {
 
 // Compile-time assertions: *OrgService satisfies all domain interfaces.
 var (
-	_ NodeService   = (*OrgService)(nil)
-	_ OrgStateService       = (*OrgService)(nil)
-	_ SnapshotService = (*OrgService)(nil)
+	_ NodeService     = (*OrgService)(nil)
+	_ OrgStateService = (*OrgService)(nil)
+	_ SnapshotOps     = (*OrgService)(nil) // was SnapshotService
 	_ ImportService   = (*OrgService)(nil)
 	_ PodService      = (*OrgService)(nil)
 	_ SettingsService = (*OrgService)(nil)

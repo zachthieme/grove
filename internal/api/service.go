@@ -155,6 +155,14 @@ func (s *OrgService) GetWorking(ctx context.Context) []OrgNode {
 	return deepCopyNodes(s.working)
 }
 
+// GetOriginal returns a deep-copy of the original (pre-import) state.
+// Like GetWorking but for the immutable original slice.
+func (s *OrgService) GetOriginal(ctx context.Context) []OrgNode {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return deepCopyNodes(s.original)
+}
+
 func (s *OrgService) GetRecycled(ctx context.Context) []OrgNode {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

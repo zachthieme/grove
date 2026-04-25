@@ -1,8 +1,10 @@
 package api
 
 import (
+	"context"
 	"regexp"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -134,4 +136,56 @@ func (sm *SnapshotManager) unsafePersistAll() error {
 // DeleteStore removes the persisted snapshot file.
 func (sm *SnapshotManager) unsafeDeleteStore() error {
 	return sm.store.Delete()
+}
+
+// orgStateProvider is the interface SnapshotService uses to capture and
+// apply org state. Implemented by *OrgService.
+type orgStateProvider interface {
+	CaptureState() OrgState
+	ApplyState(OrgState)
+	GetWorking(ctx context.Context) []OrgNode
+	GetOriginal(ctx context.Context) []OrgNode
+}
+
+// SnapshotService owns the snapshot map and disk store under its own mutex.
+// It is the snapshot-counterpart to OrgService — never held under OrgService's
+// lock. Cross-service ops (Save captures from org; Load applies to org) always
+// release one lock before acquiring the other.
+type SnapshotService struct {
+	mu    sync.RWMutex
+	snaps map[string]snapshotData
+	store SnapshotStore
+	epoch uint64 // bumped on Clear/ReplaceAll; Save aborts if epoch advances
+	org   orgStateProvider
+}
+
+// NewSnapshotService constructs a SnapshotService and loads any persisted
+// snapshots from the store.
+func NewSnapshotService(store SnapshotStore, org orgStateProvider) *SnapshotService {
+	ss := &SnapshotService{store: store, org: org}
+	if snaps, err := store.Read(); err == nil && snaps != nil {
+		ss.snaps = snaps
+	}
+	return ss
+}
+
+// List returns all snapshots sorted by timestamp (newest first), excluding
+// the internal export-temp snapshot. Acquires mu_snap.RLock.
+func (ss *SnapshotService) List() []SnapshotInfo {
+	ss.mu.RLock()
+	defer ss.mu.RUnlock()
+	list := make([]SnapshotInfo, 0)
+	for name, snap := range ss.snaps {
+		if name == SnapshotExportTemp {
+			continue
+		}
+		list = append(list, SnapshotInfo{
+			Name:      name,
+			Timestamp: snap.Timestamp.Format(time.RFC3339Nano),
+		})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Timestamp > list[j].Timestamp
+	})
+	return list
 }

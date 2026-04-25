@@ -296,7 +296,7 @@ func handleExport(svc OrgStateService) http.HandlerFunc {
 	}
 }
 
-func handleExportSnapshot(svc SnapshotService) http.HandlerFunc {
+func handleExportSnapshot(svc SnapshotOps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		format := r.URL.Query().Get("format")
@@ -321,13 +321,13 @@ func handleExportSnapshot(svc SnapshotService) http.HandlerFunc {
 	}
 }
 
-func handleListSnapshots(svc SnapshotService) http.HandlerFunc {
+func handleListSnapshots(svc SnapshotOps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, svc.ListSnapshots(r.Context()))
 	}
 }
 
-func handleSaveSnapshot(svc SnapshotService) http.HandlerFunc {
+func handleSaveSnapshot(svc SnapshotOps) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
@@ -339,7 +339,7 @@ func handleSaveSnapshot(svc SnapshotService) http.HandlerFunc {
 	})
 }
 
-func handleLoadSnapshot(svc SnapshotService) http.HandlerFunc {
+func handleLoadSnapshot(svc SnapshotOps) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
@@ -348,7 +348,7 @@ func handleLoadSnapshot(svc SnapshotService) http.HandlerFunc {
 	})
 }
 
-func handleDeleteSnapshot(svc SnapshotService) http.HandlerFunc {
+func handleDeleteSnapshot(svc SnapshotOps) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
