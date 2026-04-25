@@ -11,9 +11,10 @@ import (
 	"strings"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/logbuf"
 )
 
-func NewRouter(svcs Services, logBuf *LogBuffer, autoStore AutosaveStore) http.Handler {
+func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore AutosaveStore) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -510,7 +511,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		Logger().Error("writeJSON encode failed", "source", "api", "status", int64(status), "err", err.Error())
+		logbuf.Logger().Error("writeJSON encode failed", "source", "api", "status", int64(status), "err", err.Error())
 	}
 }
 
@@ -518,7 +519,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(map[string]string{"error": msg}); err != nil {
-		Logger().Error("writeError encode failed", "source", "api", "status", int64(status), "err", err.Error())
+		logbuf.Logger().Error("writeError encode failed", "source", "api", "status", int64(status), "err", err.Error())
 	}
 }
 
@@ -547,7 +548,7 @@ func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename
 	w.Header().Set("Content-Disposition", `attachment; filename="`+sanitizeFilename(filename)+`"`)
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	if _, err := w.Write(data); err != nil {
-		Logger().Error("file response write failed", "source", "api", "filename", filename, "contentType", contentType, "err", err.Error())
+		logbuf.Logger().Error("file response write failed", "source", "api", "filename", filename, "contentType", contentType, "err", err.Error())
 	}
 }
 

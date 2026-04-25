@@ -9,131 +9,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/zachthieme/grove/internal/logbuf"
 )
-
-func TestLogBuffer_Add_and_Entries(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(10)
-	buf.Add(LogEntry{Source: "api", Method: "GET", Path: "/api/org"})
-	buf.Add(LogEntry{Source: "web", Method: "POST", Path: "/api/update"})
-
-	entries := buf.Entries(LogFilter{})
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(entries))
-	}
-	if entries[0].Path != "/api/update" {
-		t.Errorf("expected most recent first, got %s", entries[0].Path)
-	}
-	if entries[0].ID == "" {
-		t.Error("expected ID to be assigned")
-	}
-	if entries[0].Timestamp.IsZero() {
-		t.Error("expected timestamp to be assigned")
-	}
-}
-
-func TestLogBuffer_Eviction(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(3)
-	buf.Add(LogEntry{Path: "/first"})
-	buf.Add(LogEntry{Path: "/second"})
-	buf.Add(LogEntry{Path: "/third"})
-	buf.Add(LogEntry{Path: "/fourth"})
-
-	entries := buf.Entries(LogFilter{})
-	if len(entries) != 3 {
-		t.Fatalf("expected 3 entries, got %d", len(entries))
-	}
-	for _, e := range entries {
-		if e.Path == "/first" {
-			t.Error("/first should have been evicted")
-		}
-	}
-}
-
-func TestLogBuffer_Clear(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(10)
-	buf.Add(LogEntry{Path: "/a"})
-	buf.Add(LogEntry{Path: "/b"})
-	buf.Clear()
-
-	entries := buf.Entries(LogFilter{})
-	if len(entries) != 0 {
-		t.Fatalf("expected 0 entries after clear, got %d", len(entries))
-	}
-}
-
-func TestLogBuffer_FilterByCorrelationID(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(10)
-	buf.Add(LogEntry{CorrelationID: "abc", Path: "/a"})
-	buf.Add(LogEntry{CorrelationID: "def", Path: "/b"})
-	buf.Add(LogEntry{CorrelationID: "abc", Path: "/c"})
-
-	entries := buf.Entries(LogFilter{CorrelationID: "abc"})
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(entries))
-	}
-}
-
-func TestLogBuffer_FilterBySource(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(10)
-	buf.Add(LogEntry{Source: "api", Path: "/a"})
-	buf.Add(LogEntry{Source: "web", Path: "/b"})
-
-	entries := buf.Entries(LogFilter{Source: "api"})
-	if len(entries) != 1 {
-		t.Fatalf("expected 1, got %d", len(entries))
-	}
-	if entries[0].Path != "/a" {
-		t.Errorf("expected /a, got %s", entries[0].Path)
-	}
-}
-
-func TestLogBuffer_FilterBySince(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(10)
-	buf.Add(LogEntry{Path: "/old"})
-	cutoff := time.Now()
-	time.Sleep(time.Millisecond)
-	buf.Add(LogEntry{Path: "/new"})
-
-	entries := buf.Entries(LogFilter{Since: cutoff})
-	if len(entries) != 1 {
-		t.Fatalf("expected 1, got %d", len(entries))
-	}
-	if entries[0].Path != "/new" {
-		t.Errorf("expected /new, got %s", entries[0].Path)
-	}
-}
-
-func TestLogBuffer_FilterByLimit(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(10)
-	for range 5 {
-		buf.Add(LogEntry{Path: "/x"})
-	}
-
-	entries := buf.Entries(LogFilter{Limit: 2})
-	if len(entries) != 2 {
-		t.Fatalf("expected 2, got %d", len(entries))
-	}
-}
-
-func TestLogBuffer_Size(t *testing.T) {
-	t.Parallel()
-	buf := NewLogBuffer(100)
-	if buf.Size() != 100 {
-		t.Errorf("expected size 100, got %d", buf.Size())
-	}
-}
 
 func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
+	buf := logbuf.New(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 	})
@@ -151,7 +33,7 @@ func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 
-	entries := buf.Entries(LogFilter{})
+	entries := buf.Entries(logbuf.LogFilter{})
 	if len(entries) != 1 {
 		t.Fatalf("expected 1 log entry, got %d", len(entries))
 	}
@@ -184,7 +66,7 @@ func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
 
 func TestLoggingMiddleware_ExcludesLogEndpoints(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
+	buf := logbuf.New(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -199,7 +81,7 @@ func TestLoggingMiddleware_ExcludesLogEndpoints(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	entries := buf.Entries(LogFilter{})
+	entries := buf.Entries(logbuf.LogFilter{})
 	if len(entries) != 0 {
 		t.Fatalf("expected 0 entries (excluded paths), got %d", len(entries))
 	}
@@ -207,7 +89,7 @@ func TestLoggingMiddleware_ExcludesLogEndpoints(t *testing.T) {
 
 func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
+	buf := logbuf.New(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
@@ -218,7 +100,7 @@ func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	entries := buf.Entries(LogFilter{})
+	entries := buf.Entries(logbuf.LogFilter{})
 	if len(entries) != 1 {
 		t.Fatalf("expected 1, got %d", len(entries))
 	}
@@ -229,7 +111,7 @@ func TestLoggingMiddleware_ExcludesUploadBody(t *testing.T) {
 
 func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
+	buf := logbuf.New(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("binary data"))
 	})
@@ -239,7 +121,7 @@ func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	entries := buf.Entries(LogFilter{})
+	entries := buf.Entries(logbuf.LogFilter{})
 	if len(entries) != 1 {
 		t.Fatalf("expected 1, got %d", len(entries))
 	}
@@ -250,9 +132,9 @@ func TestLoggingMiddleware_ExcludesExportResponseBody(t *testing.T) {
 
 func TestLogEndpoints_GET(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
-	buf.Add(LogEntry{Source: "api", Method: "GET", Path: "/api/org", CorrelationID: "c1"})
-	buf.Add(LogEntry{Source: "web", Method: "POST", Path: "/api/update", CorrelationID: "c2"})
+	buf := logbuf.New(100)
+	buf.Add(logbuf.LogEntry{Source: "api", Method: "GET", Path: "/api/org", CorrelationID: "c1"})
+	buf.Add(logbuf.LogEntry{Source: "web", Method: "POST", Path: "/api/update", CorrelationID: "c2"})
 
 	router := NewRouter(NewServices(NewOrgService(NewMemorySnapshotStore())), buf, NewMemoryAutosaveStore())
 
@@ -264,9 +146,9 @@ func TestLogEndpoints_GET(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
 	var resp struct {
-		Entries    []LogEntry `json:"entries"`
-		Count      int        `json:"count"`
-		BufferSize int        `json:"bufferSize"`
+		Entries    []logbuf.LogEntry `json:"entries"`
+		Count      int               `json:"count"`
+		BufferSize int               `json:"bufferSize"`
 	}
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -297,7 +179,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 
 func TestLogEndpoints_POST(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
+	buf := logbuf.New(100)
 	router := NewRouter(NewServices(NewOrgService(NewMemorySnapshotStore())), buf, NewMemoryAutosaveStore())
 
 	body := `{"source":"web","method":"POST","path":"/api/update","responseStatus":200,"durationMs":15}`
@@ -310,7 +192,7 @@ func TestLogEndpoints_POST(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", rr.Code)
 	}
-	entries := buf.Entries(LogFilter{})
+	entries := buf.Entries(logbuf.LogFilter{})
 	if len(entries) != 1 {
 		t.Fatalf("expected 1 entry, got %d", len(entries))
 	}
@@ -321,9 +203,9 @@ func TestLogEndpoints_POST(t *testing.T) {
 
 func TestLogEndpoints_DELETE(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(100)
-	buf.Add(LogEntry{Path: "/a"})
-	buf.Add(LogEntry{Path: "/b"})
+	buf := logbuf.New(100)
+	buf.Add(logbuf.LogEntry{Path: "/a"})
+	buf.Add(logbuf.LogEntry{Path: "/b"})
 	router := NewRouter(NewServices(NewOrgService(NewMemorySnapshotStore())), buf, NewMemoryAutosaveStore())
 
 	req := httptest.NewRequest("DELETE", "/api/logs", nil)
@@ -354,7 +236,7 @@ func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
 
 func TestConfigEndpoint(t *testing.T) {
 	t.Parallel()
-	router := NewRouter(NewServices(NewOrgService(NewMemorySnapshotStore())), NewLogBuffer(10), NewMemoryAutosaveStore())
+	router := NewRouter(NewServices(NewOrgService(NewMemorySnapshotStore())), logbuf.New(10), NewMemoryAutosaveStore())
 	req := httptest.NewRequest("GET", "/api/config", nil)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

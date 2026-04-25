@@ -1,4 +1,4 @@
-package api
+package logbuf
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 
 func TestBufferHandler_RoutesSlogIntoLogBuffer(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(10)
+	buf := New(10)
 	logger := slog.New(NewBufferHandler(buf, slog.LevelInfo))
 
 	logger.Info("snapshot saved", "source", "snap", "name", "weekly", "people", 42)
@@ -43,7 +43,7 @@ func TestBufferHandler_RoutesSlogIntoLogBuffer(t *testing.T) {
 
 func TestBufferHandler_RespectsLevel(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(10)
+	buf := New(10)
 	logger := slog.New(NewBufferHandler(buf, slog.LevelWarn))
 	logger.Info("filtered out")
 	logger.Warn("included")
@@ -59,7 +59,7 @@ func TestBufferHandler_RespectsLevel(t *testing.T) {
 
 func TestMultiHandler_FansOut(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(10)
+	buf := New(10)
 	var stderr bytes.Buffer
 	textH := slog.NewTextHandler(&stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
 	bufH := NewBufferHandler(buf, slog.LevelDebug)
@@ -77,7 +77,7 @@ func TestMultiHandler_FansOut(t *testing.T) {
 
 func TestSlogWriter_RoutesStdlibLogToSlog(t *testing.T) {
 	t.Parallel()
-	buf := NewLogBuffer(10)
+	buf := New(10)
 	logger := slog.New(NewBufferHandler(buf, slog.LevelDebug))
 	w := SlogWriter{Logger: logger, Level: slog.LevelWarn}
 

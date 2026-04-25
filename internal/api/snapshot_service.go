@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/logbuf"
 )
 
 // validSnapshotName allows names starting with a letter or digit, followed by
@@ -67,10 +68,10 @@ func NewSnapshotService(store SnapshotStore, org orgStateProvider) *SnapshotServ
 	snaps, err := store.Read()
 	switch {
 	case err != nil:
-		Logger().Warn("snapshot store unreadable, starting empty", "source", "snap", "op", "load", "err", err.Error())
+		logbuf.Logger().Warn("snapshot store unreadable, starting empty", "source", "snap", "op", "load", "err", err.Error())
 	case snaps != nil:
 		ss.snaps = snaps
-		Logger().Info("snapshots loaded", "source", "snap", "count", len(snaps))
+		logbuf.Logger().Info("snapshots loaded", "source", "snap", "count", len(snaps))
 	}
 	return ss
 }
@@ -151,10 +152,10 @@ func (ss *SnapshotService) Save(ctx context.Context, name string) error {
 		} else {
 			delete(ss.snaps, name)
 		}
-		Logger().Error("snapshot persist failed", "source", "snap", "op", "save", "name", name, "err", err.Error())
+		logbuf.Logger().Error("snapshot persist failed", "source", "snap", "op", "save", "name", name, "err", err.Error())
 		return fmt.Errorf("persisting snapshot: %w", err)
 	}
-	Logger().Info("snapshot saved", "source", "snap", "op", "save", "name", name, "people", len(state.People), "pods", len(state.Pods), "overwrote", existed)
+	logbuf.Logger().Info("snapshot saved", "source", "snap", "op", "save", "name", name, "people", len(state.People), "pods", len(state.Pods), "overwrote", existed)
 	return nil
 }
 
@@ -176,7 +177,7 @@ func (ss *SnapshotService) Load(ctx context.Context, name string) error {
 	ss.mu.RUnlock()
 
 	ss.org.ApplyState(state)
-	Logger().Info("snapshot loaded", "source", "snap", "op", "load", "name", name, "people", len(state.People))
+	logbuf.Logger().Info("snapshot loaded", "source", "snap", "op", "load", "name", name, "people", len(state.People))
 	return nil
 }
 
@@ -193,10 +194,10 @@ func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
 	if err := ss.store.Write(ss.snaps); err != nil {
 		// Roll back so map and disk stay in sync.
 		ss.snaps[name] = prev
-		Logger().Error("snapshot delete persist failed", "source", "snap", "op", "delete", "name", name, "err", err.Error())
+		logbuf.Logger().Error("snapshot delete persist failed", "source", "snap", "op", "delete", "name", name, "err", err.Error())
 		return fmt.Errorf("persisting snapshot deletion: %w", err)
 	}
-	Logger().Info("snapshot deleted", "source", "snap", "op", "delete", "name", name)
+	logbuf.Logger().Info("snapshot deleted", "source", "snap", "op", "delete", "name", name)
 	return nil
 }
 
@@ -237,11 +238,11 @@ func (ss *SnapshotService) Clear() error {
 	ss.snaps = nil
 	ss.epoch++
 	if err := ss.store.Delete(); err != nil {
-		Logger().Error("snapshot clear persist failed", "source", "snap", "op", "clear", "err", err.Error())
+		logbuf.Logger().Error("snapshot clear persist failed", "source", "snap", "op", "clear", "err", err.Error())
 		return err
 	}
 	if prev > 0 {
-		Logger().Info("snapshots cleared", "source", "snap", "op", "clear", "evicted", prev)
+		logbuf.Logger().Info("snapshots cleared", "source", "snap", "op", "clear", "evicted", prev)
 	}
 	return nil
 }
@@ -260,19 +261,19 @@ func (ss *SnapshotService) ReplaceAll(snaps map[string]snapshotData) error {
 		if err := ss.store.Delete(); err != nil {
 			ss.snaps = prevSnaps
 			ss.epoch = prevEpoch
-			Logger().Error("snapshot replaceAll delete failed", "source", "snap", "op", "replaceAll", "err", err.Error())
+			logbuf.Logger().Error("snapshot replaceAll delete failed", "source", "snap", "op", "replaceAll", "err", err.Error())
 			return fmt.Errorf("deleting snapshot store: %w", err)
 		}
-		Logger().Info("snapshots replaced (cleared)", "source", "snap", "op", "replaceAll", "previous", len(prevSnaps))
+		logbuf.Logger().Info("snapshots replaced (cleared)", "source", "snap", "op", "replaceAll", "previous", len(prevSnaps))
 		return nil
 	}
 	if err := ss.store.Write(ss.snaps); err != nil {
 		ss.snaps = prevSnaps
 		ss.epoch = prevEpoch
-		Logger().Error("snapshot replaceAll persist failed", "source", "snap", "op", "replaceAll", "err", err.Error())
+		logbuf.Logger().Error("snapshot replaceAll persist failed", "source", "snap", "op", "replaceAll", "err", err.Error())
 		return fmt.Errorf("persisting snapshots: %w", err)
 	}
-	Logger().Info("snapshots replaced", "source", "snap", "op", "replaceAll", "previous", len(prevSnaps), "new", len(snaps))
+	logbuf.Logger().Info("snapshots replaced", "source", "snap", "op", "replaceAll", "previous", len(prevSnaps), "new", len(snaps))
 	return nil
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
 )
 
@@ -147,7 +148,7 @@ func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	people := len(s.working)
 	recycled := len(s.recycled)
 	s.mu.Unlock()
-	Logger().Info("state restored from autosave", "source", "org", "op", "restoreState", "people", people, "recycled", recycled, "snapshot", data.SnapshotName)
+	logbuf.Logger().Info("state restored from autosave", "source", "org", "op", "restoreState", "people", people, "recycled", recycled, "snapshot", data.SnapshotName)
 }
 
 func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
@@ -196,9 +197,9 @@ func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	// only via the structured logger — consistent with podMgr.unsafeReset
 	// semantics, but no longer silent.
 	if err := s.snap.Clear(); err != nil {
-		Logger().Error("snapshot clear during reset failed", "source", "org", "op", "reset", "err", err.Error())
+		logbuf.Logger().Error("snapshot clear during reset failed", "source", "org", "op", "reset", "err", err.Error())
 	}
-	Logger().Info("org reset to original", "source", "org", "op", "reset")
+	logbuf.Logger().Info("org reset to original", "source", "org", "op", "reset")
 	return resp
 }
 
@@ -347,6 +348,6 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
 	resp.PersistenceWarning = persistWarn
-	Logger().Info("org created", "source", "org", "name", name)
+	logbuf.Logger().Info("org created", "source", "org", "name", name)
 	return resp, nil
 }

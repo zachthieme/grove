@@ -17,6 +17,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/zachthieme/grove/internal/api"
+	"github.com/zachthieme/grove/internal/logbuf"
 )
 
 var GetFrontendFS func() (fs.FS, error)
@@ -28,9 +29,9 @@ var (
 )
 
 func runServe(cmd *cobra.Command, args []string) error {
-	var logBuf *api.LogBuffer
+	var logBuf *logbuf.LogBuffer
 	if serveLog {
-		logBuf = api.NewLogBuffer(1000)
+		logBuf = logbuf.New(1000)
 	}
 	configureLogging(logBuf)
 
@@ -84,13 +85,13 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 
 	url := fmt.Sprintf("http://localhost%s", addr)
-	api.Logger().Info("server listening", "source", "server", "url", url, "dev", serveDev, "log", serveLog)
+	logbuf.Logger().Info("server listening", "source", "server", "url", url, "dev", serveDev, "log", serveLog)
 	if !serveDev {
 		go openBrowser(url)
 	}
 	err = server.Serve(ln)
 	if errors.Is(err, http.ErrServerClosed) {
-		api.Logger().Info("server shut down", "source", "server")
+		logbuf.Logger().Info("server shut down", "source", "server")
 		return nil
 	}
 	return err
@@ -99,7 +100,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 // configureLogging installs the package logger used across the api package and
 // reroutes stdlib log output through slog. When --log is on, records also land
 // in the in-app LogBuffer alongside HTTP request entries.
-func configureLogging(buf *api.LogBuffer) {
+func configureLogging(buf *logbuf.LogBuffer) {
 	level := slog.LevelInfo
 	if serveLog {
 		level = slog.LevelDebug
@@ -109,12 +110,12 @@ func configureLogging(buf *api.LogBuffer) {
 
 	var handler slog.Handler = textHandler
 	if buf != nil {
-		handler = api.NewMultiHandler(textHandler, api.NewBufferHandler(buf, level))
+		handler = logbuf.NewMultiHandler(textHandler, logbuf.NewBufferHandler(buf, level))
 	}
 	logger := slog.New(handler)
-	api.SetLogger(logger)
+	logbuf.SetLogger(logger)
 	slog.SetDefault(logger)
-	log.SetOutput(api.SlogWriter{Logger: logger, Level: slog.LevelWarn})
+	log.SetOutput(logbuf.SlogWriter{Logger: logger, Level: slog.LevelWarn})
 	log.SetFlags(0)
 }
 
