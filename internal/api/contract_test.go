@@ -212,6 +212,7 @@ func TestContractPersonUpdateFields(t *testing.T) {
 		"role",
 		"status",
 		"team",
+		"type",
 	}
 	sort.Strings(expected)
 

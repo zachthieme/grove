@@ -12,6 +12,7 @@ type OrgNode struct {
 // OrgNodeUpdate carries optional field updates for a person.
 // Pointer fields: nil = not sent, zero value = set to empty/zero/false.
 type OrgNodeUpdate struct {
+	Type            *string `json:"type,omitempty"`
 	Name            *string `json:"name,omitempty"`
 	Role            *string `json:"role,omitempty"`
 	Discipline      *string `json:"discipline,omitempty"`

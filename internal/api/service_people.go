@@ -49,6 +49,20 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNode
 	// Clear warning on any edit
 	p.Warning = ""
 
+	// Type — must be applied before Status so status validation uses new type.
+	// Switching to product clears person-only fields; switching to person leaves
+	// fields as the caller passes them (frontend already sends defaults).
+	if fields.Type != nil {
+		p.Type = *fields.Type
+		if p.Type == "product" {
+			p.Role = ""
+			p.Discipline = ""
+			p.EmploymentType = ""
+			p.Level = 0
+			p.AdditionalTeams = nil
+		}
+	}
+
 	// Simple fields
 	if fields.Name != nil {
 		p.Name = *fields.Name
@@ -143,6 +157,9 @@ func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []
 		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
 			return OrgNode{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
 		}
+	}
+	if p.Type != "product" && p.EmploymentType == "" {
+		p.EmploymentType = "FTE"
 	}
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)

@@ -2203,3 +2203,57 @@ func TestOrgService_Move_RejectProductAsManager(t *testing.T) {
 		t.Errorf("unexpected error message: %s", err.Error())
 	}
 }
+
+// Scenarios: PROD-011
+func TestOrgService_Update_TypeChange(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+
+	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{
+		Type:   ptr("product"),
+		Status: ptr("Active"),
+	})
+	if err != nil {
+		t.Fatalf("update type failed: %v", err)
+	}
+	updated := findById(result.Working, bob.Id)
+	if updated.Type != "product" {
+		t.Errorf("expected type 'product', got %q", updated.Type)
+	}
+}
+
+// Scenarios: PROD-011
+func TestOrgService_Update_TypeChange_RevalidatesStatus(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+
+	// Bob is Active (valid for both). Switch type to product without changing status.
+	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("product")}); err != nil {
+		t.Fatalf("update to product failed: %v", err)
+	}
+	// Setting a person-only status on a product must be rejected.
+	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Status: ptr("Backfill")})
+	if err == nil {
+		t.Fatal("expected validation error for person-only status on product")
+	}
+}
+
+// Scenarios: PROD-011
+func TestOrgService_Update_InvalidType(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+
+	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("widget")})
+	if err == nil {
+		t.Fatal("expected validation error for invalid type")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got: %T", err)
+	}
+}

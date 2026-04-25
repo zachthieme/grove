@@ -155,6 +155,26 @@ Products are not counted in headcount, recruiting, planned, or transfers metrics
 
 ---
 
+# Scenario: Change a node's type via update
+
+**ID**: PROD-011
+**Area**: products
+**Tests**:
+- `internal/api/service_test.go` → "TestOrgService_Update_TypeChange"
+- `internal/api/service_test.go` → "TestOrgService_Update_TypeChange_RevalidatesStatus"
+- `internal/api/service_test.go` → "TestOrgService_Update_InvalidType"
+
+## Behavior
+A node's type can be changed between "person" and "product" via the update endpoint. Switching to product clears person-only fields (role, discipline, employmentType, level, additionalTeams). Status is validated against the new type.
+
+## Invariants
+- Type must be "person" or "product"; other values rejected with ValidationError
+- Type change persists in working slice
+- After switching to product, person-only fields are zeroed
+- Status validation uses the post-change type, so a person-only status on a product is rejected
+
+---
+
 # Scenario: Products excluded from span of control
 
 **ID**: PROD-010

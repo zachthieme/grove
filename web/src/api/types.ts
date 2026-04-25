@@ -57,6 +57,7 @@ export interface MovePayload {
 }
 
 export interface OrgNodeUpdatePayload {
+  type?: string
   name?: string
   role?: string
   discipline?: string

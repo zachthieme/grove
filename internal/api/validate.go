@@ -67,6 +67,9 @@ func validateNodeUpdate(u *OrgNodeUpdate) error {
 			return errValidation("note too long (max %d characters)", maxNoteLen)
 		}
 	}
+	if u.Type != nil && *u.Type != "person" && *u.Type != "product" {
+		return errValidation("invalid type '%s'", *u.Type)
+	}
 	return nil
 }
 
