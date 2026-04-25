@@ -249,3 +249,43 @@ func (ss *SnapshotService) Save(ctx context.Context, name string) error {
 	}
 	return nil
 }
+
+// Load reads a named snapshot under mu_snap (briefly), then calls
+// org.ApplyState — which acquires mu_org. The two locks are never held
+// simultaneously: mu_snap is fully released before ApplyState is called.
+func (ss *SnapshotService) Load(ctx context.Context, name string) error {
+	ss.mu.RLock()
+	snap, ok := ss.snaps[name]
+	if !ok {
+		ss.mu.RUnlock()
+		return errNotFound("snapshot '%s' not found", name)
+	}
+	state := OrgState{
+		People:   deepCopyNodes(snap.People),
+		Pods:     CopyPods(snap.Pods),
+		Settings: snap.Settings,
+	}
+	ss.mu.RUnlock()
+
+	ss.org.ApplyState(state)
+	return nil
+}
+
+// Delete removes a named snapshot and persists the change. Idempotent:
+// deleting a nonexistent snapshot is a no-op (matches legacy
+// SnapshotManager.Delete behavior).
+func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+	prev, existed := ss.snaps[name]
+	if !existed {
+		return nil
+	}
+	delete(ss.snaps, name)
+	if err := ss.store.Write(ss.snaps); err != nil {
+		// Roll back so map and disk stay in sync.
+		ss.snaps[name] = prev
+		return errValidation("persisting snapshot deletion: %v", err)
+	}
+	return nil
+}

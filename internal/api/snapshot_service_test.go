@@ -149,3 +149,56 @@ func TestSnapshotService_Save_AbortsWhenEpochAdvances(t *testing.T) {
 		t.Errorf("expected no snapshots after aborted Save, got %v", list)
 	}
 }
+
+// Scenarios: SNAP-005
+func TestSnapshotService_Load_AppliesToOrg(t *testing.T) {
+	t.Parallel()
+	captured := OrgState{
+		People:   []OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "a1"}},
+		Pods:     []Pod{},
+		Settings: Settings{DisciplineOrder: []string{"Eng"}},
+	}
+	var applied OrgState
+	provider := newStubOrgProvider()
+	provider.captureFn = func() OrgState { return captured }
+	provider.applyFn = func(s OrgState) { applied = s }
+
+	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	if err := ss.Save(context.Background(), "v1"); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := ss.Load(context.Background(), "v1"); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(applied.People) != 1 || applied.People[0].Name != "Alice" {
+		t.Errorf("expected ApplyState called with [Alice], got %v", applied.People)
+	}
+}
+
+// Scenarios: SNAP-005
+func TestSnapshotService_Load_NotFound(t *testing.T) {
+	t.Parallel()
+	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	err := ss.Load(context.Background(), "missing")
+	if err == nil || !isNotFound(err) {
+		t.Errorf("expected NotFoundError, got %v", err)
+	}
+}
+
+// Scenarios: SNAP-005
+func TestSnapshotService_Delete_RemovesEntry(t *testing.T) {
+	t.Parallel()
+	provider := newStubOrgProvider()
+	provider.captureFn = func() OrgState { return OrgState{} }
+
+	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	if err := ss.Save(context.Background(), "v1"); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := ss.Delete(context.Background(), "v1"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if got := ss.List(); len(got) != 0 {
+		t.Errorf("expected empty list after delete, got %v", got)
+	}
+}
