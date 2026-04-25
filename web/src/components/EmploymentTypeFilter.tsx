@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useCallback } from 'react'
 import { useOrgData, useUI } from '../store/OrgContext'
 import { useOutsideClick } from '../hooks/useOutsideClick'
+import { isProduct } from '../constants'
 import styles from './EmploymentTypeFilter.module.css'
 
 export default function EmploymentTypeFilter() {
@@ -9,20 +10,18 @@ export default function EmploymentTypeFilter() {
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  // Collect all unique employment types from working data
   const allTypes = useMemo(() => {
     const typeSet = new Set<string>()
     for (const p of working) {
+      if (isProduct(p)) continue
       typeSet.add(p.employmentType || '')
     }
-    // Sort: empty string ("No type") last, then alphabetical
-    const sorted = [...typeSet].sort((a, b) => {
+    return [...typeSet].sort((a, b) => {
       if (a === '' && b === '') return 0
       if (a === '') return 1
       if (b === '') return -1
       return a.localeCompare(b)
     })
-    return sorted
   }, [working])
 
   useOutsideClick(wrapperRef, useCallback(() => setOpen(false), []), open)

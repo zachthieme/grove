@@ -63,6 +63,18 @@ export const STATUS_DESCRIPTIONS: Record<Status, string> = {
 
 /** Node type */
 export type NodeType = 'person' | 'product'
+export const NODE_TYPE_PERSON: NodeType = 'person'
+export const NODE_TYPE_PRODUCT: NodeType = 'product'
+
+/** Type-narrowing helper. Treats missing/empty type as 'person'. */
+export function isProduct(node: { type?: string }): boolean {
+  return node.type === NODE_TYPE_PRODUCT
+}
+
+/** Effective node type (defaults to 'person' when missing). */
+export function nodeTypeOf(node: { type?: string }): NodeType {
+  return node.type === NODE_TYPE_PRODUCT ? NODE_TYPE_PRODUCT : NODE_TYPE_PERSON
+}
 
 /** All valid product statuses */
 export const PRODUCT_STATUSES = [

@@ -2171,7 +2171,40 @@ func TestOrgService_RestoreProduct(t *testing.T) {
 	}
 }
 
-// Scenarios: ORG-002
+// Scenarios: PROD-004
+func TestOrgService_Update_RejectProductAsManager(t *testing.T) {
+	t.Parallel()
+	svc := newTestServiceFromNodes(t, []model.OrgNode{
+		{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Manager: ""},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Widget", Type: "product", Status: "Active"}, Manager: "Alice"},
+		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Status: "Active"}, Manager: "Alice"},
+	})
+	working := svc.GetWorking(context.Background())
+	var widgetId, bobId string
+	for _, p := range working {
+		if p.Name == "Widget" {
+			widgetId = p.Id
+		}
+		if p.Name == "Bob" {
+			bobId = p.Id
+		}
+	}
+	if widgetId == "" || bobId == "" {
+		t.Fatal("test data setup failed: could not find Widget or Bob")
+	}
+	_, err := svc.Update(context.Background(), bobId, OrgNodeUpdate{ManagerId: ptr(widgetId)})
+	if err == nil {
+		t.Fatal("expected error when reparenting to a product via Update")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got: %T", err)
+	}
+	if !strings.Contains(err.Error(), "cannot report to a product") {
+		t.Errorf("unexpected error message: %s", err.Error())
+	}
+}
+
+// Scenarios: ORG-002, PROD-004
 func TestOrgService_Move_RejectProductAsManager(t *testing.T) {
 	t.Parallel()
 	svc := newTestServiceFromNodes(t, []model.OrgNode{
@@ -2239,6 +2272,46 @@ func TestOrgService_Update_TypeChange_RevalidatesStatus(t *testing.T) {
 	_, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Status: ptr("Backfill")})
 	if err == nil {
 		t.Fatal("expected validation error for person-only status on product")
+	}
+}
+
+// Scenarios: PROD-011
+func TestOrgService_Update_TypeChange_AutoCorrectsStatus(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+
+	// Bob -> product, then set product-only "Deprecated" status.
+	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("product"), Status: ptr("Deprecated")}); err != nil {
+		t.Fatalf("update to product failed: %v", err)
+	}
+
+	// Switch back to person without supplying a status. "Deprecated" isn't valid
+	// for person — Update must auto-correct rather than leave the node invalid.
+	result, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{Type: ptr("person")})
+	if err != nil {
+		t.Fatalf("update back to person failed: %v", err)
+	}
+	updated := findById(result.Working, bob.Id)
+	if updated.Status != "Active" {
+		t.Errorf("expected status auto-corrected to 'Active', got %q", updated.Status)
+	}
+}
+
+// Scenarios: PROD-001
+func TestOrgService_Add_InvalidType(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+
+	_, _, _, err := svc.Add(context.Background(), OrgNode{
+		OrgNodeFields: model.OrgNodeFields{Name: "Bogus", Type: "widget", Status: "Active"},
+	})
+	if err == nil {
+		t.Fatal("expected validation error for invalid type on Add")
+	}
+	if !isValidation(err) {
+		t.Errorf("expected ValidationError, got: %T", err)
 	}
 }
 

@@ -20,6 +20,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [layoutKey, setLayoutKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [showPrivate, setShowPrivate] = useState(false)
+  const [showProducts, setShowProducts] = useState(true)
+  const [showICs, setShowICs] = useState(true)
 
   const reflow = useCallback(() => {
     setLayoutKey((k) => k + 1)
@@ -62,6 +64,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
     layoutKey,
     error,
     showPrivate,
+    showProducts,
+    showICs,
     setViewMode,
     setDataView,
     setBinOpen,
@@ -73,9 +77,11 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setError,
     clearError,
     setShowPrivate,
+    setShowProducts,
+    setShowICs,
   }), [
     viewMode, dataView, binOpen, hiddenEmploymentTypes, headPersonId, layoutKey,
-    error, showPrivate, toggleEmploymentTypeFilter, showAllEmploymentTypes,
+    error, showPrivate, showProducts, showICs, toggleEmploymentTypeFilter, showAllEmploymentTypes,
     hideAllEmploymentTypes, setHead, reflow, clearError,
   ])
 

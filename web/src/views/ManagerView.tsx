@@ -2,9 +2,10 @@
 import { memo, useCallback, type ReactNode } from 'react'
 import type { OrgNode } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
-import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
+import { isRecruitingStatus, isPlannedStatus, isTransferStatus, isProduct } from '../constants'
 import { useChart } from './ChartContext'
 import { useNodeProps } from '../hooks/useNodeProps'
+import { assertNever } from '../utils/assertNever'
 import { type TreeNode } from './shared'
 import { computeLayoutTree, type LayoutNode, type ManagerLayout, type PodGroupLayout, type TeamGroupLayout, type ProductGroupLayout } from './layoutTree'
 import OrgNodeCard from '../components/OrgNodeCard'
@@ -30,7 +31,7 @@ function computeManagerEdges(_people: OrgNode[], _roots: TreeNode[], layoutRoots
 
 /** Build summary groups from a list of people, bucketing by status. */
 function buildStatusGroups(people: OrgNode[]): { label: string; count: number }[] {
-  const nonProducts = people.filter((p) => p.type !== 'product')
+  const nonProducts = people.filter((p) => !isProduct(p))
   const productCount = people.length - nonProducts.length
   const groups: { label: string; count: number }[] = []
 
@@ -102,7 +103,12 @@ function SummaryCard({ people, podName, publicNote, onClick }: {
 function PodSummaryCard({ group }: { group: PodGroupLayout }) {
   const { pods, onSelect } = useChart()
   const pod = pods?.find((p) => p.managerId === group.managerId && p.name === group.podName)
-  const people = group.members.map((m) => m.person)
+  // Include any products nested in the pod so buildStatusGroups picks them up
+  // and surfaces the productCount alongside discipline counts.
+  const people = [
+    ...group.members.map((m) => m.person),
+    ...(group.products ?? []).map((p) => p.person),
+  ]
 
   return (
     <SummaryCard
@@ -147,7 +153,7 @@ const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node
         unpoddedPeople.push(child.person)
         break
       default:
-        break
+        assertNever(child, 'ManagerView bucket: unhandled LayoutNode variant')
     }
   }
 
@@ -200,8 +206,18 @@ export default function ManagerView() {
             <SummaryCard people={node.members.map(m => m.person)} podName={node.teamName} />
           </div>
         )
-      default:
+      case 'productGroup':
+        return (
+          <div key={node.collapseKey} className={styles.subtree}>
+            <SummaryCard people={node.members.map(m => m.person)} podName="Products" />
+          </div>
+        )
+      case 'ic':
+      case 'podGroup':
+      case 'product':
         return null
+      default:
+        return assertNever(node, 'ManagerView renderLayoutNode: unhandled root variant')
     }
   }, [])
 

@@ -26,10 +26,23 @@ var ValidProductStatuses = map[string]bool{
 // ValidStatuses returns the correct status set for a given node type.
 // Empty type is treated as "person".
 func ValidStatuses(nodeType string) map[string]bool {
-	if nodeType == "product" {
+	if IsProduct(nodeType) {
 		return ValidProductStatuses
 	}
 	return ValidPersonStatuses
+}
+
+// Node types. Stored on OrgNodeFields.Type. Empty is treated as NodeTypePerson
+// at all read sites; normalize on ingress where you want a canonical value.
+const (
+	NodeTypePerson  = "person"
+	NodeTypeProduct = "product"
+)
+
+// IsProduct reports whether a node's stored type is "product". Empty/missing
+// types are treated as person.
+func IsProduct(nodeType string) bool {
+	return nodeType == NodeTypeProduct
 }
 
 const (

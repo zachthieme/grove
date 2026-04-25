@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/zachthieme/grove/internal/model"
 )
 
 // Error types for distinguishing HTTP status codes in handlers.
@@ -67,7 +69,7 @@ func validateNodeUpdate(u *OrgNodeUpdate) error {
 			return errValidation("note too long (max %d characters)", maxNoteLen)
 		}
 	}
-	if u.Type != nil && *u.Type != "person" && *u.Type != "product" {
+	if u.Type != nil && *u.Type != model.NodeTypePerson && *u.Type != model.NodeTypeProduct {
 		return errValidation("invalid type '%s'", *u.Type)
 	}
 	return nil
@@ -133,7 +135,7 @@ func validateManagerChange(working []OrgNode, personId, newManagerId string) err
 	if mgr == nil {
 		return errNotFound("manager %s not found", newManagerId)
 	}
-	if mgr.Type == "product" {
+	if model.IsProduct(mgr.Type) {
 		return errValidation("cannot report to a product")
 	}
 	if wouldCreateCycle(working, personId, newManagerId) {

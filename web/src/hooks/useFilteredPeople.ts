@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { OrgNode } from '../api/types'
+import { isProduct } from '../constants'
 
 function placeholderId(realId: string): string {
   return `__placeholder_${realId}`
@@ -13,13 +14,35 @@ export function useFilteredPeople(
   headSubtree: Set<string> | null,
   showChanges: boolean,
   showPrivate: boolean,
+  showProducts: boolean = true,
+  showICs: boolean = true,
 ) {
+  // Manager set computed from working (source of truth) so an IC remains
+  // hidden in original/diff views too when its rows differ from working.
+  const managerIds = useMemo(() => {
+    const set = new Set<string>()
+    for (const p of working) {
+      if (p.managerId) set.add(p.managerId)
+    }
+    return set
+  }, [working])
+
+  const icFiltered = useMemo(() => {
+    if (showICs) return rawPeople
+    return rawPeople.filter((p) => isProduct(p) || managerIds.has(p.id))
+  }, [rawPeople, showICs, managerIds])
+
+  const productFiltered = useMemo(() => {
+    if (showProducts) return icFiltered
+    return icFiltered.filter((p) => !isProduct(p))
+  }, [icFiltered, showProducts])
+
   const privateFiltered = useMemo(() => {
-    if (showPrivate) return rawPeople
+    if (showPrivate) return productFiltered
 
-    const visible = rawPeople.filter((p) => !p.private)
+    const visible = productFiltered.filter((p) => !p.private)
 
-    const hiddenIds = new Set(rawPeople.filter((p) => p.private).map((p) => p.id))
+    const hiddenIds = new Set(productFiltered.filter((p) => p.private).map((p) => p.id))
     const managersNeeded = new Set<string>()
     for (const p of visible) {
       if (p.managerId && hiddenIds.has(p.managerId)) {
@@ -37,7 +60,7 @@ export function useFilteredPeople(
         name: 'TBD Manager',
         role: '',
         discipline: '',
-        managerId: rawPeople.find((p) => p.id === realId)?.managerId ?? '',
+        managerId: productFiltered.find((p) => p.id === realId)?.managerId ?? '',
         team: '',
         additionalTeams: [],
         status: '—' as OrgNode['status'],
@@ -53,7 +76,7 @@ export function useFilteredPeople(
     })
 
     return [...reparented, ...placeholders]
-  }, [rawPeople, showPrivate])
+  }, [productFiltered, showPrivate])
 
   const empFiltered = useMemo(() => {
     if (hiddenEmploymentTypes.size === 0) return privateFiltered
@@ -68,9 +91,19 @@ export function useFilteredPeople(
   const ghostPeople = useMemo(() => {
     if (!showChanges) return []
     const workingIds = new Set(working.map((w) => w.id))
+    // Managers in the original-only ghost set: anyone whose id is referenced
+    // as managerId by another ghost or working node.
+    const ghostManagerIds = new Set<string>()
+    for (const o of original) if (o.managerId) ghostManagerIds.add(o.managerId)
     let ghosts = original.filter((o) => !workingIds.has(o.id))
     if (!showPrivate) {
       ghosts = ghosts.filter((p) => !p.private)
+    }
+    if (!showProducts) {
+      ghosts = ghosts.filter((p) => !isProduct(p))
+    }
+    if (!showICs) {
+      ghosts = ghosts.filter((p) => isProduct(p) || ghostManagerIds.has(p.id))
     }
     if (hiddenEmploymentTypes.size > 0) {
       ghosts = ghosts.filter((p) => !hiddenEmploymentTypes.has(p.employmentType || ''))
@@ -79,7 +112,7 @@ export function useFilteredPeople(
       ghosts = ghosts.filter((p) => headSubtree.has(p.id))
     }
     return ghosts
-  }, [showChanges, original, working, hiddenEmploymentTypes, headSubtree, showPrivate])
+  }, [showChanges, original, working, hiddenEmploymentTypes, headSubtree, showPrivate, showProducts, showICs])
 
   return { people, ghostPeople }
 }

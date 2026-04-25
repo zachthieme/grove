@@ -1,5 +1,6 @@
 import type { OrgNode } from '../api/types'
 import type { TreeNode } from './shared'
+import { isProduct } from '../constants'
 
 export type Affiliation = 'local' | 'singleCrossTeam' | 'multiCrossTeam'
 
@@ -22,6 +23,8 @@ export interface PodGroupLayout {
   managerId: string
   collapseKey: string
   members: ICLayout[]
+  /** Products carried inside this pod (rendered as a sub-stack, no header). */
+  products?: ProductLayout[]
 }
 
 export interface TeamGroupLayout {
@@ -50,15 +53,17 @@ export function computeLayoutTree(roots: TreeNode[]): LayoutNode[] {
 
   const result: LayoutNode[] = withChildren.map((root) => buildManagerLayout(root))
 
-  // Single orphan + single root: render as manager (view decides presentation)
   if (orphans.length === 1 && roots.length === 1) {
     return [buildManagerLayout(orphans[0])]
   }
 
   if (orphans.length > 0) {
+    const orphanProducts = orphans.filter((o) => isProduct(o.person))
+    const orphanICs = orphans.filter((o) => !isProduct(o.person))
+
     const teamOrder: string[] = []
     const teamMap = new Map<string, ICLayout[]>()
-    for (const o of orphans) {
+    for (const o of orphanICs) {
       const team = o.person.team || 'Unassigned'
       if (!teamMap.has(team)) {
         teamOrder.push(team)
@@ -76,6 +81,17 @@ export function computeLayoutTree(roots: TreeNode[]): LayoutNode[] {
         teamName: team,
         collapseKey: `orphan:${team}`,
         members: teamMap.get(team)!,
+      })
+    }
+
+    if (orphanProducts.length > 0) {
+      result.push({
+        type: 'productGroup',
+        collapseKey: 'orphan:products',
+        members: orphanProducts.map((o) => ({
+          type: 'product' as const,
+          person: o.person,
+        })),
       })
     }
   }
@@ -256,10 +272,8 @@ export function groupUnaffiliated(
         members,
       })
     } else if (hasPodGroups) {
-      // Unpodded ICs remain flat when pod groups are present
       result.push(...members)
     } else {
-      // Multiple teams, no pods — use TeamGroupLayout (NOT PodGroupLayout)
       const teamName = members[0].person.team
       result.push({
         type: 'teamGroup',
@@ -276,38 +290,69 @@ function buildManagerLayout(node: TreeNode): ManagerLayout {
   const managers = node.children.filter((c) => c.children.length > 0)
   const allLeaves = node.children.filter((c) => c.children.length === 0)
 
-  // Separate products from ICs
-  const products = allLeaves.filter((c) => c.person.type === 'product')
-  const ics = allLeaves.filter((c) => c.person.type !== 'product')
+  const products = allLeaves.filter((c) => isProduct(c.person))
+  const ics = allLeaves.filter((c) => !isProduct(c.person))
+
+  // Bucket products by pod — products with a pod nest into the corresponding
+  // pod group; products with no pod surface as a manager-level product group.
+  const productsByPod = new Map<string, ProductLayout[]>()
+  const productsNoPod: ProductLayout[] = []
+  for (const c of products) {
+    const layout: ProductLayout = { type: 'product', person: c.person }
+    if (c.person.pod) {
+      const list = productsByPod.get(c.person.pod) ?? []
+      list.push(layout)
+      productsByPod.set(c.person.pod, list)
+    } else {
+      productsNoPod.push(layout)
+    }
+  }
 
   const reorderedManagers = reorderManagersByAffinity(managers, ics)
   const { withinManager, afterManager, unaffiliated } = classifyICs(ics, reorderedManagers)
 
-  // Build children array
   const children: LayoutNode[] = []
   for (let i = 0; i < reorderedManagers.length; i++) {
     const mgrLayout = buildManagerLayout(reorderedManagers[i])
     children.push(mgrLayout)
-    // Single-affiliation cross-team ICs placed after their affiliated manager
     const withinIcs = withinManager.get(i)
     if (withinIcs) children.push(...withinIcs)
-    // Multi-affiliation ICs placed after highest-indexed manager
     const multiIcs = afterManager.get(i)
     if (multiIcs) children.push(...multiIcs)
   }
 
-  // Group unaffiliated ICs by pod/team
   children.push(...groupUnaffiliated(unaffiliated, node.person.id))
 
-  // Add product group if any products exist
-  if (products.length > 0) {
+  // Attach products to any pod group already emitted with a matching name.
+  for (const child of children) {
+    if (child.type === 'podGroup') {
+      const podProducts = productsByPod.get(child.podName)
+      if (podProducts) {
+        child.products = podProducts
+        productsByPod.delete(child.podName)
+      }
+    }
+  }
+
+  // Pods that contain ONLY products (no people) — emit a pod group anyway so
+  // products surface under the right pod label.
+  for (const [podName, podProducts] of productsByPod) {
+    children.push({
+      type: 'podGroup',
+      podName,
+      managerId: node.person.id,
+      collapseKey: `pod:${node.person.id}:${podName}`,
+      members: [],
+      products: podProducts,
+    })
+  }
+
+  // Products without a pod: standalone product group at the manager level.
+  if (productsNoPod.length > 0) {
     children.push({
       type: 'productGroup',
       collapseKey: `products:${node.person.id}`,
-      members: products.map((p) => ({
-        type: 'product' as const,
-        person: p.person,
-      })),
+      members: productsNoPod,
     })
   }
 

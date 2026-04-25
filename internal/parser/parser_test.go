@@ -108,7 +108,7 @@ func TestBuildPeopleWithMapping_ExtraColumns(t *testing.T) {
 	}
 }
 
-// Scenarios: CONTRACT-009
+// Scenarios: CONTRACT-009, PROD-006
 func TestBuildPeopleWithMapping_ProductRows(t *testing.T) {
 	t.Parallel()
 	header := []string{"Name", "Type", "Status", "Manager"}

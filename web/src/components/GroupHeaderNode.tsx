@@ -14,16 +14,18 @@ interface Props {
   selected?: boolean
   onClick?: (e?: React.MouseEvent) => void
   onAdd?: () => void
+  onAddProduct?: () => void
   onInfo?: () => void
   cardRef?: (el: HTMLDivElement | null) => void
   droppableId?: string
   dragData?: Record<string, unknown>
 }
 
-export default memo(function GroupHeaderNode({ nodeId, name, count, variant = 'group', noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onInfo, cardRef, droppableId, dragData }: Props) {
-  const actions: BaseNodeActions | undefined = (onAdd || onInfo)
+export default memo(function GroupHeaderNode({ nodeId, name, count, variant = 'group', noteText, collapsed, onToggleCollapse, selected, onClick, onAdd, onAddProduct, onInfo, cardRef, droppableId, dragData }: Props) {
+  const actions: BaseNodeActions | undefined = (onAdd || onAddProduct || onInfo)
     ? {
         onAdd: onAdd ? (e) => { e.stopPropagation(); onAdd() } : undefined,
+        onAddProduct: onAddProduct ? (e) => { e.stopPropagation(); onAddProduct() } : undefined,
         onInfo: onInfo ? (e) => { e.stopPropagation(); onInfo() } : undefined,
       }
     : undefined

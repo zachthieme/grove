@@ -1,5 +1,6 @@
 import type { OrgNode } from '../api/types'
 import type { LayoutNode, ManagerLayout, ICLayout } from './layoutTree'
+import { assertNever } from '../utils/assertNever'
 
 export interface EdgeDef {
   fromId: string
@@ -46,8 +47,14 @@ export function computeEdges(layoutRoots: LayoutNode[], people: OrgNode[]): Edge
         case 'podGroup':
           flushIcBatch()
           result.push({ fromId: node.person.id, toId: child.collapseKey })
+          // Pod renders people and products as two adjacent columns. Each
+          // column needs its own connector from the pod header so neither
+          // dangles; emit one edge per non-empty column.
           if (child.members.length > 0) {
             result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
+          }
+          if (child.products && child.products.length > 0) {
+            result.push({ fromId: child.collapseKey, toId: child.products[0].person.id })
           }
           break
         case 'teamGroup':
@@ -58,16 +65,20 @@ export function computeEdges(layoutRoots: LayoutNode[], people: OrgNode[]): Edge
           }
           break
         case 'productGroup':
+          // The product group renders without a header card, so edges go
+          // directly from the manager to the first product (single batched
+          // edge, mirroring local IC handling).
           flushIcBatch()
-          result.push({ fromId: node.person.id, toId: child.collapseKey })
           if (child.members.length > 0) {
-            result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
+            result.push({ fromId: node.person.id, toId: child.members[0].person.id })
           }
           break
         case 'product':
           flushIcBatch()
           result.push({ fromId: node.person.id, toId: child.person.id })
           break
+        default:
+          assertNever(child, 'walkManager: unhandled LayoutNode variant')
       }
     }
     flushIcBatch()

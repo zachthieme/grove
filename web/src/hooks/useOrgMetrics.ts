@@ -1,5 +1,5 @@
 import type { OrgNode } from '../api/types'
-import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
+import { isRecruitingStatus, isPlannedStatus, isTransferStatus, isProduct } from '../constants'
 
 export interface TeamPodGroup {
   name: string
@@ -31,7 +31,7 @@ export function computeOrgMetrics(personId: string, allPeople: OrgNode[]): OrgMe
 
   const directReports = childrenMap.get(personId) || []
   const metrics: OrgMetrics = {
-    spanOfControl: directReports.filter(p => p.type !== 'product').length,
+    spanOfControl: directReports.filter((p) => !isProduct(p)).length,
     totalHeadcount: 0,
     productCount: 0,
     recruiting: 0,
@@ -49,10 +49,14 @@ export function computeOrgMetrics(personId: string, allPeople: OrgNode[]): OrgMe
   function walk(pid: string) {
     const reports = childrenMap.get(pid) || []
     for (const r of reports) {
-      if (r.type === 'product') {
+      if (isProduct(r)) {
+        // Products are tracked separately via productCount; the group's `count`
+        // mirrors totalHeadcount semantics (people only) per PROD-009. Register
+        // the group key with count=0 so a product-only pod still surfaces in
+        // byTeamPod with its productCount.
         metrics.productCount++
         const groupKey = r.pod || r.team || 'Unassigned'
-        groupCounts.set(groupKey, (groupCounts.get(groupKey) || 0) + 1)
+        if (!groupCounts.has(groupKey)) groupCounts.set(groupKey, 0)
         if (!groupMap.has(groupKey)) groupMap.set(groupKey, new Map())
         groupProductCounts.set(groupKey, (groupProductCounts.get(groupKey) || 0) + 1)
         walk(r.id)

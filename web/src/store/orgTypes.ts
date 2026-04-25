@@ -36,6 +36,8 @@ export interface UIContextValue {
   layoutKey: number
   error: string | null
   showPrivate: boolean
+  showProducts: boolean
+  showICs: boolean
   setViewMode: (mode: ViewMode) => void
   setDataView: (view: DataView) => void
   setBinOpen: (open: boolean) => void
@@ -47,6 +49,8 @@ export interface UIContextValue {
   setError: (error: string | null) => void
   clearError: () => void
   setShowPrivate: (show: boolean) => void
+  setShowProducts: (show: boolean) => void
+  setShowICs: (show: boolean) => void
 }
 
 export interface OrgDataStateValue {

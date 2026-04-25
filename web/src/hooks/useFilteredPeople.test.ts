@@ -123,6 +123,88 @@ describe('useFilteredPeople', () => {
     expect(result.current.people).toEqual([alice])
   })
 
+  describe('product filtering', () => {
+    const widget = makeNode({ id: '5', name: 'Widget', type: 'product', managerId: '1' })
+
+    it('[PROD-012] hides products when showProducts is false', () => {
+      const all = [alice, bob, widget]
+      const { result } = renderHook(() =>
+        useFilteredPeople(all, all, all, new Set(), null, false, true, false),
+      )
+      expect(result.current.people.map((p) => p.name)).toEqual(['Alice', 'Bob'])
+    })
+
+    it('[PROD-012] shows products when showProducts is true', () => {
+      const all = [alice, bob, widget]
+      const { result } = renderHook(() =>
+        useFilteredPeople(all, all, all, new Set(), null, false, true, true),
+      )
+      expect(result.current.people.map((p) => p.name)).toEqual(['Alice', 'Bob', 'Widget'])
+    })
+
+    it('[PROD-012] hides product ghosts in diff view when showProducts is false', () => {
+      // Widget existed originally but was deleted (not in working). Diff view
+      // would render it as a ghost — and should respect showProducts.
+      const original = [alice, bob, widget]
+      const working = [alice, bob]
+      const { result } = renderHook(() =>
+        useFilteredPeople(working, original, working, new Set(), null, true, true, false),
+      )
+      expect(result.current.ghostPeople.map((p) => p.name)).toEqual([])
+    })
+
+    it('[PROD-012] shows product ghosts when showProducts is true', () => {
+      const original = [alice, bob, widget]
+      const working = [alice, bob]
+      const { result } = renderHook(() =>
+        useFilteredPeople(working, original, working, new Set(), null, true, true, true),
+      )
+      expect(result.current.ghostPeople.map((p) => p.name)).toEqual(['Widget'])
+    })
+  })
+
+  describe('IC filtering', () => {
+    const widget = makeNode({ id: '5', name: 'Widget', type: 'product', managerId: '1' })
+
+    it('[FILTER-005] hides ICs (non-managers, non-products) when showICs is false', () => {
+      // alice manages bob+carol; bob manages dave. dave is the only pure IC
+      // (carol still reports to alice, so carol is also an IC).
+      const all = [alice, bob, carol, dave]
+      const { result } = renderHook(() =>
+        useFilteredPeople(all, all, all, new Set(), null, false, true, true, false),
+      )
+      // alice + bob remain (managers); carol + dave hidden (ICs).
+      expect(result.current.people.map((p) => p.name).sort()).toEqual(['Alice', 'Bob'])
+    })
+
+    it('[FILTER-005] keeps products visible when ICs are hidden', () => {
+      // alice manages bob+widget; bob is an IC (no reports), widget is a product.
+      const all = [alice, bob, widget]
+      const { result } = renderHook(() =>
+        useFilteredPeople(all, all, all, new Set(), null, false, true, true, false),
+      )
+      expect(result.current.people.map((p) => p.name).sort()).toEqual(['Alice', 'Widget'])
+    })
+
+    it('[FILTER-005] shows ICs when showICs is true', () => {
+      const all = [alice, bob, carol, dave]
+      const { result } = renderHook(() =>
+        useFilteredPeople(all, all, all, new Set(), null, false, true, true, true),
+      )
+      expect(result.current.people.length).toBe(4)
+    })
+
+    it('[FILTER-005] filters IC ghosts in diff mode when showICs is false', () => {
+      // dave existed originally but was deleted; diff renders him as a ghost IC.
+      const original = [alice, bob, carol, dave]
+      const working = [alice, bob, carol]
+      const { result } = renderHook(() =>
+        useFilteredPeople(working, original, working, new Set(), null, true, true, true, false),
+      )
+      expect(result.current.ghostPeople.map((p) => p.name)).toEqual([])
+    })
+  })
+
   describe('private people filtering', () => {
     const eve = makeNode({ id: '5', name: 'Eve', managerId: '1', private: true })
 

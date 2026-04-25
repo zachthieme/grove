@@ -94,6 +94,7 @@ export default function ChartShell({
     onSelect: actions.handleSelect,
     onBatchSelect: selection.batchSelect,
     onAddReport: actions.handleAddReport,
+    onAddProduct: actions.handleAddProduct,
     onAddParent: actions.handleAddParent,
     onAddToTeam: includeAddToTeam ? actions.handleAddToTeam : undefined,
     onDeletePerson: actions.handleDeletePerson,

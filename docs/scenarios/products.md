@@ -36,19 +36,25 @@ A product is moved to a new manager via the Move endpoint.
 
 ---
 
-# Scenario: Move a product into a pod
+# Scenario: Product nests inside its pod
 
 **ID**: PROD-003
 **Area**: products
 **Tests**:
 - `internal/api/service_test.go` → "TestOrgService_MoveProductToPod"
+- `web/src/views/layoutTree.test.ts` → "[PROD-003]"
 
 ## Behavior
-A product is moved into a pod, setting both managerId and pod.
+A product can carry a pod assignment. When it does, the column-view layout nests it inside the corresponding pod group, rendered as a side-by-side column next to the pod's people. There is no "Products" label anywhere — the slate-coloured product card styling carries the type distinction.
+
+A product without a pod surfaces in a header-less product cluster directly under its manager.
 
 ## Invariants
-- Product's managerId set to pod's manager
-- Product's pod set to pod name
+- A product whose `pod` matches a pod-grouped people-bucket attaches to that `PodGroupLayout` via the optional `products` field (not as a sibling group).
+- A pod containing only products still emits a `PodGroupLayout` (with `members: []` and `products: [...]`) so the pod label is preserved.
+- Products without a pod produce a `ProductGroupLayout` at the manager level; rendering omits the group header entirely — the slate node styling carries the product distinction.
+- Edges: pod-group's edge target is the first member, falling back to the first product when the pod has no people. Standalone product groups draw a single edge from the manager to the first product (no header intermediate).
+- Rendering: inside a pod group the people stack and the product stack render as **two adjacent columns** under the pod header, never merged into one column.
 
 ---
 
@@ -188,3 +194,76 @@ Products are not counted in a manager's span of control.
 ## Invariants
 - `spanOfControl` counts only person-type direct reports
 - Products under a manager do not inflate the span number
+
+---
+
+# Scenario: Toggle product visibility
+
+**ID**: PROD-012
+**Area**: products
+**Tests**:
+- `web/src/hooks/useFilteredPeople.test.ts` → "[PROD-012]"
+
+## Behavior
+The toolbar's Filters dropdown exposes a "Products" checkbox. When unchecked, product nodes are hidden from the chart everywhere they would otherwise render: live cards, ghost cards in diff mode, and any derived counts in views that consume the filtered list.
+
+## Invariants
+- `useFilteredPeople` accepts a `showProducts` flag (default true).
+- When `showProducts` is false, products are removed from `people` AND from `ghostPeople` (diff view).
+- The Products toggle row only appears when at least one product exists in the working data.
+- The "No type" employment-type bucket excludes products (products legitimately have no employment type).
+
+## Edge cases
+- A pod containing only products: still surfaces in `byTeamPod` with `count: 0` and the relevant `productCount`, so the pod doesn't disappear when products are filtered out.
+- Toggling Products off while a product is selected: selection persists in state but the card is not rendered until Products is re-enabled.
+
+---
+
+# Scenario: Add product action on person/manager cards
+
+**ID**: PROD-015
+**Area**: products
+**Tests**:
+- `web/src/components/OrgNodeCard.test.tsx` → "[PROD-015]"
+- `web/src/store/ViewDataContext.test.tsx` → "[PROD-015]"
+
+## Behavior
+A non-product card and a pod group header expose an "Add product" hover affordance (button labeled `+◆`). Clicking it creates a new product as a direct report of that node (or pod's manager), with `type: 'product'`, default name "New Product", and the parent's team. From a pod header the new product is assigned to that pod.
+
+## Invariants
+- The button is rendered only when `onAddProduct` is wired and the card is not a product node.
+- `handleAddProduct(parentId)` calls the `add` mutation with `{ type: 'product', name: 'New Product', managerId: parentId, team: parent.team }` and an empty `employmentType`.
+- `handleAddProduct(parentId, team, podName)` overrides the team and assigns the product to the named pod.
+
+---
+
+# Scenario: Product card exposes only delete affordance
+
+**ID**: PROD-014
+**Area**: products
+**Tests**:
+- `web/src/components/OrgNodeCard.test.tsx` → "[PROD-014]"
+
+## Behavior
+A product node renders only the delete (×) hover action. Add-report (+), add-parent (↑+), info (ℹ), and focus (⊙) buttons that appear on person/manager cards are suppressed for products.
+
+## Invariants
+- When `isProduct(person)` is true, `BaseNodeActions` passed to `BaseNode` contains only `onDelete` (when supplied).
+- `onAdd`, `onAddParent`, `onInfo`, `onFocus` callbacks supplied to `OrgNodeCard` are ignored for product nodes.
+
+---
+
+# Scenario: Orphan products bucket separately from people
+
+**ID**: PROD-013
+**Area**: products
+**Tests**:
+- `web/src/views/layoutTree.test.ts` → "[PROD-013]"
+
+## Behavior
+A product whose manager has been removed (or that imports without a manager) must surface in the chart without being treated as a "team member." It belongs in a top-level product group, not a team group.
+
+## Invariants
+- Orphan products are bucketed into a single `productGroup` with `collapseKey: 'orphan:products'`.
+- Orphan people continue to bucket into `teamGroup`s by `team`, unchanged.
+- A single orphan with no other roots still becomes a manager layout (existing rule preserved).

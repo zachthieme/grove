@@ -21,6 +21,7 @@ export interface ChartActionsContextValue {
   onSelect: (id: string, event?: React.MouseEvent) => void
   onBatchSelect?: (ids: Set<string>) => void
   onAddReport?: (id: string) => void
+  onAddProduct?: (parentId: string, team?: string, podName?: string) => void
   onAddParent?: (childId: string) => void
   onAddToTeam?: (parentId: string, team: string, podName?: string) => void
   onDeletePerson?: (id: string) => void

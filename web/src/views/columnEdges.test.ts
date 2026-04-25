@@ -161,7 +161,7 @@ describe('computeEdges', () => {
     expect(dashedEdge!.toId).toBe('2')
   })
 
-  it('[PROD-001] draws edges through product group header to first product', () => {
+  it('[PROD-001] draws a direct edge from manager to the first product (no group header intermediate)', () => {
     const people = [
       makeNode({ id: '1', name: 'Alice' }),
       makeNode({ id: '2', name: 'Bob', managerId: '1' }),
@@ -170,12 +170,36 @@ describe('computeEdges', () => {
     ]
     const layout = computeLayoutTree(buildOrgTree(people))
     const edges = computeEdges(layout, people)
-    const productEdge = edges.find((e) => e.toId.startsWith('products:'))
-    expect(productEdge).toBeTruthy()
-    expect(productEdge!.fromId).toBe('1')
-    const productToFirst = edges.find((e) => e.fromId.startsWith('products:'))
-    expect(productToFirst).toBeTruthy()
-    expect(productToFirst!.toId).toBe('3')
+    // No intermediate "products:" collapseKey edge — header was removed.
+    const intermediate = edges.find((e) => e.toId.startsWith('products:') || e.fromId.startsWith('products:'))
+    expect(intermediate).toBeUndefined()
+    // Manager has a direct edge to the first product.
+    const directProductEdge = edges.find((e) => e.fromId === '1' && e.toId === '3')
+    expect(directProductEdge).toBeTruthy()
+  })
+
+  it('[PROD-003] product nested in a pod gets a connector from the pod header', () => {
+    // People and products render as two adjacent columns under the pod. Each
+    // column needs its own edge from the pod header, otherwise the products
+    // column visually dangles. The manager itself does NOT draw a direct
+    // line to a pod-nested product — the pod header is the parent.
+    const people = [
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1', pod: 'Backend' }),
+      makeNode({ id: '3', name: 'Widget', managerId: '1', type: 'product', pod: 'Backend' }),
+    ]
+    const layout = computeLayoutTree(buildOrgTree(people))
+    const edges = computeEdges(layout, people)
+    const directProductEdge = edges.find((e) => e.fromId === '1' && e.toId === '3')
+    expect(directProductEdge).toBeUndefined()
+    const podEdge = edges.find((e) => e.fromId === '1' && e.toId.startsWith('pod:'))
+    expect(podEdge).toBeTruthy()
+    // Pod-header -> first person (people column connector).
+    const peopleConnector = edges.find((e) => e.fromId.startsWith('pod:') && e.toId === '2')
+    expect(peopleConnector).toBeTruthy()
+    // Pod-header -> first product (products column connector).
+    const productsConnector = edges.find((e) => e.fromId.startsWith('pod:') && e.toId === '3')
+    expect(productsConnector).toBeTruthy()
   })
 
   it('[VIEW-001] edges through pod headers use collapseKey as node ID', () => {

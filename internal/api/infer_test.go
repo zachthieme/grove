@@ -334,7 +334,7 @@ func TestInferMapping_Level(t *testing.T) {
 	}
 }
 
-// Scenarios: UPLOAD-005
+// Scenarios: UPLOAD-005, PROD-006
 func TestInferMapping_TypeColumn(t *testing.T) {
 	t.Parallel()
 	headers := []string{"Name", "Type", "Status", "Manager"}

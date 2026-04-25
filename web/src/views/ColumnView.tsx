@@ -6,6 +6,7 @@ import OrgNodeCard from '../components/OrgNodeCard'
 import GroupHeaderNode from '../components/GroupHeaderNode'
 import { useChart } from './ChartContext'
 import { useNodeProps } from '../hooks/useNodeProps'
+import { assertNever } from '../utils/assertNever'
 import ChartShell from './ChartShell'
 import styles from './ColumnView.module.css'
 
@@ -28,7 +29,7 @@ const ProductNode = memo(function ProductNode({ product }: { product: ProductLay
 })
 
 function LayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { selectedIds, pods, onAddToTeam, onSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
+  const { selectedIds, pods, onAddToTeam, onAddProduct, onSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
 
   const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
 
@@ -38,15 +39,21 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
   const renderPodGroup = useCallback((group: PodGroupLayout) => {
     const pod = findPod(group.managerId, group.podName)
     const podCollapsed = collapsedIds?.has(group.collapseKey) ?? false
+    const podProducts = group.products ?? []
+    const dragMemberIds = [
+      ...group.members.map((m) => m.person.id),
+      ...podProducts.map((p) => p.person.id),
+    ]
     return (
       <div key={group.collapseKey} className={styles.subtree}>
         <div className={styles.nodeSlot}>
           <GroupHeaderNode
             nodeId={group.collapseKey}
             name={group.podName}
-            count={group.members.length}
+            count={group.members.length + podProducts.length}
             noteText={pod?.publicNote}
             onAdd={onAddToTeam ? () => onAddToTeam(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
+            onAddProduct={onAddProduct ? () => onAddProduct(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
             onInfo={pod ? () => onSelect(group.collapseKey) : undefined}
             onClick={(e) => onSelect(group.collapseKey, e)}
             selected={selectedIds.has(group.collapseKey)}
@@ -54,19 +61,26 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
             droppableId={group.collapseKey}
             collapsed={podCollapsed}
             onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
-            dragData={{ memberIds: group.members.map(m => m.person.id) }}
+            dragData={{ memberIds: dragMemberIds }}
           />
         </div>
         {!podCollapsed && (
           <div className={styles.children}>
-            <div className={styles.icStack}>
-              {group.members.map((ic) => <ICNode key={ic.person.id} ic={ic} />)}
-            </div>
+            {group.members.length > 0 && (
+              <div className={styles.icStack}>
+                {group.members.map((ic) => <ICNode key={ic.person.id} ic={ic} />)}
+              </div>
+            )}
+            {podProducts.length > 0 && (
+              <div className={styles.icStack}>
+                {podProducts.map((p) => <ProductNode key={p.person.id} product={p} />)}
+              </div>
+            )}
           </div>
         )}
       </div>
     )
-  }, [pods, selectedIds, onAddToTeam, onSelect, setNodeRef, collapsedIds, onToggleCollapse])
+  }, [pods, selectedIds, onAddToTeam, onAddProduct, onSelect, setNodeRef, collapsedIds, onToggleCollapse])
 
   // Build child elements by iterating node.children and switching on type
   const childElements = useMemo((): ReactNode[] => {
@@ -118,7 +132,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
           elements.push(<ProductNode key={child.person.id} product={child} />)
           break
         default:
-          break
+          assertNever(child, 'ColumnView childElements: unhandled LayoutNode variant')
       }
     }
     flushIcBatch()
@@ -154,32 +168,13 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
   )
 }
 
+// Product group has no header card — products cluster as a slate-coloured
+// stack below their parent. Edges go directly from the parent (manager or
+// chart root) to the first product.
 const LayoutProductGroup = memo(function LayoutProductGroup({ group }: { group: ProductGroupLayout }) {
-  const { collapsedIds, onToggleCollapse, onSelect, selectedIds, setNodeRef } = useChart()
-  const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
-
   return (
-    <div className={styles.subtree}>
-      <div className={styles.nodeSlot}>
-        <GroupHeaderNode
-          nodeId={group.collapseKey}
-          name="Products"
-          variant="productGroup"
-          collapsed={isCollapsed}
-          onClick={(e) => onSelect(group.collapseKey, e)}
-          selected={selectedIds.has(group.collapseKey)}
-          cardRef={setNodeRef(group.collapseKey)}
-          onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
-          dragData={{ memberIds: group.members.map(m => m.person.id) }}
-        />
-      </div>
-      {!isCollapsed && (
-        <div className={styles.children}>
-          <div className={styles.icStack}>
-            {group.members.map((p) => <ProductNode key={p.person.id} product={p} />)}
-          </div>
-        </div>
-      )}
+    <div key={group.collapseKey} className={styles.icStack}>
+      {group.members.map((p) => <ProductNode key={p.person.id} product={p} />)}
     </div>
   )
 })
@@ -220,8 +215,14 @@ export default function ColumnView() {
         return <LayoutSubtree key={node.person.id} node={node} />
       case 'teamGroup':
         return <LayoutTeamGroup key={node.collapseKey} group={node} />
-      default:
+      case 'productGroup':
+        return <LayoutProductGroup key={node.collapseKey} group={node} />
+      case 'ic':
+      case 'podGroup':
+      case 'product':
         return null
+      default:
+        return assertNever(node, 'ColumnView renderLayoutNode: unhandled root variant')
     }
   }, [])
 

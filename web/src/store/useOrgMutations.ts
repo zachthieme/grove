@@ -15,114 +15,169 @@ interface MutationDeps {
 }
 
 export function useOrgMutations({ setState, workingRef, handleError, setError, captureForUndo }: MutationDeps) {
-  const move = useCallback(async (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => {
-    captureForUndo()
-    try {
-      const resp = await api.moveNode({ personId, newManagerId, newTeam, newPod }, correlationId)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
-
-  const reparent = useCallback(async (personId: string, newManagerId: string, correlationId?: string) => {
-    captureForUndo()
-    if (!newManagerId) {
+  // Single dispatch helper for all mutations:
+  //   1. Optionally capture undo before the call.
+  //   2. Run the API call.
+  //   3. Merge a state slice derived from the response.
+  //   4. Route any error through handleError.
+  // Replaces a per-mutation try/catch + setState boilerplate.
+  const dispatch = useCallback(
+    async <T>(
+      call: () => Promise<T>,
+      apply: (result: T) => Partial<OrgDataState>,
+      opts: { undo?: boolean } = {},
+    ) => {
+      if (opts.undo) captureForUndo()
       try {
-        const resp = await api.updateNode({ personId, fields: { managerId: '' } }, correlationId)
-        setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-      } catch (err) { handleError(err) }
-      return
-    }
-    const newManager = workingRef.current.find((p) => p.id === newManagerId)
-    if (!newManager) {
-      setError('Manager not found (may have been deleted)')
-      return
-    }
-    try {
-      const resp = await api.moveNode({ personId, newManagerId, newTeam: newManager.team }, correlationId)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setError, setState, workingRef])
+        const result = await call()
+        setState((s) => ({ ...s, ...apply(result) }))
+      } catch (err) {
+        handleError(err)
+      }
+    },
+    [captureForUndo, handleError, setState],
+  )
 
-  const reorder = useCallback(async (personIds: string[]) => {
-    captureForUndo()
-    try {
-      const resp = await api.reorderPeople(personIds)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const move = useCallback(
+    (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) =>
+      dispatch(
+        () => api.moveNode({ personId, newManagerId, newTeam, newPod }, correlationId),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const update = useCallback(async (personId: string, fields: OrgNodeUpdatePayload, correlationId?: string) => {
-    captureForUndo()
-    try {
-      const resp = await api.updateNode({ personId, fields }, correlationId)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const reparent = useCallback(
+    async (personId: string, newManagerId: string, correlationId?: string) => {
+      if (!newManagerId) {
+        return dispatch(
+          () => api.updateNode({ personId, fields: { managerId: '' } }, correlationId),
+          (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+          { undo: true },
+        )
+      }
+      const newManager = workingRef.current.find((p) => p.id === newManagerId)
+      if (!newManager) {
+        setError('Manager not found (may have been deleted)')
+        return
+      }
+      return dispatch(
+        () => api.moveNode({ personId, newManagerId, newTeam: newManager.team }, correlationId),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        { undo: true },
+      )
+    },
+    [dispatch, setError, workingRef],
+  )
 
-  const add = useCallback(async (person: Omit<OrgNode, 'id'>) => {
-    captureForUndo()
-    try {
-      const resp = await api.addNode(person)
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const reorder = useCallback(
+    (personIds: string[]) =>
+      dispatch(
+        () => api.reorderPeople(personIds),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const addParent = useCallback(async (childId: string, name: string) => {
-    captureForUndo()
-    try {
-      const resp = await api.addParent({ childId, name })
-      setState((s) => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const update = useCallback(
+    (personId: string, fields: OrgNodeUpdatePayload, correlationId?: string) =>
+      dispatch(
+        () => api.updateNode({ personId, fields }, correlationId),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const remove = useCallback(async (personId: string) => {
-    captureForUndo()
-    try {
-      const resp = await api.deleteNode({ personId })
-      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const add = useCallback(
+    (person: Omit<OrgNode, 'id'>) =>
+      dispatch(
+        () => api.addNode(person),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const restore = useCallback(async (personId: string) => {
-    captureForUndo()
-    try {
-      const resp = await api.restoreNode(personId)
-      setState((s) => ({ ...s, working: resp.working, recycled: resp.recycled, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const addParent = useCallback(
+    (childId: string, name: string) =>
+      dispatch(
+        () => api.addParent({ childId, name }),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const emptyBin = useCallback(async () => {
-    captureForUndo()
-    try {
-      const resp = await api.emptyBin()
-      setState((s) => ({ ...s, recycled: resp.recycled, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [captureForUndo, handleError, setState])
+  const remove = useCallback(
+    (personId: string) =>
+      dispatch(
+        () => api.deleteNode({ personId }),
+        (resp) => ({
+          working: resp.working,
+          recycled: resp.recycled,
+          pods: resp.pods,
+          currentSnapshotName: null,
+        }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const saveSnapshot = useCallback(async (name: string) => {
-    try {
-      const snapshots = await api.saveSnapshot(name)
-      setState((s) => ({ ...s, snapshots, currentSnapshotName: name }))
-    } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  const restore = useCallback(
+    (personId: string) =>
+      dispatch(
+        () => api.restoreNode(personId),
+        (resp) => ({
+          working: resp.working,
+          recycled: resp.recycled,
+          pods: resp.pods,
+          currentSnapshotName: null,
+        }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
 
-  const loadSnapshot = useCallback(async (name: string) => {
-    try {
+  const emptyBin = useCallback(
+    () =>
+      dispatch(
+        () => api.emptyBin(),
+        (resp) => ({ recycled: resp.recycled, currentSnapshotName: null }),
+        { undo: true },
+      ),
+    [dispatch],
+  )
+
+  const saveSnapshot = useCallback(
+    (name: string) =>
+      dispatch(
+        () => api.saveSnapshot(name),
+        (snapshots) => ({ snapshots, currentSnapshotName: name }),
+      ),
+    [dispatch],
+  )
+
+  const loadSnapshot = useCallback(
+    (name: string) => {
       if (name === ORIGINAL_SNAPSHOT) {
-        const data = await api.resetToOriginal()
-        setState((s) => ({
-          ...s,
-          original: data.original,
-          working: data.working,
-          recycled: [],
-          pods: data.pods ?? [],
-          settings: data.settings ?? { disciplineOrder: [] },
-          currentSnapshotName: ORIGINAL_SNAPSHOT,
-        }))
-      } else {
-        const data = await api.loadSnapshot(name)
-        setState((s) => ({
-          ...s,
+        return dispatch(
+          () => api.resetToOriginal(),
+          (data) => ({
+            original: data.original,
+            working: data.working,
+            recycled: [],
+            pods: data.pods ?? [],
+            settings: data.settings ?? { disciplineOrder: [] },
+            currentSnapshotName: ORIGINAL_SNAPSHOT,
+          }),
+        )
+      }
+      return dispatch(
+        () => api.loadSnapshot(name),
+        (data) => ({
           original: data.original,
           working: data.working,
           recycled: [],
@@ -130,38 +185,47 @@ export function useOrgMutations({ setState, workingRef, handleError, setError, c
           settings: data.settings ?? { disciplineOrder: [] },
           currentSnapshotName: name,
           loaded: true,
-        }))
-      }
-    } catch (err) { handleError(err) }
-  }, [handleError, setState])
+        }),
+      )
+    },
+    [dispatch],
+  )
 
-  const deleteSnapshot = useCallback(async (name: string) => {
-    try {
-      const snapshots = await api.deleteSnapshot(name)
-      setState((s) => ({ ...s, snapshots }))
-    } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  const deleteSnapshot = useCallback(
+    (name: string) =>
+      dispatch(
+        () => api.deleteSnapshot(name),
+        (snapshots) => ({ snapshots }),
+      ),
+    [dispatch],
+  )
 
-  const updatePod = useCallback(async (podId: string, fields: PodUpdatePayload) => {
-    try {
-      const resp = await api.updatePod(podId, fields)
-      setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  const updatePod = useCallback(
+    (podId: string, fields: PodUpdatePayload) =>
+      dispatch(
+        () => api.updatePod(podId, fields),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+      ),
+    [dispatch],
+  )
 
-  const createPod = useCallback(async (managerId: string, name: string, team: string) => {
-    try {
-      const resp = await api.createPod(managerId, name, team)
-      setState(s => ({ ...s, working: resp.working, pods: resp.pods, currentSnapshotName: null }))
-    } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  const createPod = useCallback(
+    (managerId: string, name: string, team: string) =>
+      dispatch(
+        () => api.createPod(managerId, name, team),
+        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+      ),
+    [dispatch],
+  )
 
-  const updateSettings = useCallback(async (newSettings: Settings) => {
-    try {
-      const result = await api.updateSettings(newSettings)
-      setState(s => ({ ...s, settings: result }))
-    } catch (err) { handleError(err) }
-  }, [handleError, setState])
+  const updateSettings = useCallback(
+    (newSettings: Settings) =>
+      dispatch(
+        () => api.updateSettings(newSettings),
+        (settings) => ({ settings }),
+      ),
+    [dispatch],
+  )
 
   return useMemo(() => ({
     move, reparent, reorder, update, add, addParent, remove, restore, emptyBin,

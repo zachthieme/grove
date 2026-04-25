@@ -198,6 +198,25 @@ describe('computeLayoutTree', () => {
     expect(design.members).toHaveLength(1)
   })
 
+  it('[PROD-013] orphan products go into a top-level product group, not team groups', () => {
+    const widget = makeNode({ id: 'w1', name: 'Widget', team: 'Eng', type: 'product' })
+    const gadget = makeNode({ id: 'g1', name: 'Gadget', team: 'Eng', type: 'product' })
+    const eve = makeNode({ id: 'e1', name: 'Eve', team: 'Eng' })
+
+    const result = computeLayoutTree([widget, gadget, eve])
+    // Eve still becomes a team group; products do NOT.
+    const teamGroups = result.filter((c) => c.type === 'teamGroup')
+    expect(teamGroups).toHaveLength(1)
+    expect(teamGroups[0].type === 'teamGroup' && teamGroups[0].members.map((m) => m.person.id)).toEqual(['e1'])
+
+    const productGroups = result.filter((c) => c.type === 'productGroup')
+    expect(productGroups).toHaveLength(1)
+    if (productGroups[0].type === 'productGroup') {
+      expect(productGroups[0].collapseKey).toBe('orphan:products')
+      expect(productGroups[0].members.map((m) => m.person.id)).toEqual(['w1', 'g1'])
+    }
+  })
+
   it('[LAYOUT-001] uses Unassigned for orphans with empty team', () => {
     const o1 = makeNode({ id: 'o1', name: 'Alice', team: '' })
     const o2 = makeNode({ id: 'o2', name: 'Bob', team: '' })
@@ -253,6 +272,61 @@ describe('computeLayoutTree', () => {
     expect(productGroups[0].members[0].person.id).toBe('3')
     const ics = aliceLayout.children.filter((c) => c.type === 'ic')
     expect(ics).toHaveLength(1)
+  })
+
+  it('[PROD-003] product with a pod nests into its pod group', () => {
+    const personA = makeNode({ id: '2', name: 'Alice IC', managerId: '1', pod: 'Backend' })
+    const personB = makeNode({ id: '3', name: 'Bob IC', managerId: '1', pod: 'Backend' })
+    const product = makeNode({ id: '4', name: 'Widget', type: 'product', managerId: '1', pod: 'Backend' })
+    const root = makeNode({ id: '1', name: 'Manager' }, [personA, personB, product])
+
+    const layout = computeLayoutTree([root])
+    const mgr = layout[0] as ManagerLayout
+    const podGroups = mgr.children.filter((c) => c.type === 'podGroup')
+    expect(podGroups).toHaveLength(1)
+    if (podGroups[0].type === 'podGroup') {
+      expect(podGroups[0].members.map((m) => m.person.id)).toEqual(['2', '3'])
+      expect(podGroups[0].products?.map((p) => p.person.id)).toEqual(['4'])
+    }
+    // No standalone product group at the manager level — the product is in the pod.
+    const standaloneProductGroups = mgr.children.filter((c) => c.type === 'productGroup')
+    expect(standaloneProductGroups).toHaveLength(0)
+  })
+
+  it('[PROD-003] product-only pod still surfaces as a pod group', () => {
+    // No people in the pod, just a product. Should still emit a podGroup.
+    const product = makeNode({ id: '2', name: 'Widget', type: 'product', managerId: '1', pod: 'Skunkworks' })
+    const root = makeNode({ id: '1', name: 'Manager' }, [product])
+
+    const layout = computeLayoutTree([root])
+    const mgr = layout[0] as ManagerLayout
+    const podGroups = mgr.children.filter((c) => c.type === 'podGroup')
+    expect(podGroups).toHaveLength(1)
+    if (podGroups[0].type === 'podGroup') {
+      expect(podGroups[0].podName).toBe('Skunkworks')
+      expect(podGroups[0].members).toHaveLength(0)
+      expect(podGroups[0].products?.map((p) => p.person.id)).toEqual(['2'])
+    }
+  })
+
+  it('[PROD-003] mixed: pod-products nest, pod-less products stay in standalone group', () => {
+    const inPod = makeNode({ id: '2', name: 'PodWidget', type: 'product', managerId: '1', pod: 'Backend' })
+    const noPod = makeNode({ id: '3', name: 'LooseWidget', type: 'product', managerId: '1' })
+    const personInPod = makeNode({ id: '4', name: 'Alice', managerId: '1', pod: 'Backend' })
+    const root = makeNode({ id: '1', name: 'Manager' }, [inPod, noPod, personInPod])
+
+    const layout = computeLayoutTree([root])
+    const mgr = layout[0] as ManagerLayout
+    const podGroups = mgr.children.filter((c) => c.type === 'podGroup')
+    const productGroups = mgr.children.filter((c) => c.type === 'productGroup')
+    expect(podGroups).toHaveLength(1)
+    expect(productGroups).toHaveLength(1)
+    if (podGroups[0].type === 'podGroup') {
+      expect(podGroups[0].products?.map((p) => p.person.id)).toEqual(['2'])
+    }
+    if (productGroups[0].type === 'productGroup') {
+      expect(productGroups[0].members.map((m) => m.person.id)).toEqual(['3'])
+    }
   })
 
   it('[LAYOUT-001] no product group when no products', () => {

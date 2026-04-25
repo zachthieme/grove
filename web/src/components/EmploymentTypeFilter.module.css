@@ -53,11 +53,24 @@
   padding: 4px 0;
 }
 
+.menuSectionHeader {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  padding: 6px 12px 4px;
+}
+
+.menuSectionHeader:not(:first-child) {
+  border-top: 1px solid var(--border-soft);
+  margin-top: 4px;
+}
+
 .menuActions {
   display: flex;
   gap: 4px;
   padding: 4px 12px 6px;
-  border-bottom: 1px solid var(--border-soft);
 }
 
 .menuActionBtn {

@@ -5,16 +5,79 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/zachthieme/grove/internal/model"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 )
+
+// tsTypesSrc reads web/src/api/types.ts once per test run. Used as the source
+// of truth for the API contract: each Go struct's JSON tag set must match the
+// fields declared on the corresponding TS interface, so adding/removing a
+// field on one side without the other fails CI.
+var (
+	tsTypesOnce sync.Once
+	tsTypesData string
+	tsTypesErr  error
+)
+
+func tsTypesSource(t *testing.T) string {
+	t.Helper()
+	tsTypesOnce.Do(func() {
+		_, file, _, ok := runtime.Caller(0)
+		if !ok {
+			tsTypesErr = fmt.Errorf("could not resolve test file path")
+			return
+		}
+		// internal/api/contract_test.go -> repo root -> web/src/api/types.ts
+		repoRoot := filepath.Join(filepath.Dir(file), "..", "..")
+		path := filepath.Join(repoRoot, "web", "src", "api", "types.ts")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			tsTypesErr = err
+			return
+		}
+		tsTypesData = string(data)
+	})
+	if tsTypesErr != nil {
+		t.Fatalf("read TS types: %v", tsTypesErr)
+	}
+	return tsTypesData
+}
+
+// tsInterfaceFields extracts field names from `export interface <name> { ... }`
+// in types.ts. Assumes flat (non-nested) interface bodies — types.ts follows
+// that convention. Errors loudly if the interface is missing.
+func tsInterfaceFields(t *testing.T, name string) []string {
+	t.Helper()
+	src := tsTypesSource(t)
+	// Allow `export interface X { ... }` and `export interface X extends Y { ... }`.
+	re := regexp.MustCompile(`(?s)export interface\s+` + regexp.QuoteMeta(name) + `(?:\s+extends\s+[\w,\s]+)?\s*\{([^}]*)\}`)
+	m := re.FindStringSubmatch(src)
+	if m == nil {
+		t.Fatalf("interface %q not found in web/src/api/types.ts — keep test names in sync with TS", name)
+	}
+	body := m[1]
+	fieldRe := regexp.MustCompile(`(?m)^\s*(\w+)\??\s*:`)
+	matches := fieldRe.FindAllStringSubmatch(body, -1)
+	fields := make([]string, 0, len(matches))
+	for _, mm := range matches {
+		fields = append(fields, mm[1])
+	}
+	sort.Strings(fields)
+	return fields
+}
 
 // jsonFieldNames extracts JSON field names from a struct type via reflection.
 // It flattens embedded (anonymous) struct fields.
@@ -45,191 +108,80 @@ func collectJSONFields(t reflect.Type) []string {
 
 func TestContractPersonFields(t *testing.T) {
 	t.Parallel()
-	// TypeScript OrgNode interface fields
-	expected := []string{
-		"additionalTeams",
-		"discipline",
-		"employmentType",
-		"extra",
-		"id",
-		"level",
-		"managerId",
-		"name",
-		"newRole",
-		"newTeam",
-		"pod",
-		"private",
-		"privateNote",
-		"publicNote",
-		"role",
-		"sortIndex",
-		"status",
-		"team",
-		"type",
-		"warning",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "OrgNode")
 	got := jsonFieldNames(OrgNode{})
 	assertFieldsMatch(t, "OrgNode", expected, got)
 }
 
 func TestContractPodFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"id",
-		"managerId",
-		"name",
-		"privateNote",
-		"publicNote",
-		"team",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "Pod")
 	got := jsonFieldNames(Pod{})
 	assertFieldsMatch(t, "Pod", expected, got)
 }
 
 func TestContractPodInfoFields(t *testing.T) {
 	t.Parallel()
-	// PodInfo extends Pod with memberCount
-	expected := []string{
-		"id",
-		"managerId",
-		"memberCount",
-		"name",
-		"privateNote",
-		"publicNote",
-		"team",
-	}
+	// PodInfo (TS) extends Pod, so the regex captures only the additional
+	// fields. Combine with Pod fields to get the full set.
+	expected := append(tsInterfaceFields(t, "Pod"), tsInterfaceFields(t, "PodInfo")...)
 	sort.Strings(expected)
-
 	got := jsonFieldNames(PodInfo{})
 	assertFieldsMatch(t, "PodInfo", expected, got)
 }
 
 func TestContractOrgDataFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"original",
-		"persistenceWarning",
-		"pods",
-		"settings",
-		"working",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "OrgData")
 	got := jsonFieldNames(OrgData{})
 	assertFieldsMatch(t, "OrgData", expected, got)
 }
 
 func TestContractAutosaveDataFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"original",
-		"originalPods",
-		"pods",
-		"recycled",
-		"settings",
-		"snapshotName",
-		"timestamp",
-		"working",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "AutosaveData")
 	got := jsonFieldNames(AutosaveData{})
 	assertFieldsMatch(t, "AutosaveData", expected, got)
 }
 
 func TestContractSnapshotInfoFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"name",
-		"timestamp",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "SnapshotInfo")
 	got := jsonFieldNames(SnapshotInfo{})
 	assertFieldsMatch(t, "SnapshotInfo", expected, got)
 }
 
 func TestContractMappedColumnFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"column",
-		"confidence",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "MappedColumn")
 	got := jsonFieldNames(MappedColumn{})
 	assertFieldsMatch(t, "MappedColumn", expected, got)
 }
 
 func TestContractUploadResponseFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"headers",
-		"mapping",
-		"orgData",
-		"persistenceWarning",
-		"preview",
-		"snapshots",
-		"status",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "UploadResponse")
 	got := jsonFieldNames(UploadResponse{})
 	assertFieldsMatch(t, "UploadResponse", expected, got)
 }
 
 func TestContractSettingsFields(t *testing.T) {
 	t.Parallel()
-	expected := []string{
-		"disciplineOrder",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "Settings")
 	got := jsonFieldNames(Settings{})
 	assertFieldsMatch(t, "Settings", expected, got)
 }
 
 func TestContractPersonUpdateFields(t *testing.T) {
 	t.Parallel()
-	// TypeScript PersonUpdatePayload interface fields
-	expected := []string{
-		"additionalTeams",
-		"discipline",
-		"employmentType",
-		"level",
-		"managerId",
-		"name",
-		"newRole",
-		"newTeam",
-		"pod",
-		"private",
-		"privateNote",
-		"publicNote",
-		"role",
-		"status",
-		"team",
-		"type",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "OrgNodeUpdatePayload")
 	got := jsonFieldNames(OrgNodeUpdate{})
 	assertFieldsMatch(t, "OrgNodeUpdate", expected, got)
 }
 
 func TestContractPodUpdateFields(t *testing.T) {
 	t.Parallel()
-	// TypeScript PodUpdatePayload interface fields
-	expected := []string{
-		"name",
-		"privateNote",
-		"publicNote",
-	}
-	sort.Strings(expected)
-
+	expected := tsInterfaceFields(t, "PodUpdatePayload")
 	got := jsonFieldNames(PodUpdate{})
 	assertFieldsMatch(t, "PodUpdate", expected, got)
 }

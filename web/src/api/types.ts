@@ -1,8 +1,8 @@
-import type { Status } from '../constants'
+import type { NodeType, Status } from '../constants'
 
 export interface OrgNode {
   id: string
-  type?: string
+  type?: NodeType
   name: string
   role: string
   discipline: string
@@ -57,7 +57,7 @@ export interface MovePayload {
 }
 
 export interface OrgNodeUpdatePayload {
-  type?: string
+  type?: NodeType
   name?: string
   role?: string
   discipline?: string

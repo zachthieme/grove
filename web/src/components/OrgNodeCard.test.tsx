@@ -250,4 +250,55 @@ describe('OrgNodeCard behavior', () => {
       expect(screen.getByText('Deprecated')).toBeTruthy()
     })
   })
+
+  // Scenarios: PROD-015
+  describe('[PROD-015] add product action', () => {
+    it('[PROD-015] non-product card exposes Add product button when onAddProduct provided', async () => {
+      const user = userEvent.setup()
+      const onAddProduct = vi.fn()
+      render(<OrgNodeCard person={makeNode()} onAddProduct={onAddProduct} onDelete={vi.fn()} />)
+      const card = screen.getByTestId('person-Default Person')
+      await user.hover(card)
+      fireEvent.click(screen.getByLabelText('Add product'))
+      expect(onAddProduct).toHaveBeenCalledOnce()
+    })
+
+    it('[PROD-015] product card does not show Add product button', async () => {
+      const user = userEvent.setup()
+      render(
+        <OrgNodeCard
+          person={makeNode({ type: 'product' })}
+          onAddProduct={vi.fn()}
+          onDelete={vi.fn()}
+        />,
+      )
+      const card = screen.getByTestId('person-Default Person')
+      await user.hover(card)
+      expect(screen.queryByLabelText('Add product')).toBeNull()
+    })
+  })
+
+  // Scenarios: PROD-014
+  describe('[PROD-014] product card actions', () => {
+    it('[PROD-014] product card hover shows only delete button', async () => {
+      const user = userEvent.setup()
+      render(
+        <OrgNodeCard
+          person={makeNode({ type: 'product' })}
+          onAdd={vi.fn()}
+          onAddParent={vi.fn()}
+          onDelete={vi.fn()}
+          onInfo={vi.fn()}
+          onFocus={vi.fn()}
+        />,
+      )
+      const card = screen.getByTestId('person-Default Person')
+      await user.hover(card)
+      expect(screen.getByLabelText('Delete')).toBeTruthy()
+      expect(screen.queryByLabelText('Add direct report')).toBeNull()
+      expect(screen.queryByLabelText('Add manager above')).toBeNull()
+      expect(screen.queryByLabelText('Org metrics')).toBeNull()
+      expect(screen.queryByLabelText('Focus on subtree')).toBeNull()
+    })
+  })
 })

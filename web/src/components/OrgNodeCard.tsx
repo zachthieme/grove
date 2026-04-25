@@ -5,7 +5,7 @@ import type { BaseNodeActions } from './BaseNode'
 import type { OrgNode } from '../api/types'
 import type { NodeChange } from '../hooks/useOrgDiff'
 import type { NodeFormValues } from '../utils/nodeFormUtils'
-import { isRecruitingStatus, isPlannedStatus, isTransferStatus } from '../constants'
+import { isRecruitingStatus, isPlannedStatus, isTransferStatus, isProduct } from '../constants'
 
 function getEmpAbbrev(empType: string | undefined): string {
   if (!empType || empType === 'FTE') return ''
@@ -41,6 +41,7 @@ interface Props {
   /** Which field to auto-focus when entering edit mode */
   focusField?: 'name' | 'role' | 'team' | null
   onAdd?: () => void
+  onAddProduct?: () => void
   onAddParent?: () => void
   onDelete?: () => void
   onInfo?: () => void
@@ -53,7 +54,7 @@ interface Props {
   cardRef?: (el: HTMLDivElement | null) => void
 }
 
-function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
+function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManager, collapsed, editing, editBuffer, focusField: _focusField, onAdd, onAddProduct, onAddParent, onDelete, onInfo, onFocus, onToggleCollapse, onClick, onEnterEditing, onUpdateBuffer, onCommitEdits, cardRef }: Props) {
   const nameRef = useRef<HTMLInputElement>(null)
   const roleRef = useRef<HTMLInputElement>(null)
   const teamRef = useRef<HTMLInputElement>(null)
@@ -62,16 +63,16 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
   const cyclingRef = useRef(false)
 
   const isPlaceholder = !!person.isPlaceholder
-  const isProduct = person.type === 'product'
-  const isRecruiting = !isProduct && isRecruitingStatus(person.status)
-  const isFuture = !isProduct && isPlannedStatus(person.status)
-  const isTransfer = !isProduct && isTransferStatus(person.status)
+  const isProductNode = isProduct(person)
+  const isRecruiting = !isProductNode && isRecruitingStatus(person.status)
+  const isFuture = !isProductNode && isPlannedStatus(person.status)
+  const isTransfer = !isProductNode && isTransferStatus(person.status)
 
   const empAbbrev = getEmpAbbrev(person.employmentType)
 
   const prefix = isRecruiting ? '\u{1F535} ' : isFuture ? '\u{2B1C} ' : isTransfer ? '\u{1F7E1} ' : ''
   const statusLabel = isRecruiting ? 'Recruiting' : isFuture ? 'Planned' : isTransfer ? 'Transfer' : null
-  const productStatusLabel = isProduct && person.status !== 'Active' ? person.status : null
+  const productStatusLabel = isProductNode && person.status !== 'Active' ? person.status : null
 
   const handleDoubleClick = (field: 'name' | 'role' | 'team') => (e: React.MouseEvent) => {
     if (!onEnterEditing || ghost || isPlaceholder) return
@@ -135,13 +136,17 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
     : isTransfer ? 'transfer' as const
     : undefined
 
-  // Build actions for BaseNode
+  // Build actions for BaseNode. Product nodes only expose delete — no add,
+  // edit, info, focus, or add-parent affordances.
   const actions: BaseNodeActions = {}
-  if (onAdd && !isProduct) actions.onAdd = (e) => { e.stopPropagation(); onAdd() }
-  if (onAddParent) actions.onAddParent = (e) => { e.stopPropagation(); onAddParent() }
   if (onDelete) actions.onDelete = (e) => { e.stopPropagation(); onDelete() }
-  if (onInfo) actions.onInfo = (e) => { e.stopPropagation(); onInfo() }
-  if (onFocus) actions.onFocus = (e) => { e.stopPropagation(); onFocus() }
+  if (!isProductNode) {
+    if (onAdd) actions.onAdd = (e) => { e.stopPropagation(); onAdd() }
+    if (onAddProduct) actions.onAddProduct = (e) => { e.stopPropagation(); onAddProduct() }
+    if (onAddParent) actions.onAddParent = (e) => { e.stopPropagation(); onAddParent() }
+    if (onInfo) actions.onInfo = (e) => { e.stopPropagation(); onInfo() }
+    if (onFocus) actions.onFocus = (e) => { e.stopPropagation(); onFocus() }
+  }
 
   // Build diff classes from changes
   const diffClasses: string[] = []
@@ -153,9 +158,9 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
   return (
     <BaseNode
       nodeId={person.id}
-      variant={isProduct ? 'product' : isManager ? 'manager' : 'default'}
+      variant={isProductNode ? 'product' : isManager ? 'manager' : 'default'}
       statusStyle={statusStyle}
-      empAccent={isProduct ? undefined : getEmpColor(person.employmentType)}
+      empAccent={isProductNode ? undefined : getEmpColor(person.employmentType)}
       ghost={ghost}
       isPlaceholder={isPlaceholder}
       noteText={person.publicNote}
@@ -166,7 +171,7 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
       warning={person.warning}
       isPrivate={!!person.private}
       draggable={!ghost && !isPlaceholder}
-      droppable={!ghost && !isPlaceholder && !isProduct}
+      droppable={!ghost && !isPlaceholder && !isProductNode}
       dragData={{ person }}
       cardRef={cardRef}
       actions={actions}
@@ -182,7 +187,7 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
         )}
       </div>
       {showTeam && (
-        <div className={`${styles.team}${isProduct ? ` ${styles.productTeam}` : ''}`} onDoubleClick={handleDoubleClick('team')}>
+        <div className={`${styles.team}${isProductNode ? ` ${styles.productTeam}` : ''}`} onDoubleClick={handleDoubleClick('team')}>
           {editing && editBuffer ? (
             <input ref={teamRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.team} onChange={(e) => onUpdateBuffer?.('team', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />
           ) : (
@@ -190,7 +195,7 @@ function OrgNodeCardInner({ person, selected, ghost, changes, showTeam, isManage
           )}
         </div>
       )}
-      {!isProduct && (
+      {!isProductNode && (
         <div className={styles.role} onDoubleClick={handleDoubleClick('role')}>
           {editing && editBuffer ? (
             <input ref={roleRef} className={`${styles.inlineEdit} ${styles.inlineEditSmall}`} value={editBuffer.role} onChange={(e) => onUpdateBuffer?.('role', e.target.value)} onKeyDown={handleEditKeyDown} onBlur={handleEditBlur} />

@@ -111,3 +111,22 @@ User marks people as private via the edit sidebar. Private people are hidden fro
 - Private manager with no visible reports → no placeholder injected
 - Head person is private and hidden → head filter clears
 - All people private and hidden → empty view
+
+---
+
+# Scenario: Hide individual contributors
+
+**ID**: FILTER-005
+**Area**: filters
+**Tests**:
+- `web/src/hooks/useFilteredPeople.test.ts` → "[FILTER-005]"
+
+## Behavior
+The Filters dropdown exposes an "ICs" checkbox alongside Private/Products. When unchecked, individual contributors (people who are neither managers nor products) are hidden everywhere they would otherwise render: live cards and ghost cards in diff mode. The toggle row only appears when the working set contains at least one IC. Used to produce a clean managers-and-products-only view that still surfaces team and pod groupings.
+
+## Invariants
+- `useFilteredPeople` accepts a `showICs` flag (default true).
+- Manager identification uses `working` (the source of truth), so an IC stays hidden in original/diff views even if its row drifts between slices.
+- When `showICs` is false, `people` excludes any node where `!isProduct(p) && !managerIds.has(p.id)`.
+- When `showICs` is false in diff mode, `ghostPeople` applies the same predicate against the original-derived manager set.
+- Toggling the flag does not affect employment-type, private, or product filters — they compose multiplicatively.

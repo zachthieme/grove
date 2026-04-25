@@ -185,6 +185,48 @@ describe('ViewDataContext', () => {
       }))
     })
 
+    // Scenarios: PROD-015
+    it('[PROD-015] handleAddProduct adds a product under the given parent', async () => {
+      const add = vi.fn().mockResolvedValue(undefined)
+      const parent = makeNode({ id: 'mgr', name: 'Manager', team: 'Eng' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [parent], add }),
+      })
+      await act(async () => { await result.current.handleAddProduct('mgr') })
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'product',
+        name: 'New Product',
+        team: 'Eng',
+        managerId: 'mgr',
+        employmentType: '',
+      }))
+    })
+
+    it('[PROD-015] handleAddProduct with pod params assigns team and pod', async () => {
+      const add = vi.fn().mockResolvedValue(undefined)
+      const parent = makeNode({ id: 'mgr', name: 'Manager', team: 'Eng' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [parent], add }),
+      })
+      await act(async () => { await result.current.handleAddProduct('mgr', 'Platform', 'Backend') })
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'product',
+        name: 'New Product',
+        team: 'Platform',
+        pod: 'Backend',
+        managerId: 'mgr',
+      }))
+    })
+
+    it('[PROD-015] handleAddProduct is a no-op when parent not found', async () => {
+      const add = vi.fn().mockResolvedValue(undefined)
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [], add }),
+      })
+      await act(async () => { await result.current.handleAddProduct('missing') })
+      expect(add).not.toHaveBeenCalled()
+    })
+
     it('handleAddReport is a no-op when parent not found', async () => {
       const add = vi.fn().mockResolvedValue(undefined)
       const { result } = renderHook(() => useActions(), {

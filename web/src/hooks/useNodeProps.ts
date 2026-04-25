@@ -11,6 +11,7 @@ export interface NodeCommonProps {
   editBuffer: EditBuffer | null
   focusField: 'name' | null
   onAdd?: () => void
+  onAddProduct?: () => void
   onAddParent?: () => void
   onDelete?: () => void
   onInfo?: () => void
@@ -25,7 +26,7 @@ export interface NodeCommonProps {
 export function useNodeProps(person: OrgNode): NodeCommonProps {
   const {
     selectedIds, changes, managerSet, interactionMode,
-    editingPersonId, editBuffer, onSelect, onAddReport,
+    editingPersonId, editBuffer, onSelect, onAddReport, onAddProduct,
     onAddParent, onDeletePerson, onInfo, onFocus,
     onEnterEditing, onUpdateBuffer, onCommitEdits,
     setNodeRef,
@@ -42,6 +43,7 @@ export function useNodeProps(person: OrgNode): NodeCommonProps {
     editBuffer: isEditing ? editBuffer ?? null : null,
     focusField: isEditing ? 'name' : null,
     onAdd: onAddReport ? () => onAddReport(id) : undefined,
+    onAddProduct: onAddProduct ? () => onAddProduct(id) : undefined,
     onAddParent: onAddParent ? () => onAddParent(id) : undefined,
     onDelete: onDeletePerson ? () => onDeletePerson(id) : undefined,
     onInfo: onInfo ? () => onInfo(id) : undefined,

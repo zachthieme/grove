@@ -94,6 +94,18 @@ func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 	return rows[0], rows[1:], nil
 }
 
+// normalizeEmploymentType sets EmploymentType to "FTE" for any non-product node
+// missing one. FTE is the canonical default — the codebase treats empty as FTE
+// (form default, card abbrev, status colors), so normalize at ingress to avoid a
+// "No type" bucket appearing for what is effectively unset/legacy data.
+func normalizeEmploymentType(nodes []OrgNode) {
+	for i := range nodes {
+		if !model.IsProduct(nodes[i].Type) && nodes[i].EmploymentType == "" {
+			nodes[i].EmploymentType = "FTE"
+		}
+	}
+}
+
 // RestoreState loads full state from an autosave payload into the service,
 // syncing the backend with a frontend that restored from autosave.
 func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
@@ -101,8 +113,11 @@ func (s *OrgService) RestoreState(ctx context.Context, data AutosaveData) {
 	defer s.mu.Unlock()
 	s.original = deepCopyNodes(data.Original)
 	s.working = deepCopyNodes(data.Working)
+	normalizeEmploymentType(s.original)
+	normalizeEmploymentType(s.working)
 	s.rebuildIndex()
 	s.recycled = deepCopyNodes(data.Recycled)
+	normalizeEmploymentType(s.recycled)
 	s.podMgr.SetState(CopyPods(data.Pods), CopyPods(data.OriginalPods))
 	if data.Settings != nil {
 		s.settings = *data.Settings

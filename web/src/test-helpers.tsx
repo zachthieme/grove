@@ -86,6 +86,8 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     layoutKey: 0,
     error: null,
     showPrivate: false,
+    showProducts: true,
+    showICs: true,
     setViewMode: noop,
     setDataView: noop,
     setBinOpen: noop,
@@ -97,6 +99,8 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     setError: noop,
     clearError: noop,
     setShowPrivate: noop,
+    setShowProducts: noop,
+    setShowICs: noop,
     // Selection
     selectedIds: new Set(),
     selectedId: null,

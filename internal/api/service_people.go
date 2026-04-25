@@ -54,12 +54,18 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNode
 	// fields as the caller passes them (frontend already sends defaults).
 	if fields.Type != nil {
 		p.Type = *fields.Type
-		if p.Type == "product" {
+		if model.IsProduct(p.Type) {
 			p.Role = ""
 			p.Discipline = ""
 			p.EmploymentType = ""
 			p.Level = 0
 			p.AdditionalTeams = nil
+		}
+		// If the existing status isn't valid for the new type and the caller
+		// didn't supply a replacement, default to Active rather than leaving
+		// the node in an invalid state. (Active is valid for both types.)
+		if fields.Status == nil && !model.ValidStatuses(p.Type)[p.Status] {
+			p.Status = model.StatusActive
 		}
 	}
 
@@ -150,6 +156,9 @@ func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []
 	if err := validateFieldLengths(fields); err != nil {
 		return OrgNode{}, nil, nil, err
 	}
+	if p.Type != "" && p.Type != model.NodeTypePerson && p.Type != model.NodeTypeProduct {
+		return OrgNode{}, nil, nil, errValidation("invalid type '%s'", p.Type)
+	}
 	if p.Status != "" && !model.ValidStatuses(p.Type)[p.Status] {
 		return OrgNode{}, nil, nil, errValidation("invalid status '%s'", p.Status)
 	}
@@ -158,7 +167,7 @@ func (s *OrgService) Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []
 			return OrgNode{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
 		}
 	}
-	if p.Type != "product" && p.EmploymentType == "" {
+	if !model.IsProduct(p.Type) && p.EmploymentType == "" {
 		p.EmploymentType = "FTE"
 	}
 	p.Id = uuid.NewString()
@@ -296,7 +305,7 @@ func (s *OrgService) applyManagerChange(p *OrgNode, personId, newManagerId strin
 	return nil
 }
 
-// applyPodChange assigns or clears a person's pod, auto-creating if needed.
+// applyPodChange assigns or clears a node's pod, auto-creating if needed.
 // Must be called with s.mu held.
 func (s *OrgService) applyPodChange(p *OrgNode, podName string) {
 	if podName == "" {

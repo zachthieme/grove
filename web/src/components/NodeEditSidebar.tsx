@@ -11,6 +11,7 @@ import {
 } from '../utils/nodeFormUtils'
 import NodeForm from './NodeForm'
 import SidebarShell from './SidebarShell'
+import { isProduct } from '../constants'
 import styles from './DetailSidebar.module.css'
 
 interface NodeEditSidebarProps {
@@ -96,7 +97,7 @@ export default function NodeEditSidebar({ personId }: NodeEditSidebarProps) {
   if (!person) return null
 
   return (
-    <SidebarShell heading={person.type === 'product' ? 'Edit Product' : 'Edit Person'} onExit={() => { if (person) setSidebarForm(nodeToForm(person)) }} onSave={handleSave}>
+    <SidebarShell heading={isProduct(person) ? 'Edit Product' : 'Edit Person'} onExit={() => { if (person) setSidebarForm(nodeToForm(person)) }} onSave={handleSave}>
       <NodeForm
         values={sidebarForm}
         onChange={handleChange}

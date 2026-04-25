@@ -3,8 +3,7 @@ import { useOrgData, useOrgMutations, useUI } from '../store/OrgContext'
 import { useOutsideClick } from '../hooks/useOutsideClick'
 import RecycleBinButton from './RecycleBinButton'
 import SnapshotsDropdown from './SnapshotsDropdown'
-import EmploymentTypeFilter from './EmploymentTypeFilter'
-import PrivateToggle from './PrivateToggle'
+import FiltersDropdown from './FiltersDropdown'
 import SettingsModal from './SettingsModal'
 import SearchBar from './SearchBar'
 import ExportDropdown from './ExportDropdown'
@@ -142,9 +141,7 @@ export default function Toolbar({ onExportPng, onExportSvg, exporting, hasSnapsh
 
           <SearchBar />
 
-          <EmploymentTypeFilter />
-
-          <PrivateToggle />
+          <FiltersDropdown />
 
           <RecycleBinButton />
 

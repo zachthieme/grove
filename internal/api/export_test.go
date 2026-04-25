@@ -382,7 +382,7 @@ func TestExportCSV_FormulaEscaping(t *testing.T) {
 	}
 }
 
-// Scenarios: EXPORT-001
+// Scenarios: EXPORT-001, PROD-007
 func TestExportCSV_WithProducts(t *testing.T) {
 	t.Parallel()
 	nodes := []OrgNode{

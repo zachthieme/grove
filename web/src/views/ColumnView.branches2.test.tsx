@@ -12,33 +12,9 @@ import ColumnView from './ColumnView'
 import { makeNode, renderWithViewData } from '../test-helpers'
 import type { Pod } from '../api/types'
 
-vi.mock('@dnd-kit/core', () => ({
-  DndContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DragOverlay: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  useDraggable: () => ({ attributes: {}, listeners: {}, setNodeRef: vi.fn(), isDragging: false }),
-  useDroppable: () => ({ setNodeRef: vi.fn(), isOver: false }),
-  MouseSensor: class {},
-  KeyboardSensor: class {},
-  useSensor: () => ({}),
-  useSensors: () => [],
-}))
-
-vi.mock('../hooks/useChartLayout', () => ({
-  useChartLayout: () => ({
-    containerRef: { current: null },
-    nodeRefs: { current: new Map() },
-    setNodeRef: () => () => {},
-    lines: [],
-    activeDragId: null,
-    sensors: [],
-    handleDragStart: vi.fn(),
-    handleDragEnd: vi.fn(),
-  }),
-}))
-
-vi.mock('../hooks/useDragDrop', () => ({
-  useDragDrop: () => ({ onDragEnd: vi.fn() }),
-}))
+vi.mock('@dnd-kit/core')
+vi.mock('../hooks/useChartLayout')
+vi.mock('../hooks/useDragDrop')
 
 afterEach(() => cleanup())
 

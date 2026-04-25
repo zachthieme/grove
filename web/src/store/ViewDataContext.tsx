@@ -26,6 +26,7 @@ export interface ChangesContextValue {
 export interface ActionsContextValue {
   handleSelect: (id: string, event?: React.MouseEvent) => void
   handleAddReport: (parentId: string) => Promise<void>
+  handleAddProduct: (parentId: string, team?: string, podName?: string) => Promise<void>
   handleAddToTeam: (parentId: string, team: string, podName?: string) => Promise<void>
   handleAddParent: (childId: string) => void
   handleDeletePerson: (personId: string) => void
@@ -68,7 +69,7 @@ export function useActions(): ActionsContextValue {
 export function ViewDataProvider({ children }: { children: ReactNode }) {
   const { original, working, pods, settings } = useOrgData()
   const { add, addParent, remove, update } = useOrgMutations()
-  const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, setHead } = useUI()
+  const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, showProducts, showICs, setHead } = useUI()
   const { toggleSelect, commitEdits, editingPersonId } = useSelection()
 
   // Derived data
@@ -80,7 +81,7 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
 
   const headSubtree = useHeadSubtree(headPersonId, working)
   const { people: filteredPeople, ghostPeople } = useFilteredPeople(
-    rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges, showPrivate,
+    rawPeople, original, working, hiddenEmploymentTypes, headSubtree, showChanges, showPrivate, showProducts, showICs,
   )
   const people = useSortedPeople(filteredPeople, settings.disciplineOrder)
 
@@ -111,6 +112,24 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
       managerId: parent.id,
       status: DEFAULT_STATUS,
       additionalTeams: [],
+      employmentType: 'FTE',
+    })
+  }, [working, add])
+
+  const handleAddProduct = useCallback(async (parentId: string, team?: string, podName?: string) => {
+    const parent = working.find((p) => p.id === parentId)
+    if (!parent) return
+    await add({
+      type: 'product',
+      name: 'New Product',
+      role: '',
+      discipline: '',
+      team: team ?? parent.team,
+      managerId: parent.id,
+      status: 'Active',
+      additionalTeams: [],
+      pod: podName,
+      employmentType: '',
     })
   }, [working, add])
 
@@ -124,6 +143,7 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
       status: DEFAULT_STATUS,
       additionalTeams: [],
       pod: podName,
+      employmentType: 'FTE',
     })
   }, [add])
 
@@ -200,13 +220,13 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
   }), [showChanges, changes])
 
   const actionsValue: ActionsContextValue = useMemo(() => ({
-    handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
+    handleSelect, handleAddReport, handleAddProduct, handleAddToTeam, handleAddParent, handleDeletePerson,
     handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
     addParentTargetId, setAddParentTargetId, submitAddParent,
     deleteTargetId, confirmDelete, cancelDelete,
     handleInlineEdit,
     handleCommitEdits,
-  }), [handleSelect, handleAddReport, handleAddToTeam, handleAddParent, handleDeletePerson,
+  }), [handleSelect, handleAddReport, handleAddProduct, handleAddToTeam, handleAddParent, handleDeletePerson,
        handleShowInfo, handleFocus, infoPopoverId, clearInfoPopover,
        addParentTargetId, setAddParentTargetId, submitAddParent,
        deleteTargetId, confirmDelete, cancelDelete, handleInlineEdit, handleCommitEdits])

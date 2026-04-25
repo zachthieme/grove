@@ -5,6 +5,7 @@ import NodeActions from './NodeActions'
 
 export interface BaseNodeActions {
   onAdd?: (e: React.MouseEvent) => void
+  onAddProduct?: (e: React.MouseEvent) => void
   onAddParent?: (e: React.MouseEvent) => void
   onDelete?: (e: React.MouseEvent) => void
   onEdit?: (e: React.MouseEvent) => void
@@ -91,7 +92,7 @@ function BaseNodeInner({
 
   const hasNote = !!noteText
   const showActions = !ghost && !isPlaceholder && actions && (
-    actions.onAdd || actions.onAddParent || actions.onDelete ||
+    actions.onAdd || actions.onAddProduct || actions.onAddParent || actions.onDelete ||
     actions.onEdit || actions.onInfo || actions.onFocus
   )
 
@@ -138,12 +139,14 @@ function BaseNodeInner({
       {showActions && hovered && (
         <NodeActions
           showAdd={!!actions.onAdd}
+          showAddProduct={!!actions.onAddProduct}
           showAddParent={!!actions.onAddParent}
           showInfo={!!actions.onInfo}
           showFocus={!!actions.onFocus}
           showEdit={!!actions.onEdit}
           showDelete={!!actions.onDelete}
           onAdd={(e) => { e.stopPropagation(); actions.onAdd?.(e) }}
+          onAddProduct={actions.onAddProduct ? (e) => { e.stopPropagation(); actions.onAddProduct!(e) } : undefined}
           onAddParent={actions.onAddParent ? (e) => { e.stopPropagation(); actions.onAddParent!(e) } : undefined}
           onDelete={(e) => { e.stopPropagation(); actions.onDelete?.(e) }}
           onEdit={actions.onEdit ? (e) => { e.stopPropagation(); actions.onEdit!(e) } : undefined}
