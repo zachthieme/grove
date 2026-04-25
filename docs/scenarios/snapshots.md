@@ -205,3 +205,49 @@ Snapshot names are validated before saving. Names must be non-empty, at most 100
 - Name starting with a dot or space is rejected (must start with letter or digit)
 - Exactly 100-character name is accepted
 - 101-character name is rejected
+
+---
+
+# Scenario: Snapshot save aborts when org state is reset mid-save
+
+**ID**: SNAP-010
+**Area**: snapshots
+**Tests**:
+- `internal/api/snapshot_service_test.go` → "TestSnapshotService_Save_AbortsWhenEpochAdvances"
+- `internal/api/concurrent_test.go` → "TestSnapshotSave_EpochGuard_Reset"
+- `internal/api/concurrent_test.go` → "TestSnapshotSave_EpochGuard_UploadCSV"
+
+## Behavior
+When a SaveSnapshot races against ResetToOriginal, Create, Upload, ConfirmMapping, or UploadZip (which call Clear or ReplaceAll and bump the snapshot epoch), the SaveSnapshot aborts with HTTP 409 conflict ("snapshot superseded — org state was reset"). The epoch is read BEFORE CaptureState so that a Clear running after the read but before the commit-lock advances `ss.epoch` past the captured expectedEpoch and the commit aborts.
+
+## Invariants
+- Epoch is captured before CaptureState begins
+- Any Clear or ReplaceAll that runs after epoch capture but before commit bumps epoch
+- Commit compares captured epoch to current epoch under the write lock and aborts if they differ
+- Aborted save returns HTTP 409 with message "snapshot superseded — org state was reset"
+- No snapshot is written on abort
+
+## Edge cases
+- Race with Reset (epoch advances via Clear)
+- Race with Upload/ConfirmMapping/UploadZip (epoch advances via ReplaceAll)
+
+---
+
+# Scenario: Frontend surfaces snapshot 409 conflict as user-visible error
+
+**ID**: SNAP-011
+**Area**: snapshots
+**Tests**:
+- `web/src/api/client.coverage.test.ts` → "[SNAP-011] saveSnapshot rejects with superseded message on 409 conflict"
+- `web/src/store/OrgDataContext.test.tsx` → "[SNAP-011] surfaces 409 snapshot conflict as error banner text containing superseded"
+
+## Behavior
+When the backend returns HTTP 409 with body `{"error": "snapshot superseded …"}` from POST /api/snapshots/save, the frontend's API client throws an Error containing the message, the OrgDataContext mutation handler catches it and routes it to setError, and the UI surfaces a banner. The user sees a non-silent error rather than a swallowed failure.
+
+## Invariants
+- API client throws Error with the server's error message on HTTP 409
+- OrgDataContext save-snapshot handler catches the error and calls setError
+- The error message propagates to the UI error banner
+
+## Edge cases
+- Error must not be silently swallowed

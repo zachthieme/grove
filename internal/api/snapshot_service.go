@@ -170,8 +170,7 @@ func (ss *SnapshotService) Load(ctx context.Context, name string) error {
 }
 
 // Delete removes a named snapshot and persists the change. Idempotent:
-// deleting a nonexistent snapshot is a no-op (matches legacy
-// SnapshotManager.Delete behavior).
+// deleting a nonexistent snapshot is a no-op.
 func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
@@ -227,16 +226,26 @@ func (ss *SnapshotService) Clear() error {
 }
 
 // ReplaceAll replaces the snapshot map (used by zip import to install
-// imported snapshots), bumps the epoch, and persists.
+// imported snapshots), bumps the epoch, and persists. Rolls back to the
+// prior map and epoch on store.Write failure.
 func (ss *SnapshotService) ReplaceAll(snaps map[string]snapshotData) error {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
+	prevSnaps := ss.snaps
+	prevEpoch := ss.epoch
 	ss.snaps = snaps
 	ss.epoch++
 	if snaps == nil {
-		return ss.store.Delete()
+		if err := ss.store.Delete(); err != nil {
+			ss.snaps = prevSnaps
+			ss.epoch = prevEpoch
+			return fmt.Errorf("deleting snapshot store: %w", err)
+		}
+		return nil
 	}
 	if err := ss.store.Write(ss.snaps); err != nil {
+		ss.snaps = prevSnaps
+		ss.epoch = prevEpoch
 		return fmt.Errorf("persisting snapshots: %w", err)
 	}
 	return nil
