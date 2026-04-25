@@ -15,6 +15,15 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
+// OrgState is a frozen, deep-copied view of org state at a point in time.
+// Used as the bridge format between OrgService and SnapshotService for
+// Save/Load, and stored as the in-memory snapshot payload.
+type OrgState struct {
+	People   []OrgNode
+	Pods     []Pod
+	Settings Settings
+}
+
 type OrgService struct {
 	mu       sync.RWMutex
 	original []OrgNode
@@ -218,6 +227,48 @@ func deepCopyNodes(src []OrgNode) []OrgNode {
 		}
 	}
 	return dst
+}
+
+// CaptureState returns a deep-copied snapshot of the current org state.
+// Held under read lock for the minimum time needed to copy.
+// Pods is always a non-nil slice (may be empty) so callers can JSON-encode
+// it as [] rather than null.
+func (s *OrgService) CaptureState() OrgState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	pods := CopyPods(s.podMgr.unsafeGetPods())
+	if pods == nil {
+		pods = []Pod{}
+	}
+	order := make([]string, len(s.settings.DisciplineOrder))
+	copy(order, s.settings.DisciplineOrder)
+	return OrgState{
+		People:   deepCopyNodes(s.working),
+		Pods:     pods,
+		Settings: Settings{DisciplineOrder: order},
+	}
+}
+
+// ApplyState replaces working/pods/settings from the given state under write lock.
+// Recycled is cleared (snapshot loads start fresh) and idIndex is rebuilt.
+func (s *OrgService) ApplyState(state OrgState) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.working = deepCopyNodes(state.People)
+	s.rebuildIndex()
+	s.recycled = nil
+	if state.Pods != nil {
+		s.podMgr.unsafeSetPods(CopyPods(state.Pods))
+	} else {
+		s.podMgr.unsafeSetPods(SeedPods(s.working))
+	}
+	if len(state.Settings.DisciplineOrder) > 0 {
+		order := make([]string, len(state.Settings.DisciplineOrder))
+		copy(order, state.Settings.DisciplineOrder)
+		s.settings = Settings{DisciplineOrder: order}
+	} else {
+		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+	}
 }
 
 // Create initializes a new org with a single root person. It replaces any

@@ -1464,6 +1464,117 @@ func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
 	}
 }
 
+// Scenarios: SNAP-001
+func TestOrgService_CaptureState_DeepCopiesWorking(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	state := svc.CaptureState()
+
+	if len(state.People) == 0 {
+		t.Fatal("expected captured people")
+	}
+	// Mutating the captured slice must not affect the service.
+	state.People[0].Name = "MUTATED"
+
+	working := svc.GetWorking(context.Background())
+	for _, p := range working {
+		if p.Name == "MUTATED" {
+			t.Fatal("CaptureState did not deep-copy: mutation leaked")
+		}
+	}
+}
+
+// Scenarios: SNAP-001
+func TestOrgService_CaptureState_DeepCopiesAdditionalTeams(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+
+	// Seed Bob with a non-empty AdditionalTeams so we can mutate an existing element.
+	if _, err := svc.Update(context.Background(), bob.Id, OrgNodeUpdate{AdditionalTeams: ptr("Platform, Eng")}); err != nil {
+		t.Fatalf("seeding AdditionalTeams failed: %v", err)
+	}
+
+	state := svc.CaptureState()
+
+	// Find Bob in the captured state.
+	var capturedBob *OrgNode
+	for i := range state.People {
+		if state.People[i].Id == bob.Id {
+			capturedBob = &state.People[i]
+			break
+		}
+	}
+	if capturedBob == nil {
+		t.Fatal("Bob not found in captured state")
+	}
+	if len(capturedBob.AdditionalTeams) == 0 {
+		t.Fatal("expected non-empty AdditionalTeams in captured state")
+	}
+
+	// Mutate the captured slice in-place (not append — this writes through if not deep-copied).
+	original := capturedBob.AdditionalTeams[0]
+	capturedBob.AdditionalTeams[0] = "LEAKED"
+
+	// Re-fetch from service and verify the original value is preserved.
+	working := svc.GetWorking(context.Background())
+	for _, p := range working {
+		if p.Id == bob.Id {
+			if len(p.AdditionalTeams) > 0 && p.AdditionalTeams[0] == "LEAKED" {
+				t.Errorf("CaptureState did not deep-copy AdditionalTeams: in-place mutation leaked (was %q)", original)
+			}
+			return
+		}
+	}
+	t.Fatal("Bob not found in working after CaptureState")
+}
+
+// Scenarios: SNAP-001
+func TestOrgService_CaptureState_IncludesPodsAndSettings(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	state := svc.CaptureState()
+
+	// Settings derived from upload should appear.
+	if len(state.Settings.DisciplineOrder) == 0 {
+		t.Errorf("expected non-empty discipline order in captured settings")
+	}
+	// Pods slice exists (may be empty for a fresh upload).
+	if state.Pods == nil {
+		t.Errorf("expected non-nil pods slice in captured state")
+	}
+}
+
+// Scenarios: SNAP-002
+func TestOrgService_ApplyState_ReplacesWorkingPodsSettings(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	original := svc.CaptureState()
+
+	// Build a state with one synthetic person and replace.
+	newState := OrgState{
+		People: []OrgNode{{
+			OrgNodeFields: model.OrgNodeFields{Name: "Solo", Status: "Active"},
+			Id:            "synthetic-id",
+		}},
+		Pods:     []Pod{},
+		Settings: Settings{DisciplineOrder: []string{"Synthetic"}},
+	}
+	svc.ApplyState(newState)
+
+	working := svc.GetWorking(context.Background())
+	if len(working) != 1 || working[0].Name != "Solo" {
+		t.Errorf("expected working = [Solo], got %v", working)
+	}
+	if got := svc.GetSettings(context.Background()).DisciplineOrder; len(got) != 1 || got[0] != "Synthetic" {
+		t.Errorf("expected settings replaced, got %v", got)
+	}
+
+	// Restore so subsequent assertions could run if extended.
+	svc.ApplyState(original)
+}
+
 func newTestServiceFromNodes(t *testing.T, nodes []model.OrgNode) *OrgService {
 	t.Helper()
 	org, err := model.NewOrg(nodes)
