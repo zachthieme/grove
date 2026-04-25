@@ -275,7 +275,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 
 		// All parsing succeeded — now commit state atomically
 		s.pending = nil
-		s.resetState(orig, work, snaps)
+		s.resetState(orig, work)
 
 		if podsSidecar != nil {
 			sidecarEntries := parsePodsSidecar(podsSidecar)
@@ -292,20 +292,24 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 			}
 		}
 
-		var diskWarns []string
-		if err := s.snaps.unsafeDeleteStore(); err != nil {
-			diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
-		}
-		if err := s.snaps.unsafePersistAll(); err != nil {
-			diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
-		}
 		resp := &UploadResponse{
-			Status:    UploadReady,
-			OrgData:   &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
-			Snapshots: s.ListSnapshotsUnlocked(),
+			Status:  UploadReady,
+			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
 		}
 		s.mu.Unlock()
 
+		// Apply parsed snapshots after releasing org lock. List after ReplaceAll/Clear.
+		var diskWarns []string
+		if len(snaps) == 0 {
+			if err := s.snap.Clear(); err != nil {
+				diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
+			}
+		} else {
+			if err := s.snap.ReplaceAll(snaps); err != nil {
+				diskWarns = append(diskWarns, fmt.Sprintf("snapshot replace error: %v", err))
+			}
+		}
+		resp.Snapshots = s.snap.List()
 		resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
 
 		return resp, nil

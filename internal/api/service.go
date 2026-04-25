@@ -38,7 +38,7 @@ type OrgService struct {
 	// a newer Upload superseded this one. See service_import.go.
 	pendingEpoch   uint64
 	confirmedEpoch uint64
-	snaps          *SnapshotManager
+	snap           *SnapshotService
 	podMgr         *PodManager
 	idIndex        map[string]int
 }
@@ -64,8 +64,14 @@ type MoveResult struct {
 }
 
 func NewOrgService(snapStore SnapshotStore) *OrgService {
-	return &OrgService{snaps: NewSnapshotManager(snapStore), podMgr: NewPodManager()}
+	org := &OrgService{podMgr: NewPodManager()}
+	org.snap = NewSnapshotService(snapStore, org)
+	return org
 }
+
+// SnapshotService returns the SnapshotService bound to this OrgService.
+// Used by the Services constructor to wire HTTP routes.
+func (s *OrgService) SnapshotService() *SnapshotService { return s.snap }
 
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -171,23 +177,33 @@ func (s *OrgService) GetRecycled(ctx context.Context) []OrgNode {
 
 func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.working = deepCopyNodes(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
 	s.podMgr.unsafeReset()
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
-	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
+	s.mu.Unlock()
+
+	// Clear snapshots after releasing org lock — load-bearing rule:
+	// never hold mu_org and mu_snap simultaneously. Bumping snap epoch
+	// invalidates any in-flight Save that captured pre-Reset state.
+	// Signature returns *OrgData (no error), so disk failures here are
+	// silently dropped — consistent with podMgr.unsafeReset semantics.
+	_ = s.snap.Clear()
+	return resp
 }
 
 // resetState replaces the full org state after an import. Must be called with s.mu held.
 // Callers are responsible for setting s.settings and s.pending as appropriate.
-func (s *OrgService) resetState(original, working []OrgNode, snaps map[string]snapshotData) {
+// Snapshot replacement (if needed) is the caller's responsibility — call
+// s.snap.ReplaceAll() or s.snap.Clear() AFTER s.mu is released to avoid
+// violating the "never hold both locks" invariant.
+func (s *OrgService) resetState(original, working []OrgNode) {
 	s.original = original
 	s.working = deepCopyNodes(working)
 	s.rebuildIndex()
 	s.recycled = nil
-	s.snaps.unsafeReplaceAll(snaps)
 	s.podMgr.unsafeSeed(s.working)
 	_ = SeedPods(s.original)
 }
@@ -296,22 +312,23 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	}
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	s.pending = nil
 	people := []OrgNode{p}
+	s.resetState(people, people)
+	s.settings = Settings{DisciplineOrder: []string{}}
+	resp := &OrgData{
+		Original: deepCopyNodes(s.original),
+		Working:  deepCopyNodes(s.working),
+		Pods:     CopyPods(s.podMgr.unsafeGetPods()),
+		Settings: &s.settings,
+	}
+	s.mu.Unlock()
+
+	// Clear snapshots after releasing org lock — never hold both locks.
 	var persistWarn string
-	if err := s.snaps.unsafeDeleteStore(); err != nil {
+	if err := s.snap.Clear(); err != nil {
 		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 	}
-	s.resetState(people, people, nil)
-	s.settings = Settings{DisciplineOrder: []string{}}
-
-	return &OrgData{
-		Original:           deepCopyNodes(s.original),
-		Working:            deepCopyNodes(s.working),
-		Pods:               CopyPods(s.podMgr.unsafeGetPods()),
-		Settings:           &s.settings,
-		PersistenceWarning: persistWarn,
-	}, nil
+	resp.PersistenceWarning = persistWarn
+	return resp, nil
 }

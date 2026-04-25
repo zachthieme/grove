@@ -104,7 +104,7 @@ func TestSnapshotRecovery_ValidJSON(t *testing.T) {
 	}
 }
 
-func TestSnapshotRecovery_ManagerStartsClean(t *testing.T) {
+func TestSnapshotRecovery_ServiceStartsClean(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "snapshots.json")
 	if err := os.WriteFile(path, []byte("corrupted!"), 0644); err != nil {
@@ -115,8 +115,8 @@ func TestSnapshotRecovery_ManagerStartsClean(t *testing.T) {
 	defer func() { storageDir = old }()
 
 	store := FileSnapshotStore{}
-	sm := NewSnapshotManager(store)
-	list := sm.unsafeList()
+	ss := NewSnapshotService(store, newStubOrgProvider())
+	list := ss.List()
 	if len(list) != 0 {
 		t.Errorf("expected empty snapshot list after corrupt store, got %d", len(list))
 	}

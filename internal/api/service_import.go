@@ -9,11 +9,11 @@ import (
 
 func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (*UploadResponse, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.pending = nil
 
 	header, dataRows, err := extractRows(filename, data)
 	if err != nil {
+		s.mu.Unlock()
 		return nil, err
 	}
 
@@ -25,25 +25,31 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		}
 		org, err := parser.BuildPeopleWithMapping(header, dataRows, simpleMapping)
 		if err != nil {
+			s.mu.Unlock()
 			return nil, errValidation("building org: %v", err)
 		}
 		people := ConvertOrg(org)
+		s.resetState(people, people)
+		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		resp := &UploadResponse{
+			Status:  UploadReady,
+			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
+		}
+		s.mu.Unlock()
+
 		var persistWarn string
-		if err := s.snaps.unsafeDeleteStore(); err != nil {
+		if err := s.snap.Clear(); err != nil {
 			persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
 		}
-		s.resetState(people, people, nil)
-		s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-		return &UploadResponse{
-			Status:             UploadReady,
-			OrgData:            &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
-			PersistenceWarning: persistWarn,
-		}, nil
+		resp.PersistenceWarning = persistWarn
+		return resp, nil
 	}
 
 	// Required field (name) not matched with high confidence — hold as pending.
 	s.pendingEpoch++
 	s.pending = &PendingUpload{File: data, Filename: filename}
+	s.mu.Unlock()
+
 	preview := [][]string{header}
 	for i, row := range dataRows {
 		if i >= 3 {
@@ -99,22 +105,23 @@ func (s *OrgService) confirmMappingCSV(pending *PendingUpload, mapping map[strin
 	}
 	people := ConvertOrg(org)
 
-	// Phase 3: commit state and persist under lock — check epoch hasn't changed
+	// Phase 3: commit state under lock — check epoch hasn't changed
 	s.mu.Lock()
 	if s.pendingEpoch != epoch {
 		s.mu.Unlock()
 		return nil, errConflict("upload superseded by a newer upload")
 	}
 	s.confirmedEpoch = s.pendingEpoch
-	s.resetState(people, people, nil)
+	s.resetState(people, people)
 	s.settings = Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-	var persistWarn string
-	if err := s.snaps.unsafeDeleteStore(); err != nil {
-		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
-	}
 	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 	s.mu.Unlock()
 
+	// Clear snapshots after releasing org lock — never hold both locks.
+	var persistWarn string
+	if err := s.snap.Clear(); err != nil {
+		persistWarn = fmt.Sprintf("snapshot cleanup failed: %v", err)
+	}
 	resp.PersistenceWarning = persistWarn
 	return resp, nil
 }
@@ -131,14 +138,14 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		return nil, errValidation("parsing pending zip: %v", err)
 	}
 
-	// Commit state and persist under lock
+	// Commit state under lock
 	s.mu.Lock()
 	if s.pendingEpoch != epoch {
 		s.mu.Unlock()
 		return nil, errConflict("upload superseded by a newer upload")
 	}
 	s.confirmedEpoch = s.pendingEpoch
-	s.resetState(orig, work, snaps)
+	s.resetState(orig, work)
 
 	if podsSidecar != nil {
 		sidecarEntries := parsePodsSidecar(podsSidecar)
@@ -155,16 +162,21 @@ func (s *OrgService) confirmMappingZip(pending *PendingUpload, mapping map[strin
 		}
 	}
 
-	var diskWarns []string
-	if err := s.snaps.unsafeDeleteStore(); err != nil {
-		diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
-	}
-	if err := s.snaps.unsafePersistAll(); err != nil {
-		diskWarns = append(diskWarns, fmt.Sprintf("snapshot persist error: %v", err))
-	}
-
 	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
 	s.mu.Unlock()
+
+	// Apply parsed snapshots after releasing org lock. ReplaceAll bumps
+	// snap epoch + persists. If snaps is nil/empty, Clear instead.
+	var diskWarns []string
+	if len(snaps) == 0 {
+		if err := s.snap.Clear(); err != nil {
+			diskWarns = append(diskWarns, fmt.Sprintf("snapshot cleanup failed: %v", err))
+		}
+	} else {
+		if err := s.snap.ReplaceAll(snaps); err != nil {
+			diskWarns = append(diskWarns, fmt.Sprintf("snapshot replace error: %v", err))
+		}
+	}
 
 	resp.PersistenceWarning = mergeWarnings("", diskWarns, fileWarns, parseWarns)
 	return resp, nil
