@@ -284,7 +284,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 	carol := findByName(org.Working, "Carol")
 
 	// Try to move Alice under Carol (creates A→C→B→A cycle)
-	_, err := svc.Move(context.Background(), alice.Id, carol.Id, "")
+	_, err := svc.Move(context.Background(), alice.Id, carol.Id, "", "")
 	if err == nil {
 		t.Fatal("expected error for circular move, got nil")
 	}
@@ -293,7 +293,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 	}
 
 	// Try to make Bob his own manager
-	_, err = svc.Move(context.Background(), bob.Id, bob.Id, "")
+	_, err = svc.Move(context.Background(), bob.Id, bob.Id, "", "")
 	if err == nil {
 		t.Fatal("expected error for self-manager, got nil")
 	}
@@ -457,7 +457,7 @@ func TestAdversarial_MoveToNonexistentManager(t *testing.T) {
 	org := svc.GetOrg(context.Background())
 	bob := findByName(org.Working, "Bob")
 
-	_, err := svc.Move(context.Background(), bob.Id, "nonexistent-uuid-1234", "")
+	_, err := svc.Move(context.Background(), bob.Id, "nonexistent-uuid-1234", "", "")
 	if err == nil {
 		t.Fatal("expected error for non-existent manager, got nil")
 	}

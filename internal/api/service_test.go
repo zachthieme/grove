@@ -51,7 +51,7 @@ func TestOrgService_Move(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 	alice := findByName(data.Working, "Alice")
 
-	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "Eng")
+	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "Eng", "")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
@@ -471,7 +471,7 @@ func TestOrgService_ResetToOriginal(t *testing.T) {
 
 	// Make some changes: move Bob under Alice, delete Carol
 	carol := findByName(data.Working, "Carol")
-	if _, err := svc.Move(context.Background(), bob.Id, alice.Id, "Eng"); err != nil {
+	if _, err := svc.Move(context.Background(), bob.Id, alice.Id, "Eng", ""); err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
 	if _, err := svc.Delete(context.Background(), carol.Id); err != nil {
@@ -654,7 +654,7 @@ func TestOrgService_Update_PersonNotFound(t *testing.T) {
 func TestOrgService_Move_PersonNotFound(t *testing.T) {
 	t.Parallel()
 	svc := newTestService(t)
-	_, err := svc.Move(context.Background(), "nonexistent", "", "Eng")
+	_, err := svc.Move(context.Background(), "nonexistent", "", "Eng", "")
 	if err == nil {
 		t.Fatal("expected error for nonexistent person")
 	}
@@ -667,7 +667,7 @@ func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Move(context.Background(), bob.Id, "nonexistent-manager", "Eng")
+	_, err := svc.Move(context.Background(), bob.Id, "nonexistent-manager", "Eng", "")
 	if err == nil {
 		t.Fatal("expected error for nonexistent manager")
 	}
@@ -682,7 +682,7 @@ func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 
 	// Move with empty newTeam — team should stay the same
-	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "")
+	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "", "")
 	if err != nil {
 		t.Fatalf("move failed: %v", err)
 	}
@@ -702,7 +702,7 @@ func TestOrgService_Move_SelfAsManager(t *testing.T) {
 	data := svc.GetOrg(context.Background())
 	bob := findByName(data.Working, "Bob")
 
-	_, err := svc.Move(context.Background(), bob.Id, bob.Id, "")
+	_, err := svc.Move(context.Background(), bob.Id, bob.Id, "", "")
 	if err == nil {
 		t.Fatal("expected error when moving person to be their own manager")
 	}
@@ -718,7 +718,7 @@ func TestOrgService_Move_CycleDetection(t *testing.T) {
 	alice := findByName(data.Working, "Alice")
 	carol := findByName(data.Working, "Carol")
 
-	_, err := svc.Move(context.Background(), alice.Id, carol.Id, "")
+	_, err := svc.Move(context.Background(), alice.Id, carol.Id, "", "")
 	if err == nil {
 		t.Fatal("expected error when creating circular manager chain")
 	}
@@ -919,7 +919,7 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 	carol := findByName(data.Working, "Carol")
 
 	t.Run("[ORG-002] self-reference via Move", func(t *testing.T) {
-		_, err := svc.Move(context.Background(), alice.Id, alice.Id, "")
+		_, err := svc.Move(context.Background(), alice.Id, alice.Id, "", "")
 		if err == nil {
 			t.Error("expected error for self-reference")
 		}
@@ -934,14 +934,14 @@ func TestOrgService_ValidateManagerChange(t *testing.T) {
 
 	t.Run("[ORG-002] cycle via Move", func(t *testing.T) {
 		// Alice -> Bob -> Carol. Moving Alice under Carol creates cycle.
-		_, err := svc.Move(context.Background(), alice.Id, carol.Id, "")
+		_, err := svc.Move(context.Background(), alice.Id, carol.Id, "", "")
 		if err == nil {
 			t.Error("expected error for cycle")
 		}
 	})
 
 	t.Run("[ORG-002] nonexistent manager", func(t *testing.T) {
-		_, err := svc.Move(context.Background(), bob.Id, "nonexistent-id", "")
+		_, err := svc.Move(context.Background(), bob.Id, "nonexistent-id", "", "")
 		if err == nil {
 			t.Error("expected error for nonexistent manager")
 		}
@@ -2076,7 +2076,7 @@ func TestOrgService_MoveProduct(t *testing.T) {
 	bob := findByName(working, "Bob")
 	widget := findByName(working, "Widget")
 
-	result, err := svc.Move(context.Background(), widget.Id, bob.Id, "")
+	result, err := svc.Move(context.Background(), widget.Id, bob.Id, "", "")
 	if err != nil {
 		t.Fatalf("move product failed: %v", err)
 	}
@@ -2225,7 +2225,7 @@ func TestOrgService_Move_RejectProductAsManager(t *testing.T) {
 	if widgetId == "" || bobId == "" {
 		t.Fatal("test data setup failed: could not find Widget or Bob")
 	}
-	_, err := svc.Move(context.Background(), bobId, widgetId, "")
+	_, err := svc.Move(context.Background(), bobId, widgetId, "", "")
 	if err == nil {
 		t.Fatal("expected error when moving to a product manager")
 	}

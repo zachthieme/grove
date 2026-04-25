@@ -261,6 +261,10 @@ func FuzzWouldCreateCycle(f *testing.F) {
 		}
 
 		// Must never panic
-		_ = wouldCreateCycle(people, personId, newManagerId)
+		idIndex := make(map[string]int, len(people))
+		for i, p := range people {
+			idIndex[p.Id] = i
+		}
+		_ = wouldCreateCycle(people, idIndex, personId, newManagerId)
 	})
 }

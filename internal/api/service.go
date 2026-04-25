@@ -16,17 +16,22 @@ import (
 )
 
 type OrgService struct {
-	mu           sync.RWMutex
-	original     []OrgNode
-	working      []OrgNode
-	recycled     []OrgNode
-	settings     Settings
-	pending      *PendingUpload
-	pendingEpoch uint64
+	mu       sync.RWMutex
+	original []OrgNode
+	working  []OrgNode
+	recycled []OrgNode
+	settings Settings
+	pending  *PendingUpload
+	// pendingEpoch increments on each Upload that creates a pending mapping;
+	// confirmedEpoch is set when a ConfirmMapping commits. ConfirmMapping
+	// captures the expected epoch (confirmedEpoch+1) before parsing outside
+	// the lock, then refuses to commit if pendingEpoch has advanced — i.e.
+	// a newer Upload superseded this one. See service_import.go.
+	pendingEpoch   uint64
 	confirmedEpoch uint64
-	snaps        *SnapshotManager
-	podMgr       *PodManager
-	idIndex      map[string]int
+	snaps          *SnapshotManager
+	podMgr         *PodManager
+	idIndex        map[string]int
 }
 
 func deriveDisciplineOrder(people []OrgNode) []string {

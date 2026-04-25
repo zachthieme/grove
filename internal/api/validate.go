@@ -93,13 +93,23 @@ func validateNoteLen(value string) error {
 	return nil
 }
 
-// findInSlice finds a node by ID in a nodes slice. Returns the index and a
-// pointer into the slice, or (-1, nil) if not found.
+// findInSlice finds a node by ID with a linear scan. Use only when no index
+// is available (tests, fuzz harness). OrgService callers should use findWorking,
+// which is O(1) via idIndex.
 func findInSlice(nodes []OrgNode, id string) (int, *OrgNode) {
 	for i := range nodes {
 		if nodes[i].Id == id {
 			return i, &nodes[i]
 		}
+	}
+	return -1, nil
+}
+
+// findByID looks up a node via an index map and verifies the entry against the
+// slice. Returns (-1, nil) on miss or stale index. O(1).
+func findByID(nodes []OrgNode, idIndex map[string]int, id string) (int, *OrgNode) {
+	if i, ok := idIndex[id]; ok && i < len(nodes) && nodes[i].Id == id {
+		return i, &nodes[i]
 	}
 	return -1, nil
 }
@@ -126,27 +136,29 @@ func isFrontlineManager(working []OrgNode, personId string) bool {
 	return true
 }
 
-// validateManagerChange checks that setting person's manager to newManagerId is valid.
-func validateManagerChange(working []OrgNode, personId, newManagerId string) error {
+// validateManagerChange checks that setting person's manager to newManagerId is
+// valid against the working slice + idIndex. Cycle detection is O(depth) thanks
+// to the index lookup.
+func validateManagerChange(working []OrgNode, idIndex map[string]int, personId, newManagerId string) error {
 	if newManagerId == personId {
 		return errValidation("a person cannot be their own manager")
 	}
-	_, mgr := findInSlice(working, newManagerId)
+	_, mgr := findByID(working, idIndex, newManagerId)
 	if mgr == nil {
 		return errNotFound("manager %s not found", newManagerId)
 	}
 	if model.IsProduct(mgr.Type) {
 		return errValidation("cannot report to a product")
 	}
-	if wouldCreateCycle(working, personId, newManagerId) {
+	if wouldCreateCycle(working, idIndex, personId, newManagerId) {
 		return errValidation("this move would create a circular reporting chain")
 	}
 	return nil
 }
 
-// wouldCreateCycle checks if setting personId's manager to newManagerId
-// would create a cycle. This happens if newManagerId is a descendant of personId.
-func wouldCreateCycle(working []OrgNode, personId, newManagerId string) bool {
+// wouldCreateCycle reports whether setting personId's manager to newManagerId
+// would create a cycle (newManagerId is a descendant of personId).
+func wouldCreateCycle(working []OrgNode, idIndex map[string]int, personId, newManagerId string) bool {
 	current := newManagerId
 	visited := map[string]bool{personId: true}
 	for current != "" {
@@ -154,13 +166,19 @@ func wouldCreateCycle(working []OrgNode, personId, newManagerId string) bool {
 			return true
 		}
 		visited[current] = true
-		_, p := findInSlice(working, current)
+		_, p := findByID(working, idIndex, current)
 		if p == nil {
 			return false
 		}
 		current = p.ManagerId
 	}
 	return false
+}
+
+// validateManagerChange is a convenience method on OrgService that uses the
+// service's idIndex. Must be called with s.mu held.
+func (s *OrgService) validateManagerChange(personId, newManagerId string) error {
+	return validateManagerChange(s.working, s.idIndex, personId, newManagerId)
 }
 
 // validateSettings checks that discipline order entries are non-empty, unique,

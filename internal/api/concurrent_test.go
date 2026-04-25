@@ -54,9 +54,9 @@ func TestConcurrentMoves(t *testing.T) {
 			defer wg.Done()
 			for range iterations {
 				// Move Carol to Alice
-				_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng")
+				_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng", "")
 				// Move Carol back to Bob
-				_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
+				_, _ = svc.Move(context.Background(), carolID, bobID, "Platform", "")
 			}
 		}()
 	}
@@ -127,9 +127,9 @@ func TestConcurrentReadsAndWrites(t *testing.T) {
 			defer wg.Done()
 			for i := range iterations {
 				if i%2 == 0 {
-					_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng")
+					_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng", "")
 				} else {
-					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
+					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform", "")
 				}
 			}
 		}()
@@ -287,10 +287,10 @@ func TestConcurrentMixedOperations(t *testing.T) {
 				switch op {
 				case 0:
 					// Move Carol to Alice
-					_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng")
+					_, _ = svc.Move(context.Background(), carolID, aliceID, "Eng", "")
 				case 1:
 					// Move Carol back to Bob
-					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform")
+					_, _ = svc.Move(context.Background(), carolID, bobID, "Platform", "")
 				case 2:
 					// Update Bob's role
 					_, _ = svc.Update(context.Background(), bobID, OrgNodeUpdate{Role: ptr(fmt.Sprintf("Role-%d-%d", g, i))})

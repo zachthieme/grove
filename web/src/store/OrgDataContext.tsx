@@ -91,25 +91,24 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Check server autosave if nothing in localStorage
+      // Check server autosave if nothing in localStorage. The client returns
+      // null on 204 (no autosave), so any thrown error here is a real failure.
       if (!localRaw) {
         try {
           const serverAutosave = await api.readAutosave()
           if (serverAutosave) {
             setState((s) => ({ ...s, autosaveAvailable: serverAutosave }))
-            // Still load org data in background so dismiss has data to fall back to
           }
-        } catch { /* No server autosave — expected on fresh start */ }
+        } catch (err) {
+          console.warn('readAutosave failed:', err)
+        }
       }
-      // else: local autosave found — banner will show, but we still load org data
-      // in the background so if the user dismisses, the app has data.
 
-      // Load org data (whether or not autosave was found)
+      // Load org data (whether or not autosave was found). 204 returns null;
+      // any throw is a real failure.
       try {
         const data = await api.getOrg()
         if (data) {
-          // Only set loaded if no autosave banner is showing — otherwise the
-          // banner handles the loaded transition via restoreAutosave/dismissAutosave
           setState((s) => ({
             ...s,
             original: data.original,
@@ -119,15 +118,20 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
             loaded: s.autosaveAvailable ? s.loaded : true,
           }))
         }
-      } catch { /* No existing data — stay in upload state */ }
+      } catch (err) {
+        console.warn('getOrg failed:', err)
+      }
 
-      // Also load snapshots list
       try {
         const snapshots = await api.listSnapshots()
         setState((s) => ({ ...s, snapshots }))
-      } catch { /* Snapshots unavailable — non-fatal, UI works without them */ }
+      } catch (err) {
+        console.warn('listSnapshots failed (UI will work without snapshots):', err)
+      }
     }
     init()
+    // init runs once on mount; intentionally no deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /** Shared state update for fresh org data loads (upload, confirmMapping). */
@@ -249,13 +253,23 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   // Warn before navigating away with unsaved changes
   useDirtyTracking(state.loaded, state.working)
 
+  // Serialize backend syncs from undo/redo so rapid clicks don't race. Each call
+  // chains onto the previous promise; only the latest committed local state is
+  // ever sent — out-of-order replies cannot clobber newer state.
+  const syncQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const enqueueRestore = useCallback((label: string, payload: AutosaveData) => {
+    syncQueueRef.current = syncQueueRef.current
+      .then(() => api.restoreState(payload))
+      .catch((err) => { console.warn(`Failed to sync ${label} state to backend:`, err) })
+  }, [])
+
   const undo = useCallback(() => {
     if (undoStack.length === 0) return
     const prev = undoStack[undoStack.length - 1]
     setUndoStack(s => s.slice(0, -1))
     setState(s => {
       setRedoStack(r => [...r, { working: s.working, pods: s.pods }])
-      api.restoreState({
+      enqueueRestore('undo', {
         original: s.original,
         working: prev.working,
         recycled: s.recycled,
@@ -264,12 +278,10 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         settings: s.settings,
         snapshotName: '',
         timestamp: new Date().toISOString(),
-      }).catch(() => {
-        console.warn('Failed to sync undo state to backend')
       })
       return { ...s, working: prev.working, pods: prev.pods, currentSnapshotName: null }
     })
-  }, [undoStack, setUndoStack, setRedoStack])
+  }, [undoStack, setUndoStack, setRedoStack, enqueueRestore])
 
   const redo = useCallback(() => {
     if (redoStack.length === 0) return
@@ -277,7 +289,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setRedoStack(s => s.slice(0, -1))
     setState(s => {
       setUndoStack(u => [...u, { working: s.working, pods: s.pods }])
-      api.restoreState({
+      enqueueRestore('redo', {
         original: s.original,
         working: next.working,
         recycled: s.recycled,
@@ -286,12 +298,10 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
         settings: s.settings,
         snapshotName: '',
         timestamp: new Date().toISOString(),
-      }).catch(() => {
-        console.warn('Failed to sync redo state to backend')
       })
       return { ...s, working: next.working, pods: next.pods, currentSnapshotName: null }
     })
-  }, [redoStack, setUndoStack, setRedoStack])
+  }, [redoStack, setUndoStack, setRedoStack, enqueueRestore])
 
   const stateValue: OrgDataStateValue = useMemo(() => ({
     original: state.original, working: state.working, recycled: state.recycled,

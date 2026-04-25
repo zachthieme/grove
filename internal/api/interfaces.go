@@ -4,7 +4,7 @@ import "context"
 
 // NodeService handles people mutations (move, update, add, delete, restore, reorder).
 type NodeService interface {
-	Move(ctx context.Context, personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error)
+	Move(ctx context.Context, personId, newManagerId, newTeam, newPod string) (*MoveResult, error)
 	Update(ctx context.Context, personId string, fields OrgNodeUpdate) (*MoveResult, error)
 	Add(ctx context.Context, p OrgNode) (OrgNode, []OrgNode, []Pod, error)
 	AddParent(ctx context.Context, childId, name string) (OrgNode, []OrgNode, []Pod, error)

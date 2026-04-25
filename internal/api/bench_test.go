@@ -117,7 +117,7 @@ func BenchmarkMove(b *testing.B) {
 			target = altManagerID
 		}
 		toggle = !toggle
-		if _, err := svc.Move(context.Background(), leafID, target, "Team1"); err != nil {
+		if _, err := svc.Move(context.Background(), leafID, target, "Team1", ""); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -194,7 +194,7 @@ func BenchmarkMoveChain_50(b *testing.B) {
 			if p == nil {
 				b.Fatalf("Person-%d not found", i)
 			}
-			if _, err := svc.Move(context.Background(), p.Id, targetDir.Id, ""); err != nil {
+			if _, err := svc.Move(context.Background(), p.Id, targetDir.Id, "", ""); err != nil {
 				b.Fatal(err)
 			}
 		}

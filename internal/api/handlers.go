@@ -86,23 +86,33 @@ func csrfProtect(next http.Handler) http.Handler {
 	})
 }
 
+// readUploadedFile pulls the "file" form field from a multipart request,
+// applying the upload size limit. Returns the file bytes and original filename,
+// or writes an error response and returns ok=false.
+func readUploadedFile(w http.ResponseWriter, r *http.Request) (data []byte, filename string, ok bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
+		return nil, "", false
+	}
+	defer func() { _ = file.Close() }()
+
+	data, err = io.ReadAll(file)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "reading file")
+		return nil, "", false
+	}
+	return data, header.Filename, true
+}
+
 func handleUpload(svc ImportService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
-		file, header, err := r.FormFile("file")
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
+		data, filename, ok := readUploadedFile(w, r)
+		if !ok {
 			return
 		}
-		defer func() { _ = file.Close() }()
-
-		data, err := io.ReadAll(file)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "reading file")
-			return
-		}
-
-		resp, err := svc.Upload(r.Context(), header.Filename, data)
+		resp, err := svc.Upload(r.Context(), filename, data)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
@@ -113,20 +123,10 @@ func handleUpload(svc ImportService) http.HandlerFunc {
 
 func handleUploadZip(svc ImportService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
-		file, _, err := r.FormFile("file")
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
+		data, _, ok := readUploadedFile(w, r)
+		if !ok {
 			return
 		}
-		defer func() { _ = file.Close() }()
-
-		data, err := io.ReadAll(file)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "reading file")
-			return
-		}
-
 		resp, err := svc.UploadZip(r.Context(), data)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())

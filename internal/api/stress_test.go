@@ -103,7 +103,7 @@ func TestLargeOrg_MoveChain(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Move(context.Background(), p.Id, targetDir.Id, "")
+		_, err := svc.Move(context.Background(), p.Id, targetDir.Id, "", "")
 		if err != nil {
 			t.Fatalf("move %s failed: %v", name, err)
 		}
@@ -359,7 +359,7 @@ func TestLargeOrg_500People(t *testing.T) {
 		if p == nil {
 			t.Fatalf("person %s not found", name)
 		}
-		_, err := svc.Move(context.Background(), p.Id, targetDir.Id, "")
+		_, err := svc.Move(context.Background(), p.Id, targetDir.Id, "", "")
 		if err != nil {
 			t.Fatalf("move %s failed: %v", name, err)
 		}

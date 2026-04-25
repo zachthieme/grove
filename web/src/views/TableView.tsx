@@ -166,14 +166,13 @@ export default function TableView() {
       // If header present, map columns by header names; otherwise use visible column order
       let colMapping: ColumnDef[]
       if (isHeader) {
-        colMapping = firstCells.map(cell => {
-          return allColumns.find(c => c.key.toLowerCase() === cell || c.label.toLowerCase() === cell)!
-        }).filter(Boolean)
+        colMapping = firstCells
+          .map(cell => allColumns.find(c => c.key.toLowerCase() === cell || c.label.toLowerCase() === cell))
+          .filter((c): c is ColumnDef => c !== undefined)
       } else {
         colMapping = visibleColumns
       }
 
-      let savedCount = 0
       for (const line of dataLines) {
         const cells = line.split(delimiter)
         const values: Record<string, string> = {
@@ -190,12 +189,8 @@ export default function TableView() {
         if (values.name) {
           try {
             await add(draftToPerson(values))
-            savedCount++
           } catch { /* skip failed rows */ }
         }
-      }
-      if (savedCount > 0) {
-        console.log(`Pasted ${savedCount} rows`)
       }
     } catch {
       // Clipboard API may fail

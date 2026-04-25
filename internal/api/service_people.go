@@ -8,7 +8,10 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
-func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam string, newPod ...string) (*MoveResult, error) {
+// Move reassigns a person's manager, team, and/or pod. Empty strings mean
+// "no change" for team and pod; an empty newManagerId reassigns the person to
+// the root (no manager).
+func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, newPod string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, p := s.findWorking(personId)
@@ -16,13 +19,13 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam s
 		return nil, errNotFound("person %s not found", personId)
 	}
 	if newManagerId != "" {
-		if err := validateManagerChange(s.working, personId, newManagerId); err != nil {
+		if err := s.validateManagerChange(personId, newManagerId); err != nil {
 			return nil, err
 		}
 	}
 	p.ManagerId = newManagerId
-	if len(newPod) > 0 && newPod[0] != "" {
-		p.Pod = newPod[0]
+	if newPod != "" {
+		p.Pod = newPod
 	}
 	if newTeam != "" {
 		s.applyTeamChange(p, personId, newTeam)
@@ -135,13 +138,19 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields OrgNode
 }
 
 // Reorder sets the sort indices for a list of person IDs in the given order.
+// Returns an error if any ID is unknown so callers see a clear failure rather
+// than a partially-applied reorder.
 func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for i, id := range personIds {
-		if idx, ok := s.idIndex[id]; ok && idx < len(s.working) && s.working[idx].Id == id {
-			s.working[idx].SortIndex = i
+	for _, id := range personIds {
+		idx, ok := s.idIndex[id]
+		if !ok || idx >= len(s.working) || s.working[idx].Id != id {
+			return nil, errNotFound("person %s not found", id)
 		}
+	}
+	for i, id := range personIds {
+		s.working[s.idIndex[id]].SortIndex = i
 	}
 	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.GetPods())}, nil
 }
@@ -267,7 +276,7 @@ func (s *OrgService) EmptyBin(ctx context.Context) []OrgNode {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.recycled = nil
-	return deepCopyNodes(s.recycled)
+	return []OrgNode{}
 }
 
 // applyTeamChange updates a person's team and cascades to ICs of front-line managers.
@@ -290,7 +299,7 @@ func (s *OrgService) applyTeamChange(p *OrgNode, personId, team string) {
 // Must be called with s.mu held.
 func (s *OrgService) applyManagerChange(p *OrgNode, personId, newManagerId string, hasTeamField bool) error {
 	if newManagerId != "" {
-		if err := validateManagerChange(s.working, personId, newManagerId); err != nil {
+		if err := s.validateManagerChange(personId, newManagerId); err != nil {
 			return err
 		}
 		if !hasTeamField {
