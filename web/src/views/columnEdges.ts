@@ -57,6 +57,17 @@ export function computeEdges(layoutRoots: LayoutNode[], people: OrgNode[]): Edge
             result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
           }
           break
+        case 'productGroup':
+          flushIcBatch()
+          result.push({ fromId: node.person.id, toId: child.collapseKey })
+          if (child.members.length > 0) {
+            result.push({ fromId: child.collapseKey, toId: child.members[0].person.id })
+          }
+          break
+        case 'product':
+          flushIcBatch()
+          result.push({ fromId: node.person.id, toId: child.person.id })
+          break
       }
     }
     flushIcBatch()

@@ -5,7 +5,7 @@ import styles from './GroupHeaderNode.module.css'
 interface Props {
   nodeId: string
   name: string
-  count: number
+  count?: number
   noteText?: string
   collapsed?: boolean
   onToggleCollapse?: () => void
@@ -45,7 +45,9 @@ export default memo(function GroupHeaderNode({ nodeId, name, count, noteText, co
       ariaLabel={`${name} group`}
     >
       <div className={styles.name}>{name}</div>
-      <div className={styles.count}>{count} {count === 1 ? 'person' : 'people'}</div>
+      {count !== undefined && (
+        <div className={styles.count}>{count} {count === 1 ? 'person' : 'people'}</div>
+      )}
     </BaseNode>
   )
 })

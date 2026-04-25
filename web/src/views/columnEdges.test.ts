@@ -161,6 +161,23 @@ describe('computeEdges', () => {
     expect(dashedEdge!.toId).toBe('2')
   })
 
+  it('[PROD-001] draws edges through product group header to first product', () => {
+    const people = [
+      makeNode({ id: '1', name: 'Alice' }),
+      makeNode({ id: '2', name: 'Bob', managerId: '1' }),
+      makeNode({ id: '3', name: 'Widget', managerId: '1', type: 'product' }),
+      makeNode({ id: '4', name: 'Gadget', managerId: '1', type: 'product' }),
+    ]
+    const layout = computeLayoutTree(buildOrgTree(people))
+    const edges = computeEdges(layout, people)
+    const productEdge = edges.find((e) => e.toId.startsWith('products:'))
+    expect(productEdge).toBeTruthy()
+    expect(productEdge!.fromId).toBe('1')
+    const productToFirst = edges.find((e) => e.fromId.startsWith('products:'))
+    expect(productToFirst).toBeTruthy()
+    expect(productToFirst!.toId).toBe('3')
+  })
+
   it('[VIEW-001] edges through pod headers use collapseKey as node ID', () => {
     const people = [
       makeNode({ id: '1', name: 'Boss' }),

@@ -155,7 +155,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
 }
 
 const LayoutProductGroup = memo(function LayoutProductGroup({ group }: { group: ProductGroupLayout }) {
-  const { collapsedIds, onToggleCollapse, onSelect, selectedIds } = useChart()
+  const { collapsedIds, onToggleCollapse, onSelect, selectedIds, setNodeRef } = useChart()
   const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
 
   return (
@@ -164,10 +164,10 @@ const LayoutProductGroup = memo(function LayoutProductGroup({ group }: { group: 
         <GroupHeaderNode
           nodeId={group.collapseKey}
           name="Products"
-          count={group.members.length}
           collapsed={isCollapsed}
           onClick={(e) => onSelect(group.collapseKey, e)}
           selected={selectedIds.has(group.collapseKey)}
+          cardRef={setNodeRef(group.collapseKey)}
           onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
           dragData={{ memberIds: group.members.map(m => m.person.id) }}
         />
