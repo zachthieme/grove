@@ -60,14 +60,14 @@ Single Go binary serving a React SPA via `go:embed`.
 ### Go Backend (`internal/`)
 
 - `internal/api/model.go` — API types: `Person` (with UUID `Id`, `ManagerId`), `OrgData`, `UploadResponse` (with optional `Snapshots`), `SnapshotInfo`, `AutosaveData`, `MappedColumn`, `PendingUpload`
-- `internal/api/service.go` — `OrgService` struct definition, constructor, state queries (`GetOrg`, `GetWorking`, `GetRecycled`, `ResetToOriginal`, `RestoreState`), and shared helpers. Delegates snapshots to `SnapshotManager`.
+- `internal/api/service.go` — `OrgService` struct definition, constructor, state queries (`GetOrg`, `GetWorking`, `GetOriginal`, `GetRecycled`, `ResetToOriginal`, `RestoreState`), bridge methods (`CaptureState`, `ApplyState`), and shared helpers. Holds `*SnapshotService` reference; never holds `mu_snap` simultaneously with its own `mu`.
 - `internal/api/validate.go` — All validation: `validateFieldLengths`, `validateNoteLen`, `validateManagerChange`, `wouldCreateCycle`, `findInSlice`, `isFrontlineManager`. Also defines typed errors (`ValidationError`, `NotFoundError`, `ConflictError`) for proper HTTP status mapping.
-- `internal/api/snapshot_manager.go` — `SnapshotManager` struct: owns snapshot map + `SnapshotStore`. NOT thread-safe — called under `OrgService.mu`. Constants: `SnapshotWorking`, `SnapshotOriginal`, `SnapshotExportTemp`.
+- `internal/api/snapshot_service.go` — `SnapshotService` struct: owns snapshot map + `SnapshotStore` under its own `sync.RWMutex`. Holds an `orgStateProvider` reference for `Save`/`Load` (which acquire `mu_org` outside `mu_snap`). `epoch uint64` race guard: `Clear`/`ReplaceAll` bump it; `Save` aborts with `errConflict` if it advances mid-flight. Defines `SnapshotClearer` interface used by `OrgService` to invalidate snapshots on Reset/Create/Upload. Constants: `SnapshotWorking`, `SnapshotOriginal`, `SnapshotExportTemp`.
 - `internal/api/service_import.go` — Upload/import methods: `Upload`, `ConfirmMapping`
 - `internal/api/service_people.go` — People mutation methods: `Move`, `Update`, `Add`, `Delete`, `Restore`, `EmptyBin`, `Reorder`
 - `internal/api/service_pods.go` — Pod methods: `ListPods`, `UpdatePod`, `CreatePod`
 - `internal/api/service_settings.go` — Settings methods: `GetSettings`, `UpdateSettings`
-- `internal/api/snapshots.go` — Thin wrappers on OrgService that coordinate locking and delegate to `SnapshotManager`.
+- `internal/api/snapshots_delegate.go` — Thin delegate methods on `*OrgService` (`SaveSnapshot`, `LoadSnapshot`, `DeleteSnapshot`, `ListSnapshots`, `ExportSnapshot`) that forward to `*SnapshotService`, satisfying the `SnapshotOps` interface for the HTTP router.
 - `internal/api/snapshot_store.go` — File persistence for snapshots to `~/.grove/snapshots.json`
 - `internal/api/zipimport.go` — ZIP upload: `parseZipFileList`, `parseZipEntries`, `UploadZip`. Numeric prefix convention (0=original, 1=working, 2+=snapshots).
 - `internal/api/handlers.go` — HTTP handlers and router (`NewRouter`). REST API at `/api/*`. Uses `serviceError()` to map typed errors to HTTP status codes (404, 409, 422). Generic `jsonHandler[Req, Resp]` eliminates boilerplate for decode→call→respond handlers.
