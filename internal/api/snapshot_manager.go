@@ -309,3 +309,40 @@ func (ss *SnapshotService) Export(ctx context.Context, name string) ([]OrgNode, 
 	}
 	return deepCopyNodes(snap.People), nil
 }
+
+// SnapshotClearer is the narrow interface OrgService uses to invalidate
+// snapshots when org state is reset (Reset/Create/Upload). Implemented
+// by *SnapshotService.
+type SnapshotClearer interface {
+	Clear() error
+	ReplaceAll(map[string]snapshotData) error
+}
+
+// Clear wipes the snapshot map, bumps the epoch (invalidating any in-flight
+// Save), and removes the persisted file.
+func (ss *SnapshotService) Clear() error {
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+	ss.snaps = nil
+	ss.epoch++
+	return ss.store.Delete()
+}
+
+// ReplaceAll replaces the snapshot map (used by zip import to install
+// imported snapshots), bumps the epoch, and persists.
+func (ss *SnapshotService) ReplaceAll(snaps map[string]snapshotData) error {
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+	ss.snaps = snaps
+	ss.epoch++
+	if snaps == nil {
+		return ss.store.Delete()
+	}
+	if err := ss.store.Write(ss.snaps); err != nil {
+		return errValidation("persisting snapshots: %v", err)
+	}
+	return nil
+}
+
+// Compile-time assertion: *SnapshotService satisfies SnapshotClearer.
+var _ SnapshotClearer = (*SnapshotService)(nil)

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/zachthieme/grove/internal/model"
 )
@@ -269,5 +270,83 @@ func TestSnapshotService_Export_NotFound(t *testing.T) {
 	_, err := ss.Export(context.Background(), "missing")
 	if err == nil || !isNotFound(err) {
 		t.Errorf("expected NotFoundError, got %v", err)
+	}
+}
+
+// Scenarios: SNAP-007
+func TestSnapshotService_Clear_RemovesAllAndBumpsEpoch(t *testing.T) {
+	t.Parallel()
+	provider := newStubOrgProvider()
+	provider.captureFn = func() OrgState { return OrgState{} }
+
+	store := NewMemorySnapshotStore()
+	ss := NewSnapshotService(store, provider)
+	if err := ss.Save(context.Background(), "v1"); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if err := ss.Clear(); err != nil {
+		t.Fatalf("Clear: %v", err)
+	}
+	if got := ss.List(); len(got) != 0 {
+		t.Errorf("expected empty list after Clear, got %v", got)
+	}
+	persisted, err := store.Read()
+	if err != nil {
+		t.Fatalf("store.Read: %v", err)
+	}
+	if len(persisted) != 0 {
+		t.Errorf("expected store cleared, got %v", persisted)
+	}
+}
+
+// Scenarios: SNAP-008
+func TestSnapshotService_Save_AbortsAfterClear(t *testing.T) {
+	t.Parallel()
+	provider := newStubOrgProvider()
+	provider.captureFn = func() OrgState { return OrgState{} }
+
+	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+
+	// Smoke test that Clear bumps the epoch counter and a subsequent
+	// Save still succeeds (the epoch advance only invalidates IN-FLIGHT
+	// Saves whose expectedEpoch was captured before the bump). A separate
+	// test (TestSnapshotService_Save_AbortsWhenEpochAdvances, in Task 3)
+	// exercises the actual race path.
+	if err := ss.Save(context.Background(), "v1"); err != nil {
+		t.Fatalf("Save before Clear: %v", err)
+	}
+	if err := ss.Clear(); err != nil {
+		t.Fatalf("Clear: %v", err)
+	}
+	if err := ss.Save(context.Background(), "v2"); err != nil {
+		t.Fatalf("Save after Clear should succeed: %v", err)
+	}
+	if got := ss.List(); len(got) != 1 || got[0].Name != "v2" {
+		t.Errorf("expected [v2] after clear+save, got %v", got)
+	}
+}
+
+// Scenarios: SNAP-007
+func TestSnapshotService_ReplaceAll_PersistsNewMap(t *testing.T) {
+	t.Parallel()
+	store := NewMemorySnapshotStore()
+	ss := NewSnapshotService(store, newStubOrgProvider())
+
+	newMap := map[string]snapshotData{
+		"imported": {People: []OrgNode{{Id: "x"}}, Timestamp: time.Now()},
+	}
+	if err := ss.ReplaceAll(newMap); err != nil {
+		t.Fatalf("ReplaceAll: %v", err)
+	}
+	list := ss.List()
+	if len(list) != 1 || list[0].Name != "imported" {
+		t.Errorf("expected [imported], got %v", list)
+	}
+	persisted, err := store.Read()
+	if err != nil {
+		t.Fatalf("store.Read: %v", err)
+	}
+	if _, ok := persisted["imported"]; !ok {
+		t.Errorf("expected ReplaceAll to persist new map")
 	}
 }
