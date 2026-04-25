@@ -189,3 +189,63 @@ func (ss *SnapshotService) List() []SnapshotInfo {
 	})
 	return list
 }
+
+// Save captures org state and persists a named snapshot. Returns errConflict
+// if the snapshot epoch advanced (Clear/ReplaceAll ran) between capture and
+// commit, or if the name is reserved. Returns errValidation for invalid names.
+func (ss *SnapshotService) Save(ctx context.Context, name string) error {
+	if name == "" {
+		return errValidation("snapshot name is required")
+	}
+	// Check reserved names before the character-validity check: reserved names
+	// use double-underscore delimiters and would otherwise trigger the
+	// invalid-characters error instead of the more-specific conflict error.
+	if reservedSnapshotNames[name] {
+		return errConflict("snapshot name %q is reserved", name)
+	}
+	if len(name) > 100 {
+		return errValidation("snapshot name too long (max 100 characters)")
+	}
+	if !isValidSnapshotName(name) {
+		return errValidation("snapshot name contains invalid characters (use letters, numbers, spaces, hyphens, underscores, dots)")
+	}
+
+	// Read epoch BEFORE capturing state. A Clear/ReplaceAll that runs
+	// after this read but before the commit Lock will advance ss.epoch
+	// past expectedEpoch and the commit will abort. Reading after
+	// CaptureState would miss the race entirely (the post-capture read
+	// would already see the advanced epoch and match it under Lock).
+	ss.mu.RLock()
+	expectedEpoch := ss.epoch
+	ss.mu.RUnlock()
+
+	// Capture state outside snap lock — this acquires mu_org briefly.
+	state := ss.org.CaptureState()
+
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+	if ss.epoch != expectedEpoch {
+		return errConflict("snapshot superseded — org state was reset")
+	}
+
+	prev, existed := ss.snaps[name]
+	if ss.snaps == nil {
+		ss.snaps = make(map[string]snapshotData)
+	}
+	ss.snaps[name] = snapshotData{
+		People:    deepCopyNodes(state.People),
+		Pods:      CopyPods(state.Pods),
+		Settings:  state.Settings,
+		Timestamp: time.Now(),
+	}
+	if err := ss.store.Write(ss.snaps); err != nil {
+		// Roll back: restore prior entry on overwrite, or delete on insert.
+		if existed {
+			ss.snaps[name] = prev
+		} else {
+			delete(ss.snaps, name)
+		}
+		return errValidation("persisting snapshot: %v", err)
+	}
+	return nil
+}
