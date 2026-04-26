@@ -311,6 +311,159 @@ describe('useVimNav', () => {
   })
 })
 
+describe('useVimNav v visual mode', () => {
+  afterEach(() => {
+    cleanup()
+    document.body.innerHTML = ''
+  })
+
+  it('[VIM-013] v on a selected person enters visual mode', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'v' })
+
+    expect(result.current.visualMode).toBe(true)
+  })
+
+  it('[VIM-013] v with no selection is a no-op', () => {
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'v' })
+
+    expect(result.current.visualMode).toBe(false)
+  })
+
+  it('[VIM-013] v on a synthetic group key (pod:/team:) is a no-op', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'pod:ic1:Alpha',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'v' })
+
+    expect(result.current.visualMode).toBe(false)
+  })
+
+  it('[VIM-013] v while in visual mode toggles back to normal', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'v' })
+    expect(result.current.visualMode).toBe(true)
+    fireEvent.keyDown(document, { key: 'v' })
+    expect(result.current.visualMode).toBe(false)
+  })
+
+  it('[VIM-013] exitVisual clears visual mode', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'v' })
+    expect(result.current.visualMode).toBe(true)
+
+    act(() => result.current.exitVisual())
+
+    expect(result.current.visualMode).toBe(false)
+  })
+
+  it('[VIM-013] motion in visual mode adds the neighbor to selectedIds via batchSelect', () => {
+    // Set up a 2-node DOM with mocked rects so findSpatialNeighbor sees a
+    // valid 'l' (right) neighbor: ic1 at (0,0), ic2 at (200,0).
+    function makeRect(x: number, y: number, w = 100, h = 40): DOMRect {
+      return { x, y, width: w, height: h, top: y, left: x, right: x + w, bottom: y + h, toJSON: () => ({}) } as DOMRect
+    }
+    const wrapper1 = document.createElement('div')
+    wrapper1.setAttribute('data-person-id', 'ic1')
+    wrapper1.getBoundingClientRect = () => makeRect(0, 0)
+    const btn1 = document.createElement('button')
+    btn1.setAttribute('role', 'button')
+    wrapper1.appendChild(btn1)
+    document.body.appendChild(wrapper1)
+
+    const wrapper2 = document.createElement('div')
+    wrapper2.setAttribute('data-person-id', 'ic2')
+    wrapper2.getBoundingClientRect = () => makeRect(200, 0)
+    const btn2 = document.createElement('button')
+    btn2.setAttribute('role', 'button')
+    const click2 = vi.fn()
+    btn2.addEventListener('click', click2)
+    wrapper2.appendChild(btn2)
+    document.body.appendChild(wrapper2)
+
+    const ic1 = makePerson({ id: 'ic1' })
+    const ic2 = makePerson({ id: 'ic2' })
+    const batchSelect = vi.fn()
+    renderHook(() =>
+      useVimNav({
+        working: [ic1, ic2],
+        pods: [],
+        selectedId: 'ic1',
+        selectedIds: new Set(['ic1']),
+        batchSelect,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'v' })       // enter visual
+    fireEvent.keyDown(document, { key: 'l' })       // motion right → ic2
+
+    expect(batchSelect).toHaveBeenCalled()
+    const lastCallArg = batchSelect.mock.calls[batchSelect.mock.calls.length - 1][0]
+    expect(lastCallArg).toBeInstanceOf(Set)
+    expect(lastCallArg.has('ic1')).toBe(true)
+    expect(lastCallArg.has('ic2')).toBe(true)
+    // The neighbor's role=button click is NOT fired in visual mode (would
+    // replace selection) — only batchSelect runs.
+    expect(click2).not.toHaveBeenCalled()
+  })
+})
+
 describe('useVimNav y yank + p paste-as-copy', () => {
   afterEach(() => cleanup())
 

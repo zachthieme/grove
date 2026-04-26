@@ -264,3 +264,30 @@ Pressing `z` then `a` toggles the fold (collapse / expand) on the currently-sele
 - Yanking a manager carries the whole subtree across (server-side `CopySubtree` walks descendants).
 - Pasting a yanked node onto itself is allowed by the server (creates a sibling copy under the same parent); the client passes `targetParentId = selectedId`.
 - `y` while focused on an input → bails (existing skip on INPUT/SELECT/TEXTAREA).
+
+---
+
+# Scenario: Visual mode — `v` (additive selection on motion)
+
+**ID**: VIM-013
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-013]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-013]"
+
+## Behavior
+Pressing `v` while a person is selected enters visual mode. In visual mode, motion keys (`h`/`j`/`k`/`l`/arrows) advance an internal cursor along the spatial neighbor graph and ADD each newly visited node to `selectedIds` via `batchSelect` — selection grows additively. Pressing `v` again or Esc exits visual mode; the selection persists. A yellow banner mirrors the cut/yank banners with the current selected count and exit hint.
+
+## Invariants
+- `v` enters visual mode only when the current selection is a real person id (no `:` synthetic key) and a selection exists.
+- `v` while in visual mode is a toggle — exits.
+- In visual mode, `navigateSpatial` operates on `visualCursorRef` (the tracked cursor) instead of `selectedId` and calls `batchSelect(prev ∪ neighbor)` instead of clicking the neighbor's role=button (which would replace selection).
+- Synthetic group keys are skipped when extending — `visualCursorRef` only advances onto person ids; pod/team headers between people are stepped over visually but not added to the set.
+- `useVimNav` returns `{ visualMode, exitVisual }` so App can render the banner and Esc can clear it.
+- Esc clears visual mode via the existing `useUnifiedEscape` priority chain — `cutActive` is `cutIds.length > 0 || yankedIds.length > 0 || visualMode`, with the cancel callback clearing all three.
+
+## Edge cases
+- `v` with no selection → no-op.
+- `v` on a synthetic group key (pod:/team:/products:) → no-op (selection extension semantics are person-set only).
+- Visual + cut / visual + yank: independent state. Visual mode doesn't clear cut/yank; you can yank, then v to extend, then exit and paste.
+- Visual then `d` / `x` / `y` operates on the multi-selection just built (existing multi-select handlers use `selectedIds`).

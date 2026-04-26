@@ -58,7 +58,8 @@ const SECTIONS: Section[] = [
     bindings: [
       { keys: '/', desc: 'Focus search' },
       { keys: '⌘A / Ctrl+A', desc: 'Select all people' },
-      { keys: 'Esc', desc: 'Cancel cut / clear selection / clear focused person' },
+      { keys: 'v', desc: 'Visual mode — h/j/k/l adds neighbors to selection (Esc or v to exit)' },
+      { keys: 'Esc', desc: 'Cancel cut / yank / visual / clear selection / clear focused person' },
     ],
   },
   {

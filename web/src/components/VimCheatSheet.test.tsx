@@ -75,6 +75,12 @@ describe('VimCheatSheet', () => {
     expect(screen.getByText(/copies if yanked, moves if cut/i)).toBeTruthy()
   })
 
+  it('[VIM-013] lists v visual-mode binding', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('v')).toBeTruthy()
+    expect(screen.getByText(/Visual mode/i)).toBeTruthy()
+  })
+
   it('Close button calls onClose', () => {
     const onClose = vi.fn()
     render(<VimCheatSheet onClose={onClose} />)

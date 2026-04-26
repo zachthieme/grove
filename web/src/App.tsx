@@ -62,9 +62,11 @@ function AppToolbar({ exportPng, exportSvg, exporting, exportAllSnapshots, loggi
 }
 
 /** Banners section — consumes contexts directly for error/view state. */
-function AppBanners({ cutIds, yankedIds, exportError, clearExportError, serverSaveError }: {
+function AppBanners({ cutIds, yankedIds, visualMode, selectedCount, exportError, clearExportError, serverSaveError }: {
   cutIds: string[]
   yankedIds: string[]
+  visualMode: boolean
+  selectedCount: number
   exportError: string | null
   clearExportError: () => void
   serverSaveError: boolean
@@ -93,6 +95,11 @@ function AppBanners({ cutIds, yankedIds, exportError, clearExportError, serverSa
           </div>
         )
       })()}
+      {visualMode && (
+        <div className={styles.warnBanner} role="alert">
+          <span className={styles.warnText}>VISUAL — <strong>{selectedCount}</strong> selected. Use h/j/k/l to extend, <strong>Esc</strong> or <strong>v</strong> to exit.</span>
+        </div>
+      )}
       {error && (
         <div className={styles.errorBanner} role="alert">
           <span className={styles.errorText}>{error}</span>
@@ -216,7 +223,7 @@ function AppContent() {
   const showCheatSheet = useCallback(() => setCheatSheetOpen(true), [])
   const hideCheatSheet = useCallback(() => setCheatSheetOpen(false), [])
 
-  const { cutIds, cancelCut, yankedIds, cancelYank } = useVimNav({
+  const { cutIds, cancelCut, yankedIds, cancelYank, visualMode, exitVisual } = useVimNav({
     working, pods, selectedId, selectedIds, batchSelect,
     onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddToTeam: handleAddToTeam, onAddParent: handleAddParent, onShowHelp: showCheatSheet,
     onUndo: undo, onRedo: redo, canUndo, canRedo,
@@ -228,7 +235,7 @@ function AppContent() {
 
   useUnifiedEscape({
     infoPopoverOpen: !!infoPopoverId, onCloseInfoPopover: clearInfoPopover,
-    cutActive: cutIds.length > 0 || yankedIds.length > 0, onCancelCut: () => { cancelCut(); cancelYank() },
+    cutActive: cutIds.length > 0 || yankedIds.length > 0 || visualMode, onCancelCut: () => { cancelCut(); cancelYank(); exitVisual() },
     hasSelection: selectedIds.size > 0, onClearSelection: clearSelection,
     hasHead: !!headPersonId, onClearHead: clearHead,
     enabled: true,
@@ -244,7 +251,7 @@ function AppContent() {
         vimMode={vimMode} toggleVimMode={toggleVimMode}
         themePref={themePref} changeTheme={changeTheme}
       />
-      <AppBanners cutIds={cutIds} yankedIds={yankedIds} exportError={exportError} clearExportError={clearExportError} serverSaveError={serverSaveError} />
+      <AppBanners cutIds={cutIds} yankedIds={yankedIds} visualMode={visualMode} selectedCount={selectedIds.size} exportError={exportError} clearExportError={clearExportError} serverSaveError={serverSaveError} />
       <AppWorkspace
         mainRef={mainRef}
         snapshotExporting={snapshotExporting} snapshotProgress={snapshotProgress}

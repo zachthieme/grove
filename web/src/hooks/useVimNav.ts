@@ -157,13 +157,22 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * za   — toggle fold (collapse/expand) on selected manager or pod
  * y    — yank selection (mark for copy; mutex with cut)
  * p    — paste: if yanked, copy under selection; if cut, move under selection
+ * v    — enter visual mode (additive selection on motion); Esc exits
  * Esc  — cancel cut / clear selection / clear head
  */
 export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, onSetHead, copy, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const [yankedIds, setYankedIds] = useState<string[]>([])
+  const [visualMode, setVisualMode] = useState(false)
+  // Cursor position in visual mode — anchored at the entry point and
+  // advanced by motion keys. Selection grows additively as the cursor moves.
+  const visualCursorRef = useRef<string | null>(null)
   const cancelCut = useCallback(() => setCutIds([]), [])
   const cancelYank = useCallback(() => setYankedIds([]), [])
+  const exitVisual = useCallback(() => {
+    setVisualMode(false)
+    visualCursorRef.current = null
+  }, [])
 
   useEffect(() => {
     if (cutIds.length > 0) {
@@ -209,11 +218,13 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
   }, [working, selectedId, selectById])
 
   const navigateSpatial = useCallback((direction: 'h' | 'j' | 'k' | 'l') => {
-    const currentId = selectedId
-      ?? document.querySelector('[data-selected="true"]')
-          ?.closest('[data-person-id]')
-          ?.getAttribute('data-person-id')
-      ?? null
+    const currentId = visualMode
+      ? visualCursorRef.current
+      : (selectedId
+          ?? document.querySelector('[data-selected="true"]')
+              ?.closest('[data-person-id]')
+              ?.getAttribute('data-person-id')
+          ?? null)
 
     if (!currentId) {
       const first = document.querySelector<HTMLElement>('[data-person-id] [role="button"]')
@@ -229,12 +240,27 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     })
 
     const targetId = findSpatialNeighbor(currentId, rects, direction)
-    if (targetId) {
-      const targetEl = document.querySelector(`[data-person-id="${targetId}"]`)
-      targetEl?.querySelector<HTMLElement>('[role="button"]')?.click()
+    if (!targetId) return
+
+    const targetEl = document.querySelector(`[data-person-id="${targetId}"]`)
+
+    if (visualMode && batchSelect) {
+      // Additive selection: advance the cursor and union the new neighbor
+      // into selectedIds. Synthetic group keys are skipped (selection is
+      // person-set semantics).
+      if (!targetId.includes(':')) {
+        visualCursorRef.current = targetId
+        const next = new Set(selectedIds ?? new Set<string>())
+        next.add(targetId)
+        batchSelect(next)
+      }
       targetEl?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+      return
     }
-  }, [selectedId])
+
+    targetEl?.querySelector<HTMLElement>('[role="button"]')?.click()
+    targetEl?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [selectedId, selectedIds, visualMode, batchSelect])
 
   const navigate = useCallback((key: string) => {
     // Multi-select: only set-based ops apply (d delete, x cut, y yank).
@@ -478,6 +504,21 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         return
       }
 
+      // 'v' enters visual mode anchored at the current selection. Motion
+      // keys (h/j/k/l/arrows) then add neighbors to selectedIds instead
+      // of replacing the selection. Esc exits via useUnifiedEscape.
+      // Pressing v while already in visual mode toggles back to normal.
+      if (e.key === 'v') {
+        e.preventDefault()
+        if (visualMode) {
+          exitVisual()
+        } else if (selectedId && !selectedId.includes(':')) {
+          visualCursorRef.current = selectedId
+          setVisualMode(true)
+        }
+        return
+      }
+
       if (e.key === 'i' && selectedId) {
         const sidebarInput = document.querySelector<HTMLElement>('aside input, aside select, aside textarea')
         if (sidebarInput) {
@@ -562,5 +603,5 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     }
   }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, cancelZPending, toggleFoldOnSelection, onUndo, onRedo, canUndo, canRedo, onSetHead])
 
-  return { cutIds, cancelCut, yankedIds, cancelYank }
+  return { cutIds, cancelCut, yankedIds, cancelYank, visualMode, exitVisual }
 }
