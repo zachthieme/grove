@@ -155,6 +155,25 @@ export function useOrgMutations({ setState, workingRef, podsRef, handleError, se
     [dispatch],
   )
 
+  // Copy a forest of subtrees (yanked) and paste under targetParentId. Returns
+  // the idMap (oldId → newId) so callers can locate the new copies — vim
+  // paste-as-copy uses this to auto-select the first copy.
+  const copy = useCallback(
+    async (rootIds: string[], targetParentId: string): Promise<Record<string, string> | undefined> => {
+      let idMap: Record<string, string> | undefined
+      await dispatch(
+        () => api.copySubtree(rootIds, targetParentId),
+        (resp) => {
+          idMap = resp.idMap
+          return { working: resp.working, pods: resp.pods, currentSnapshotName: null }
+        },
+        { undo: true },
+      )
+      return idMap
+    },
+    [dispatch],
+  )
+
   const remove = useCallback(
     (personId: string) =>
       dispatch(
@@ -272,10 +291,10 @@ export function useOrgMutations({ setState, workingRef, podsRef, handleError, se
   )
 
   return useMemo(() => ({
-    move, reparent, reorder, update, add, addParent, remove, restore, emptyBin,
+    move, reparent, reorder, update, add, addParent, copy, remove, restore, emptyBin,
     saveSnapshot, loadSnapshot, deleteSnapshot, updatePod, createPod, updateSettings,
   }), [
-    move, reparent, reorder, update, add, addParent, remove, restore, emptyBin,
+    move, reparent, reorder, update, add, addParent, copy, remove, restore, emptyBin,
     saveSnapshot, loadSnapshot, deleteSnapshot, updatePod, createPod, updateSettings,
   ])
 }

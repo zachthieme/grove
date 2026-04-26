@@ -60,6 +60,7 @@ export function makeOrgContext(overrides: Partial<OrgTestContext> = {}): OrgTest
     update: asyncNoop,
     add: async () => undefined,
     addParent: async () => undefined,
+    copy: async () => undefined,
     remove: asyncNoop,
     restore: asyncNoop,
     emptyBin: asyncNoop,

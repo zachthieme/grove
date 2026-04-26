@@ -68,6 +68,13 @@ describe('VimCheatSheet', () => {
     expect(screen.getByText(/Toggle fold/i)).toBeTruthy()
   })
 
+  it('[VIM-012] lists y yank + p paste binding (paste-copy or paste-move)', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('y')).toBeTruthy()
+    expect(screen.getByText(/Yank selection/i)).toBeTruthy()
+    expect(screen.getByText(/copies if yanked, moves if cut/i)).toBeTruthy()
+  })
+
   it('Close button calls onClose', () => {
     const onClose = vi.fn()
     render(<VimCheatSheet onClose={onClose} />)

@@ -62,8 +62,9 @@ function AppToolbar({ exportPng, exportSvg, exporting, exportAllSnapshots, loggi
 }
 
 /** Banners section — consumes contexts directly for error/view state. */
-function AppBanners({ cutIds, exportError, clearExportError, serverSaveError }: {
+function AppBanners({ cutIds, yankedIds, exportError, clearExportError, serverSaveError }: {
   cutIds: string[]
+  yankedIds: string[]
   exportError: string | null
   clearExportError: () => void
   serverSaveError: boolean
@@ -79,6 +80,16 @@ function AppBanners({ cutIds, exportError, clearExportError, serverSaveError }: 
         return (
           <div className={styles.warnBanner} role="alert">
             <span className={styles.warnText}>Cut: <strong>{label}</strong> — navigate to new manager and press <strong>p</strong> to paste, or <strong>Esc</strong> to cancel</span>
+          </div>
+        )
+      })()}
+      {yankedIds.length > 0 && (() => {
+        const yankedPeople = yankedIds.map(id => working.find(p => p.id === id)).filter(Boolean)
+        if (yankedPeople.length === 0) return null
+        const label = yankedPeople.length === 1 ? yankedPeople[0]!.name : `${yankedPeople.length} people`
+        return (
+          <div className={styles.warnBanner} role="alert">
+            <span className={styles.warnText}>Yanked: <strong>{label}</strong> — navigate to a target and press <strong>p</strong> to paste a copy, or <strong>Esc</strong> to cancel</span>
           </div>
         )
       })()}
@@ -180,7 +191,7 @@ function AppOverlays({ logPanelOpen, setLogPanelOpen }: {
 /** Thin layout shell — coordinates cross-cutting hooks, delegates rendering to sub-components. */
 function AppContent() {
   const { working, pods, loaded, snapshots } = useOrgData()
-  const { remove, move, reparent, canUndo, canRedo, undo, redo, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgMutations()
+  const { remove, move, reparent, copy, canUndo, canRedo, undo, redo, saveSnapshot, loadSnapshot, deleteSnapshot } = useOrgMutations()
   const { viewMode, headPersonId, setHead, showAllEmploymentTypes } = useUI()
   const { selectedIds, clearSelection, batchSelect } = useSelection()
   const { infoPopoverId, clearInfoPopover, handleAddParent, handleAddReport, handleAddProduct, handleAddToTeam } = useActions()
@@ -205,18 +216,19 @@ function AppContent() {
   const showCheatSheet = useCallback(() => setCheatSheetOpen(true), [])
   const hideCheatSheet = useCallback(() => setCheatSheetOpen(false), [])
 
-  const { cutIds, cancelCut } = useVimNav({
+  const { cutIds, cancelCut, yankedIds, cancelYank } = useVimNav({
     working, pods, selectedId, selectedIds, batchSelect,
     onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddToTeam: handleAddToTeam, onAddParent: handleAddParent, onShowHelp: showCheatSheet,
     onUndo: undo, onRedo: redo, canUndo, canRedo,
     onSetHead: setHead,
+    copy,
     move, reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })
 
   useUnifiedEscape({
     infoPopoverOpen: !!infoPopoverId, onCloseInfoPopover: clearInfoPopover,
-    cutActive: cutIds.length > 0, onCancelCut: cancelCut,
+    cutActive: cutIds.length > 0 || yankedIds.length > 0, onCancelCut: () => { cancelCut(); cancelYank() },
     hasSelection: selectedIds.size > 0, onClearSelection: clearSelection,
     hasHead: !!headPersonId, onClearHead: clearHead,
     enabled: true,
@@ -232,7 +244,7 @@ function AppContent() {
         vimMode={vimMode} toggleVimMode={toggleVimMode}
         themePref={themePref} changeTheme={changeTheme}
       />
-      <AppBanners cutIds={cutIds} exportError={exportError} clearExportError={clearExportError} serverSaveError={serverSaveError} />
+      <AppBanners cutIds={cutIds} yankedIds={yankedIds} exportError={exportError} clearExportError={clearExportError} serverSaveError={serverSaveError} />
       <AppWorkspace
         mainRef={mainRef}
         snapshotExporting={snapshotExporting} snapshotProgress={snapshotProgress}

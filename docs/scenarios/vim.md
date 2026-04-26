@@ -237,3 +237,30 @@ Pressing `z` then `a` toggles the fold (collapse / expand) on the currently-sele
 - Prefix timeout (500 ms) silently expires.
 - `z` while focused on an input → bails (existing skip on INPUT/SELECT/TEXTAREA), prefix never starts.
 - Selection without a toggle (leaf IC, product) → the querySelector returns null, the click is a no-op.
+
+---
+
+# Scenario: Yank + paste-as-copy — `y` and `p`
+
+**ID**: VIM-012
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-012]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-012]"
+
+## Behavior
+`y` marks the current selection (single or multi) as yanked — semantic parallel to `x` cut. `p` then pastes under the current selection: if anything is yanked, paste copies via `copySubtree` (ORG-020); if cut, paste moves via the existing `moveToTarget` flow. Yanking and cutting are mutually exclusive — either action clears the other's pending state. A yellow banner mirroring the cut banner shows what's yanked and how to paste / cancel.
+
+## Invariants
+- `y` writes to `yankedIds` and clears `cutIds`. `x` writes to `cutIds` and clears `yankedIds`.
+- `p` checks `yankedIds` first: if present and a `copy` callback is wired, calls `copy(yankedIds, targetParentId)` with the parent resolved from `selectedId` via `resolveCopyTarget` (handles person ids, `pod:`/`team:`/`products:`/`orphan:` synthetic keys).
+- `p` falls back to the existing `moveToTarget(cutIds, selectedId)` when no yank is active and `cutIds` is set.
+- Both `cutIds` and `yankedIds` self-prune via `useEffect` when their members vanish from `working` (e.g. after delete elsewhere).
+- Esc clears either via `useUnifiedEscape` priority — the `cutActive` flag passed in is `cutIds.length > 0 || yankedIds.length > 0` and the cancel callback clears both.
+- `useVimNav` returns `{ cutIds, cancelCut, yankedIds, cancelYank }` so App can render banners.
+
+## Edge cases
+- `p` with neither yank nor cut → no-op.
+- Yanking a manager carries the whole subtree across (server-side `CopySubtree` walks descendants).
+- Pasting a yanked node onto itself is allowed by the server (creates a sibling copy under the same parent); the client passes `targetParentId = selectedId`.
+- `y` while focused on an input → bails (existing skip on INPUT/SELECT/TEXTAREA).

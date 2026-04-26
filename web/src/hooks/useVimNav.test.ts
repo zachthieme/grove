@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderHook, cleanup } from '@testing-library/react'
+import { renderHook, cleanup, act } from '@testing-library/react'
 import { fireEvent } from '@testing-library/dom'
 import { useVimNav, findRootPerson, findDeepestLeaf, findParentForSelection } from './useVimNav'
 import type { OrgNode } from '../api/types'
@@ -308,6 +308,210 @@ describe('useVimNav', () => {
 
     expect(onAddToTeam).toHaveBeenCalledTimes(1)
     expect(onAddToTeam).toHaveBeenCalledWith('', 'Exec', undefined)
+  })
+})
+
+describe('useVimNav y yank + p paste-as-copy', () => {
+  afterEach(() => cleanup())
+
+  it('[VIM-012] y on a person stores selection in yankedIds', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        copy: vi.fn(),
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'y' })
+
+    expect(result.current.yankedIds).toEqual(['ic1'])
+  })
+
+  it('[VIM-012] yanking clears any prior cut (mutex)', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        copy: vi.fn(),
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'x' })
+    expect(result.current.cutIds).toEqual(['ic1'])
+
+    fireEvent.keyDown(document, { key: 'y' })
+    expect(result.current.yankedIds).toEqual(['ic1'])
+    expect(result.current.cutIds).toEqual([])
+  })
+
+  it('[VIM-012] cutting clears any prior yank (mutex)', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        copy: vi.fn(),
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'y' })
+    fireEvent.keyDown(document, { key: 'x' })
+
+    expect(result.current.cutIds).toEqual(['ic1'])
+    expect(result.current.yankedIds).toEqual([])
+  })
+
+  it('[VIM-012] p pastes as copy when yankedIds present, calling copy(rootIds, targetParentId)', async () => {
+    const copy = vi.fn().mockResolvedValue({ ic1: 'new-id' })
+    const move = vi.fn()
+    const ic = makePerson({ id: 'ic1' })
+    const target = makePerson({ id: 'mgr1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic, target],
+        pods: [],
+        selectedId: 'ic1',
+        copy,
+        move,
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    // Yank ic1, then move selection to mgr1, then paste.
+    fireEvent.keyDown(document, { key: 'y' })
+
+    // Re-render the hook with new selectedId by remounting. Easier: mutate
+    // selectedId via rerender-style pattern. Use renderHook's rerender API.
+    // Instead, just dispatch p with a different selectedId via a fresh hook.
+    // Yanked state is local — gone on remount. So we use the existing
+    // result and the same selectedId. The target is the *paste target*,
+    // not where you're standing — so for this test we paste while still
+    // selected on ic1; targetParentId resolves to ic1 itself.
+    fireEvent.keyDown(document, { key: 'p' })
+
+    expect(copy).toHaveBeenCalledTimes(1)
+    expect(copy).toHaveBeenCalledWith(['ic1'], 'ic1')
+    expect(move).not.toHaveBeenCalled()
+    // After paste, yankedIds is cleared.
+    expect(result.current.yankedIds).toEqual([])
+  })
+
+  it('[VIM-012] p pastes as copy with target resolved from a pod collapseKey', () => {
+    const copy = vi.fn()
+    const ic = makePerson({ id: 'ic1' })
+    const mgr = makePerson({ id: 'mgr1' })
+
+    const { rerender } = renderHook(
+      ({ selectedId }: { selectedId: string }) =>
+        useVimNav({
+          working: [ic, mgr],
+          pods: [],
+          selectedId,
+          copy,
+          move: vi.fn(),
+          reparent: vi.fn(),
+          enabled: true,
+        }),
+      { initialProps: { selectedId: 'ic1' } },
+    )
+
+    fireEvent.keyDown(document, { key: 'y' })
+    rerender({ selectedId: 'pod:mgr1:Alpha' })
+    fireEvent.keyDown(document, { key: 'p' })
+
+    expect(copy).toHaveBeenCalledTimes(1)
+    expect(copy).toHaveBeenCalledWith(['ic1'], 'mgr1')
+  })
+
+  it('[VIM-012] p prefers yank over cut when both somehow set', () => {
+    // Cut/yank are mutex via setters, but a stale state could in theory
+    // have both. Verify priority: yanked wins.
+    // We can't directly populate both via the public API (mutex enforces),
+    // so this test asserts the precedence by yanking last and ensuring
+    // copy is called (move would indicate cut path).
+    const copy = vi.fn()
+    const move = vi.fn()
+    const ic = makePerson({ id: 'ic1' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        copy,
+        move,
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'x' })
+    fireEvent.keyDown(document, { key: 'y' })
+    fireEvent.keyDown(document, { key: 'p' })
+
+    expect(copy).toHaveBeenCalled()
+    expect(move).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-012] p with no yank and no cut is a no-op', () => {
+    const copy = vi.fn()
+    const move = vi.fn()
+    const ic = makePerson({ id: 'ic1' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        copy,
+        move,
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'p' })
+
+    expect(copy).not.toHaveBeenCalled()
+    expect(move).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-012] cancelYank clears yankedIds', () => {
+    const ic = makePerson({ id: 'ic1' })
+    const { result } = renderHook(() =>
+      useVimNav({
+        working: [ic],
+        pods: [],
+        selectedId: 'ic1',
+        copy: vi.fn(),
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'y' })
+    expect(result.current.yankedIds).toEqual(['ic1'])
+
+    act(() => result.current.cancelYank())
+
+    expect(result.current.yankedIds).toEqual([])
   })
 })
 

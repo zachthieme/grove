@@ -21,6 +21,7 @@ interface VimNavOptions {
   canUndo?: boolean
   canRedo?: boolean
   onSetHead?: (id: string) => void
+  copy?: (rootIds: string[], targetParentId: string) => Promise<Record<string, string> | undefined>
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   enabled: boolean
@@ -91,6 +92,37 @@ export function findParentForSelection(
 }
 
 /**
+ * Resolve a paste target id into the parent person id under which copies
+ * should be attached. Mirrors moveToTarget's synthetic-id parsing but
+ * returns just the parent id (for copy-subtree's targetParentId arg).
+ *
+ * - person/product id → that id
+ * - "pod:managerId:podName" → managerId
+ * - "team:managerId:teamName" → managerId
+ * - "products:managerId" → managerId
+ * - "orphan:teamName" → "" (top-level)
+ * - null → ""
+ */
+export function resolveCopyTarget(selectedId: string | null, _pods: Pod[]): string {
+  if (!selectedId) return ''
+  if (selectedId.startsWith('pod:')) {
+    const rest = selectedId.slice(4)
+    const colon = rest.indexOf(':')
+    return colon === -1 ? '' : rest.slice(0, colon)
+  }
+  if (selectedId.startsWith('team:')) {
+    const rest = selectedId.slice(5)
+    const colon = rest.indexOf(':')
+    return colon === -1 ? '' : rest.slice(0, colon)
+  }
+  if (selectedId.startsWith('products:')) {
+    return selectedId.slice('products:'.length)
+  }
+  if (selectedId.startsWith('orphan:')) return ''
+  return selectedId
+}
+
+/**
  * Given a data-person-id value, resolve to the person IDs it represents.
  * Works uniformly for person nodes (returns [id]) and group nodes (returns member IDs).
  */
@@ -123,11 +155,15 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * Ctrl+R — redo last undone mutation (delegates to onRedo)
  * f    — focus chart on selected person's subtree (set head)
  * za   — toggle fold (collapse/expand) on selected manager or pod
+ * y    — yank selection (mark for copy; mutex with cut)
+ * p    — paste: if yanked, copy under selection; if cut, move under selection
  * Esc  — cancel cut / clear selection / clear head
  */
-export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, onSetHead, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, onSetHead, copy, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
+  const [yankedIds, setYankedIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
+  const cancelYank = useCallback(() => setYankedIds([]), [])
 
   useEffect(() => {
     if (cutIds.length > 0) {
@@ -135,6 +171,13 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       if (remaining.length === 0) setCutIds([])
     }
   }, [cutIds, working])
+
+  useEffect(() => {
+    if (yankedIds.length > 0) {
+      const remaining = yankedIds.filter(id => working.some(p => p.id === id))
+      if (remaining.length === 0) setYankedIds([])
+    }
+  }, [yankedIds, working])
 
   // Click the role=button inside the data-person-id wrapper for `id`. Same
   // pattern as navigateSpatial — keep DOM coupling here and let consumers
@@ -194,9 +237,9 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
   }, [selectedId])
 
   const navigate = useCallback((key: string) => {
-    // Multi-select: only set-based ops apply (d delete, x cut). Single-target ops
-    // (o, O, P, p) require a single selection — App.tsx sets selectedId to null
-    // when selectedIds.size !== 1.
+    // Multi-select: only set-based ops apply (d delete, x cut, y yank).
+    // Single-target ops (o, O, +, p) require a single selection — App.tsx
+    // sets selectedId to null when selectedIds.size !== 1.
     if (!selectedId) {
       const multi = selectedIds && selectedIds.size > 1 ? Array.from(selectedIds) : null
       if (!multi) return
@@ -206,6 +249,11 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
           return
         case 'x':
           setCutIds(multi)
+          setYankedIds([])
+          return
+        case 'y':
+          setYankedIds(multi)
+          setCutIds([])
           return
       }
       return
@@ -294,10 +342,27 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         break
       }
       case 'x': {
-        if (personIds.length > 0) setCutIds(personIds)
+        if (personIds.length > 0) {
+          setCutIds(personIds)
+          setYankedIds([]) // mutex: cutting clears yank
+        }
+        break
+      }
+      case 'y': {
+        if (personIds.length > 0) {
+          setYankedIds(personIds)
+          setCutIds([]) // mutex: yanking clears cut
+        }
         break
       }
       case 'p': {
+        // Yanked > cut: paste-copy takes priority when both somehow set.
+        if (yankedIds.length > 0 && copy) {
+          const targetParentId = resolveCopyTarget(selectedId, pods)
+          void copy(yankedIds, targetParentId)
+          setYankedIds([])
+          break
+        }
         if (cutIds.length > 0) {
           // Same moveToTarget used by drag-and-drop
           moveToTarget(cutIds, selectedId, { move, reparent }, pods)
@@ -306,7 +371,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         break
       }
     }
-  }, [selectedId, selectedIds, working, pods, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, cutIds])
+  }, [selectedId, selectedIds, working, pods, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, copy, cutIds, yankedIds])
 
   // Two-key sequence prefix state: set by the first `g`, consumed by the
   // next `g`/`p`, cleared on timeout or any other key.
@@ -481,6 +546,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         case '+':
         case 'd':
         case 'x':
+        case 'y':
         case 'p':
           e.preventDefault()
           navigate(e.key)
@@ -496,5 +562,5 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     }
   }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, cancelZPending, toggleFoldOnSelection, onUndo, onRedo, canUndo, canRedo, onSetHead])
 
-  return { cutIds, cancelCut }
+  return { cutIds, cancelCut, yankedIds, cancelYank }
 }
