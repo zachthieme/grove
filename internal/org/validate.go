@@ -55,18 +55,6 @@ func validateNoteLen(value string) error {
 	return nil
 }
 
-// findInSlice finds a node by ID with a linear scan. Use only when no index
-// is available (tests, fuzz harness). OrgService callers should use findWorking,
-// which is O(1) via idIndex.
-func findInSlice(nodes []apitypes.OrgNode, id string) (int, *apitypes.OrgNode) {
-	for i := range nodes {
-		if nodes[i].Id == id {
-			return i, &nodes[i]
-		}
-	}
-	return -1, nil
-}
-
 // findByID looks up a node via an index map and verifies the entry against the
 // slice. Returns (-1, nil) on miss or stale index. O(1).
 func findByID(nodes []apitypes.OrgNode, idIndex map[string]int, id string) (int, *apitypes.OrgNode) {

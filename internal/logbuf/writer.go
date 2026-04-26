@@ -1,6 +1,7 @@
 package logbuf
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"os"
@@ -47,7 +48,7 @@ func (w SlogWriter) Write(p []byte) (int, error) {
 	if logger == nil {
 		logger = Logger()
 	}
-	logger.Log(nil, w.Level, msg, "source", "stdlib")
+	logger.Log(context.Background(), w.Level, msg, "source", "stdlib")
 	return len(p), nil
 }
 
