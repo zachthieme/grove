@@ -74,6 +74,9 @@ The backend is split into 7 focused packages with strict downward dependencies (
 
 ### React Frontend (`web/`)
 
+- `web/src/api/client.ts` — Public barrel; re-exports from resource files. Consumers import from `'../api/client'`.
+- `web/src/api/core.ts` — Shared HTTP plumbing: `fetchWithTimeout`, `json`/`jsonWithLog`, telemetry, correlation IDs, `BASE = '/api'`.
+- `web/src/api/{org,imports,pods,snapshots,autosave,settings,logs}.ts` — Per-resource fetch wrappers. Mirrors the `internal/httpapi/handlers_*.go` split.
 - `web/src/store/OrgContext.tsx` — Context aggregator: exports `useOrg()` (mega-context), plus granular hooks `useOrgData()`, `useUI()`, `useSelection()` for focused consumers
 - `web/src/store/OrgDataContext.tsx` — Data state provider: org data, mutations, snapshots, autosave
 - `web/src/store/UIContext.tsx` — UI state provider: view mode, data view, filters, head person
