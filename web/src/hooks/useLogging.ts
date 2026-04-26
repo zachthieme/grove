@@ -9,7 +9,9 @@ export function useLogging() {
     getConfig().then((cfg) => {
       setLoggingEnabled(cfg.logging)
       setClientLogging(cfg.logging)
-    }).catch(() => {})
+    }).catch((e) => {
+    console.warn('config load failed; logging disabled', e)
+  })
   }, [])
 
   const toggleLogs = useCallback(() => setLogPanelOpen((o) => !o), [])
