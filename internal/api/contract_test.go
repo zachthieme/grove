@@ -394,7 +394,7 @@ func TestContractGetOrgResponseShape(t *testing.T) {
 
 func TestContractUploadResponseShape(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := org.New(snapshot.NewMemoryStore())
 	router := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	// Upload via handler

@@ -1,4 +1,4 @@
-package api
+package org
 
 import "testing"
 

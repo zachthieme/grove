@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/zachthieme/grove/internal/apitypes"
-	"github.com/zachthieme/grove/internal/org"
 )
 
 // Scenarios: SNAP-001
@@ -155,7 +154,7 @@ func TestSnapshot_Save_EmptyName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty snapshot name")
 	}
-	if !org.IsValidation(err) {
+	if !IsValidation(err) {
 		t.Errorf("expected validation error, got: %v", err)
 	}
 }
@@ -168,7 +167,7 @@ func TestSnapshot_Save_PathTraversal(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for path-traversal snapshot name")
 	}
-	if !org.IsValidation(err) {
+	if !IsValidation(err) {
 		t.Errorf("expected validation error, got: %v", err)
 	}
 }
@@ -182,7 +181,7 @@ func TestSnapshot_Save_TooLong(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for snapshot name over 100 chars")
 	}
-	if !org.IsValidation(err) {
+	if !IsValidation(err) {
 		t.Errorf("expected validation error, got: %v", err)
 	}
 }

@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/logbuf"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/parser"
 	"github.com/zachthieme/grove/internal/pod"
 )
 
-func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (*org.UploadResponse, error) {
+func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (*UploadResponse, error) {
 	s.mu.Lock()
 	s.pending = nil
 
@@ -21,8 +20,8 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		return nil, err
 	}
 
-	mapping := org.InferMapping(header)
-	if org.AllRequiredHigh(mapping) {
+	mapping := InferMapping(header)
+	if AllRequiredHigh(mapping) {
 		simpleMapping := make(map[string]string, len(mapping))
 		for field, mc := range mapping {
 			simpleMapping[field] = mc.Column
@@ -30,14 +29,14 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		parsed, err := parser.BuildPeopleWithMapping(header, dataRows, simpleMapping)
 		if err != nil {
 			s.mu.Unlock()
-			return nil, org.ErrValidation("building org: %v", err)
+			return nil, ErrValidation("building org: %v", err)
 		}
-		people := org.ConvertOrg(parsed)
+		people := ConvertOrg(parsed)
 		s.resetState(people, people)
-		s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.working)}
-		resp := &org.UploadResponse{
-			Status:  org.UploadReady,
-			OrgData: &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings},
+		s.settings = apitypes.Settings{DisciplineOrder: DeriveDisciplineOrder(s.working)}
+		resp := &UploadResponse{
+			Status:  UploadReady,
+			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings},
 		}
 		s.mu.Unlock()
 
@@ -63,15 +62,15 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		}
 		preview = append(preview, row)
 	}
-	return &org.UploadResponse{
-		Status:  org.UploadNeedsMapping,
+	return &UploadResponse{
+		Status:  UploadNeedsMapping,
 		Headers: header,
 		Mapping: mapping,
 		Preview: preview,
 	}, nil
 }
 
-func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]string) (*org.OrgData, error) {
+func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]string) (*OrgData, error) {
 	// Phase 1: grab and clear pending data under lock.
 	// epoch captures the expected pendingEpoch value for a single un-superseded
 	// upload: confirmedEpoch+1. If pendingEpoch has advanced past that (concurrent or
@@ -83,7 +82,7 @@ func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]stri
 	s.mu.Unlock()
 
 	if pending == nil {
-		return nil, org.ErrValidation("no pending file to confirm")
+		return nil, ErrValidation("no pending file to confirm")
 	}
 
 	// Check for cancellation before expensive parsing
@@ -100,27 +99,27 @@ func (s *OrgService) ConfirmMapping(ctx context.Context, mapping map[string]stri
 
 // confirmMappingCSV handles the non-zip ConfirmMapping path.
 // Called without holding s.mu.
-func (s *OrgService) confirmMappingCSV(pending *apitypes.PendingUpload, mapping map[string]string, epoch uint64) (*org.OrgData, error) {
+func (s *OrgService) confirmMappingCSV(pending *apitypes.PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
 	header, dataRows, err := extractRows(pending.Filename, pending.File)
 	if err != nil {
-		return nil, org.ErrValidation("parsing pending file: %v", err)
+		return nil, ErrValidation("parsing pending file: %v", err)
 	}
 	parsed, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
 	if err != nil {
-		return nil, org.ErrValidation("building org: %v", err)
+		return nil, ErrValidation("building org: %v", err)
 	}
-	people := org.ConvertOrg(parsed)
+	people := ConvertOrg(parsed)
 
 	// Phase 3: commit state under lock — check epoch hasn't changed
 	s.mu.Lock()
 	if s.pendingEpoch != epoch {
 		s.mu.Unlock()
-		return nil, org.ErrConflict("upload superseded by a newer upload")
+		return nil, ErrConflict("upload superseded by a newer upload")
 	}
 	s.confirmedEpoch = s.pendingEpoch
 	s.resetState(people, people)
-	s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.working)}
-	resp := &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
+	s.settings = apitypes.Settings{DisciplineOrder: DeriveDisciplineOrder(s.working)}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Clear snapshots after releasing org lock — never hold both locks.
@@ -135,21 +134,21 @@ func (s *OrgService) confirmMappingCSV(pending *apitypes.PendingUpload, mapping 
 
 // confirmMappingZip handles the zip ConfirmMapping path.
 // Called without holding s.mu.
-func (s *OrgService) confirmMappingZip(pending *apitypes.PendingUpload, mapping map[string]string, epoch uint64) (*org.OrgData, error) {
+func (s *OrgService) confirmMappingZip(pending *apitypes.PendingUpload, mapping map[string]string, epoch uint64) (*OrgData, error) {
 	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(pending.File)
 	if err != nil {
-		return nil, org.ErrValidation("parsing pending zip: %v", err)
+		return nil, ErrValidation("parsing pending zip: %v", err)
 	}
 	orig, work, snaps, parseWarns, err := parseZipEntries(entries, mapping)
 	if err != nil {
-		return nil, org.ErrValidation("parsing pending zip: %v", err)
+		return nil, ErrValidation("parsing pending zip: %v", err)
 	}
 
 	// Commit state under lock
 	s.mu.Lock()
 	if s.pendingEpoch != epoch {
 		s.mu.Unlock()
-		return nil, org.ErrConflict("upload superseded by a newer upload")
+		return nil, ErrConflict("upload superseded by a newer upload")
 	}
 	s.confirmedEpoch = s.pendingEpoch
 	s.resetState(orig, work)
@@ -157,19 +156,19 @@ func (s *OrgService) confirmMappingZip(pending *apitypes.PendingUpload, mapping 
 	if podsSidecar != nil {
 		sidecarEntries := parsePodsSidecar(podsSidecar)
 		if len(sidecarEntries) > 0 {
-			idToName := org.BuildIDToName(s.working)
+			idToName := BuildIDToName(s.working)
 			s.podMgr.ApplyNotes(sidecarEntries, idToName)
 		}
 	}
 
-	s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.working)}
+	s.settings = apitypes.Settings{DisciplineOrder: DeriveDisciplineOrder(s.working)}
 	if settingsSidecar != nil {
 		if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
 			s.settings = apitypes.Settings{DisciplineOrder: order}
 		}
 	}
 
-	resp := &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Apply parsed snapshots after releasing org lock. ReplaceAll bumps

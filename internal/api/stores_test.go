@@ -11,6 +11,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -20,7 +21,7 @@ import (
 func TestSaveSnapshot_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := snapshot.NewMemoryStore()
-	svc := NewOrgService(store)
+	svc := org.New(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
@@ -40,7 +41,7 @@ func TestSaveSnapshot_PersistenceError(t *testing.T) {
 func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := snapshot.NewMemoryStore()
-	svc := NewOrgService(store)
+	svc := org.New(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
@@ -64,7 +65,7 @@ func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 	t.Parallel()
 	store := snapshot.NewMemoryStore()
-	svc := NewOrgService(store)
+	svc := org.New(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 
 	// First upload to establish state
@@ -91,7 +92,7 @@ func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 	t.Parallel()
 	store := snapshot.NewMemoryStore()
 	store.SetReadErr("corrupted file")
-	svc := NewOrgService(store)
+	svc := org.New(store)
 
 	// Service should start without snapshots, not crash
 	list := svc.ListSnapshots(context.Background())
@@ -109,7 +110,7 @@ func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 		"saved": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}},
 	})
 
-	svc := NewOrgService(store)
+	svc := org.New(store)
 	list := svc.ListSnapshots(context.Background())
 	if len(list) != 1 {
 		t.Fatalf("expected 1 snapshot from store, got %d", len(list))
@@ -126,7 +127,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
 	store.SetWriteErr("disk full")
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := org.New(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	body := `{"original":[],"working":[],"recycled":[],"snapshotName":"","timestamp":"now"}`
@@ -153,7 +154,7 @@ func TestAutosaveHandler_ReadError(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
 	store.SetReadErr("corrupted file")
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := org.New(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("GET", "/api/autosave", nil)
@@ -170,7 +171,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
 	store.SetDeleteErr("permission denied")
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := org.New(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
@@ -187,7 +188,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := org.New(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	// Write
@@ -240,7 +241,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := snapshot.NewMemoryStore()
-	svc := NewOrgService(store)
+	svc := org.New(store)
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	// Upload data first
@@ -265,7 +266,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
 	store := snapshot.NewMemoryStore()
-	svc := NewOrgService(store)
+	svc := org.New(store)
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	uploadCSV(t, handler)

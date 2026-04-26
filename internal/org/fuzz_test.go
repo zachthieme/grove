@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"archive/zip"
@@ -10,7 +10,6 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -32,7 +31,7 @@ func FuzzInferMapping(f *testing.F) {
 		if len(headers) > 20 {
 			headers = headers[:20]
 		}
-		m := org.InferMapping(headers)
+		m := InferMapping(headers)
 
 		// Invariant: no duplicate fields in the result map
 		// (Go maps enforce this by construction, but verify values are sane)
@@ -72,7 +71,7 @@ func FuzzCSVUpload(f *testing.F) {
 	f.Add([]byte("Name,Name,Name\nA,B,C\n"))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		svc := NewOrgService(snapshot.NewMemoryStore())
+		svc := New(snapshot.NewMemoryStore())
 		// Should never panic regardless of input; errors are expected
 		_, _ = svc.Upload(context.Background(), "test.csv", data)
 	})
@@ -92,7 +91,7 @@ func FuzzAllRequiredHigh(f *testing.F) {
 			field: {Column: "TestCol", Confidence: confidence},
 		}
 		// Should never panic; result is always a bool
-		result := org.AllRequiredHigh(m)
+		result := AllRequiredHigh(m)
 		_ = result
 	})
 }
@@ -121,7 +120,7 @@ func FuzzAllRequiredHighMultiField(f *testing.F) {
 			}
 		}
 		// Should never panic
-		result := org.AllRequiredHigh(m)
+		result := AllRequiredHigh(m)
 		_ = result
 	})
 }
@@ -133,10 +132,10 @@ func FuzzUpdateFields(f *testing.F) {
 	f.Add(strings.Repeat("x", 600), "Senior", "SRE")
 
 	f.Fuzz(func(t *testing.T, name, role, disc string) {
-		svc := NewOrgService(snapshot.NewMemoryStore())
+		svc := New(snapshot.NewMemoryStore())
 		csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n")
 		resp, err := svc.Upload(context.Background(), "test.csv", csv)
-		if err != nil || resp.Status != org.UploadReady {
+		if err != nil || resp.Status != UploadReady {
 			return
 		}
 		people := svc.GetWorking(context.Background())
@@ -163,7 +162,7 @@ func FuzzSanitizeCell(f *testing.F) {
 	f.Add("\nfoo")
 
 	f.Fuzz(func(t *testing.T, input string) {
-		result := org.SanitizeCell(input)
+		result := SanitizeCell(input)
 		if len(result) == 0 && len(input) == 0 {
 			return
 		}
@@ -171,7 +170,7 @@ func FuzzSanitizeCell(f *testing.F) {
 		if len(result) > 0 {
 			switch result[0] {
 			case '=', '+', '-', '@', '\r', '\n':
-				t.Errorf("org.SanitizeCell(%q) = %q starts with dangerous char", input, result)
+				t.Errorf("SanitizeCell(%q) = %q starts with dangerous char", input, result)
 			}
 		}
 	})
@@ -194,7 +193,7 @@ func FuzzZipUpload(f *testing.F) {
 	f.Add([]byte("PK\x03\x04"))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		svc := NewOrgService(snapshot.NewMemoryStore())
+		svc := New(snapshot.NewMemoryStore())
 		// Must not panic — errors are acceptable
 		resp, err := svc.UploadZip(context.Background(), data)
 		if err != nil {

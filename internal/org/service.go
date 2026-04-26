@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"bytes"
@@ -15,7 +15,6 @@ import (
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/pod"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
@@ -39,7 +38,7 @@ type OrgService struct {
 	idIndex        map[string]int
 }
 
-func NewOrgService(snapStore snapshot.Store) *OrgService {
+func New(snapStore snapshot.Store) *OrgService {
 	svc := &OrgService{podMgr: pod.New()}
 	svc.snap = snapshot.New(snapStore, svc)
 	return svc
@@ -52,12 +51,12 @@ func (s *OrgService) SnapshotService() *snapshot.Service { return s.snap }
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
-	case org.ExtCSV:
+	case ExtCSV:
 		return extractRowsCSV(data)
-	case org.ExtXLSX:
+	case ExtXLSX:
 		return extractRowsXLSX(data)
 	default:
-		return nil, nil, org.ErrValidation("unsupported file format '%s'", ext)
+		return nil, nil, ErrValidation("unsupported file format '%s'", ext)
 	}
 }
 
@@ -65,10 +64,10 @@ func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 	reader := csv.NewReader(bytes.NewReader(data))
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, nil, org.ErrValidation("reading CSV: %v", err)
+		return nil, nil, ErrValidation("reading CSV: %v", err)
 	}
 	if len(records) < 2 {
-		return nil, nil, org.ErrValidation("CSV must have a header and at least one data row")
+		return nil, nil, ErrValidation("CSV must have a header and at least one data row")
 	}
 	return records[0], records[1:], nil
 }
@@ -76,16 +75,16 @@ func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 	f, err := excelize.OpenReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, nil, org.ErrValidation("opening xlsx: %v", err)
+		return nil, nil, ErrValidation("opening xlsx: %v", err)
 	}
 	defer func() { _ = f.Close() }()
 	sheet := f.GetSheetName(0)
 	rows, err := f.GetRows(sheet)
 	if err != nil {
-		return nil, nil, org.ErrValidation("reading rows: %v", err)
+		return nil, nil, ErrValidation("reading rows: %v", err)
 	}
 	if len(rows) < 2 {
-		return nil, nil, org.ErrValidation("xlsx must have a header and at least one data row")
+		return nil, nil, ErrValidation("xlsx must have a header and at least one data row")
 	}
 	return rows[0], rows[1:], nil
 }
@@ -117,7 +116,7 @@ func (s *OrgService) RestoreState(ctx context.Context, data autosave.AutosaveDat
 	if data.Settings != nil {
 		s.settings = *data.Settings
 	} else {
-		s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.original)}
+		s.settings = apitypes.Settings{DisciplineOrder: DeriveDisciplineOrder(s.original)}
 	}
 	people := len(s.working)
 	recycled := len(s.recycled)
@@ -125,13 +124,13 @@ func (s *OrgService) RestoreState(ctx context.Context, data autosave.AutosaveDat
 	logbuf.Logger().Info("state restored from autosave", "source", "org", "op", "restoreState", "people", people, "recycled", recycled, "snapshot", data.SnapshotName)
 }
 
-func (s *OrgService) GetOrg(ctx context.Context) *org.OrgData {
+func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.original == nil {
 		return nil
 	}
-	return &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 }
 
 func (s *OrgService) GetWorking(ctx context.Context) []apitypes.OrgNode {
@@ -154,20 +153,20 @@ func (s *OrgService) GetRecycled(ctx context.Context) []apitypes.OrgNode {
 	return deepCopyNodes(s.recycled)
 }
 
-func (s *OrgService) ResetToOriginal(ctx context.Context) *org.OrgData {
+func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.mu.Lock()
 	s.working = deepCopyNodes(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
 	s.podMgr.Reset()
-	s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.original)}
-	resp := &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
+	s.settings = apitypes.Settings{DisciplineOrder: DeriveDisciplineOrder(s.original)}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Clear snapshots after releasing org lock — load-bearing rule:
 	// never hold mu_org and mu_snap simultaneously. Bumping snap epoch
 	// invalidates any in-flight Save that captured pre-Reset state.
-	// Signature returns *org.OrgData (no error), so disk failures here surface
+	// Signature returns *OrgData (no error), so disk failures here surface
 	// only via the structured logger — consistent with podMgr.unsafeReset
 	// semantics, but no longer silent.
 	if err := s.snap.Clear(); err != nil {
@@ -275,19 +274,19 @@ func (s *OrgService) ApplyState(state snapshot.OrgState) {
 		copy(order, state.Settings.DisciplineOrder)
 		s.settings = apitypes.Settings{DisciplineOrder: order}
 	} else {
-		s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.working)}
+		s.settings = apitypes.Settings{DisciplineOrder: DeriveDisciplineOrder(s.working)}
 	}
 }
 
 // Create initializes a new org with a single root person. It replaces any
 // existing org state and clears snapshots, returning the new OrgData.
-func (s *OrgService) Create(ctx context.Context, name string) (*org.OrgData, error) {
+func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, org.ErrValidation("name is required")
+		return nil, ErrValidation("name is required")
 	}
 	if len(name) > maxFieldLen {
-		return nil, org.ErrValidation("name too long (max %d characters)", maxFieldLen)
+		return nil, ErrValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
 	p := apitypes.OrgNode{
@@ -300,7 +299,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*org.OrgData, err
 	people := []apitypes.OrgNode{p}
 	s.resetState(people, people)
 	s.settings = apitypes.Settings{DisciplineOrder: []string{}}
-	resp := &org.OrgData{
+	resp := &OrgData{
 		Original: deepCopyNodes(s.original),
 		Working:  deepCopyNodes(s.working),
 		Pods:     pod.Copy(s.podMgr.Pods()),
@@ -316,4 +315,33 @@ func (s *OrgService) Create(ctx context.Context, name string) (*org.OrgData, err
 	resp.PersistenceWarning = persistWarn
 	logbuf.Logger().Info("org created", "source", "org", "name", name)
 	return resp, nil
+}
+
+// --- snapshot delegations ---
+// Thin wrappers on *OrgService that forward to the embedded *snapshot.Service.
+// These satisfy the SnapshotOps interface in internal/api so that *OrgService
+// can be wired directly into Services.Snaps without an adapter, and so that
+// existing tests calling svc.SaveSnapshot(...) etc. continue to work.
+
+func (s *OrgService) SaveSnapshot(ctx context.Context, name string) error {
+	return s.snap.Save(ctx, name)
+}
+
+func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, error) {
+	if err := s.snap.Load(ctx, name); err != nil {
+		return nil, err
+	}
+	return s.GetOrg(ctx), nil
+}
+
+func (s *OrgService) DeleteSnapshot(ctx context.Context, name string) error {
+	return s.snap.Delete(ctx, name)
+}
+
+func (s *OrgService) ListSnapshots(ctx context.Context) []snapshot.Info {
+	return s.snap.List()
+}
+
+func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
+	return s.snap.Export(ctx, name)
 }

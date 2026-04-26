@@ -12,6 +12,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -138,7 +139,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 	buf.Add(logbuf.LogEntry{Source: "api", Method: "GET", Path: "/api/org", CorrelationID: "c1"})
 	buf.Add(logbuf.LogEntry{Source: "web", Method: "POST", Path: "/api/update", CorrelationID: "c2"})
 
-	router := NewRouter(NewServices(NewOrgService(snapshot.NewMemoryStore())), buf, autosave.NewMemoryStore())
+	router := NewRouter(NewServices(org.New(snapshot.NewMemoryStore())), buf, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/logs", nil)
 	rr := httptest.NewRecorder()
@@ -182,7 +183,7 @@ func TestLogEndpoints_GET(t *testing.T) {
 func TestLogEndpoints_POST(t *testing.T) {
 	t.Parallel()
 	buf := logbuf.New(100)
-	router := NewRouter(NewServices(NewOrgService(snapshot.NewMemoryStore())), buf, autosave.NewMemoryStore())
+	router := NewRouter(NewServices(org.New(snapshot.NewMemoryStore())), buf, autosave.NewMemoryStore())
 
 	body := `{"source":"web","method":"POST","path":"/api/update","responseStatus":200,"durationMs":15}`
 	req := httptest.NewRequest("POST", "/api/logs", strings.NewReader(body))
@@ -208,7 +209,7 @@ func TestLogEndpoints_DELETE(t *testing.T) {
 	buf := logbuf.New(100)
 	buf.Add(logbuf.LogEntry{Path: "/a"})
 	buf.Add(logbuf.LogEntry{Path: "/b"})
-	router := NewRouter(NewServices(NewOrgService(snapshot.NewMemoryStore())), buf, autosave.NewMemoryStore())
+	router := NewRouter(NewServices(org.New(snapshot.NewMemoryStore())), buf, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("DELETE", "/api/logs", nil)
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
@@ -225,7 +226,7 @@ func TestLogEndpoints_DELETE(t *testing.T) {
 
 func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
 	t.Parallel()
-	router := NewRouter(NewServices(NewOrgService(snapshot.NewMemoryStore())), nil, autosave.NewMemoryStore())
+	router := NewRouter(NewServices(org.New(snapshot.NewMemoryStore())), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/logs", nil)
 	rr := httptest.NewRecorder()
@@ -238,7 +239,7 @@ func TestLogEndpoints_NotRegistered_WhenNilBuffer(t *testing.T) {
 
 func TestConfigEndpoint(t *testing.T) {
 	t.Parallel()
-	router := NewRouter(NewServices(NewOrgService(snapshot.NewMemoryStore())), logbuf.New(10), autosave.NewMemoryStore())
+	router := NewRouter(NewServices(org.New(snapshot.NewMemoryStore())), logbuf.New(10), autosave.NewMemoryStore())
 	req := httptest.NewRequest("GET", "/api/config", nil)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -249,7 +250,7 @@ func TestConfigEndpoint(t *testing.T) {
 		t.Error("expected logging: true")
 	}
 
-	router = NewRouter(NewServices(NewOrgService(snapshot.NewMemoryStore())), nil, autosave.NewMemoryStore())
+	router = NewRouter(NewServices(org.New(snapshot.NewMemoryStore())), nil, autosave.NewMemoryStore())
 	req = httptest.NewRequest("GET", "/api/config", nil)
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

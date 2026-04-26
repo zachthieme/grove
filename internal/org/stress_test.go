@@ -1,4 +1,4 @@
-package api
+package org
 
 // Scenarios: CONC-002 — all tests in this file
 
@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -54,27 +53,27 @@ func generateLargeCSV(n int) []byte {
 // uploadLargeOrg is a test helper that creates a service and uploads n people.
 func uploadLargeOrg(t *testing.T, n int) *OrgService {
 	t.Helper()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csvData := generateLargeCSV(n)
 	resp, err := svc.Upload(context.Background(), "test.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
 }
 
 func TestLargeOrg_Upload(t *testing.T) {
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csvData := generateLargeCSV(200)
 
 	resp, err := svc.Upload(context.Background(), "test.csv", csvData)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 
@@ -309,7 +308,7 @@ func TestLargeOrg_ExportCSV(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 	working := svc.GetWorking(context.Background())
 
-	exported, err := org.ExportCSV(working)
+	exported, err := ExportCSV(working)
 	if err != nil {
 		t.Fatalf("export CSV failed: %v", err)
 	}
@@ -389,7 +388,7 @@ func TestLargeOrg_500People(t *testing.T) {
 	}
 
 	// Export and verify
-	exported, err := org.ExportCSV(working)
+	exported, err := ExportCSV(working)
 	if err != nil {
 		t.Fatalf("export CSV failed: %v", err)
 	}

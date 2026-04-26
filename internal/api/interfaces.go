@@ -71,8 +71,8 @@ type Services struct {
 	Org      OrgStateService
 }
 
-// NewServices creates a Services from an *OrgService (which satisfies all interfaces).
-func NewServices(svc *OrgService) Services {
+// NewServices creates a Services from an *org.OrgService (which satisfies all interfaces).
+func NewServices(svc *org.OrgService) Services {
 	return Services{
 		People:   svc,
 		Pods:     svc,
@@ -83,17 +83,17 @@ func NewServices(svc *OrgService) Services {
 	}
 }
 
-// Compile-time assertions: *OrgService satisfies all domain interfaces.
+// Compile-time assertions: *org.OrgService satisfies all domain interfaces.
 var (
-	_ NodeService     = (*OrgService)(nil)
-	_ OrgStateService = (*OrgService)(nil)
-	_ SnapshotOps     = (*OrgService)(nil) // was SnapshotService
-	_ ImportService   = (*OrgService)(nil)
-	_ PodService      = (*OrgService)(nil)
-	_ SettingsService = (*OrgService)(nil)
+	_ NodeService     = (*org.OrgService)(nil)
+	_ OrgStateService = (*org.OrgService)(nil)
+	_ SnapshotOps     = (*org.OrgService)(nil) // was SnapshotService
+	_ ImportService   = (*org.OrgService)(nil)
+	_ PodService      = (*org.OrgService)(nil)
+	_ SettingsService = (*org.OrgService)(nil)
 
-	// Bridge interface consumed by the snapshot package: *OrgService is the
+	// Bridge interface consumed by the snapshot package: *org.OrgService is the
 	// concrete OrgStateProvider implementation. snapshot.Clearer is satisfied
 	// by *snapshot.Service (asserted in the snapshot package itself).
-	_ snapshot.OrgStateProvider = (*OrgService)(nil)
+	_ snapshot.OrgStateProvider = (*org.OrgService)(nil)
 )

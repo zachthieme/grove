@@ -19,6 +19,7 @@ import (
 	"github.com/zachthieme/grove/internal/api"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -37,7 +38,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 	configureLogging(logBuf)
 
-	svc := api.NewOrgService(snapshot.NewFileStore())
+	svc := org.New(snapshot.NewFileStore())
 	autoStore := autosave.NewFileStore()
 	mux := http.NewServeMux()
 

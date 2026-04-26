@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -19,13 +18,13 @@ import (
 // Returns the service along with Alice, Bob, and Carol's IDs.
 func setupConcurrentService(t *testing.T) (svc *OrgService, aliceID, bobID, carolID string) {
 	t.Helper()
-	svc = NewOrgService(snapshot.NewMemoryStore())
+	svc = New(snapshot.NewMemoryStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -234,7 +233,7 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 // Scenarios: CONC-005
 func TestConcurrentSnapshotSaves_BothPersist(t *testing.T) {
 	store := snapshot.NewMemoryStore()
-	svc := NewOrgService(store)
+	svc := New(store)
 	csv := []byte("Name,Role,Manager,Team,Status\nAlice,VP,,Eng,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
@@ -383,7 +382,7 @@ func TestSnapshotPersist_DoesNotBlockEdits(t *testing.T) {
 		started: make(chan struct{}, 1),
 		release: make(chan struct{}),
 	}
-	svc := NewOrgService(store)
+	svc := New(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
 		t.Fatalf("upload: %v", err)
@@ -478,7 +477,7 @@ func TestSnapshotSave_EpochGuard_Reset(t *testing.T) {
 
 		if saveErr == nil {
 			successes++
-		} else if org.IsConflict(saveErr) {
+		} else if IsConflict(saveErr) {
 			conflicts++
 		} else {
 			t.Errorf("unexpected error from racing Save: %v", saveErr)
@@ -516,7 +515,7 @@ func TestSnapshotSave_EpochGuard_UploadCSV(t *testing.T) {
 		}()
 		wg.Wait()
 
-		if org.IsConflict(saveErr) {
+		if IsConflict(saveErr) {
 			conflicts++
 		}
 	}

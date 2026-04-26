@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/zachthieme/grove/internal/apitypes"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -18,7 +17,7 @@ import (
 // Alice (VP) → Bob (Engineer) → Carol (Engineer).
 func setupService(t *testing.T) *OrgService {
 	t.Helper()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	data := makeCSV([][]string{
 		{"Name", "Role", "Discipline", "Manager", "Team", "Status"},
 		{"Alice", "VP", "Eng", "", "Eng", "Active"},
@@ -29,7 +28,7 @@ func setupService(t *testing.T) *OrgService {
 	if err != nil {
 		t.Fatalf("setup upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -54,7 +53,7 @@ func makeCSV(rows [][]string) []byte {
 // Scenarios: UPLOAD-010
 func TestAdversarial_BOMMarker(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 		{"Alice", "VP", "", "Eng", "Active"},
@@ -69,7 +68,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 	}
 	// The BOM may cause the header "Name" to become "\xEF\xBB\xBFName".
 	// If it gets needs_mapping, confirm the mapping manually.
-	if resp.Status == org.UploadNeedsMapping {
+	if resp.Status == UploadNeedsMapping {
 		// Find the header that contains "Name" (possibly BOM-prefixed)
 		nameHeader := ""
 		for _, h := range resp.Headers {
@@ -97,7 +96,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 		}
 		return
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready' or 'needs_mapping', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -109,7 +108,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_MixedLineEndings(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	// Build CSV manually with mixed line endings
 	raw := "Name,Role,Manager,Team,Status\r\n" +
 		"Alice,VP,,Eng,Active\n" +
@@ -120,7 +119,7 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with mixed line endings failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -132,7 +131,7 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_UnicodeNames(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	names := []string{
 		"\U0001F469\u200D\U0001F4BB", // 👩‍💻 (woman technologist, with ZWJ)
 		"\u7530\u4E2D\u592A\u90CE",   // 田中太郎
@@ -150,7 +149,7 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with unicode names failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -171,7 +170,7 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_XSSInFields(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 		{"<script>alert('xss')</script>", `"><img src=x onerror=alert(1)>`, "", "javascript:alert(1)", "Active"},
@@ -181,7 +180,7 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with XSS payloads failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -200,7 +199,7 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	payload := "Robert'; DROP TABLE people;--"
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
@@ -211,7 +210,7 @@ func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with SQL injection string failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -309,7 +308,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 // Scenarios: UPLOAD-011
 func TestAdversarial_EmptyCSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	_, err := svc.Upload(context.Background(), "empty.csv", []byte{})
 	if err == nil {
 		t.Fatal("expected error for empty CSV, got nil")
@@ -319,7 +318,7 @@ func TestAdversarial_EmptyCSV(t *testing.T) {
 // Scenarios: UPLOAD-012
 func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 	})
@@ -335,7 +334,7 @@ func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 // Scenarios: CONC-002
 func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	const count = 5000
 	rows := [][]string{{"Name", "Role", "Manager", "Team", "Status"}}
 	// First person has no manager
@@ -354,7 +353,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload of %d people failed: %v", count, err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -366,8 +365,8 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 // Scenarios: UPLOAD-013
 func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
-	// Duplicate "Name" header — org.InferMapping maps to the first "Name" column,
+	svc := New(snapshot.NewMemoryStore())
+	// Duplicate "Name" header — InferMapping maps to the first "Name" column,
 	// but BuildPeopleWithMapping's headerIndex map overwrites with the last
 	// duplicate, so the second column's value is used.
 	csvData := makeCSV([][]string{
@@ -379,7 +378,7 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with duplicate headers failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -395,7 +394,7 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 		{"Smith, John", "VP", "", "Eng", "Active"},
@@ -405,7 +404,7 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with commas in quoted field failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -417,7 +416,7 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	// Build CSV manually to include a literal newline inside a quoted field.
 	// csv.Writer will handle quoting automatically.
 	csvData := makeCSV([][]string{
@@ -429,7 +428,7 @@ func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with newlines in quoted field failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())

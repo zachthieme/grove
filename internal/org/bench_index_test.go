@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 )
 
 func BenchmarkFindWorking(b *testing.B) {
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	rows := "Name,Role,Discipline,Manager,Team,Status\n"
 	rows += "Root,VP,Eng,,Eng,Active\n"
 	for i := 0; i < 499; i++ {

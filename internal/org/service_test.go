@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
-	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -15,13 +14,13 @@ func ptr[T any](v T) *T { return &v }
 
 func newTestService(t *testing.T) *OrgService {
 	t.Helper()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -637,7 +636,7 @@ func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 		t.Fatalf("delete failed: %v", err)
 	}
 	if result == nil {
-		t.Fatal("expected non-nil org.MutationResult")
+		t.Fatal("expected non-nil MutationResult")
 	}
 	if len(result.Working) != 2 {
 		t.Errorf("expected 2 working in result, got %d", len(result.Working))
@@ -675,7 +674,7 @@ func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 		t.Fatalf("restore failed: %v", err)
 	}
 	if result == nil {
-		t.Fatal("expected non-nil org.MutationResult")
+		t.Fatal("expected non-nil MutationResult")
 	}
 	if len(result.Working) != 3 {
 		t.Errorf("expected 3 working in result, got %d", len(result.Working))
@@ -714,7 +713,7 @@ func TestOrgService_DeepCopyPeople_WithAdditionalTeams(t *testing.T) {
 // Scenarios: CONTRACT-006
 func TestOrgService_GetOrg_NoData(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	data := svc.GetOrg(context.Background())
 	if data != nil {
 		t.Error("expected nil when no data loaded")
@@ -892,7 +891,7 @@ func TestOrgService_Add_RejectsInvalidManager(t *testing.T) {
 // Scenarios: AUTO-007
 func TestOrgService_RestoreState_FullState(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	settings := &apitypes.Settings{DisciplineOrder: []string{"Eng", "Product"}}
 	data := autosave.AutosaveData{
 		Original: []apitypes.OrgNode{
@@ -944,7 +943,7 @@ func TestOrgService_RestoreState_FullState(t *testing.T) {
 // Scenarios: AUTO-007
 func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	data := autosave.AutosaveData{
 		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Team: "Eng", Status: "Active"}, Id: "1"},
@@ -990,7 +989,7 @@ func TestOrgService_RestoreState_OperationsWork(t *testing.T) {
 // Scenarios: AUTO-007
 func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	data := autosave.AutosaveData{
 		Original: []apitypes.OrgNode{
 			{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Discipline: "Product", Team: "Eng", Status: "Active"}, Id: "1"},
@@ -1025,13 +1024,13 @@ func TestOrgService_RestoreState_NilSettings(t *testing.T) {
 func TestOrgService_IsFrontlineManager(t *testing.T) {
 	t.Parallel()
 	// Build a hierarchy: Alice -> Bob -> Carol, Alice -> Dave (IC)
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Alice,Eng,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -1091,13 +1090,13 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	t.Parallel()
 	// Bob is a frontline manager with ICs Carol and Dave.
 	// Changing Bob's team should cascade to Carol and Dave.
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\nBob,Manager,Eng,Alice,Platform,Active\nCarol,Engineer,Eng,Bob,Platform,Active\nDave,Engineer,Eng,Bob,Platform,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != org.UploadReady {
+	if resp.Status != UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -1339,7 +1338,7 @@ func TestOrgService_AddParent_EmptyName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if !org.IsValidation(err) {
+	if !IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -1353,7 +1352,7 @@ func TestOrgService_AddParent_ChildNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nonexistent child")
 	}
-	if !org.IsNotFound(err) {
+	if !IsNotFound(err) {
 		t.Errorf("expected NotFoundError, got %T: %v", err, err)
 	}
 }
@@ -1361,7 +1360,7 @@ func TestOrgService_AddParent_ChildNotFound(t *testing.T) {
 // Scenarios: CREATE-001
 func TestOrgService_Create(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 
 	data, err := svc.Create(context.Background(), "Alice")
 	if err != nil {
@@ -1401,13 +1400,13 @@ func TestOrgService_Create(t *testing.T) {
 // Scenarios: CREATE-004
 func TestOrgService_Create_EmptyName(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 
 	_, err := svc.Create(context.Background(), "")
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if !org.IsValidation(err) {
+	if !IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -1415,13 +1414,13 @@ func TestOrgService_Create_EmptyName(t *testing.T) {
 // Scenarios: CREATE-004
 func TestOrgService_Create_WhitespaceName(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 
 	_, err := svc.Create(context.Background(), "   ")
 	if err == nil {
 		t.Fatal("expected error for whitespace-only name")
 	}
-	if !org.IsValidation(err) {
+	if !IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -1429,7 +1428,7 @@ func TestOrgService_Create_WhitespaceName(t *testing.T) {
 // Scenarios: CREATE-001, CREATE-002
 func TestOrgService_CreateThenAddThenAddParent(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	svc := New(snapshot.NewMemoryStore())
 
 	// Step 1: Create from scratch
 	data, err := svc.Create(context.Background(), "Alice")
@@ -1588,8 +1587,8 @@ func newTestServiceFromNodes(t *testing.T, nodes []model.OrgNode) *OrgService {
 	if err != nil {
 		t.Fatalf("newTestServiceFromNodes: NewOrg failed: %v", err)
 	}
-	apiNodes := org.ConvertOrg(mod)
-	svc := NewOrgService(snapshot.NewMemoryStore())
+	apiNodes := ConvertOrg(mod)
+	svc := New(snapshot.NewMemoryStore())
 	svc.RestoreState(context.Background(), autosave.AutosaveData{
 		Original: apiNodes,
 		Working:  apiNodes,
