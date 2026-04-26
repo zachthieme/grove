@@ -25,9 +25,9 @@ test.describe('Large dataset (200 people)', () => {
     // Switch to Table view
     await switchView(page, 'Table')
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 })
-    // Table should show all 200 people
-    const rowCount = await page.locator('tbody tr').count()
-    expect(rowCount).toBe(200)
+    // Table virtualizes (only renders rows in the scroll viewport), so count via the
+    // header label that reflects the underlying filteredPeople array length.
+    await expect(page.locator('text=200 people')).toBeVisible()
 
     // Switch back to Detail
     await switchView(page, 'Detail')

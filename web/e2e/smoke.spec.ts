@@ -41,8 +41,10 @@ test.describe('Smoke tests', () => {
   test('[VIEW-003] table inline edit', async ({ page }) => {
     await uploadCSV(page, 'simple.csv')
     await switchView(page, 'Table')
-    const aliceRow = page.locator('tbody tr').filter({ hasText: 'Alice' })
-    const roleCell = aliceRow.locator('td').nth(2)
+    // Alice appears in Bob's row (as manager) too; .first() targets her actual row.
+    // Columns: [select][Name][Type][Role]…  → Role is index 3 (was 2 before products feature).
+    const aliceRow = page.locator('tbody tr').filter({ hasText: 'Alice' }).first()
+    const roleCell = aliceRow.locator('td').nth(3)
     await roleCell.click()
     const input = roleCell.locator('input')
     await expect(input).toBeVisible()

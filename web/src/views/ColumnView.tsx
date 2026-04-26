@@ -55,7 +55,6 @@ const LayoutSubtree = memo(function LayoutSubtree({ node }: { node: ManagerLayou
             noteText={pod?.publicNote}
             onAdd={onAddToTeam ? () => onAddToTeam(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
             onAddProduct={onAddProduct ? () => onAddProduct(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
-            onInfo={pod ? () => onSelect(group.collapseKey) : undefined}
             onClick={(e) => onSelect(group.collapseKey, e)}
             selected={selectedIds.has(group.collapseKey)}
             cardRef={setNodeRef(group.collapseKey)}

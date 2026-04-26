@@ -53,25 +53,6 @@ test.describe('Feature tests', () => {
     await expect(page.locator('[data-role="chart-container"]').locator('text=NewPod')).toBeVisible()
   })
 
-  test('[UI-003] pod sidebar via info button', async ({ page }) => {
-    await uploadCSV(page, 'simple.csv')
-    await clickPerson(page, 'Carol')
-    await enterSidebarEdit(page)
-    const podInput = sidebarField(page, 'pod')
-    await podInput.clear()
-    await podInput.fill('TestPod')
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(page.locator('text=TestPod').first()).toBeVisible()
-    const podHeader = page.locator('text=TestPod').first()
-    await podHeader.hover()
-    const infoBtn = page.getByRole('button', { name: 'Org metrics' })
-    await expect(infoBtn).toBeVisible({ timeout: 3000 })
-    await infoBtn.click()
-    await expect(page.locator('h3', { hasText: 'Pod Details' })).toBeVisible()
-  })
-
   test('[UPLOAD-002] column mapping modal', async ({ page }) => {
     const absPath = path.resolve(__dirname, '../../testdata', 'unmapped.csv')
     const mainInput = page.getByRole('main').locator('input[type="file"]')
