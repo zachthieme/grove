@@ -30,3 +30,32 @@ jobs:
           name: stryker-report
           path: web/reports/mutation/
           retention-days: 14
+
+  go-mutation:
+    # Go-side mutation testing on the highest-value domain package.
+    # Surviving mutations indicate test gaps — they don't fail the build
+    # (continue-on-error) since absolute kill-rate isn't yet a contract;
+    # the report is uploaded and reviewed on a cadence.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build frontend (needed for go:embed)
+        run: cd web && npm ci && npm run build
+      - name: Install gremlins
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+      - name: Run gremlins on internal/org
+        run: gremlins unleash ./internal/org/
+        continue-on-error: true
+      - name: Upload mutation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gremlins-report
+          path: gremlins-report.json
+          retention-days: 14

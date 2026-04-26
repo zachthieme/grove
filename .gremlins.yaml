@@ -1,0 +1,39 @@
+# Gremlins mutation-testing config. Run via the nightly workflow or
+# locally: `gremlins unleash ./internal/org/`.
+#
+# A surviving mutation = a test gap — the test suite did not detect
+# that the code semantics changed. The goal is a high "kill rate"
+# (mutations caught / total mutations) on critical packages.
+
+silent: false
+output: ./gremlins-report.json
+
+# Mutations enabled by default; explicit list locks in the contract.
+mutants:
+  conditionals_boundary:
+    enabled: true
+  conditionals_negation:
+    enabled: true
+  increment_decrement:
+    enabled: true
+  invert_assignments:
+    enabled: true
+  invert_bitwise:
+    enabled: true
+  invert_bitwise_assignments:
+    enabled: false
+  invert_logical:
+    enabled: true
+  invert_loopctrl:
+    enabled: true
+  invert_negatives:
+    enabled: true
+  arithmetic_base:
+    enabled: true
+  remove_self_assignments:
+    enabled: true
+
+# Test runner timeout: bumped over default since OrgService tests do
+# real CSV parsing + concurrency tests.
+test-cpu: 0
+timeout-coefficient: 3
