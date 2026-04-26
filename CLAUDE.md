@@ -62,7 +62,7 @@ Single Go binary serving a React SPA via `go:embed`.
 
 The backend is split into 7 focused packages with strict downward dependencies (no cycles):
 
-- `internal/apitypes/types.go` — leaf package: shared DTO primitives (`OrgNode`, `Pod`, `Settings`, `OrgNodeUpdate`, `PodUpdate`, `PodInfo`, `MappedColumn`, `PendingUpload`).
+- `internal/apitypes/types.go` — leaf package: shared DTO primitives (`OrgNode`, `Pod`, `Settings`, `OrgNodeUpdate`, `PodUpdate`, `PodInfo`, `MappedColumn`, `PendingUpload`). TS counterparts are generated into `web/src/api/types.generated.ts` via `make types-gen` (tygo); CI guards staleness with `make types-gen-check`. `tstype:",extends"` on embeds tells tygo to emit `interface X extends Y` rather than nesting.
 - `internal/logbuf/` — leaf package: log buffer + slog handler infrastructure (`LogBuffer`, `LogEntry`, `LogFilter`, `BufferHandler`, `MultiHandler`, `SlogWriter`, package logger via `Logger`/`SetLogger`).
 - `internal/autosave/` — depends on apitypes: `AutosaveData`, `AutosaveStore` interface plus `MemoryStore` and `FileStore` (persisting to `~/.grove/autosave.json`).
 - `internal/pod/` — depends on apitypes: `pod.Manager` (NOT thread-safe; caller-owned locking) plus pure helpers (`SeedPods`, `CleanupEmpty`, `Rename`, `Reassign`, `Copy`).

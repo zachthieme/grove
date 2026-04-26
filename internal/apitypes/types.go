@@ -7,10 +7,13 @@ package apitypes
 import "github.com/zachthieme/grove/internal/model"
 
 type OrgNode struct {
-	model.OrgNodeFields
-	Id        string `json:"id"`
-	ManagerId string `json:"managerId"`
-	SortIndex int    `json:"sortIndex"`
+	model.OrgNodeFields `tstype:",extends"`
+	Id                  string `json:"id"`
+	ManagerId           string `json:"managerId"`
+	// SortIndex is omitempty so 0-valued (the common default) entries
+	// don't bloat every JSON payload. Frontend code (`sortIndex ?? 0`)
+	// treats undefined and 0 identically.
+	SortIndex int `json:"sortIndex,omitempty"`
 }
 
 // OrgNodeUpdate carries optional field updates for a person.
@@ -51,7 +54,7 @@ type PodUpdate struct {
 }
 
 type PodInfo struct {
-	Pod
+	Pod         `tstype:",extends"`
 	MemberCount int `json:"memberCount"`
 }
 

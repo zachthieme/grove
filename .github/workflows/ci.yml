@@ -29,6 +29,8 @@ jobs:
         run: go tool cover -func=coverage.out | tail -1
       - name: Per-package coverage floor
         run: make coverage-check
+      - name: TS types codegen up to date
+        run: make types-gen-check
       - name: Go benchmarks
         run: |
           go test -bench=. -benchmem ./internal/api/ -count=5 -benchtime=100ms | tee bench-current.txt

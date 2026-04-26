@@ -45,15 +45,23 @@ func tsTypesSource(t *testing.T) string {
 			tsTypesErr = fmt.Errorf("could not resolve test file path")
 			return
 		}
-		// internal/httpapi/contract_test.go -> repo root -> web/src/api/types.ts
+		// internal/httpapi/contract_test.go -> repo root -> web/src/api/
 		repoRoot := filepath.Join(filepath.Dir(file), "..", "..")
-		path := filepath.Join(repoRoot, "web", "src", "api", "types.ts")
-		data, err := os.ReadFile(path)
-		if err != nil {
-			tsTypesErr = err
-			return
+		// types.ts holds hand-written payload/response interfaces; the
+		// apitypes mirrors are generated from Go into types.generated.ts.
+		// Concatenate so contract tests find interfaces in either file.
+		var combined strings.Builder
+		for _, name := range []string{"types.ts", "types.generated.ts"} {
+			path := filepath.Join(repoRoot, "web", "src", "api", name)
+			data, err := os.ReadFile(path)
+			if err != nil {
+				tsTypesErr = err
+				return
+			}
+			combined.WriteString(string(data))
+			combined.WriteByte('\n')
 		}
-		tsTypesData = string(data)
+		tsTypesData = combined.String()
 	})
 	if tsTypesErr != nil {
 		t.Fatalf("read TS types: %v", tsTypesErr)
@@ -113,7 +121,11 @@ func collectJSONFields(t reflect.Type) []string {
 
 func TestContractPersonFields(t *testing.T) {
 	t.Parallel()
-	expected := tsInterfaceFields(t, "OrgNode")
+	// Generated OrgNode `extends OrgNodeFields` — combine the two field
+	// sets to mirror the flattened JSON wire format on the Go side
+	// (where apitypes.OrgNode embeds model.OrgNodeFields).
+	expected := append(tsInterfaceFields(t, "OrgNodeFields"), tsInterfaceFields(t, "OrgNode")...)
+	sort.Strings(expected)
 	got := jsonFieldNames(apitypes.OrgNode{})
 	assertFieldsMatch(t, "OrgNode", expected, got)
 }
@@ -186,7 +198,9 @@ func TestContractPersonUpdateFields(t *testing.T) {
 
 func TestContractPodUpdateFields(t *testing.T) {
 	t.Parallel()
-	expected := tsInterfaceFields(t, "PodUpdatePayload")
+	// PodUpdate (TS name from generated apitypes) re-exported as
+	// PodUpdatePayload from types.ts for callers — match the generated name.
+	expected := tsInterfaceFields(t, "PodUpdate")
 	got := jsonFieldNames(apitypes.PodUpdate{})
 	assertFieldsMatch(t, "PodUpdate", expected, got)
 }

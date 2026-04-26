@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all typecheck cover coverage-check bench fuzz mutate check-scenarios lint ci
+.PHONY: frontend build dev clean e2e test test-all typecheck cover coverage-check bench fuzz mutate check-scenarios lint types-gen types-gen-check ci
 
 # Pinned in CI (.github/workflows/ci.yml) — bump in lockstep with the
 # linter config in .golangci.yml.
@@ -87,6 +87,25 @@ fuzz:
 
 mutate:
 	cd web && npx stryker run
+
+TYGO = $(shell go env GOPATH)/bin/tygo
+
+types-gen:
+	@if [ ! -x "$(TYGO)" ]; then \
+		echo "installing tygo..."; \
+		go install github.com/gzuidhof/tygo@latest; \
+	fi
+	$(TYGO) generate
+
+# Verifies the generated TS file is current. Fails CI if a Go-side
+# apitypes change wasn't paired with `make types-gen`.
+types-gen-check:
+	@$(MAKE) -s types-gen
+	@if ! git diff --quiet -- web/src/api/types.generated.ts 2>/dev/null && [ -n "$$(git diff --name-only -- web/src/api/types.generated.ts 2>/dev/null)" ]; then \
+		echo "types.generated.ts is stale — run 'make types-gen' and commit the result"; \
+		git diff -- web/src/api/types.generated.ts; \
+		exit 1; \
+	fi
 
 lint: frontend
 	golangci-lint run ./...
