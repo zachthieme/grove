@@ -187,6 +187,7 @@ function BaseNodeInner({
           tabIndex={0}
           data-selected={selected || false}
           data-testid={testId}
+          {...(variant === 'product' ? { 'data-tour': 'product' } : {})}
           aria-label={ariaLabel}
         >
           {children}

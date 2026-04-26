@@ -41,14 +41,26 @@ describe('useTour', () => {
     expect(config!.steps).toHaveLength(3)
   })
 
-  it('passes 9 steps when loaded is true', () => {
+  it('passes 10 steps when loaded is true', () => {
     const { result } = renderHook(() => useTour(true))
     act(() => {
       result.current.startTour()
     })
     const calls = vi.mocked(driver).mock.calls
     const config = calls[0]?.[0]
-    expect(config!.steps).toHaveLength(9)
+    expect(config!.steps).toHaveLength(10)
+  })
+
+  it('includes a Products step when loaded is true', () => {
+    const { result } = renderHook(() => useTour(true))
+    act(() => {
+      result.current.startTour()
+    })
+    const calls = vi.mocked(driver).mock.calls
+    const steps = calls[0]?.[0]?.steps ?? []
+    const productStep = steps.find((s) => s.popover?.title === 'Products')
+    expect(productStep).toBeDefined()
+    expect(productStep?.element).toBe('[data-tour="product"]')
   })
 
   it('changes startTour reference when loaded changes', () => {

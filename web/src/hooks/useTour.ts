@@ -59,10 +59,19 @@ function buildSteps(loaded: boolean) {
       },
     },
     {
+      // Highlights the first product node if any are visible. Tour
+      // gracefully degrades to a centered popover when none exist.
+      element: '[data-tour="product"]',
+      popover: {
+        title: 'Products',
+        description: 'Products are non-person nodes — features, services, or initiatives owned by a manager or pod. Add one with the + menu on a manager, or press P with vim mode on.',
+      },
+    },
+    {
       element: '[data-tour="main-content"]',
       popover: {
         title: 'Drag & Drop',
-        description: 'Drag people between managers to reorganize the chart.',
+        description: 'Drag people or products between managers to reorganize the chart.',
       },
     },
     {
