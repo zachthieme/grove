@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // Scenarios: UPLOAD-001
@@ -28,7 +30,7 @@ func TestOrgService_Upload(t *testing.T) {
 // Scenarios: UPLOAD-001
 func TestOrgService_Upload_AutoProceed(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
@@ -48,7 +50,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 // Scenarios: UPLOAD-002
 func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Use headers that won't all map to high confidence.
 	// "Nombre" and "Nivel" are unrecognizable, so name/role won't be high.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
@@ -76,7 +78,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 // Scenarios: UPLOAD-002
 func TestOrgService_ConfirmMapping(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Use unrecognizable headers so InferMapping won't auto-proceed.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
@@ -111,7 +113,7 @@ func TestOrgService_ConfirmMapping(t *testing.T) {
 // Scenarios: UPLOAD-003
 func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	_, err := svc.ConfirmMapping(context.Background(), map[string]string{"name": "Name"})
 	if err == nil {
 		t.Fatal("expected error when no pending file")
@@ -121,7 +123,7 @@ func TestOrgService_ConfirmMapping_NoPending(t *testing.T) {
 // Scenarios: UPLOAD-008
 func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csv := []byte("Full Name,Title,Department,Reports To,Group\nAlice,VP,Eng,,Eng\nBob,SWE,Eng,Alice,Platform\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
@@ -146,7 +148,7 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 // Scenarios: UPLOAD-011
 func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	_, err := svc.Upload(context.Background(), "test.txt", []byte("hello"))
 	if err == nil {
 		t.Fatal("expected error for unsupported format")
@@ -156,7 +158,7 @@ func TestOrgService_Upload_UnsupportedFormat(t *testing.T) {
 // Scenarios: UPLOAD-011
 func TestOrgService_Upload_InvalidCSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Only header, no data row
 	_, err := svc.Upload(context.Background(), "test.csv", []byte("Name,Role\n"))
 	if err == nil {
@@ -188,7 +190,7 @@ func TestUpload_PreservesSnapshotsOnParseFailure(t *testing.T) {
 // Scenarios: ORG-018
 func TestUpload_SeedsPods(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status,Pod\nAlice,VP,Eng,,Eng,Active,\nBob,Engineer,Eng,Alice,Platform,Active,Platform\nCarol,Engineer,Eng,Alice,Infra,Active,Infra\n"
 	resp, err := svc.Upload(context.Background(), "test.csv", []byte(csv))
 	if err != nil {
@@ -205,7 +207,7 @@ func TestUpload_SeedsPods(t *testing.T) {
 // Scenarios: SETTINGS-002
 func TestUpload_DerivesSettings(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csv := "Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Product,,Eng,Active\nBob,Engineer,Engineering,Alice,Platform,Active\n"
 	resp, err := svc.Upload(context.Background(), "test.csv", []byte(csv))
 	if err != nil {
@@ -227,7 +229,7 @@ func TestUpload_DerivesSettings(t *testing.T) {
 // Scenarios: CONTRACT-008
 func TestConfirmMapping_CancelledContext(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Upload a file that needs mapping (non-standard headers)
 	csv := []byte("Nombre,Cargo,Departamento\nAlice,VP,Eng\nBob,Engineer,Eng\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
@@ -260,7 +262,7 @@ func TestConfirmMapping_CancelledContext(t *testing.T) {
 
 func TestConfirmMapping_DeadlineExceeded(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csv := []byte("Nombre,Cargo,Departamento\nAlice,VP,Eng\nBob,Engineer,Eng\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
@@ -286,7 +288,7 @@ func TestConfirmMapping_DeadlineExceeded(t *testing.T) {
 // Scenarios: CONC-004
 func TestConfirmMapping_RejectsStaleEpoch(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 
 	// Upload A — needs mapping (non-standard headers that won't auto-map)
 	csvA := []byte("PersonLabel,JobCode\nAlice,VP\n")
@@ -321,7 +323,7 @@ func TestConfirmMapping_RejectsStaleEpoch(t *testing.T) {
 // Scenarios: CONC-004
 func TestConfirmMapping_AcceptsCurrentEpoch(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 
 	csv := []byte("PersonLabel,JobCode\nAlice,VP\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)

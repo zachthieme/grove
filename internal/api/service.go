@@ -17,16 +17,8 @@ import (
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/pod"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
-
-// OrgState is a frozen, deep-copied view of org state at a point in time.
-// Used as the bridge format between OrgService and SnapshotService for
-// Save/Load, and stored as the in-memory snapshot payload.
-type OrgState struct {
-	People   []apitypes.OrgNode
-	Pods     []apitypes.Pod
-	Settings apitypes.Settings
-}
 
 type OrgService struct {
 	mu       sync.RWMutex
@@ -42,7 +34,7 @@ type OrgService struct {
 	// a newer Upload superseded this one. See service_import.go.
 	pendingEpoch   uint64
 	confirmedEpoch uint64
-	snap           *SnapshotService
+	snap           *snapshot.Service
 	podMgr         *pod.Manager
 	idIndex        map[string]int
 }
@@ -67,15 +59,15 @@ type MoveResult struct {
 	Pods    []apitypes.Pod
 }
 
-func NewOrgService(snapStore SnapshotStore) *OrgService {
+func NewOrgService(snapStore snapshot.Store) *OrgService {
 	org := &OrgService{podMgr: pod.New()}
-	org.snap = NewSnapshotService(snapStore, org)
+	org.snap = snapshot.New(snapStore, org)
 	return org
 }
 
-// SnapshotService returns the SnapshotService bound to this OrgService.
+// SnapshotService returns the snapshot.Service bound to this OrgService.
 // Used by the Services constructor to wire HTTP routes.
-func (s *OrgService) SnapshotService() *SnapshotService { return s.snap }
+func (s *OrgService) SnapshotService() *snapshot.Service { return s.snap }
 
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -277,7 +269,7 @@ func deepCopyNodes(src []apitypes.OrgNode) []apitypes.OrgNode {
 // Held under read lock for the minimum time needed to copy.
 // Pods is always a non-nil slice (may be empty) so callers can JSON-encode
 // it as [] rather than null.
-func (s *OrgService) CaptureState() OrgState {
+func (s *OrgService) CaptureState() snapshot.OrgState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	pods := pod.Copy(s.podMgr.Pods())
@@ -286,7 +278,7 @@ func (s *OrgService) CaptureState() OrgState {
 	}
 	order := make([]string, len(s.settings.DisciplineOrder))
 	copy(order, s.settings.DisciplineOrder)
-	return OrgState{
+	return snapshot.OrgState{
 		People:   deepCopyNodes(s.working),
 		Pods:     pods,
 		Settings: apitypes.Settings{DisciplineOrder: order},
@@ -295,7 +287,7 @@ func (s *OrgService) CaptureState() OrgState {
 
 // ApplyState replaces working/pods/settings from the given state under write lock.
 // Recycled is cleared (snapshot loads start fresh) and idIndex is rebuilt.
-func (s *OrgService) ApplyState(state OrgState) {
+func (s *OrgService) ApplyState(state snapshot.OrgState) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.working = deepCopyNodes(state.People)

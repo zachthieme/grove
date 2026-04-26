@@ -10,13 +10,14 @@ import (
 	"unicode/utf8"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // setupService creates a fresh OrgService with a simple 3-person org:
 // Alice (VP) → Bob (Engineer) → Carol (Engineer).
 func setupService(t *testing.T) *OrgService {
 	t.Helper()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := makeCSV([][]string{
 		{"Name", "Role", "Discipline", "Manager", "Team", "Status"},
 		{"Alice", "VP", "Eng", "", "Eng", "Active"},
@@ -52,7 +53,7 @@ func makeCSV(rows [][]string) []byte {
 // Scenarios: UPLOAD-010
 func TestAdversarial_BOMMarker(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 		{"Alice", "VP", "", "Eng", "Active"},
@@ -107,7 +108,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_MixedLineEndings(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Build CSV manually with mixed line endings
 	raw := "Name,Role,Manager,Team,Status\r\n" +
 		"Alice,VP,,Eng,Active\n" +
@@ -130,7 +131,7 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_UnicodeNames(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	names := []string{
 		"\U0001F469\u200D\U0001F4BB", // 👩‍💻 (woman technologist, with ZWJ)
 		"\u7530\u4E2D\u592A\u90CE",   // 田中太郎
@@ -169,7 +170,7 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_XSSInFields(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 		{"<script>alert('xss')</script>", `"><img src=x onerror=alert(1)>`, "", "javascript:alert(1)", "Active"},
@@ -198,7 +199,7 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	payload := "Robert'; DROP TABLE people;--"
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
@@ -307,7 +308,7 @@ func TestAdversarial_CircularManagerChain(t *testing.T) {
 // Scenarios: UPLOAD-011
 func TestAdversarial_EmptyCSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	_, err := svc.Upload(context.Background(), "empty.csv", []byte{})
 	if err == nil {
 		t.Fatal("expected error for empty CSV, got nil")
@@ -317,7 +318,7 @@ func TestAdversarial_EmptyCSV(t *testing.T) {
 // Scenarios: UPLOAD-012
 func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 	})
@@ -333,7 +334,7 @@ func TestAdversarial_HeaderOnlyCSV(t *testing.T) {
 // Scenarios: CONC-002
 func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	const count = 5000
 	rows := [][]string{{"Name", "Role", "Manager", "Team", "Status"}}
 	// First person has no manager
@@ -364,7 +365,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 // Scenarios: UPLOAD-013
 func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Duplicate "Name" header — InferMapping maps to the first "Name" column,
 	// but BuildPeopleWithMapping's headerIndex map overwrites with the last
 	// duplicate, so the second column's value is used.
@@ -393,7 +394,7 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csvData := makeCSV([][]string{
 		{"Name", "Role", "Manager", "Team", "Status"},
 		{"Smith, John", "VP", "", "Eng", "Active"},
@@ -415,7 +416,7 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 // Scenarios: UPLOAD-010
 func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Build CSV manually to include a literal newline inside a quoted field.
 	// csv.Writer will handle quoting automatically.
 	csvData := makeCSV([][]string{

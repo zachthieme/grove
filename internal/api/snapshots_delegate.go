@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // Snapshot delegate methods on *OrgService — thin wrappers that forward to
-// the embedded *SnapshotService. These satisfy the SnapshotOps interface so
+// the embedded *snapshot.Service. These satisfy the SnapshotOps interface so
 // that *OrgService can be wired directly into Services.Snaps without an
 // adapter, and so that existing tests calling svc.SaveSnapshot(...) etc.
 // continue to work without modification.
@@ -27,7 +28,7 @@ func (s *OrgService) DeleteSnapshot(ctx context.Context, name string) error {
 	return s.snap.Delete(ctx, name)
 }
 
-func (s *OrgService) ListSnapshots(ctx context.Context) []SnapshotInfo {
+func (s *OrgService) ListSnapshots(ctx context.Context) []snapshot.Info {
 	return s.snap.List()
 }
 

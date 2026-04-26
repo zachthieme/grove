@@ -1,4 +1,4 @@
-package api
+package snapshot
 
 import (
 	"os"
@@ -114,8 +114,8 @@ func TestSnapshotRecovery_ServiceStartsClean(t *testing.T) {
 	storageDir = dir
 	defer func() { storageDir = old }()
 
-	store := FileSnapshotStore{}
-	ss := NewSnapshotService(store, newStubOrgProvider())
+	store := FileStore{}
+	ss := New(store, newStubOrgProvider())
 	list := ss.List()
 	if len(list) != 0 {
 		t.Errorf("expected empty snapshot list after corrupt store, got %d", len(list))

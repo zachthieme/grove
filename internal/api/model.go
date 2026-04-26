@@ -1,6 +1,9 @@
 package api
 
-import "github.com/zachthieme/grove/internal/apitypes"
+import (
+	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/snapshot"
+)
 
 type OrgData struct {
 	Original           []apitypes.OrgNode `json:"original"`
@@ -10,18 +13,13 @@ type OrgData struct {
 	PersistenceWarning string             `json:"persistenceWarning,omitempty"`
 }
 
-type SnapshotInfo struct {
-	Name      string `json:"name"`
-	Timestamp string `json:"timestamp"`
-}
-
 type UploadResponse struct {
 	Status             string                           `json:"status"` // "ready" or "needs_mapping"
 	OrgData            *OrgData                         `json:"orgData,omitempty"`
 	Headers            []string                         `json:"headers,omitempty"`
 	Mapping            map[string]apitypes.MappedColumn `json:"mapping,omitempty"`
 	Preview            [][]string                       `json:"preview,omitempty"`
-	Snapshots          []SnapshotInfo                   `json:"snapshots,omitempty"`
+	Snapshots          []snapshot.Info                  `json:"snapshots,omitempty"`
 	PersistenceWarning string                           `json:"persistenceWarning,omitempty"`
 }
 

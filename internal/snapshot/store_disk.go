@@ -1,4 +1,4 @@
-package api
+package snapshot
 
 import (
 	"encoding/json"
@@ -11,6 +11,25 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 )
+
+// storageDir can be overridden in tests to redirect file I/O.
+var storageDir = ""
+
+// groveDir returns the ~/.grove directory path, creating it if needed.
+func groveDir() (string, error) {
+	dir := storageDir
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("getting home dir: %w", err)
+		}
+		dir = filepath.Join(home, ".grove")
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("creating dir: %w", err)
+	}
+	return dir, nil
+}
 
 func snapshotStorePath() (string, error) {
 	dir, err := groveDir()
@@ -28,7 +47,7 @@ type persistedSnapshot struct {
 }
 
 // WriteSnapshots persists all snapshots to disk.
-func WriteSnapshots(snapshots map[string]snapshotData) error {
+func WriteSnapshots(snapshots map[string]Data) error {
 	path, err := snapshotStorePath()
 	if err != nil {
 		return err
@@ -45,7 +64,7 @@ func WriteSnapshots(snapshots map[string]snapshotData) error {
 }
 
 // ReadSnapshots loads snapshots from disk. Returns nil if file doesn't exist.
-func ReadSnapshots() (map[string]snapshotData, error) {
+func ReadSnapshots() (map[string]Data, error) {
 	path, err := snapshotStorePath()
 	if err != nil {
 		return nil, err
@@ -61,9 +80,9 @@ func ReadSnapshots() (map[string]snapshotData, error) {
 	if err := json.Unmarshal(data, &persisted); err != nil {
 		return nil, fmt.Errorf("parsing snapshots: %w", err)
 	}
-	result := make(map[string]snapshotData, len(persisted))
+	result := make(map[string]Data, len(persisted))
 	for name, ps := range persisted {
-		result[name] = snapshotData(ps)
+		result[name] = Data(ps)
 	}
 	return result, nil
 }

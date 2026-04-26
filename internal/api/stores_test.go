@@ -11,6 +11,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // --- Snapshot store error path tests ---
@@ -18,7 +19,7 @@ import (
 // Scenarios: SNAP-006
 func TestSaveSnapshot_PersistenceError(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
@@ -38,7 +39,7 @@ func TestSaveSnapshot_PersistenceError(t *testing.T) {
 // Scenarios: SNAP-006
 func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
@@ -62,7 +63,7 @@ func TestDeleteSnapshot_PersistenceError(t *testing.T) {
 // Scenarios: SNAP-006
 func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\n")
 
@@ -88,7 +89,7 @@ func TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning(t *testing.T) {
 // Scenarios: CONTRACT-008
 func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	store.SetReadErr("corrupted file")
 	svc := NewOrgService(store)
 
@@ -102,9 +103,9 @@ func TestNewOrgService_SnapshotReadError_StartsEmpty(t *testing.T) {
 // Scenarios: CONTRACT-008
 func TestNewOrgService_LoadsPreviousSnapshots(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	// Pre-populate the store
-	_ = store.Write(map[string]snapshotData{
+	_ = store.Write(map[string]snapshot.Data{
 		"saved": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}},
 	})
 
@@ -125,7 +126,7 @@ func TestAutosaveHandler_WriteError(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
 	store.SetWriteErr("disk full")
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	body := `{"original":[],"working":[],"recycled":[],"snapshotName":"","timestamp":"now"}`
@@ -152,7 +153,7 @@ func TestAutosaveHandler_ReadError(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
 	store.SetReadErr("corrupted file")
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("GET", "/api/autosave", nil)
@@ -169,7 +170,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
 	store.SetDeleteErr("permission denied")
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
@@ -186,7 +187,7 @@ func TestAutosaveHandler_DeleteError(t *testing.T) {
 func TestAutosaveHandler_RoundTrip(t *testing.T) {
 	t.Parallel()
 	store := autosave.NewMemoryStore()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, store)
 
 	// Write
@@ -238,7 +239,7 @@ func TestAutosaveHandler_RoundTrip(t *testing.T) {
 // Scenarios: SNAP-006
 func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	svc := NewOrgService(store)
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
@@ -263,7 +264,7 @@ func TestSaveSnapshotHandler_PersistenceError(t *testing.T) {
 // Scenarios: SNAP-006
 func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	svc := NewOrgService(store)
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
@@ -295,58 +296,5 @@ func TestDeleteSnapshotHandler_PersistenceError(t *testing.T) {
 	}
 }
 
-// --- Memory store interface compliance ---
-
-// Scenarios: CONTRACT-008
-func TestMemorySnapshotStore_Implements_Interface(t *testing.T) {
-	t.Parallel()
-	var _ SnapshotStore = NewMemorySnapshotStore()
-	var _ SnapshotStore = FileSnapshotStore{}
-}
-
-// Scenarios: CONTRACT-008
-func TestMemorySnapshotStore_BasicOperations(t *testing.T) {
-	t.Parallel()
-	store := NewMemorySnapshotStore()
-
-	// Read empty
-	data, err := store.Read()
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if data != nil {
-		t.Error("expected nil for empty store")
-	}
-
-	// Write
-	snaps := map[string]snapshotData{
-		"v1": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice"}, Id: "1"}}},
-	}
-	if err := store.Write(snaps); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-
-	// Read back
-	data, err = store.Read()
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if len(data) != 1 {
-		t.Fatalf("expected 1 snapshot, got %d", len(data))
-	}
-	if data["v1"].People[0].Name != "Alice" {
-		t.Error("expected Alice")
-	}
-
-	// Delete
-	if err := store.Delete(); err != nil {
-		t.Fatalf("delete: %v", err)
-	}
-	data, err = store.Read()
-	if err != nil {
-		t.Fatalf("read after delete: %v", err)
-	}
-	if data != nil {
-		t.Error("expected nil after delete")
-	}
-}
+// Memory store interface compliance lives in internal/snapshot/store_test.go
+// alongside the implementation it asserts against.

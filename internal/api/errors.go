@@ -44,20 +44,22 @@ func errConflict(format string, args ...any) error {
 	return &ConflictError{fmt.Sprintf(format, args...)}
 }
 
-// Predicates — convenience for tests and internal type checks.
+// Predicates — convenience for tests and internal type checks. They check
+// the HTTP-status interface so errors originating from sibling packages
+// (e.g. internal/snapshot) match too.
 func isNotFound(err error) bool {
-	var e *NotFoundError
-	return errors.As(err, &e)
+	var e httpStatusError
+	return errors.As(err, &e) && e.HTTPStatus() == http.StatusNotFound
 }
 
 func isConflict(err error) bool {
-	var e *ConflictError
-	return errors.As(err, &e)
+	var e httpStatusError
+	return errors.As(err, &e) && e.HTTPStatus() == http.StatusConflict
 }
 
 func isValidation(err error) bool {
-	var e *ValidationError
-	return errors.As(err, &e)
+	var e httpStatusError
+	return errors.As(err, &e) && e.HTTPStatus() == http.StatusUnprocessableEntity
 }
 
 // serviceError writes an HTTP error from a service-layer error. Typed errors

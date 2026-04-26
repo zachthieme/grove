@@ -19,6 +19,7 @@ import (
 	"github.com/zachthieme/grove/internal/api"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 var GetFrontendFS func() (fs.FS, error)
@@ -36,7 +37,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 	configureLogging(logBuf)
 
-	svc := api.NewOrgService(api.FileSnapshotStore{})
+	svc := api.NewOrgService(snapshot.NewFileStore())
 	autoStore := autosave.NewFileStore()
 	mux := http.NewServeMux()
 

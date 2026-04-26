@@ -19,6 +19,7 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
 	"github.com/zachthieme/grove/internal/pod"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 const maxDecompressedSize = 200 << 20 // 200 MB
@@ -156,8 +157,8 @@ func parseSettingsSidecar(data []byte) []string {
 	return order
 }
 
-func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []apitypes.OrgNode, working []apitypes.OrgNode, snaps map[string]snapshotData, warnings []string, err error) {
-	snaps = make(map[string]snapshotData)
+func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []apitypes.OrgNode, working []apitypes.OrgNode, snaps map[string]snapshot.Data, warnings []string, err error) {
+	snaps = make(map[string]snapshot.Data)
 
 	// Parse raw orgs from all entries first.
 	type parsedEntry struct {
@@ -216,7 +217,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 		if i == originalIdx || i == workingIdx {
 			continue
 		}
-		snaps[p.entry.name] = snapshotData{
+		snaps[p.entry.name] = snapshot.Data{
 			People:    ConvertOrgWithIDMap(p.org, idMap),
 			Timestamp: now.Add(time.Duration(i) * time.Millisecond),
 		}

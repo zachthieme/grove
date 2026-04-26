@@ -1,8 +1,16 @@
-package api
+// Package snapshot owns the named-snapshot subsystem: capturing, persisting,
+// listing, loading, and clearing snapshots of org state. It exposes Service
+// (the in-memory map + race-guarded mutations) and Store (the persistence
+// abstraction). Snapshots cross between this package and the org-owning
+// package via the OrgStateProvider bridge interface and the OrgState value
+// type — neither side imports the other.
+package snapshot
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"sort"
 	"sync"
@@ -21,51 +29,69 @@ func isValidSnapshotName(name string) bool {
 	return validSnapshotName.MatchString(name)
 }
 
-type snapshotData struct {
+// Data is the on-disk + in-memory shape of a single named snapshot. Exported
+// so cross-package callers (zip import) can construct snapshot maps.
+type Data struct {
 	People    []apitypes.OrgNode
 	Pods      []apitypes.Pod
 	Settings  apitypes.Settings
 	Timestamp time.Time
 }
 
+// Info is the over-the-wire shape returned by List and the snapshot HTTP
+// handlers. Mirrors the frontend SnapshotInfo TypeScript interface.
+type Info struct {
+	Name      string `json:"name"`
+	Timestamp string `json:"timestamp"`
+}
+
+// OrgState is a frozen, deep-copied view of org state at a point in time.
+// Used as the bridge format between the org-owning service and Service for
+// Save/Load, and stored as the in-memory snapshot payload.
+type OrgState struct {
+	People   []apitypes.OrgNode
+	Pods     []apitypes.Pod
+	Settings apitypes.Settings
+}
+
 // Reserved snapshot names used internally for export and special operations.
 const (
-	SnapshotWorking    = "__working__"
-	SnapshotOriginal   = "__original__"
-	SnapshotExportTemp = "__export_temp__"
+	Working    = "__working__"
+	Original   = "__original__"
+	ExportTemp = "__export_temp__"
 )
 
 var reservedSnapshotNames = map[string]bool{
-	SnapshotWorking:  true,
-	SnapshotOriginal: true,
+	Working:  true,
+	Original: true,
 }
 
-// orgStateProvider is the interface SnapshotService uses to capture and
-// apply org state. Implemented by *OrgService.
-type orgStateProvider interface {
+// OrgStateProvider is the interface Service uses to capture and apply org
+// state. Implemented by the org-owning service (*api.OrgService for now).
+type OrgStateProvider interface {
 	CaptureState() OrgState
 	ApplyState(OrgState)
 	GetWorking(ctx context.Context) []apitypes.OrgNode
 	GetOriginal(ctx context.Context) []apitypes.OrgNode
 }
 
-// SnapshotService owns the snapshot map and disk store under its own mutex.
-// It is the snapshot-counterpart to OrgService — never held under OrgService's
-// lock. Cross-service ops (Save captures from org; Load applies to org) always
-// release one lock before acquiring the other.
-type SnapshotService struct {
+// Service owns the snapshot map and disk store under its own mutex. It is
+// the snapshot-counterpart to the org service — never held under the org
+// service's lock. Cross-service ops (Save captures from org; Load applies to
+// org) always release one lock before acquiring the other.
+type Service struct {
 	mu    sync.RWMutex
-	snaps map[string]snapshotData
-	store SnapshotStore
+	snaps map[string]Data
+	store Store
 	epoch uint64 // bumped on Clear/ReplaceAll; Save aborts if epoch advances
-	org   orgStateProvider
+	org   OrgStateProvider
 }
 
-// NewSnapshotService constructs a SnapshotService and loads any persisted
-// snapshots from the store. Read failures are logged and the service starts
-// empty — desktop tool, no remote operator to halt for.
-func NewSnapshotService(store SnapshotStore, org orgStateProvider) *SnapshotService {
-	ss := &SnapshotService{store: store, org: org}
+// New constructs a Service and loads any persisted snapshots from the store.
+// Read failures are logged and the service starts empty — desktop tool, no
+// remote operator to halt for.
+func New(store Store, org OrgStateProvider) *Service {
+	ss := &Service{store: store, org: org}
 	snaps, err := store.Read()
 	switch {
 	case err != nil:
@@ -79,15 +105,15 @@ func NewSnapshotService(store SnapshotStore, org orgStateProvider) *SnapshotServ
 
 // List returns all snapshots sorted by timestamp (newest first), excluding
 // the internal export-temp snapshot. Acquires mu_snap.RLock.
-func (ss *SnapshotService) List() []SnapshotInfo {
+func (ss *Service) List() []Info {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	list := make([]SnapshotInfo, 0)
+	list := make([]Info, 0)
 	for name, snap := range ss.snaps {
-		if name == SnapshotExportTemp {
+		if name == ExportTemp {
 			continue
 		}
-		list = append(list, SnapshotInfo{
+		list = append(list, Info{
 			Name:      name,
 			Timestamp: snap.Timestamp.Format(time.RFC3339Nano),
 		})
@@ -98,10 +124,10 @@ func (ss *SnapshotService) List() []SnapshotInfo {
 	return list
 }
 
-// Save captures org state and persists a named snapshot. Returns errConflict
+// Save captures org state and persists a named snapshot. Returns *ConflictError
 // if the snapshot epoch advanced (Clear/ReplaceAll ran) between capture and
-// commit, or if the name is reserved. Returns errValidation for invalid names.
-func (ss *SnapshotService) Save(ctx context.Context, name string) error {
+// commit, or if the name is reserved. Returns *ValidationError for invalid names.
+func (ss *Service) Save(ctx context.Context, name string) error {
 	if name == "" {
 		return errValidation("snapshot name is required")
 	}
@@ -138,9 +164,9 @@ func (ss *SnapshotService) Save(ctx context.Context, name string) error {
 
 	prev, existed := ss.snaps[name]
 	if ss.snaps == nil {
-		ss.snaps = make(map[string]snapshotData)
+		ss.snaps = make(map[string]Data)
 	}
-	ss.snaps[name] = snapshotData{
+	ss.snaps[name] = Data{
 		People:    deepCopyNodes(state.People),
 		Pods:      pod.Copy(state.Pods),
 		Settings:  state.Settings,
@@ -163,7 +189,7 @@ func (ss *SnapshotService) Save(ctx context.Context, name string) error {
 // Load reads a named snapshot under mu_snap (briefly), then calls
 // org.ApplyState — which acquires mu_org. The two locks are never held
 // simultaneously: mu_snap is fully released before ApplyState is called.
-func (ss *SnapshotService) Load(ctx context.Context, name string) error {
+func (ss *Service) Load(ctx context.Context, name string) error {
 	ss.mu.RLock()
 	snap, ok := ss.snaps[name]
 	if !ok {
@@ -184,7 +210,7 @@ func (ss *SnapshotService) Load(ctx context.Context, name string) error {
 
 // Delete removes a named snapshot and persists the change. Idempotent:
 // deleting a nonexistent snapshot is a no-op.
-func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
+func (ss *Service) Delete(ctx context.Context, name string) error {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 	prev, existed := ss.snaps[name]
@@ -203,13 +229,13 @@ func (ss *SnapshotService) Delete(ctx context.Context, name string) error {
 }
 
 // Export returns the People slice for a snapshot. Special names route to
-// the live working/original via the orgStateProvider. Named snapshots are
+// the live working/original via the OrgStateProvider. Named snapshots are
 // read under mu_snap.RLock and deep-copied so callers can mutate freely.
-func (ss *SnapshotService) Export(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
+func (ss *Service) Export(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
 	switch name {
-	case SnapshotWorking:
+	case Working:
 		return ss.org.GetWorking(ctx), nil
-	case SnapshotOriginal:
+	case Original:
 		return ss.org.GetOriginal(ctx), nil
 	}
 
@@ -222,17 +248,17 @@ func (ss *SnapshotService) Export(ctx context.Context, name string) ([]apitypes.
 	return deepCopyNodes(snap.People), nil
 }
 
-// SnapshotClearer is the narrow interface OrgService uses to invalidate
-// snapshots when org state is reset (Reset/Create/Upload). Implemented
-// by *SnapshotService.
-type SnapshotClearer interface {
+// Clearer is the narrow interface the org-owning service uses to invalidate
+// snapshots when org state is reset (Reset/Create/Upload). Implemented by
+// *Service.
+type Clearer interface {
 	Clear() error
-	ReplaceAll(map[string]snapshotData) error
+	ReplaceAll(map[string]Data) error
 }
 
 // Clear wipes the snapshot map, bumps the epoch (invalidating any in-flight
 // Save), and removes the persisted file.
-func (ss *SnapshotService) Clear() error {
+func (ss *Service) Clear() error {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 	prev := len(ss.snaps)
@@ -251,7 +277,7 @@ func (ss *SnapshotService) Clear() error {
 // ReplaceAll replaces the snapshot map (used by zip import to install
 // imported snapshots), bumps the epoch, and persists. Rolls back to the
 // prior map and epoch on store.Write failure.
-func (ss *SnapshotService) ReplaceAll(snaps map[string]snapshotData) error {
+func (ss *Service) ReplaceAll(snaps map[string]Data) error {
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
 	prevSnaps := ss.snaps
@@ -278,5 +304,71 @@ func (ss *SnapshotService) ReplaceAll(snaps map[string]snapshotData) error {
 	return nil
 }
 
-// Compile-time assertion: *SnapshotService satisfies SnapshotClearer.
-var _ SnapshotClearer = (*SnapshotService)(nil)
+// Compile-time assertion: *Service satisfies Clearer.
+var _ Clearer = (*Service)(nil)
+
+// --- Errors ---
+//
+// Snapshot-package errors mirror the api package's typed errors: they
+// implement HTTPStatus() so the http handler in the api package can map them
+// to the correct response code via its httpStatusError interface, without
+// needing to import this package.
+
+// ValidationError indicates invalid input data (422).
+type ValidationError struct{ msg string }
+
+func (e *ValidationError) Error() string   { return e.msg }
+func (e *ValidationError) HTTPStatus() int { return http.StatusUnprocessableEntity }
+
+// NotFoundError indicates a requested resource doesn't exist (404).
+type NotFoundError struct{ msg string }
+
+func (e *NotFoundError) Error() string   { return e.msg }
+func (e *NotFoundError) HTTPStatus() int { return http.StatusNotFound }
+
+// ConflictError indicates a duplicate or conflicting state (409).
+type ConflictError struct{ msg string }
+
+func (e *ConflictError) Error() string   { return e.msg }
+func (e *ConflictError) HTTPStatus() int { return http.StatusConflict }
+
+func errValidation(format string, args ...any) error {
+	return &ValidationError{fmt.Sprintf(format, args...)}
+}
+func errNotFound(format string, args ...any) error {
+	return &NotFoundError{fmt.Sprintf(format, args...)}
+}
+func errConflict(format string, args ...any) error {
+	return &ConflictError{fmt.Sprintf(format, args...)}
+}
+
+// Predicates — convenience for tests.
+func isNotFound(err error) bool {
+	var e *NotFoundError
+	return errors.As(err, &e)
+}
+
+func isConflict(err error) bool {
+	var e *ConflictError
+	return errors.As(err, &e)
+}
+
+func isValidation(err error) bool {
+	var e *ValidationError
+	return errors.As(err, &e)
+}
+
+// deepCopyNodes returns an independent copy of src, including each person's
+// AdditionalTeams slice. Used so snapshots are insulated from later mutations
+// of the working slice they were captured from. Mirrors api.deepCopyNodes.
+func deepCopyNodes(src []apitypes.OrgNode) []apitypes.OrgNode {
+	dst := make([]apitypes.OrgNode, len(src))
+	for i, p := range src {
+		dst[i] = p
+		if p.AdditionalTeams != nil {
+			dst[i].AdditionalTeams = make([]string, len(p.AdditionalTeams))
+			copy(dst[i].AdditionalTeams, p.AdditionalTeams)
+		}
+	}
+	return dst
+}

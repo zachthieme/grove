@@ -14,6 +14,7 @@ import (
 	"github.com/zachthieme/grove/internal/api"
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // Scenarios: CONTRACT-007
@@ -72,7 +73,7 @@ func TestIntegration_SnapshotRoundTrip(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("list snapshots: %d", rec.Code)
 	}
-	var snapshots []api.SnapshotInfo
+	var snapshots []snapshot.Info
 	if err := json.NewDecoder(rec.Body).Decode(&snapshots); err != nil {
 		t.Fatalf("decode snapshots: %v", err)
 	}
@@ -181,7 +182,7 @@ func TestIntegration_ErrorResponses(t *testing.T) {
 		`{"personId":"nonexistent-id","fields":{"name":"X"}}`, 404)
 
 	// Export with no data loaded → use fresh service
-	freshSvc := api.NewOrgService(api.NewMemorySnapshotStore())
+	freshSvc := api.NewOrgService(snapshot.NewMemoryStore())
 	freshHandler := api.NewRouter(api.NewServices(freshSvc), nil, autosave.NewMemoryStore())
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/api/export/csv", nil)
@@ -222,7 +223,7 @@ func TestIntegration_CycleDetection(t *testing.T) {
 // uploadTestCSV uploads testdata/simple.csv and returns the handler and org data.
 func uploadTestCSV(t *testing.T) (handler http.Handler, data *api.OrgData) {
 	t.Helper()
-	svc := api.NewOrgService(api.NewMemorySnapshotStore())
+	svc := api.NewOrgService(snapshot.NewMemoryStore())
 	handler = api.NewRouter(api.NewServices(svc), nil, autosave.NewMemoryStore())
 
 	csvData, err := os.ReadFile("testdata/simple.csv")

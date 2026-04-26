@@ -10,6 +10,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // Scenarios: EXPORT-001
@@ -17,7 +18,7 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	if _, err := svc.Upload(context.Background(), "test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
 
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	if _, err := svc.Upload(context.Background(), "test.csv", []byte(input)); err != nil {
 		t.Fatalf("upload: %v", err)
 	}

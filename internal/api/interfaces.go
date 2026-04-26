@@ -5,6 +5,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // NodeService handles people mutations (move, update, add, delete, restore, reorder).
@@ -34,7 +35,7 @@ type SnapshotOps interface {
 	SaveSnapshot(ctx context.Context, name string) error
 	LoadSnapshot(ctx context.Context, name string) (*OrgData, error)
 	DeleteSnapshot(ctx context.Context, name string) error
-	ListSnapshots(ctx context.Context) []SnapshotInfo
+	ListSnapshots(ctx context.Context) []snapshot.Info
 	ExportSnapshot(ctx context.Context, name string) ([]apitypes.OrgNode, error)
 }
 
@@ -89,4 +90,9 @@ var (
 	_ ImportService   = (*OrgService)(nil)
 	_ PodService      = (*OrgService)(nil)
 	_ SettingsService = (*OrgService)(nil)
+
+	// Bridge interface consumed by the snapshot package: *OrgService is the
+	// concrete OrgStateProvider implementation. snapshot.Clearer is satisfied
+	// by *snapshot.Service (asserted in the snapshot package itself).
+	_ snapshot.OrgStateProvider = (*OrgService)(nil)
 )

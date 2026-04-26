@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 func FuzzInferMapping(f *testing.F) {
@@ -70,7 +71,7 @@ func FuzzCSVUpload(f *testing.F) {
 	f.Add([]byte("Name,Name,Name\nA,B,C\n"))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		// Should never panic regardless of input; errors are expected
 		_, _ = svc.Upload(context.Background(), "test.csv", data)
 	})
@@ -131,7 +132,7 @@ func FuzzUpdateFields(f *testing.F) {
 	f.Add(strings.Repeat("x", 600), "Senior", "SRE")
 
 	f.Fuzz(func(t *testing.T, name, role, disc string) {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n")
 		resp, err := svc.Upload(context.Background(), "test.csv", csv)
 		if err != nil || resp.Status != UploadReady {
@@ -192,7 +193,7 @@ func FuzzZipUpload(f *testing.F) {
 	f.Add([]byte("PK\x03\x04"))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		// Must not panic — errors are acceptable
 		resp, err := svc.UploadZip(context.Background(), data)
 		if err != nil {

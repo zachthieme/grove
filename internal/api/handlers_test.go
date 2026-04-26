@@ -15,6 +15,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
@@ -57,7 +58,7 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 // Scenarios: UPLOAD-001
 func TestUploadHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -79,7 +80,7 @@ func TestUploadHandler(t *testing.T) {
 // Scenarios: CONTRACT-006
 func TestGetOrg_NoData(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/org", nil)
@@ -94,7 +95,7 @@ func TestGetOrg_NoData(t *testing.T) {
 // Scenarios: CONTRACT-006
 func TestGetOrg_WithData(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -118,7 +119,7 @@ func TestGetOrg_WithData(t *testing.T) {
 // Scenarios: ORG-001
 func TestMoveHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -166,7 +167,7 @@ func TestMoveHandler(t *testing.T) {
 // Scenarios: ORG-005
 func TestUpdateHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -203,7 +204,7 @@ func TestUpdateHandler(t *testing.T) {
 // Scenarios: ORG-011
 func TestAddHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	uploadCSV(t, handler)
@@ -243,7 +244,7 @@ func TestAddHandler(t *testing.T) {
 // Scenarios: ORG-012
 func TestDeleteHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -279,7 +280,7 @@ func TestDeleteHandler(t *testing.T) {
 // Scenarios: ORG-012
 func TestRecycledHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -317,7 +318,7 @@ func TestRecycledHandler(t *testing.T) {
 // Scenarios: ORG-012
 func TestRestoreHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -364,7 +365,7 @@ func TestRestoreHandler(t *testing.T) {
 // Scenarios: ORG-014
 func TestEmptyBinHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -405,7 +406,7 @@ func TestEmptyBinHandler(t *testing.T) {
 // Scenarios: EXPORT-001
 func TestExportHandler_CSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -427,7 +428,7 @@ func TestExportHandler_CSV(t *testing.T) {
 // Scenarios: EXPORT-002
 func TestExportHandler_XLSX(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -484,7 +485,7 @@ func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
 // Scenarios: UPLOAD-002
 func TestConfirmMappingHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	resp := uploadNonStandardCSV(t, handler)
@@ -532,7 +533,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 // Scenarios: ORG-015
 func TestReorderHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -579,7 +580,7 @@ func TestReorderHandler(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestReorderHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -605,7 +606,7 @@ func TestReorderHandler_InvalidJSON(t *testing.T) {
 // Scenarios: ORG-016
 func TestResetHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := uploadCSV(t, handler)
@@ -687,7 +688,7 @@ func TestResetHandler(t *testing.T) {
 // Scenarios: SNAP-001
 func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -703,7 +704,7 @@ func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var list []SnapshotInfo
+	var list []snapshot.Info
 	if err := json.NewDecoder(rec.Body).Decode(&list); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -733,7 +734,7 @@ func TestSnapshotHandlers_SaveAndList(t *testing.T) {
 // Scenarios: SNAP-002
 func TestSnapshotHandlers_Load(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	data := uploadCSV(t, handler)
 
@@ -788,7 +789,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -807,7 +808,7 @@ func TestSnapshotHandlers_LoadNotFound(t *testing.T) {
 // Scenarios: SNAP-007
 func TestSnapshotHandlers_Delete(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -834,7 +835,7 @@ func TestSnapshotHandlers_Delete(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var list []SnapshotInfo
+	var list []snapshot.Info
 	if err := json.NewDecoder(rec.Body).Decode(&list); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -848,7 +849,7 @@ func TestSnapshotHandlers_Delete(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestMoveHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -873,7 +874,7 @@ func TestMoveHandler_InvalidJSON(t *testing.T) {
 // Scenarios: ORG-003
 func TestMoveHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -895,7 +896,7 @@ func TestMoveHandler_PersonNotFound(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestUpdateHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -913,7 +914,7 @@ func TestUpdateHandler_InvalidJSON(t *testing.T) {
 // Scenarios: ORG-008
 func TestUpdateHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -935,7 +936,7 @@ func TestUpdateHandler_PersonNotFound(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestAddHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -953,7 +954,7 @@ func TestAddHandler_InvalidJSON(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestDeleteHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -971,7 +972,7 @@ func TestDeleteHandler_InvalidJSON(t *testing.T) {
 // Scenarios: ORG-013
 func TestDeleteHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -990,7 +991,7 @@ func TestDeleteHandler_PersonNotFound(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestRestoreHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1008,7 +1009,7 @@ func TestRestoreHandler_InvalidJSON(t *testing.T) {
 // Scenarios: ORG-013
 func TestRestoreHandler_PersonNotFound(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1027,7 +1028,7 @@ func TestRestoreHandler_PersonNotFound(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("POST", "/api/upload/confirm", bytes.NewReader([]byte("bad")))
@@ -1044,7 +1045,7 @@ func TestConfirmMappingHandler_InvalidJSON(t *testing.T) {
 // Scenarios: UPLOAD-003
 func TestConfirmMappingHandler_NoPending(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	body, _ := json.Marshal(map[string]any{"mapping": map[string]string{"name": "Name"}})
@@ -1063,7 +1064,7 @@ func TestConfirmMappingHandler_NoPending(t *testing.T) {
 func TestExportHandler_EmptyOrg(t *testing.T) {
 	t.Parallel()
 	// When no data has been uploaded, export should return 400.
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/export/csv", nil)
@@ -1078,7 +1079,7 @@ func TestExportHandler_EmptyOrg(t *testing.T) {
 // Scenarios: EXPORT-003
 func TestExportHandler_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1101,7 +1102,7 @@ func TestExportHandler_UnsupportedFormat(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1119,7 +1120,7 @@ func TestSaveSnapshotHandler_InvalidJSON(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1137,7 +1138,7 @@ func TestLoadSnapshotHandler_InvalidJSON(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1155,7 +1156,7 @@ func TestDeleteSnapshotHandler_InvalidJSON(t *testing.T) {
 // Scenarios: UPLOAD-011
 func TestUploadHandler_NoFile(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("POST", "/api/upload", nil)
@@ -1172,7 +1173,7 @@ func TestUploadHandler_NoFile(t *testing.T) {
 // Scenarios: UPLOAD-011
 func TestUploadHandler_UnsupportedFormat(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	var buf bytes.Buffer
@@ -1207,7 +1208,7 @@ func TestAutosaveHandlers_WriteReadDelete(t *testing.T) {
 	storageDir = dir
 	defer func() { storageDir = "" }()
 
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	// Write autosave
@@ -1269,7 +1270,7 @@ func TestAutosaveHandler_WriteInvalidJSON(t *testing.T) {
 	storageDir = dir
 	defer func() { storageDir = "" }()
 
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("POST", "/api/autosave", bytes.NewReader([]byte("bad")))
@@ -1289,7 +1290,7 @@ func TestAutosaveHandler_ReadMissing(t *testing.T) {
 	storageDir = dir
 	defer func() { storageDir = "" }()
 
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/autosave", nil)
@@ -1307,7 +1308,7 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 	storageDir = dir
 	defer func() { storageDir = "" }()
 
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("DELETE", "/api/autosave", nil)
@@ -1323,7 +1324,7 @@ func TestAutosaveHandler_DeleteMissing(t *testing.T) {
 // Scenarios: SNAP-008
 func TestExportSnapshotHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1382,7 +1383,7 @@ func TestExportSnapshotHandler(t *testing.T) {
 // Scenarios: CONTRACT-003
 func TestHealthEndpoint(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("GET", "/api/health", nil)
@@ -1404,7 +1405,7 @@ func TestHealthEndpoint(t *testing.T) {
 // Scenarios: UPLOAD-006
 func TestUploadZipHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	csvContent := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
@@ -1469,7 +1470,7 @@ func TestUploadZipHandler(t *testing.T) {
 // Scenarios: SETTINGS-001
 func TestSettingsHandler_GetAndPost(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	_, _ = svc.Upload(context.Background(), "test.csv", []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n"))
 	req := httptest.NewRequest("GET", "/api/settings", nil)
 	w := httptest.NewRecorder()
@@ -1498,7 +1499,7 @@ func TestSettingsHandler_GetAndPost(t *testing.T) {
 // Scenarios: AUTO-007
 func TestRestoreStateHandler_Valid(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	data := autosave.AutosaveData{
@@ -1561,7 +1562,7 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestRestoreStateHandler_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	req := httptest.NewRequest("POST", "/api/restore-state", bytes.NewReader([]byte("not json")))
@@ -1587,7 +1588,7 @@ func TestRestoreStateHandler_InvalidJSON(t *testing.T) {
 // Scenarios: CONTRACT-002
 func TestBodySizeLimit(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1744,7 +1745,7 @@ func TestContentTypeValidation_ErrorShape(t *testing.T) {
 // Scenarios: CREATE-001
 func TestCreateHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	body := strings.NewReader(`{"name":"Alice"}`)
@@ -1780,7 +1781,7 @@ func TestCreateHandler(t *testing.T) {
 // Scenarios: CREATE-004
 func TestCreateHandler_EmptyName(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	body := strings.NewReader(`{"name":""}`)
@@ -1798,7 +1799,7 @@ func TestCreateHandler_EmptyName(t *testing.T) {
 // Scenarios: CREATE-002
 func TestAddParentHandler(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	data := uploadCSV(t, handler)
 	alice := findByName(data.Working, "Alice")
@@ -1830,7 +1831,7 @@ func TestAddParentHandler(t *testing.T) {
 // Scenarios: CREATE-004
 func TestAddParentHandler_EmptyName(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	data := uploadCSV(t, handler)
 	alice := findByName(data.Working, "Alice")
@@ -1850,7 +1851,7 @@ func TestAddParentHandler_EmptyName(t *testing.T) {
 // Scenarios: CREATE-003
 func TestAddParentHandler_ChildHasManager(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	data := uploadCSV(t, handler)
 	bob := findByName(data.Working, "Bob") // Bob reports to Alice
@@ -1896,7 +1897,7 @@ func TestCSRFProtect_PostWithoutHeader_Returns403(t *testing.T) {
 // Scenarios: SEC-001
 func TestCSRFProtect_PostWithHeader_Succeeds(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 
@@ -1965,7 +1966,7 @@ func TestCSRFProtect_CrossOriginPost_Returns403(t *testing.T) {
 // Scenarios: SEC-002
 func TestCSRFProtect_SameOriginPost_Succeeds(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 	uploadCSV(t, handler)
 

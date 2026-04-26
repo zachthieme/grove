@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // generateLargeCSV creates a CSV with n people in a realistic org structure:
@@ -52,7 +53,7 @@ func generateLargeCSV(n int) []byte {
 // uploadLargeOrg is a test helper that creates a service and uploads n people.
 func uploadLargeOrg(t *testing.T, n int) *OrgService {
 	t.Helper()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csvData := generateLargeCSV(n)
 	resp, err := svc.Upload(context.Background(), "test.csv", csvData)
 	if err != nil {
@@ -65,7 +66,7 @@ func uploadLargeOrg(t *testing.T, n int) *OrgService {
 }
 
 func TestLargeOrg_Upload(t *testing.T) {
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csvData := generateLargeCSV(200)
 
 	resp, err := svc.Upload(context.Background(), "test.csv", csvData)

@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 type zipFile struct {
@@ -38,7 +40,7 @@ const testCSVContent3 = "Name,Role,Discipline,Manager,Team,Additional Teams,Stat
 // Scenarios: UPLOAD-006
 func TestUploadZip_ThreeFiles(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},
@@ -72,7 +74,7 @@ func TestUploadZip_ThreeFiles(t *testing.T) {
 // Scenarios: UPLOAD-006
 func TestUploadZip_SingleFile(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"org.csv", testCSVContent},
 	})
@@ -95,7 +97,7 @@ func TestUploadZip_SingleFile(t *testing.T) {
 // Scenarios: UPLOAD-007
 func TestUploadZip_NoCSVFiles(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"image.png", "not a csv"},
 	})
@@ -109,7 +111,7 @@ func TestUploadZip_NoCSVFiles(t *testing.T) {
 // Scenarios: UPLOAD-006
 func TestUploadZip_UnprefixedFiles(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"beta.csv", testCSVContent},
 		{"alpha.csv", testCSVContent2},
@@ -127,7 +129,7 @@ func TestUploadZip_UnprefixedFiles(t *testing.T) {
 // Scenarios: UPLOAD-008
 func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// Use headers that don't match "name" at all so inference fails
 	csvContent := "Who,Title,Dept,Reports To,Group,Extra Teams,State\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 	data := buildTestZip(t, []zipFile{
@@ -159,7 +161,7 @@ func TestUploadZip_NeedsMapping_ThenConfirm(t *testing.T) {
 // Scenarios: UPLOAD-006
 func TestUploadZip_SharedIDsAcrossFiles(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},
@@ -212,7 +214,7 @@ func TestUploadZip_SharedIDsAcrossFiles(t *testing.T) {
 // Scenarios: UPLOAD-006
 func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},
@@ -249,7 +251,7 @@ func TestUploadZip_SnapshotSharedIDs(t *testing.T) {
 // Scenarios: UPLOAD-009
 func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	podsCsv := "Pod Name,Manager,Team,Public Note,Private Note\nPlatform,Alice,Platform,pod note,secret\n"
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
@@ -271,7 +273,7 @@ func TestUploadZip_FiltersPodsSidecar(t *testing.T) {
 // Scenarios: UPLOAD-009
 func TestUploadZip_SeedsPods(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// CSV with explicit Pod values to verify seeding
 	csvWithPods := "Name,Role,Discipline,Manager,Team,Additional Teams,Status,Pod\nAlice,VP,Eng,,Eng,,Active,\nBob,Engineer,Eng,Alice,Platform,,Active,Platform\n"
 	data := buildTestZip(t, []zipFile{
@@ -290,7 +292,7 @@ func TestUploadZip_SeedsPods(t *testing.T) {
 // Scenarios: UPLOAD-009
 func TestUploadZip_NoPodFieldNoPods(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},
@@ -307,7 +309,7 @@ func TestUploadZip_NoPodFieldNoPods(t *testing.T) {
 // Scenarios: UPLOAD-009
 func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	// CSV with Pod column so SeedPods creates a "Platform" pod
 	csvWithPod := "Name,Role,Discipline,Manager,Team,Additional Teams,Status,Pod\nAlice,VP,Eng,,Eng,,Active,\nBob,Engineer,Eng,Alice,Platform,,Active,Platform\n"
 	csvWithPod2 := "Name,Role,Discipline,Manager,Team,Additional Teams,Status,Pod\nAlice,VP,Eng,,Eng,,Active,\nBob,Senior Engineer,Eng,Alice,Platform,,Active,Platform\n"
@@ -341,7 +343,7 @@ func TestUploadZip_RestoresPodNotesFromSidecar(t *testing.T) {
 // Scenarios: UPLOAD-015
 func TestUploadZip_RestoresSettingsFromSidecar(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	settingsCsv := "Discipline Order\nProduct\nEng\n"
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
@@ -364,7 +366,7 @@ func TestUploadZip_RestoresSettingsFromSidecar(t *testing.T) {
 // Scenarios: UPLOAD-007
 func TestUploadZip_IgnoresNonCSV(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	data := buildTestZip(t, []zipFile{
 		{"0-original.csv", testCSVContent},
 		{"1-working.csv", testCSVContent2},

@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // setupConcurrentService creates a fresh OrgService with 3 people:
@@ -17,7 +18,7 @@ import (
 // Returns the service along with Alice, Bob, and Carol's IDs.
 func setupConcurrentService(t *testing.T) (svc *OrgService, aliceID, bobID, carolID string) {
 	t.Helper()
-	svc = NewOrgService(NewMemorySnapshotStore())
+	svc = NewOrgService(snapshot.NewMemoryStore())
 	csv := []byte("Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
@@ -231,7 +232,7 @@ func TestConcurrentSnapshotOperations(t *testing.T) {
 
 // Scenarios: CONC-005
 func TestConcurrentSnapshotSaves_BothPersist(t *testing.T) {
-	store := NewMemorySnapshotStore()
+	store := snapshot.NewMemoryStore()
 	svc := NewOrgService(store)
 	csv := []byte("Name,Role,Manager,Team,Status\nAlice,VP,,Eng,Active\n")
 	if _, err := svc.Upload(context.Background(), "test.csv", csv); err != nil {
@@ -354,7 +355,7 @@ func TestConcurrentMixedOperations(t *testing.T) {
 	})
 }
 
-// blockingSnapshotStore is a SnapshotStore whose Write blocks until a
+// blockingSnapshotStore is a snapshot.Store whose Write blocks until a
 // release channel is closed. Used to prove that snapshot persist does not
 // hold mu_org — concurrent Move must complete while Write is blocked.
 type blockingSnapshotStore struct {
@@ -362,7 +363,7 @@ type blockingSnapshotStore struct {
 	release chan struct{}
 }
 
-func (b *blockingSnapshotStore) Write(snaps map[string]snapshotData) error {
+func (b *blockingSnapshotStore) Write(snaps map[string]snapshot.Data) error {
 	select {
 	case b.started <- struct{}{}:
 	default:
@@ -372,8 +373,8 @@ func (b *blockingSnapshotStore) Write(snaps map[string]snapshotData) error {
 	return nil
 }
 
-func (b *blockingSnapshotStore) Read() (map[string]snapshotData, error) { return nil, nil }
-func (b *blockingSnapshotStore) Delete() error                          { return nil }
+func (b *blockingSnapshotStore) Read() (map[string]snapshot.Data, error) { return nil, nil }
+func (b *blockingSnapshotStore) Delete() error                           { return nil }
 
 // Scenarios: SNAP-009
 func TestSnapshotPersist_DoesNotBlockEdits(t *testing.T) {

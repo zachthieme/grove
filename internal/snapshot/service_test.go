@@ -1,4 +1,4 @@
-package api
+package snapshot
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
-// stubOrgProvider is a test-only implementation of orgStateProvider.
+// stubOrgProvider is a test-only implementation of OrgStateProvider.
 type stubOrgProvider struct {
 	captureFn  func() OrgState
 	applyFn    func(OrgState)
@@ -36,7 +36,7 @@ func newStubOrgProvider() *stubOrgProvider {
 // Scenarios: SNAP-003
 func TestNewSnapshotService_StartsEmpty(t *testing.T) {
 	t.Parallel()
-	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore(), newStubOrgProvider())
 	if got := ss.List(); len(got) != 0 {
 		t.Errorf("expected empty list, got %d entries", len(got))
 	}
@@ -45,16 +45,16 @@ func TestNewSnapshotService_StartsEmpty(t *testing.T) {
 // Scenarios: SNAP-003
 func TestNewSnapshotService_LoadsFromStore(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
+	store := NewMemoryStore()
 	// Pre-populate the store with one snapshot.
-	preload := map[string]snapshotData{
+	preload := map[string]Data{
 		"v1": {People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}, Settings: apitypes.Settings{}},
 	}
 	if err := store.Write(preload); err != nil {
 		t.Fatalf("preload write: %v", err)
 	}
 
-	ss := NewSnapshotService(store, newStubOrgProvider())
+	ss := New(store, newStubOrgProvider())
 	list := ss.List()
 	if len(list) != 1 || list[0].Name != "v1" {
 		t.Errorf("expected [v1] from preloaded store, got %v", list)
@@ -75,7 +75,7 @@ func TestSnapshotService_Save_StoresSnapshot(t *testing.T) {
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState { return captured }
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	ss := New(NewMemoryStore(), provider)
 	if err := ss.Save(context.Background(), "v1"); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -88,8 +88,8 @@ func TestSnapshotService_Save_StoresSnapshot(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotService_Save_RejectsReservedName(t *testing.T) {
 	t.Parallel()
-	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
-	err := ss.Save(context.Background(), SnapshotWorking)
+	ss := New(NewMemoryStore(), newStubOrgProvider())
+	err := ss.Save(context.Background(), Working)
 	if err == nil || !isConflict(err) {
 		t.Errorf("expected ConflictError, got %v", err)
 	}
@@ -98,7 +98,7 @@ func TestSnapshotService_Save_RejectsReservedName(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotService_Save_RejectsInvalidName(t *testing.T) {
 	t.Parallel()
-	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore(), newStubOrgProvider())
 	err := ss.Save(context.Background(), "../evil")
 	if err == nil || !isValidation(err) {
 		t.Errorf("expected ValidationError, got %v", err)
@@ -112,9 +112,9 @@ func TestSnapshotService_Save_PersistsToStore(t *testing.T) {
 	provider.captureFn = func() OrgState {
 		return OrgState{People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}}
 	}
-	store := NewMemorySnapshotStore()
+	store := NewMemoryStore()
 
-	ss := NewSnapshotService(store, provider)
+	ss := New(store, provider)
 	if err := ss.Save(context.Background(), "saved"); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestSnapshotService_Save_PersistsToStore(t *testing.T) {
 // Scenarios: SNAP-008
 func TestSnapshotService_Save_AbortsWhenEpochAdvances(t *testing.T) {
 	t.Parallel()
-	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore(), newStubOrgProvider())
 
 	// Simulate a Clear() racing between the epoch read and the commit lock:
 	// the captureFn itself bumps ss.epoch. Save reads expectedEpoch BEFORE
@@ -167,7 +167,7 @@ func TestSnapshotService_Load_AppliesToOrg(t *testing.T) {
 	provider.captureFn = func() OrgState { return captured }
 	provider.applyFn = func(s OrgState) { applied = s }
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	ss := New(NewMemoryStore(), provider)
 	if err := ss.Save(context.Background(), "v1"); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestSnapshotService_Load_AppliesToOrg(t *testing.T) {
 // Scenarios: SNAP-005
 func TestSnapshotService_Load_NotFound(t *testing.T) {
 	t.Parallel()
-	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore(), newStubOrgProvider())
 	err := ss.Load(context.Background(), "missing")
 	if err == nil || !isNotFound(err) {
 		t.Errorf("expected NotFoundError, got %v", err)
@@ -195,7 +195,7 @@ func TestSnapshotService_Delete_RemovesEntry(t *testing.T) {
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState { return OrgState{} }
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	ss := New(NewMemoryStore(), provider)
 	if err := ss.Save(context.Background(), "v1"); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -215,8 +215,8 @@ func TestSnapshotService_Export_Working(t *testing.T) {
 		return []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "WorkingPerson"}, Id: "w1"}}
 	}
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
-	people, err := ss.Export(context.Background(), SnapshotWorking)
+	ss := New(NewMemoryStore(), provider)
+	people, err := ss.Export(context.Background(), Working)
 	if err != nil {
 		t.Fatalf("Export working: %v", err)
 	}
@@ -233,8 +233,8 @@ func TestSnapshotService_Export_Original(t *testing.T) {
 		return []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "OrigPerson"}, Id: "o1"}}
 	}
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
-	people, err := ss.Export(context.Background(), SnapshotOriginal)
+	ss := New(NewMemoryStore(), provider)
+	people, err := ss.Export(context.Background(), Original)
 	if err != nil {
 		t.Fatalf("Export original: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestSnapshotService_Export_NamedSnapshot(t *testing.T) {
 		}
 	}
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	ss := New(NewMemoryStore(), provider)
 	if err := ss.Save(context.Background(), "snap1"); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestSnapshotService_Export_NamedSnapshot(t *testing.T) {
 // Scenarios: SNAP-006
 func TestSnapshotService_Export_NotFound(t *testing.T) {
 	t.Parallel()
-	ss := NewSnapshotService(NewMemorySnapshotStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore(), newStubOrgProvider())
 	_, err := ss.Export(context.Background(), "missing")
 	if err == nil || !isNotFound(err) {
 		t.Errorf("expected NotFoundError, got %v", err)
@@ -282,8 +282,8 @@ func TestSnapshotService_Clear_RemovesAllAndBumpsEpoch(t *testing.T) {
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState { return OrgState{} }
 
-	store := NewMemorySnapshotStore()
-	ss := NewSnapshotService(store, provider)
+	store := NewMemoryStore()
+	ss := New(store, provider)
 	if err := ss.Save(context.Background(), "v1"); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -308,7 +308,7 @@ func TestSnapshotService_Save_AbortsAfterClear(t *testing.T) {
 	provider := newStubOrgProvider()
 	provider.captureFn = func() OrgState { return OrgState{} }
 
-	ss := NewSnapshotService(NewMemorySnapshotStore(), provider)
+	ss := New(NewMemoryStore(), provider)
 
 	// Smoke test that Clear bumps the epoch counter and a subsequent
 	// Save still succeeds (the epoch advance only invalidates IN-FLIGHT
@@ -332,10 +332,10 @@ func TestSnapshotService_Save_AbortsAfterClear(t *testing.T) {
 // Scenarios: SNAP-007
 func TestSnapshotService_ReplaceAll_PersistsNewMap(t *testing.T) {
 	t.Parallel()
-	store := NewMemorySnapshotStore()
-	ss := NewSnapshotService(store, newStubOrgProvider())
+	store := NewMemoryStore()
+	ss := New(store, newStubOrgProvider())
 
-	newMap := map[string]snapshotData{
+	newMap := map[string]Data{
 		"imported": {People: []apitypes.OrgNode{{Id: "x"}}, Timestamp: time.Now()},
 	}
 	if err := ss.ReplaceAll(newMap); err != nil {

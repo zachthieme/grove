@@ -23,6 +23,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // tsTypesSrc reads web/src/api/types.ts once per test run. Used as the source
@@ -150,7 +151,7 @@ func TestContractAutosaveDataFields(t *testing.T) {
 func TestContractSnapshotInfoFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "SnapshotInfo")
-	got := jsonFieldNames(SnapshotInfo{})
+	got := jsonFieldNames(snapshot.Info{})
 	assertFieldsMatch(t, "SnapshotInfo", expected, got)
 }
 
@@ -392,7 +393,7 @@ func TestContractGetOrgResponseShape(t *testing.T) {
 
 func TestContractUploadResponseShape(t *testing.T) {
 	t.Parallel()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	router := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	// Upload via handler

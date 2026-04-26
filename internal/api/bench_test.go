@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // generateBenchCSV creates a CSV with n people arranged as a hierarchy:
@@ -38,7 +39,7 @@ func generateBenchCSV(n int) []byte {
 // benchService creates an OrgService pre-loaded with an n-person org.
 func benchService(b *testing.B, n int) *OrgService {
 	b.Helper()
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	csv := generateBenchCSV(n)
 	resp, err := svc.Upload(context.Background(), "bench.csv", csv)
 	if err != nil {
@@ -53,7 +54,7 @@ func benchService(b *testing.B, n int) *OrgService {
 func BenchmarkUpload_50(b *testing.B) {
 	csv := generateBenchCSV(50)
 	for b.Loop() {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		if _, err := svc.Upload(context.Background(), "bench.csv", csv); err != nil {
 			b.Fatal(err)
 		}
@@ -63,7 +64,7 @@ func BenchmarkUpload_50(b *testing.B) {
 func BenchmarkUpload_200(b *testing.B) {
 	csv := generateBenchCSV(200)
 	for b.Loop() {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		if _, err := svc.Upload(context.Background(), "bench.csv", csv); err != nil {
 			b.Fatal(err)
 		}
@@ -73,7 +74,7 @@ func BenchmarkUpload_200(b *testing.B) {
 func BenchmarkUpload_500(b *testing.B) {
 	csv := generateBenchCSV(500)
 	for b.Loop() {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		if _, err := svc.Upload(context.Background(), "bench.csv", csv); err != nil {
 			b.Fatal(err)
 		}
@@ -182,7 +183,7 @@ func BenchmarkGetOrgHandler(b *testing.B) {
 func BenchmarkMoveChain_50(b *testing.B) {
 	csvData := generateLargeCSV(200)
 	for b.Loop() {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
 		if err != nil || resp.Status != UploadReady {
 			b.Fatal("setup failed")
@@ -207,7 +208,7 @@ func BenchmarkMoveChain_50(b *testing.B) {
 func BenchmarkBulkUpdate_175(b *testing.B) {
 	csvData := generateLargeCSV(200)
 	for b.Loop() {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
 		if err != nil || resp.Status != UploadReady {
 			b.Fatal("setup failed")
@@ -229,7 +230,7 @@ func BenchmarkBulkUpdate_175(b *testing.B) {
 func BenchmarkDeleteRestore_50(b *testing.B) {
 	csvData := generateLargeCSV(200)
 	for b.Loop() {
-		svc := NewOrgService(NewMemorySnapshotStore())
+		svc := NewOrgService(snapshot.NewMemoryStore())
 		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
 		if err != nil || resp.Status != UploadReady {
 			b.Fatal("setup failed")

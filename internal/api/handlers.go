@@ -13,6 +13,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore autosave.AutosaveStore) http.Handler {
@@ -363,7 +364,7 @@ func handleSaveSnapshot(svc SnapshotOps) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandlerCtx(func(ctx context.Context, r req) ([]SnapshotInfo, error) {
+	return jsonHandlerCtx(func(ctx context.Context, r req) ([]snapshot.Info, error) {
 		if err := svc.SaveSnapshot(ctx, r.Name); err != nil {
 			return nil, err
 		}
@@ -384,7 +385,7 @@ func handleDeleteSnapshot(svc SnapshotOps) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandlerCtx(func(ctx context.Context, r req) ([]SnapshotInfo, error) {
+	return jsonHandlerCtx(func(ctx context.Context, r req) ([]snapshot.Info, error) {
 		if err := svc.DeleteSnapshot(ctx, r.Name); err != nil {
 			return nil, err
 		}

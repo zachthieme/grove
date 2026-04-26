@@ -1,4 +1,4 @@
-package api
+package snapshot
 
 // Scenarios: CONTRACT-008, SNAP-006 — all tests in this file
 
@@ -17,7 +17,7 @@ func TestSnapshotStore_WriteAndRead(t *testing.T) {
 	storageDir = t.TempDir()
 	defer func() { storageDir = "" }()
 
-	snaps := map[string]snapshotData{
+	snaps := map[string]Data{
 		"v1": {
 			People:    []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}},
 			Timestamp: time.Now(),
@@ -56,7 +56,7 @@ func TestSnapshotStore_Delete(t *testing.T) {
 	storageDir = t.TempDir()
 	defer func() { storageDir = "" }()
 
-	snaps := map[string]snapshotData{
+	snaps := map[string]Data{
 		"v1": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}, Timestamp: time.Now()},
 	}
 	_ = WriteSnapshots(snaps)
@@ -119,7 +119,7 @@ func TestSnapshotStore_WriteToReadOnlyDir(t *testing.T) {
 	storageDir = readOnlyDir
 	defer func() { storageDir = "" }()
 
-	snaps := map[string]snapshotData{
+	snaps := map[string]Data{
 		"v1": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}, Timestamp: time.Now()},
 	}
 	err := WriteSnapshots(snaps)
@@ -134,7 +134,7 @@ func TestSnapshotStore_ReadPermissionDenied(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	// Write valid data, then make file unreadable
-	snaps := map[string]snapshotData{
+	snaps := map[string]Data{
 		"v1": {People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "1"}}, Timestamp: time.Now()},
 	}
 	if err := WriteSnapshots(snaps); err != nil {
@@ -164,7 +164,7 @@ func TestSnapshotStore_RoundTripPreservesAllFields(t *testing.T) {
 	defer func() { storageDir = "" }()
 
 	ts := time.Date(2026, 3, 28, 12, 0, 0, 0, time.UTC)
-	snaps := map[string]snapshotData{
+	snaps := map[string]Data{
 		"v1": {
 			People:    []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Role: "VP", Status: "Active", Pod: "Alpha"}, Id: "1"}},
 			Pods:      []apitypes.Pod{{Id: "p1", Name: "Alpha", Team: "Eng", ManagerId: "1"}},

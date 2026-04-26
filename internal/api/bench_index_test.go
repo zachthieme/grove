@@ -3,10 +3,12 @@ package api
 import (
 	"context"
 	"testing"
+
+	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 func BenchmarkFindWorking(b *testing.B) {
-	svc := NewOrgService(NewMemorySnapshotStore())
+	svc := NewOrgService(snapshot.NewMemoryStore())
 	rows := "Name,Role,Discipline,Manager,Team,Status\n"
 	rows += "Root,VP,Eng,,Eng,Active\n"
 	for i := 0; i < 499; i++ {
