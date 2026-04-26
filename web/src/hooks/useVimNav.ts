@@ -40,6 +40,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * h/l / ArrowLeft/Right — move left/right spatially
  * o    — add report under selected (or sibling product if selected is a product)
  * O    — add parent above selected
+ * P    — add a product under selected (sibling on a product; child on a person; in-pod on a pod)
  * d    — delete selected (sends to recycle bin)
  * x    — cut selected (mark for move)
  * p    — paste (move cut people under selected target)
@@ -105,6 +106,29 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
       }
       case 'O': {
         if (onAddParent && personIds.length === 1) onAddParent(personIds[0])
+        break
+      }
+      case 'P': {
+        if (!onAddProduct) break
+        // Pod selection: collapseKey is "pod:managerId:podName" — add product into the pod.
+        if (selectedId.startsWith('pod:')) {
+          const parts = selectedId.split(':')
+          const managerId = parts[1]
+          const podName = parts.slice(2).join(':')
+          const pod = pods.find(p => p.managerId === managerId && p.name === podName)
+          onAddProduct(managerId, pod?.team, podName)
+          break
+        }
+        // Person selection: child product (or sibling product if the selection is itself a product).
+        if (personIds.length !== 1) break
+        const node = working.find(p => p.id === personIds[0])
+        if (!node) break
+        if (isProduct(node)) {
+          // Products don't nest — sibling under the same parent/team/pod.
+          onAddProduct(node.managerId, node.team, node.pod)
+        } else {
+          onAddProduct(node.id, node.team, node.pod)
+        }
         break
       }
       case 'd': {
@@ -175,6 +199,7 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
         }
         case 'o':
         case 'O':
+        case 'P':
         case 'd':
         case 'x':
         case 'p':

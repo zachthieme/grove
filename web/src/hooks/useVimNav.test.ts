@@ -84,4 +84,72 @@ describe('useVimNav', () => {
     expect(onAddReport).toHaveBeenCalledWith(alice.id)
     expect(onAddProduct).not.toHaveBeenCalled()
   })
+
+  it('[VIM-003] P on a person creates a child product', () => {
+    const onAddProduct = vi.fn()
+    const alice = makePerson({ id: 'p1', team: 'Platform', pod: 'Alpha' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [alice],
+        pods: [],
+        selectedId: alice.id,
+        onAddProduct,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'P' })
+
+    expect(onAddProduct).toHaveBeenCalledTimes(1)
+    expect(onAddProduct).toHaveBeenCalledWith(alice.id, 'Platform', 'Alpha')
+  })
+
+  it('[VIM-003] P on a product creates a sibling product (no nesting)', () => {
+    const onAddProduct = vi.fn()
+    const alice = makePerson({ id: 'p1' })
+    const widget = makeProduct({ id: 'prod1', managerId: alice.id, team: 'Platform', pod: 'Alpha' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [alice, widget],
+        pods: [],
+        selectedId: widget.id,
+        onAddProduct,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'P' })
+
+    expect(onAddProduct).toHaveBeenCalledTimes(1)
+    expect(onAddProduct).toHaveBeenCalledWith(alice.id, 'Platform', 'Alpha')
+  })
+
+  it('[VIM-003] P on a pod adds a product to that pod', () => {
+    const onAddProduct = vi.fn()
+    const alice = makePerson({ id: 'p1' })
+    const pods = [{ id: 'pod-1', managerId: 'p1', name: 'Alpha', team: 'Platform', publicNote: '' } as never]
+
+    renderHook(() =>
+      useVimNav({
+        working: [alice],
+        pods,
+        selectedId: 'pod:p1:Alpha',
+        onAddProduct,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'P' })
+
+    expect(onAddProduct).toHaveBeenCalledTimes(1)
+    expect(onAddProduct).toHaveBeenCalledWith('p1', 'Platform', 'Alpha')
+  })
 })
