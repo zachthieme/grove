@@ -182,8 +182,19 @@ make dev          # Vite dev server + Go server (hot reload)
 make build        # Production build (single binary)
 make frontend     # Build just the React frontend
 make typecheck    # TypeScript type check (no build)
+make lint         # golangci-lint (v2.8.0) + eslint
 make clean        # Remove build artifacts
 ```
+
+### Pre-commit hooks
+
+Optional but recommended. Install [lefthook](https://github.com/evilmartians/lefthook) (`brew install lefthook` or `nix run nixpkgs#lefthook`) once, then:
+
+```
+lefthook install
+```
+
+Hooks run gofmt, go vet, eslint, and tsc on staged files. Bypass an individual commit with `LEFTHOOK=0 jj commit ...`.
 
 ### Testing
 

@@ -1,0 +1,59 @@
+# Pre-commit hooks. Install once: `lefthook install`.
+# Bypass per-commit: `LEFTHOOK=0 jj commit ...` (emergency only).
+#
+# Goals:
+# - Sub-second on small commits (gofmt, eslint touched files only).
+# - Catch what CI catches before push, not duplicate CI's full suite.
+# - jj-friendly: hooks run on the staged set jj/git produced.
+
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: |
+        unformatted=$(gofmt -l {staged_files})
+        if [ -n "$unformatted" ]; then
+          echo "gofmt: needs formatting:"
+          echo "$unformatted"
+          exit 1
+        fi
+
+    govet:
+      glob: "*.go"
+      # vet runs over packages, not files; staged-files glob just gates
+      # whether to run at all.
+      run: go vet ./...
+
+    eslint:
+      glob: "web/src/**/*.{ts,tsx}"
+      root: web
+      # Only lint the staged files. --max-warnings 0 mirrors CI.
+      run: npx eslint --max-warnings 0 {staged_files}
+
+    tsc:
+      glob: "web/**/*.{ts,tsx}"
+      root: web
+      # tsc runs over the project, not files; gate on glob.
+      run: npx tsc --noEmit
+
+    no-large-binaries:
+      run: |
+        for f in {staged_files}; do
+          if [ -f "$f" ]; then
+            size=$(wc -c < "$f")
+            if [ "$size" -gt 2097152 ]; then
+              echo "no-large-binaries: $f is >2MB ($size bytes); confirm intent or use git LFS"
+              exit 1
+            fi
+          fi
+        done
+
+# Pre-push runs the full Go test suite; opt-in to keep commits fast.
+# Run via: LEFTHOOK_PREPUSH=1 ... or remove the skip below.
+pre-push:
+  commands:
+    go-test:
+      run: go test -race -count=1 ./...
+      skip:
+        - ref: main
