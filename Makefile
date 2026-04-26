@@ -1,5 +1,9 @@
 .PHONY: frontend build dev clean e2e test test-all typecheck cover bench fuzz mutate check-scenarios lint ci
 
+# Pinned in CI (.github/workflows/ci.yml) — bump in lockstep with the
+# linter config in .golangci.yml.
+GOLANGCI_LINT_VERSION = v2.8.0
+
 frontend:
 	cd web && npm run build
 

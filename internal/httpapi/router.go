@@ -11,7 +11,7 @@ func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore autosave.Autos
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
+		writeJSON(w, HealthResponse{Status: "ok"})
 	})
 
 	mux.HandleFunc("POST /api/upload", handleUpload(svcs.Import))
@@ -54,7 +54,7 @@ func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore autosave.Autos
 
 	// Config endpoint — always registered
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, ConfigResponse{Logging: logBuf != nil})
+		writeJSON(w, ConfigResponse{Logging: logBuf != nil})
 	})
 
 	// Log endpoints — only when logging is enabled

@@ -47,7 +47,7 @@ func handleUpload(svc ImportService) http.HandlerFunc {
 			org.ServiceError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, resp)
+		writeJSON(w, resp)
 	}
 }
 
@@ -62,7 +62,7 @@ func handleUploadZip(svc ImportService) http.HandlerFunc {
 			org.ServiceError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, resp)
+		writeJSON(w, resp)
 	}
 }
 
@@ -82,7 +82,7 @@ func handleGetOrg(svc OrgStateService) http.HandlerFunc {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		writeJSON(w, http.StatusOK, data)
+		writeJSON(w, data)
 	}
 }
 
@@ -162,7 +162,7 @@ func handleDelete(svc NodeService) http.HandlerFunc {
 
 func handleGetRecycled(svc OrgStateService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.GetRecycled(r.Context()))
+		writeJSON(w, svc.GetRecycled(r.Context()))
 	}
 }
 
@@ -183,7 +183,7 @@ func handleEmptyBin(svc NodeService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		recycled := svc.EmptyBin(r.Context())
-		writeJSON(w, http.StatusOK, RecycledResponse{Recycled: recycled})
+		writeJSON(w, RecycledResponse{Recycled: recycled})
 	}
 }
 
@@ -253,7 +253,7 @@ func handleExportSnapshot(svc SnapshotOps) http.HandlerFunc {
 
 func handleListSnapshots(svc SnapshotOps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.ListSnapshots(r.Context()))
+		writeJSON(w, svc.ListSnapshots(r.Context()))
 	}
 }
 
@@ -292,7 +292,7 @@ func handleDeleteSnapshot(svc SnapshotOps) http.HandlerFunc {
 
 func handleListPods(svc PodService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.ListPods(r.Context()))
+		writeJSON(w, svc.ListPods(r.Context()))
 	}
 }
 
@@ -329,7 +329,7 @@ func handleReset(svc OrgStateService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limitBody(w, r)
 		orgData := svc.ResetToOriginal(r.Context())
-		writeJSON(w, http.StatusOK, orgData)
+		writeJSON(w, orgData)
 	}
 }
 
@@ -357,7 +357,7 @@ func handleReorder(svc NodeService) http.HandlerFunc {
 
 func handleGetSettings(svc SettingsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, svc.GetSettings(r.Context()))
+		writeJSON(w, svc.GetSettings(r.Context()))
 	}
 }
 
@@ -402,15 +402,17 @@ func jsonHandlerCtx[Req any, Resp any](fn func(context.Context, Req) (Resp, erro
 			org.ServiceError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, resp)
+		writeJSON(w, resp)
 	}
 }
 
-func writeJSON(w http.ResponseWriter, status int, v any) {
+// writeJSON writes a 200 OK JSON response. Non-OK responses go through
+// writeError, which always sets the appropriate status.
+func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		logbuf.Logger().Error("writeJSON encode failed", "source", "api", "status", int64(status), "err", err.Error())
+		logbuf.Logger().Error("writeJSON encode failed", "source", "api", "err", err.Error())
 	}
 }
 

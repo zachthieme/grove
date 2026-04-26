@@ -20,7 +20,7 @@ func TestLoggingMiddleware_CapturesRequest(t *testing.T) {
 	t.Parallel()
 	buf := logbuf.New(100)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+		writeJSON(w, map[string]string{"ok": "true"})
 	})
 	handler := LoggingMiddleware(buf)(inner)
 

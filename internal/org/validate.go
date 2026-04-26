@@ -55,13 +55,13 @@ func validateNoteLen(value string) error {
 	return nil
 }
 
-// findByID looks up a node via an index map and verifies the entry against the
-// slice. Returns (-1, nil) on miss or stale index. O(1).
-func findByID(nodes []apitypes.OrgNode, idIndex map[string]int, id string) (int, *apitypes.OrgNode) {
+// findByID looks up a node via an index map and verifies the entry against
+// the slice. Returns nil on miss or stale index. O(1).
+func findByID(nodes []apitypes.OrgNode, idIndex map[string]int, id string) *apitypes.OrgNode {
 	if i, ok := idIndex[id]; ok && i < len(nodes) && nodes[i].Id == id {
-		return i, &nodes[i]
+		return &nodes[i]
 	}
-	return -1, nil
+	return nil
 }
 
 // isFrontlineManager returns true if personId has direct reports but none of
@@ -93,7 +93,7 @@ func validateManagerChange(working []apitypes.OrgNode, idIndex map[string]int, p
 	if newManagerId == personId {
 		return ErrValidation("a person cannot be their own manager")
 	}
-	_, mgr := findByID(working, idIndex, newManagerId)
+	mgr := findByID(working, idIndex, newManagerId)
 	if mgr == nil {
 		return ErrNotFound("manager %s not found", newManagerId)
 	}
@@ -116,7 +116,7 @@ func wouldCreateCycle(working []apitypes.OrgNode, idIndex map[string]int, person
 			return true
 		}
 		visited[current] = true
-		_, p := findByID(working, idIndex, current)
+		p := findByID(working, idIndex, current)
 		if p == nil {
 			return false
 		}

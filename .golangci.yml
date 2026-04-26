@@ -1,0 +1,63 @@
+version: "2"
+
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    - gocyclo
+    - misspell
+    - unconvert
+    - unparam
+    - bodyclose
+    - gocritic
+    - revive
+    - gosec
+  settings:
+    gocyclo:
+      # parser.BuildPeopleWithMapping is the largest function (25). Keep
+      # threshold at the current ceiling — drop after that function is
+      # decomposed.
+      min-complexity: 25
+    revive:
+      rules:
+        # Codebase convention: JSON-mirrored field names use lowerCamelCase
+        # (Id, ManagerId, Url) because they round-trip with the TS frontend.
+        # Renaming would break the wire contract — see internal/apitypes.
+        - name: var-naming
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+        - name: unused-parameter
+          disabled: true
+        - name: unexported-return
+          disabled: true
+  exclusions:
+    presets:
+      - common-false-positives
+      - legacy
+    paths:
+      - web/node_modules
+    rules:
+      # Test files: skip cyclo + unparam + gosec noise (table-driven tests,
+      # intentional helper signatures, intentional crypto-loose IDs).
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - unparam
+          - gosec
+          - gocritic
+      # logbuf entry IDs are for debug log dedup, not security boundaries —
+      # math/rand is appropriate.
+      - path: internal/logbuf/buffer\.go
+        linters:
+          - gosec

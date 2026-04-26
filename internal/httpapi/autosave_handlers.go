@@ -22,7 +22,7 @@ func handleWriteAutosave(store autosave.AutosaveStore) http.HandlerFunc {
 			return
 		}
 		logbuf.Logger().Debug("autosave written", "source", "autosave", "people", len(data.Working), "pods", len(data.Pods))
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		writeJSON(w, map[string]string{"status": "ok"})
 	}
 }
 
@@ -38,7 +38,7 @@ func handleReadAutosave(store autosave.AutosaveStore) http.HandlerFunc {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		writeJSON(w, http.StatusOK, data)
+		writeJSON(w, data)
 	}
 }
 
@@ -49,6 +49,6 @@ func handleDeleteAutosave(store autosave.AutosaveStore) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		writeJSON(w, map[string]string{"status": "ok"})
 	}
 }

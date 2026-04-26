@@ -57,7 +57,7 @@ func handleGetLogs(buf *logbuf.LogBuffer) http.HandlerFunc {
 			}
 		}
 		entries := buf.Entries(f)
-		writeJSON(w, http.StatusOK, map[string]any{
+		writeJSON(w, map[string]any{
 			"entries":    entries,
 			"count":      len(entries),
 			"bufferSize": buf.Size(),
