@@ -1,9 +1,11 @@
 // Package snapshot owns the named-snapshot subsystem: capturing, persisting,
 // listing, loading, and clearing snapshots of org state. It exposes Service
 // (the in-memory map + race-guarded mutations) and Store (the persistence
-// abstraction). Snapshots cross between this package and the org-owning
-// package via the OrgStateProvider bridge interface and the OrgState value
-// type — neither side imports the other.
+// abstraction). Service is a pure key-value store keyed by snapshot name;
+// it has NO reference to the org-owning service. Save/Load take and return
+// OrgState by value, so cross-mutex deadlocks between this package and the
+// org package are structurally impossible: snapshot.Service never holds a
+// callback into mu_org.
 package snapshot
 
 import (
@@ -66,32 +68,23 @@ var reservedSnapshotNames = map[string]bool{
 	Original: true,
 }
 
-// OrgStateProvider is the interface Service uses to capture and apply org
-// state. Implemented by the org-owning service (*api.OrgService for now).
-type OrgStateProvider interface {
-	CaptureState() OrgState
-	ApplyState(OrgState)
-	GetWorking(ctx context.Context) []apitypes.OrgNode
-	GetOriginal(ctx context.Context) []apitypes.OrgNode
-}
-
-// Service owns the snapshot map and disk store under its own mutex. It is
-// the snapshot-counterpart to the org service — never held under the org
-// service's lock. Cross-service ops (Save captures from org; Load applies to
-// org) always release one lock before acquiring the other.
+// Service owns the snapshot map and disk store under its own mutex. It is a
+// pure key-value store: callers pass OrgState into Save and receive OrgState
+// from Load. Service holds no reference to the org-owning service, which
+// makes cross-mutex deadlocks structurally impossible — Service goroutines
+// never need mu_org.
 type Service struct {
 	mu    sync.RWMutex
 	snaps map[string]Data
 	store Store
 	epoch uint64 // bumped on Clear/ReplaceAll; Save aborts if epoch advances
-	org   OrgStateProvider
 }
 
 // New constructs a Service and loads any persisted snapshots from the store.
 // Read failures are logged and the service starts empty — desktop tool, no
 // remote operator to halt for.
-func New(store Store, org OrgStateProvider) *Service {
-	ss := &Service{store: store, org: org}
+func New(store Store) *Service {
+	ss := &Service{store: store}
 	snaps, err := store.Read()
 	switch {
 	case err != nil:
@@ -124,10 +117,32 @@ func (ss *Service) List() []Info {
 	return list
 }
 
-// Save captures org state and persists a named snapshot. Returns *ConflictError
-// if the snapshot epoch advanced (Clear/ReplaceAll ran) between capture and
-// commit, or if the name is reserved. Returns *ValidationError for invalid names.
-func (ss *Service) Save(ctx context.Context, name string) error {
+// Epoch returns the current snapshot epoch. Callers use it as the
+// expectedEpoch argument to Save: read Epoch() before capturing org state,
+// then pass the same value into Save. A Clear/ReplaceAll that runs in
+// between bumps the epoch and causes Save to abort with *ConflictError.
+func (ss *Service) Epoch() uint64 {
+	ss.mu.RLock()
+	defer ss.mu.RUnlock()
+	return ss.epoch
+}
+
+// Save persists state under name iff the current epoch matches expectedEpoch.
+// Returns *ConflictError if the epoch advanced (Clear/ReplaceAll ran since
+// expectedEpoch was captured) or the name is reserved. Returns
+// *ValidationError for invalid names.
+//
+// Caller protocol (race-safe):
+//
+//	expectedEpoch := snap.Epoch()
+//	state := orgService.CaptureState()
+//	err := snap.Save(ctx, name, state, expectedEpoch)
+//
+// Read epoch BEFORE capturing state. A Clear/ReplaceAll that runs after
+// the read but before the commit lock will advance the epoch past
+// expectedEpoch and the commit will abort. Reading after capture would miss
+// the race entirely.
+func (ss *Service) Save(ctx context.Context, name string, state OrgState, expectedEpoch uint64) error {
 	if name == "" {
 		return errValidation("snapshot name is required")
 	}
@@ -143,18 +158,6 @@ func (ss *Service) Save(ctx context.Context, name string) error {
 	if !isValidSnapshotName(name) {
 		return errValidation("snapshot name contains invalid characters (use letters, numbers, spaces, hyphens, underscores, dots)")
 	}
-
-	// Read epoch BEFORE capturing state. A Clear/ReplaceAll that runs
-	// after this read but before the commit Lock will advance ss.epoch
-	// past expectedEpoch and the commit will abort. Reading after
-	// CaptureState would miss the race entirely (the post-capture read
-	// would already see the advanced epoch and match it under Lock).
-	ss.mu.RLock()
-	expectedEpoch := ss.epoch
-	ss.mu.RUnlock()
-
-	// Capture state outside snap lock — this acquires mu_org briefly.
-	state := ss.org.CaptureState()
 
 	ss.mu.Lock()
 	defer ss.mu.Unlock()
@@ -186,26 +189,23 @@ func (ss *Service) Save(ctx context.Context, name string) error {
 	return nil
 }
 
-// Load reads a named snapshot under mu_snap (briefly), then calls
-// org.ApplyState — which acquires mu_org. The two locks are never held
-// simultaneously: mu_snap is fully released before ApplyState is called.
-func (ss *Service) Load(ctx context.Context, name string) error {
+// Load returns a deep-copied OrgState for the named snapshot. Caller is
+// responsible for applying it to org state. Returns *NotFoundError if no
+// snapshot exists with that name.
+func (ss *Service) Load(ctx context.Context, name string) (OrgState, error) {
 	ss.mu.RLock()
+	defer ss.mu.RUnlock()
 	snap, ok := ss.snaps[name]
 	if !ok {
-		ss.mu.RUnlock()
-		return errNotFound("snapshot '%s' not found", name)
+		return OrgState{}, errNotFound("snapshot '%s' not found", name)
 	}
 	state := OrgState{
 		People:   deepCopyNodes(snap.People),
 		Pods:     pod.Copy(snap.Pods),
 		Settings: snap.Settings,
 	}
-	ss.mu.RUnlock()
-
-	ss.org.ApplyState(state)
 	logbuf.Logger().Info("snapshot loaded", "source", "snap", "op", "load", "name", name, "people", len(state.People))
-	return nil
+	return state, nil
 }
 
 // Delete removes a named snapshot and persists the change. Idempotent:
@@ -228,17 +228,10 @@ func (ss *Service) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-// Export returns the People slice for a snapshot. Special names route to
-// the live working/original via the OrgStateProvider. Named snapshots are
-// read under mu_snap.RLock and deep-copied so callers can mutate freely.
+// Export returns a deep-copied People slice for the named snapshot. Reserved
+// names (Working, Original) are NOT handled here — callers route those to
+// live org state before calling Export.
 func (ss *Service) Export(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
-	switch name {
-	case Working:
-		return ss.org.GetWorking(ctx), nil
-	case Original:
-		return ss.org.GetOriginal(ctx), nil
-	}
-
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	snap, ok := ss.snaps[name]

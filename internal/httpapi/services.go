@@ -84,16 +84,14 @@ func NewServices(svc *org.OrgService) Services {
 }
 
 // Compile-time assertions: *org.OrgService satisfies all domain interfaces.
+// snapshot.Clearer is satisfied by *snapshot.Service (asserted in the
+// snapshot package itself). snapshot.Service has no callback into org —
+// OrgService orchestrates Save/Load by passing OrgState by value.
 var (
 	_ NodeService     = (*org.OrgService)(nil)
 	_ OrgStateService = (*org.OrgService)(nil)
-	_ SnapshotOps     = (*org.OrgService)(nil) // was SnapshotService
+	_ SnapshotOps     = (*org.OrgService)(nil)
 	_ ImportService   = (*org.OrgService)(nil)
 	_ PodService      = (*org.OrgService)(nil)
 	_ SettingsService = (*org.OrgService)(nil)
-
-	// Bridge interface consumed by the snapshot package: *org.OrgService is the
-	// concrete OrgStateProvider implementation. snapshot.Clearer is satisfied
-	// by *snapshot.Service (asserted in the snapshot package itself).
-	_ snapshot.OrgStateProvider = (*org.OrgService)(nil)
 )

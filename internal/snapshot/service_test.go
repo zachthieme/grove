@@ -9,34 +9,22 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
-// stubOrgProvider is a test-only implementation of OrgStateProvider.
-type stubOrgProvider struct {
-	captureFn  func() OrgState
-	applyFn    func(OrgState)
-	getWorking func(context.Context) []apitypes.OrgNode
-	getOrig    func(context.Context) []apitypes.OrgNode
-}
-
-func (s *stubOrgProvider) CaptureState() OrgState { return s.captureFn() }
-func (s *stubOrgProvider) ApplyState(st OrgState) { s.applyFn(st) }
-func (s *stubOrgProvider) GetWorking(ctx context.Context) []apitypes.OrgNode {
-	return s.getWorking(ctx)
-}
-func (s *stubOrgProvider) GetOriginal(ctx context.Context) []apitypes.OrgNode { return s.getOrig(ctx) }
-
-func newStubOrgProvider() *stubOrgProvider {
-	return &stubOrgProvider{
-		captureFn:  func() OrgState { return OrgState{} },
-		applyFn:    func(OrgState) {},
-		getWorking: func(context.Context) []apitypes.OrgNode { return nil },
-		getOrig:    func(context.Context) []apitypes.OrgNode { return nil },
+// stateWith returns a non-empty OrgState for tests that just need real data.
+func stateWith(name string) OrgState {
+	return OrgState{
+		People: []apitypes.OrgNode{{
+			OrgNodeFields: model.OrgNodeFields{Name: name, Status: "Active"},
+			Id:            name,
+		}},
+		Pods:     []apitypes.Pod{},
+		Settings: apitypes.Settings{DisciplineOrder: []string{"Eng"}},
 	}
 }
 
 // Scenarios: SNAP-003
 func TestNewSnapshotService_StartsEmpty(t *testing.T) {
 	t.Parallel()
-	ss := New(NewMemoryStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore())
 	if got := ss.List(); len(got) != 0 {
 		t.Errorf("expected empty list, got %d entries", len(got))
 	}
@@ -46,7 +34,6 @@ func TestNewSnapshotService_StartsEmpty(t *testing.T) {
 func TestNewSnapshotService_LoadsFromStore(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryStore()
-	// Pre-populate the store with one snapshot.
 	preload := map[string]Data{
 		"v1": {People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}, Settings: apitypes.Settings{}},
 	}
@@ -54,7 +41,7 @@ func TestNewSnapshotService_LoadsFromStore(t *testing.T) {
 		t.Fatalf("preload write: %v", err)
 	}
 
-	ss := New(store, newStubOrgProvider())
+	ss := New(store)
 	list := ss.List()
 	if len(list) != 1 || list[0].Name != "v1" {
 		t.Errorf("expected [v1] from preloaded store, got %v", list)
@@ -64,19 +51,8 @@ func TestNewSnapshotService_LoadsFromStore(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotService_Save_StoresSnapshot(t *testing.T) {
 	t.Parallel()
-	captured := OrgState{
-		People: []apitypes.OrgNode{{
-			OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"},
-			Id:            "a1",
-		}},
-		Pods:     []apitypes.Pod{},
-		Settings: apitypes.Settings{DisciplineOrder: []string{"Eng"}},
-	}
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState { return captured }
-
-	ss := New(NewMemoryStore(), provider)
-	if err := ss.Save(context.Background(), "v1"); err != nil {
+	ss := New(NewMemoryStore())
+	if err := ss.Save(context.Background(), "v1", stateWith("Alice"), ss.Epoch()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	list := ss.List()
@@ -88,8 +64,8 @@ func TestSnapshotService_Save_StoresSnapshot(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotService_Save_RejectsReservedName(t *testing.T) {
 	t.Parallel()
-	ss := New(NewMemoryStore(), newStubOrgProvider())
-	err := ss.Save(context.Background(), Working)
+	ss := New(NewMemoryStore())
+	err := ss.Save(context.Background(), Working, stateWith("x"), ss.Epoch())
 	if err == nil || !isConflict(err) {
 		t.Errorf("expected ConflictError, got %v", err)
 	}
@@ -98,8 +74,8 @@ func TestSnapshotService_Save_RejectsReservedName(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotService_Save_RejectsInvalidName(t *testing.T) {
 	t.Parallel()
-	ss := New(NewMemoryStore(), newStubOrgProvider())
-	err := ss.Save(context.Background(), "../evil")
+	ss := New(NewMemoryStore())
+	err := ss.Save(context.Background(), "../evil", stateWith("x"), ss.Epoch())
 	if err == nil || !isValidation(err) {
 		t.Errorf("expected ValidationError, got %v", err)
 	}
@@ -108,14 +84,9 @@ func TestSnapshotService_Save_RejectsInvalidName(t *testing.T) {
 // Scenarios: SNAP-004
 func TestSnapshotService_Save_PersistsToStore(t *testing.T) {
 	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState {
-		return OrgState{People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}}
-	}
 	store := NewMemoryStore()
-
-	ss := New(store, provider)
-	if err := ss.Save(context.Background(), "saved"); err != nil {
+	ss := New(store)
+	if err := ss.Save(context.Background(), "saved", stateWith("x"), ss.Epoch()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 
@@ -129,23 +100,22 @@ func TestSnapshotService_Save_PersistsToStore(t *testing.T) {
 }
 
 // Scenarios: SNAP-008
+//
+// Verifies the race-guard: caller reads epoch, then a Clear runs, then the
+// caller's Save attempts to commit with the stale epoch and aborts. This is
+// the exact pattern OrgService.SaveSnapshot follows.
 func TestSnapshotService_Save_AbortsWhenEpochAdvances(t *testing.T) {
 	t.Parallel()
-	ss := New(NewMemoryStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore())
 
-	// Simulate a Clear() racing between the epoch read and the commit lock:
-	// the captureFn itself bumps ss.epoch. Save reads expectedEpoch BEFORE
-	// CaptureState, so the bump inside CaptureState advances ss.epoch past
-	// expectedEpoch and the commit-time check aborts.
-	provider := ss.org.(*stubOrgProvider)
-	provider.captureFn = func() OrgState {
-		ss.mu.Lock()
-		ss.epoch++
-		ss.mu.Unlock()
-		return OrgState{People: []apitypes.OrgNode{}, Pods: []apitypes.Pod{}}
+	// Caller reads epoch BEFORE capturing state.
+	expectedEpoch := ss.Epoch()
+	// A Clear runs in between (simulating Reset/Create/Upload).
+	if err := ss.Clear(); err != nil {
+		t.Fatalf("Clear: %v", err)
 	}
-
-	err := ss.Save(context.Background(), "racing")
+	// Caller's Save attempts to commit with the stale epoch — must abort.
+	err := ss.Save(context.Background(), "racing", stateWith("x"), expectedEpoch)
 	if err == nil || !isConflict(err) {
 		t.Errorf("expected ConflictError from epoch advance, got %v", err)
 	}
@@ -155,35 +125,27 @@ func TestSnapshotService_Save_AbortsWhenEpochAdvances(t *testing.T) {
 }
 
 // Scenarios: SNAP-005
-func TestSnapshotService_Load_AppliesToOrg(t *testing.T) {
+func TestSnapshotService_Load_ReturnsState(t *testing.T) {
 	t.Parallel()
-	captured := OrgState{
-		People:   []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Alice", Status: "Active"}, Id: "a1"}},
-		Pods:     []apitypes.Pod{},
-		Settings: apitypes.Settings{DisciplineOrder: []string{"Eng"}},
-	}
-	var applied OrgState
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState { return captured }
-	provider.applyFn = func(s OrgState) { applied = s }
-
-	ss := New(NewMemoryStore(), provider)
-	if err := ss.Save(context.Background(), "v1"); err != nil {
+	ss := New(NewMemoryStore())
+	original := stateWith("Alice")
+	if err := ss.Save(context.Background(), "v1", original, ss.Epoch()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-	if err := ss.Load(context.Background(), "v1"); err != nil {
+	loaded, err := ss.Load(context.Background(), "v1")
+	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(applied.People) != 1 || applied.People[0].Name != "Alice" {
-		t.Errorf("expected ApplyState called with [Alice], got %v", applied.People)
+	if len(loaded.People) != 1 || loaded.People[0].Name != "Alice" {
+		t.Errorf("expected Load to return [Alice], got %v", loaded.People)
 	}
 }
 
 // Scenarios: SNAP-005
 func TestSnapshotService_Load_NotFound(t *testing.T) {
 	t.Parallel()
-	ss := New(NewMemoryStore(), newStubOrgProvider())
-	err := ss.Load(context.Background(), "missing")
+	ss := New(NewMemoryStore())
+	_, err := ss.Load(context.Background(), "missing")
 	if err == nil || !isNotFound(err) {
 		t.Errorf("expected NotFoundError, got %v", err)
 	}
@@ -192,11 +154,8 @@ func TestSnapshotService_Load_NotFound(t *testing.T) {
 // Scenarios: SNAP-005
 func TestSnapshotService_Delete_RemovesEntry(t *testing.T) {
 	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState { return OrgState{} }
-
-	ss := New(NewMemoryStore(), provider)
-	if err := ss.Save(context.Background(), "v1"); err != nil {
+	ss := New(NewMemoryStore())
+	if err := ss.Save(context.Background(), "v1", stateWith("x"), ss.Epoch()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	if err := ss.Delete(context.Background(), "v1"); err != nil {
@@ -208,53 +167,13 @@ func TestSnapshotService_Delete_RemovesEntry(t *testing.T) {
 }
 
 // Scenarios: SNAP-006
-func TestSnapshotService_Export_Working(t *testing.T) {
-	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.getWorking = func(context.Context) []apitypes.OrgNode {
-		return []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "WorkingPerson"}, Id: "w1"}}
-	}
-
-	ss := New(NewMemoryStore(), provider)
-	people, err := ss.Export(context.Background(), Working)
-	if err != nil {
-		t.Fatalf("Export working: %v", err)
-	}
-	if len(people) != 1 || people[0].Name != "WorkingPerson" {
-		t.Errorf("expected [WorkingPerson], got %v", people)
-	}
-}
-
-// Scenarios: SNAP-006
-func TestSnapshotService_Export_Original(t *testing.T) {
-	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.getOrig = func(context.Context) []apitypes.OrgNode {
-		return []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "OrigPerson"}, Id: "o1"}}
-	}
-
-	ss := New(NewMemoryStore(), provider)
-	people, err := ss.Export(context.Background(), Original)
-	if err != nil {
-		t.Fatalf("Export original: %v", err)
-	}
-	if len(people) != 1 || people[0].Name != "OrigPerson" {
-		t.Errorf("expected [OrigPerson], got %v", people)
-	}
-}
-
-// Scenarios: SNAP-006
+//
+// Reserved-name routing (Working/Original) lives in the org layer, not in
+// snapshot.Service. Service.Export treats reserved names as not-found.
 func TestSnapshotService_Export_NamedSnapshot(t *testing.T) {
 	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState {
-		return OrgState{
-			People: []apitypes.OrgNode{{OrgNodeFields: model.OrgNodeFields{Name: "Frozen"}, Id: "f1"}},
-		}
-	}
-
-	ss := New(NewMemoryStore(), provider)
-	if err := ss.Save(context.Background(), "snap1"); err != nil {
+	ss := New(NewMemoryStore())
+	if err := ss.Save(context.Background(), "snap1", stateWith("Frozen"), ss.Epoch()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	people, err := ss.Export(context.Background(), "snap1")
@@ -269,29 +188,42 @@ func TestSnapshotService_Export_NamedSnapshot(t *testing.T) {
 // Scenarios: SNAP-006
 func TestSnapshotService_Export_NotFound(t *testing.T) {
 	t.Parallel()
-	ss := New(NewMemoryStore(), newStubOrgProvider())
+	ss := New(NewMemoryStore())
 	_, err := ss.Export(context.Background(), "missing")
 	if err == nil || !isNotFound(err) {
 		t.Errorf("expected NotFoundError, got %v", err)
 	}
 }
 
+// Scenarios: SNAP-006
+func TestSnapshotService_Export_ReservedNameNotFound(t *testing.T) {
+	t.Parallel()
+	ss := New(NewMemoryStore())
+	if _, err := ss.Export(context.Background(), Working); err == nil || !isNotFound(err) {
+		t.Errorf("expected NotFound for reserved Working (routed at org layer), got %v", err)
+	}
+	if _, err := ss.Export(context.Background(), Original); err == nil || !isNotFound(err) {
+		t.Errorf("expected NotFound for reserved Original (routed at org layer), got %v", err)
+	}
+}
+
 // Scenarios: SNAP-007
 func TestSnapshotService_Clear_RemovesAllAndBumpsEpoch(t *testing.T) {
 	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState { return OrgState{} }
-
 	store := NewMemoryStore()
-	ss := New(store, provider)
-	if err := ss.Save(context.Background(), "v1"); err != nil {
+	ss := New(store)
+	if err := ss.Save(context.Background(), "v1", stateWith("x"), ss.Epoch()); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
+	priorEpoch := ss.Epoch()
 	if err := ss.Clear(); err != nil {
 		t.Fatalf("Clear: %v", err)
 	}
 	if got := ss.List(); len(got) != 0 {
 		t.Errorf("expected empty list after Clear, got %v", got)
+	}
+	if ss.Epoch() == priorEpoch {
+		t.Errorf("expected Epoch to advance after Clear, still %d", priorEpoch)
 	}
 	persisted, err := store.Read()
 	if err != nil {
@@ -303,25 +235,20 @@ func TestSnapshotService_Clear_RemovesAllAndBumpsEpoch(t *testing.T) {
 }
 
 // Scenarios: SNAP-008
-func TestSnapshotService_Save_AbortsAfterClear(t *testing.T) {
+//
+// Smoke test that Save succeeds normally after a Clear (the epoch advance
+// only invalidates IN-FLIGHT Saves whose expectedEpoch was captured before
+// the bump).
+func TestSnapshotService_Save_SucceedsAfterClear(t *testing.T) {
 	t.Parallel()
-	provider := newStubOrgProvider()
-	provider.captureFn = func() OrgState { return OrgState{} }
-
-	ss := New(NewMemoryStore(), provider)
-
-	// Smoke test that Clear bumps the epoch counter and a subsequent
-	// Save still succeeds (the epoch advance only invalidates IN-FLIGHT
-	// Saves whose expectedEpoch was captured before the bump). A separate
-	// test (TestSnapshotService_Save_AbortsWhenEpochAdvances, in Task 3)
-	// exercises the actual race path.
-	if err := ss.Save(context.Background(), "v1"); err != nil {
+	ss := New(NewMemoryStore())
+	if err := ss.Save(context.Background(), "v1", stateWith("a"), ss.Epoch()); err != nil {
 		t.Fatalf("Save before Clear: %v", err)
 	}
 	if err := ss.Clear(); err != nil {
 		t.Fatalf("Clear: %v", err)
 	}
-	if err := ss.Save(context.Background(), "v2"); err != nil {
+	if err := ss.Save(context.Background(), "v2", stateWith("b"), ss.Epoch()); err != nil {
 		t.Fatalf("Save after Clear should succeed: %v", err)
 	}
 	if got := ss.List(); len(got) != 1 || got[0].Name != "v2" {
@@ -333,7 +260,7 @@ func TestSnapshotService_Save_AbortsAfterClear(t *testing.T) {
 func TestSnapshotService_ReplaceAll_PersistsNewMap(t *testing.T) {
 	t.Parallel()
 	store := NewMemoryStore()
-	ss := New(store, newStubOrgProvider())
+	ss := New(store)
 
 	newMap := map[string]Data{
 		"imported": {People: []apitypes.OrgNode{{Id: "x"}}, Timestamp: time.Now()},

@@ -39,9 +39,7 @@ type OrgService struct {
 }
 
 func New(snapStore snapshot.Store) *OrgService {
-	svc := &OrgService{podMgr: pod.New()}
-	svc.snap = snapshot.New(snapStore, svc)
-	return svc
+	return &OrgService{podMgr: pod.New(), snap: snapshot.New(snapStore)}
 }
 
 // SnapshotService returns the snapshot.Service bound to this OrgService.
@@ -323,14 +321,23 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 // can be wired directly into Services.Snaps without an adapter, and so that
 // existing tests calling svc.SaveSnapshot(...) etc. continue to work.
 
+// SaveSnapshot orchestrates the race-safe save protocol: read epoch, capture
+// state, commit. Each step releases its lock before the next acquires —
+// mu_snap and mu_org are never held simultaneously.
 func (s *OrgService) SaveSnapshot(ctx context.Context, name string) error {
-	return s.snap.Save(ctx, name)
+	expectedEpoch := s.snap.Epoch()
+	state := s.CaptureState()
+	return s.snap.Save(ctx, name, state, expectedEpoch)
 }
 
+// LoadSnapshot reads a snapshot under mu_snap, then applies it under mu_org.
+// The two locks are never held simultaneously.
 func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, error) {
-	if err := s.snap.Load(ctx, name); err != nil {
+	state, err := s.snap.Load(ctx, name)
+	if err != nil {
 		return nil, err
 	}
+	s.ApplyState(state)
 	return s.GetOrg(ctx), nil
 }
 
@@ -342,6 +349,15 @@ func (s *OrgService) ListSnapshots(ctx context.Context) []snapshot.Info {
 	return s.snap.List()
 }
 
+// ExportSnapshot routes reserved names (Working, Original) to live org state
+// and named snapshots to the snapshot store. The reserved-name routing lives
+// here because snapshot.Service no longer holds a back-ref into org.
 func (s *OrgService) ExportSnapshot(ctx context.Context, name string) ([]apitypes.OrgNode, error) {
+	switch name {
+	case snapshot.Working:
+		return s.GetWorking(ctx), nil
+	case snapshot.Original:
+		return s.GetOriginal(ctx), nil
+	}
 	return s.snap.Export(ctx, name)
 }
