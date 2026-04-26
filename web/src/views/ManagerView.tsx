@@ -3,7 +3,8 @@ import { memo, useCallback, type ReactNode } from 'react'
 import type { OrgNode } from '../api/types'
 import type { ChartEdge } from '../hooks/useChartLayout'
 import { isRecruitingStatus, isPlannedStatus, isTransferStatus, isProduct } from '../constants'
-import { useChart } from './ChartContext'
+import { useChartActions, useChartData } from './ChartContext'
+import { useIsCollapsed } from './chartSelectors'
 import { useNodeProps } from '../hooks/useNodeProps'
 import { assertNever } from '../utils/assertNever'
 import { type TreeNode } from './shared'
@@ -69,7 +70,7 @@ function buildStatusGroups(people: OrgNode[]): { label: string; count: number }[
   return groups
 }
 
-function SummaryCard({ people, podName, publicNote, onClick }: {
+const SummaryCard = memo(function SummaryCard({ people, podName, publicNote, onClick }: {
   people: OrgNode[]
   podName?: string
   publicNote?: string
@@ -98,10 +99,11 @@ function SummaryCard({ people, podName, publicNote, onClick }: {
       ))}
     </div>
   )
-}
+})
 
-function PodSummaryCard({ group }: { group: PodGroupLayout }) {
-  const { pods, onSelect } = useChart()
+const PodSummaryCard = memo(function PodSummaryCard({ group }: { group: PodGroupLayout }) {
+  const { pods } = useChartData()
+  const { onSelect } = useChartActions()
   const pod = pods?.find((p) => p.managerId === group.managerId && p.name === group.podName)
   // Include any products nested in the pod so buildStatusGroups picks them up
   // and surfaces the productCount alongside discipline counts.
@@ -118,13 +120,12 @@ function PodSummaryCard({ group }: { group: PodGroupLayout }) {
       onClick={() => onSelect(group.collapseKey)}
     />
   )
-}
+})
 
 const ManagerLayoutSubtree = memo(function ManagerLayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { collapsedIds, onToggleCollapse } = useChart()
+  const { onToggleCollapse } = useChartActions()
   const managerProps = useNodeProps(node.person)
-
-  const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
+  const isCollapsed = useIsCollapsed(node.collapseKey)
 
   // Collect children by type
   const managers: ManagerLayout[] = []
