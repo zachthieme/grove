@@ -33,10 +33,10 @@ With vim mode enabled, h/j/k/l (and arrow keys) move selection spatially across 
 - `web/src/hooks/useVimNav.test.ts` → "[VIM-002]"
 
 ## Behavior
-o adds a report under the selection (sibling product if selection is itself a product). O adds a parent above selection. P adds a product (sibling on a product, child on a person, in-pod on a pod). d sends selection to recycle bin. x cuts selection (marks for move). p pastes cut nodes under selection. Multi-select supports d (delete all) and x (cut all).
+o adds a report under the selection (sibling product if selection is itself a product). O adds a parent above selection. + adds a product (sibling on a product, child on a person, in-pod on a pod). d sends selection to recycle bin. x cuts selection (marks for move). p pastes cut nodes under selection. Multi-select supports d (delete all) and x (cut all).
 
 ## Invariants
-- Single-target ops (o/O/P/p) require selectedId (size === 1)
+- Single-target ops (o/O/+/p) require selectedId (size === 1)
 - Multi-target ops (d/x) operate on selectedIds set
 - Cut state cleared when cut targets leave the working set
 - Esc cancels active cut
@@ -90,7 +90,7 @@ Pressing ? (Shift+/) when vim mode is enabled opens a modal listing all bindings
 
 ---
 
-# Scenario: Rapid-add — auto-select + focus name on o/O/P
+# Scenario: Rapid-add — auto-select + focus name on o/O/+
 
 **ID**: VIM-006
 **Area**: vim
@@ -99,7 +99,7 @@ Pressing ? (Shift+/) when vim mode is enabled opens a modal listing all bindings
 - `web/src/components/DetailSidebar.test.tsx` → "[VIM-006]"
 
 ## Behavior
-After `o` (add report), `O` (add parent), or `P` (add product) creates a node, the new node becomes the selection and the sidebar's name input is focused with its content selected. Esc on the input commits the typed value via `update`, blurs back to the chart, and lets vim keys resume — supporting the `o → type → Esc → o → type` rapid-add flow.
+After `o` (add report), `O` (add parent), or `+` (add product) creates a node, the new node becomes the selection and the sidebar's name input is focused with its content selected. Esc on the input commits the typed value via `update`, blurs back to the chart, and lets vim keys resume — supporting the `o → type → Esc → o → type` rapid-add flow.
 
 ## Invariants
 - The four ViewDataContext add handlers (`handleAddReport`, `handleAddProduct`, `handleAddToTeam`, `submitAddParent`) call `setSelectedId(newId)` and `enterEditing(newNode)` after the create mutation resolves with a new id.

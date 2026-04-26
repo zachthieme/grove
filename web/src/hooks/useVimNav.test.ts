@@ -116,7 +116,7 @@ describe('useVimNav', () => {
     expect(onAddProduct).not.toHaveBeenCalled()
   })
 
-  it('[VIM-003] P on a person creates a child product', () => {
+  it('[VIM-003] + ona person creates a child product', () => {
     const onAddProduct = vi.fn()
     const alice = makePerson({ id: 'p1', team: 'Platform', pod: 'Alpha' })
 
@@ -132,13 +132,13 @@ describe('useVimNav', () => {
       }),
     )
 
-    fireEvent.keyDown(document, { key: 'P' })
+    fireEvent.keyDown(document, { key: '+' })
 
     expect(onAddProduct).toHaveBeenCalledTimes(1)
     expect(onAddProduct).toHaveBeenCalledWith(alice.id, 'Platform', 'Alpha')
   })
 
-  it('[VIM-003] P on a product creates a sibling product (no nesting)', () => {
+  it('[VIM-003] + ona product creates a sibling product (no nesting)', () => {
     const onAddProduct = vi.fn()
     const alice = makePerson({ id: 'p1' })
     const widget = makeProduct({ id: 'prod1', managerId: alice.id, team: 'Platform', pod: 'Alpha' })
@@ -155,7 +155,7 @@ describe('useVimNav', () => {
       }),
     )
 
-    fireEvent.keyDown(document, { key: 'P' })
+    fireEvent.keyDown(document, { key: '+' })
 
     expect(onAddProduct).toHaveBeenCalledTimes(1)
     expect(onAddProduct).toHaveBeenCalledWith(alice.id, 'Platform', 'Alpha')
@@ -190,7 +190,7 @@ describe('useVimNav', () => {
     expect(onAddReport).not.toHaveBeenCalled()
   })
 
-  it('[VIM-003] P on a pod adds a product to that pod', () => {
+  it('[VIM-003] + ona pod adds a product to that pod', () => {
     const onAddProduct = vi.fn()
     const alice = makePerson({ id: 'p1' })
     const pods = [{ id: 'pod-1', managerId: 'p1', name: 'Alpha', team: 'Platform', publicNote: '' } as never]
@@ -207,7 +207,7 @@ describe('useVimNav', () => {
       }),
     )
 
-    fireEvent.keyDown(document, { key: 'P' })
+    fireEvent.keyDown(document, { key: '+' })
 
     expect(onAddProduct).toHaveBeenCalledTimes(1)
     expect(onAddProduct).toHaveBeenCalledWith('p1', 'Platform', 'Alpha')

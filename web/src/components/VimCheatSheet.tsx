@@ -37,7 +37,7 @@ const SECTIONS: Section[] = [
       { keys: 'o', desc: 'Add report under selection (or sibling product if selection is a product)' },
       { keys: 'O', desc: 'Add parent above selection' },
       { keys: 'a', desc: 'Append sibling at the current level (same parent / team / pod)' },
-      { keys: 'P', desc: 'Add product (sibling on a product, child on a person, in-pod on a pod)' },
+      { keys: '+', desc: 'Add product (sibling on a product, child on a person, in-pod on a pod)' },
     ],
   },
   {

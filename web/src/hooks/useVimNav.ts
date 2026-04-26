@@ -108,7 +108,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * o    — add report under selected (or sibling product if selected is a product)
  * O    — add parent above selected
  * a    — append sibling at the current level (same parent / team / pod)
- * P    — add a product under selected (sibling on a product; child on a person; in-pod on a pod)
+ * +    — add a product under selected (sibling on a product; child on a person; in-pod on a pod)
  * d    — delete selected (sends to recycle bin)
  * x    — cut selected (mark for move)
  * p    — paste (move cut people under selected target)
@@ -257,7 +257,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         }
         break
       }
-      case 'P': {
+      case '+': {
         if (!onAddProduct) break
         // Pod selection: collapseKey is "pod:managerId:podName" — add product into the pod.
         if (selectedId.startsWith('pod:')) {
@@ -404,7 +404,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         case 'o':
         case 'O':
         case 'a':
-        case 'P':
+        case '+':
         case 'd':
         case 'x':
         case 'p':

@@ -64,7 +64,7 @@ function buildSteps(loaded: boolean) {
       element: '[data-tour="product"]',
       popover: {
         title: 'Products',
-        description: 'Products are non-person nodes — features, services, or initiatives owned by a manager or pod. Add one with the + menu on a manager, or press P with vim mode on.',
+        description: 'Products are non-person nodes — features, services, or initiatives owned by a manager or pod. Add one with the + menu on a manager, or press + with vim mode on.',
       },
     },
     {
