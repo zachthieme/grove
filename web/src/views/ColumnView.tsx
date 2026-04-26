@@ -4,7 +4,8 @@ import { computeEdges } from './columnEdges'
 import { computeLayoutTree, type LayoutNode, type ManagerLayout, type ICLayout, type PodGroupLayout, type TeamGroupLayout, type ProductGroupLayout, type ProductLayout } from './layoutTree'
 import OrgNodeCard from '../components/OrgNodeCard'
 import GroupHeaderNode from '../components/GroupHeaderNode'
-import { useChart } from './ChartContext'
+import { useChartActions, useChartData } from './ChartContext'
+import { useIsSelected, useIsCollapsed } from './chartSelectors'
 import { useNodeProps } from '../hooks/useNodeProps'
 import { assertNever } from '../utils/assertNever'
 import ChartShell from './ChartShell'
@@ -28,10 +29,10 @@ const ProductNode = memo(function ProductNode({ product }: { product: ProductLay
   )
 })
 
-function LayoutSubtree({ node }: { node: ManagerLayout }) {
-  const { selectedIds, pods, onAddToTeam, onAddProduct, onSelect, setNodeRef, collapsedIds, onToggleCollapse } = useChart()
-
-  const isCollapsed = collapsedIds?.has(node.collapseKey) ?? false
+const LayoutSubtree = memo(function LayoutSubtree({ node }: { node: ManagerLayout }) {
+  const { onAddToTeam, onAddProduct, onSelect, setNodeRef, onToggleCollapse } = useChartActions()
+  const { pods, selectedIds, collapsedIds } = useChartData()
+  const isCollapsed = useIsCollapsed(node.collapseKey)
 
   const findPod = (managerId: string, podName: string): Pod | undefined =>
     pods?.find((p) => p.managerId === managerId && p.name === podName)
@@ -166,7 +167,7 @@ function LayoutSubtree({ node }: { node: ManagerLayout }) {
       )}
     </div>
   )
-}
+})
 
 // Product group has no header card — products cluster as a slate-coloured
 // stack below their parent. Edges go directly from the parent (manager or
@@ -180,8 +181,9 @@ const LayoutProductGroup = memo(function LayoutProductGroup({ group }: { group: 
 })
 
 const LayoutTeamGroup = memo(function LayoutTeamGroup({ group }: { group: TeamGroupLayout }) {
-  const { collapsedIds, onToggleCollapse, onSelect, selectedIds } = useChart()
-  const isCollapsed = collapsedIds?.has(group.collapseKey) ?? false
+  const { onToggleCollapse, onSelect } = useChartActions()
+  const isCollapsed = useIsCollapsed(group.collapseKey)
+  const isSelected = useIsSelected(group.collapseKey)
 
   return (
     <div className={styles.subtree}>
@@ -192,7 +194,7 @@ const LayoutTeamGroup = memo(function LayoutTeamGroup({ group }: { group: TeamGr
           count={group.members.length}
           collapsed={isCollapsed}
           onClick={(e) => onSelect(group.collapseKey, e)}
-          selected={selectedIds.has(group.collapseKey)}
+          selected={isSelected}
           onToggleCollapse={onToggleCollapse ? () => onToggleCollapse(group.collapseKey) : undefined}
           dragData={{ memberIds: group.members.map(m => m.person.id) }}
         />
