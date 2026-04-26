@@ -16,6 +16,7 @@ import (
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/pod"
 )
 
 // OrgState is a frozen, deep-copied view of org state at a point in time.
@@ -42,7 +43,7 @@ type OrgService struct {
 	pendingEpoch   uint64
 	confirmedEpoch uint64
 	snap           *SnapshotService
-	podMgr         *PodManager
+	podMgr         *pod.Manager
 	idIndex        map[string]int
 }
 
@@ -67,7 +68,7 @@ type MoveResult struct {
 }
 
 func NewOrgService(snapStore SnapshotStore) *OrgService {
-	org := &OrgService{podMgr: NewPodManager()}
+	org := &OrgService{podMgr: pod.New()}
 	org.snap = NewSnapshotService(snapStore, org)
 	return org
 }
@@ -140,7 +141,7 @@ func (s *OrgService) RestoreState(ctx context.Context, data autosave.AutosaveDat
 	s.rebuildIndex()
 	s.recycled = deepCopyNodes(data.Recycled)
 	normalizeEmploymentType(s.recycled)
-	s.podMgr.unsafeSetState(CopyPods(data.Pods), CopyPods(data.OriginalPods))
+	s.podMgr.SetState(pod.Copy(data.Pods), pod.Copy(data.OriginalPods))
 	if data.Settings != nil {
 		s.settings = *data.Settings
 	} else {
@@ -158,7 +159,7 @@ func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
+	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 }
 
 func (s *OrgService) GetWorking(ctx context.Context) []apitypes.OrgNode {
@@ -186,9 +187,9 @@ func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
 	s.working = deepCopyNodes(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
-	s.podMgr.unsafeReset()
+	s.podMgr.Reset()
 	s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
-	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Clear snapshots after releasing org lock — load-bearing rule:
@@ -214,8 +215,8 @@ func (s *OrgService) resetState(original, working []apitypes.OrgNode) {
 	s.working = deepCopyNodes(working)
 	s.rebuildIndex()
 	s.recycled = nil
-	s.podMgr.unsafeSeed(s.working)
-	_ = SeedPods(s.original)
+	s.podMgr.Seed(s.working)
+	_ = pod.SeedPods(s.original)
 }
 
 // rebuildIndex rebuilds the idIndex from the current working slice.
@@ -279,7 +280,7 @@ func deepCopyNodes(src []apitypes.OrgNode) []apitypes.OrgNode {
 func (s *OrgService) CaptureState() OrgState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	pods := CopyPods(s.podMgr.unsafeGetPods())
+	pods := pod.Copy(s.podMgr.Pods())
 	if pods == nil {
 		pods = []apitypes.Pod{}
 	}
@@ -301,9 +302,9 @@ func (s *OrgService) ApplyState(state OrgState) {
 	s.rebuildIndex()
 	s.recycled = nil
 	if state.Pods != nil {
-		s.podMgr.unsafeSetPods(CopyPods(state.Pods))
+		s.podMgr.SetPods(pod.Copy(state.Pods))
 	} else {
-		s.podMgr.unsafeSetPods(SeedPods(s.working))
+		s.podMgr.SetPods(pod.SeedPods(s.working))
 	}
 	if len(state.Settings.DisciplineOrder) > 0 {
 		order := make([]string, len(state.Settings.DisciplineOrder))
@@ -338,7 +339,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	resp := &OrgData{
 		Original: deepCopyNodes(s.original),
 		Working:  deepCopyNodes(s.working),
-		Pods:     CopyPods(s.podMgr.unsafeGetPods()),
+		Pods:     pod.Copy(s.podMgr.Pods()),
 		Settings: &s.settings,
 	}
 	s.mu.Unlock()

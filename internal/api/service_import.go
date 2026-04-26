@@ -7,6 +7,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/parser"
+	"github.com/zachthieme/grove/internal/pod"
 )
 
 func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (*UploadResponse, error) {
@@ -35,7 +36,7 @@ func (s *OrgService) Upload(ctx context.Context, filename string, data []byte) (
 		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
 		resp := &UploadResponse{
 			Status:  UploadReady,
-			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
+			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings},
 		}
 		s.mu.Unlock()
 
@@ -118,7 +119,7 @@ func (s *OrgService) confirmMappingCSV(pending *apitypes.PendingUpload, mapping 
 	s.confirmedEpoch = s.pendingEpoch
 	s.resetState(people, people)
 	s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
-	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Clear snapshots after releasing org lock — never hold both locks.
@@ -156,7 +157,7 @@ func (s *OrgService) confirmMappingZip(pending *apitypes.PendingUpload, mapping 
 		sidecarEntries := parsePodsSidecar(podsSidecar)
 		if len(sidecarEntries) > 0 {
 			idToName := buildIDToName(s.working)
-			s.podMgr.unsafeApplyNotes(sidecarEntries, idToName)
+			s.podMgr.ApplyNotes(sidecarEntries, idToName)
 		}
 	}
 
@@ -167,7 +168,7 @@ func (s *OrgService) confirmMappingZip(pending *apitypes.PendingUpload, mapping 
 		}
 	}
 
-	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings}
+	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Apply parsed snapshots after releasing org lock. ReplaceAll bumps

@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/logbuf"
+	"github.com/zachthieme/grove/internal/pod"
 )
 
 // validSnapshotName allows names starting with a letter or digit, followed by
@@ -141,7 +142,7 @@ func (ss *SnapshotService) Save(ctx context.Context, name string) error {
 	}
 	ss.snaps[name] = snapshotData{
 		People:    deepCopyNodes(state.People),
-		Pods:      CopyPods(state.Pods),
+		Pods:      pod.Copy(state.Pods),
 		Settings:  state.Settings,
 		Timestamp: time.Now(),
 	}
@@ -171,7 +172,7 @@ func (ss *SnapshotService) Load(ctx context.Context, name string) error {
 	}
 	state := OrgState{
 		People:   deepCopyNodes(snap.People),
-		Pods:     CopyPods(snap.Pods),
+		Pods:     pod.Copy(snap.Pods),
 		Settings: snap.Settings,
 	}
 	ss.mu.RUnlock()

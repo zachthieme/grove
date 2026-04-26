@@ -18,6 +18,7 @@ import (
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
+	"github.com/zachthieme/grove/internal/pod"
 )
 
 const maxDecompressedSize = 200 << 20 // 200 MB
@@ -110,15 +111,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error)
 	return entries, podsSidecarData, settingsSidecarData, warnings, nil
 }
 
-type podSidecarEntry struct {
-	podName     string
-	managerName string
-	team        string
-	publicNote  string
-	privateNote string
-}
-
-func parsePodsSidecar(data []byte) []podSidecarEntry {
+func parsePodsSidecar(data []byte) []pod.SidecarEntry {
 	reader := csv.NewReader(bytes.NewReader(data))
 	records, err := reader.ReadAll()
 	if err != nil || len(records) < 2 {
@@ -135,14 +128,14 @@ func parsePodsSidecar(data []byte) []podSidecarEntry {
 		}
 		return ""
 	}
-	var entries []podSidecarEntry
+	var entries []pod.SidecarEntry
 	for _, row := range records[1:] {
-		entries = append(entries, podSidecarEntry{
-			podName:     get(row, "pod name"),
-			managerName: get(row, "manager"),
-			team:        get(row, "team"),
-			publicNote:  get(row, "public note"),
-			privateNote: get(row, "private note"),
+		entries = append(entries, pod.SidecarEntry{
+			PodName:     get(row, "pod name"),
+			ManagerName: get(row, "manager"),
+			Team:        get(row, "team"),
+			PublicNote:  get(row, "public note"),
+			PrivateNote: get(row, "private note"),
 		})
 	}
 	return entries
@@ -161,19 +154,6 @@ func parseSettingsSidecar(data []byte) []string {
 		}
 	}
 	return order
-}
-
-func applyPodSidecarNotes(pods []apitypes.Pod, sidecar []podSidecarEntry, idToName map[string]string) {
-	for i := range pods {
-		mgrName := idToName[pods[i].ManagerId]
-		for _, entry := range sidecar {
-			if entry.podName == pods[i].Name && entry.managerName == mgrName {
-				pods[i].PublicNote = entry.publicNote
-				pods[i].PrivateNote = entry.privateNote
-				break
-			}
-		}
-	}
 }
 
 func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []apitypes.OrgNode, working []apitypes.OrgNode, snaps map[string]snapshotData, warnings []string, err error) {
@@ -283,7 +263,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 			sidecarEntries := parsePodsSidecar(podsSidecar)
 			if len(sidecarEntries) > 0 {
 				idToName := buildIDToName(s.working)
-				s.podMgr.unsafeApplyNotes(sidecarEntries, idToName)
+				s.podMgr.ApplyNotes(sidecarEntries, idToName)
 			}
 		}
 
@@ -296,7 +276,7 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 
 		resp := &UploadResponse{
 			Status:  UploadReady,
-			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods()), Settings: &s.settings},
+			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings},
 		}
 		s.mu.Unlock()
 

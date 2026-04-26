@@ -1,4 +1,4 @@
-package api
+package pod
 
 import (
 	"fmt"
@@ -45,10 +45,10 @@ func SeedPods(people []apitypes.OrgNode) []apitypes.Pod {
 	return pods
 }
 
-// CleanupEmptyPods returns only pods that have at least one member.
+// CleanupEmpty returns only pods that have at least one member.
 // A person is a member of a pod if their ManagerId matches the pod's ManagerId
 // AND their Pod field matches the pod's Name.
-func CleanupEmptyPods(pods []apitypes.Pod, people []apitypes.OrgNode) []apitypes.Pod {
+func CleanupEmpty(pods []apitypes.Pod, people []apitypes.OrgNode) []apitypes.Pod {
 	// Build O(n) membership set: "managerId:podName" → true
 	members := make(map[string]bool, len(people)/4)
 	for _, p := range people {
@@ -65,9 +65,9 @@ func CleanupEmptyPods(pods []apitypes.Pod, people []apitypes.OrgNode) []apitypes
 	return result
 }
 
-// findPod finds a pod by name and managerID. Returns a pointer into the slice,
-// or nil if not found.
-func findPod(pods []apitypes.Pod, name, managerID string) *apitypes.Pod {
+// FindPod finds a pod by name and managerID. Returns a pointer into the
+// slice, or nil if not found.
+func FindPod(pods []apitypes.Pod, name, managerID string) *apitypes.Pod {
 	for i := range pods {
 		if pods[i].Name == name && pods[i].ManagerId == managerID {
 			return &pods[i]
@@ -76,9 +76,9 @@ func findPod(pods []apitypes.Pod, name, managerID string) *apitypes.Pod {
 	return nil
 }
 
-// findPodByID finds a pod by UUID. Returns a pointer into the slice, or nil
-// if not found.
-func findPodByID(pods []apitypes.Pod, id string) *apitypes.Pod {
+// FindPodByID finds a pod by UUID. Returns a pointer into the slice, or
+// nil if not found.
+func FindPodByID(pods []apitypes.Pod, id string) *apitypes.Pod {
 	for i := range pods {
 		if pods[i].Id == id {
 			return &pods[i]
@@ -87,10 +87,10 @@ func findPodByID(pods []apitypes.Pod, id string) *apitypes.Pod {
 	return nil
 }
 
-// RenamePod finds a pod by ID, updates its Name, and updates all members'
+// Rename finds a pod by ID, updates its Name, and updates all members'
 // Pod field from the old name to the new name.
-func RenamePod(pods []apitypes.Pod, people []apitypes.OrgNode, podID, newName string) error {
-	pod := findPodByID(pods, podID)
+func Rename(pods []apitypes.Pod, people []apitypes.OrgNode, podID, newName string) error {
+	pod := FindPodByID(pods, podID)
 	if pod == nil {
 		return fmt.Errorf("pod %s not found", podID)
 	}
@@ -107,16 +107,16 @@ func RenamePod(pods []apitypes.Pod, people []apitypes.OrgNode, podID, newName st
 	return nil
 }
 
-// ReassignPersonPod clears a person's pod if it's no longer valid (e.g. after
-// a manager or team change). Pods are optional — if a person has no pod, none
-// is assigned. Never auto-creates pods.
-func ReassignPersonPod(pods []apitypes.Pod, person *apitypes.OrgNode) []apitypes.Pod {
+// ReassignPerson clears a person's pod if it's no longer valid (e.g. after
+// a manager or team change). Pods are optional — if a person has no pod,
+// none is assigned. Never auto-creates pods.
+func ReassignPerson(pods []apitypes.Pod, person *apitypes.OrgNode) []apitypes.Pod {
 	if person.ManagerId == "" || person.Pod == "" {
 		person.Pod = ""
 		return pods
 	}
 	// Check if the person's current pod still exists under their manager
-	if findPod(pods, person.Pod, person.ManagerId) != nil {
+	if FindPod(pods, person.Pod, person.ManagerId) != nil {
 		return pods
 	}
 	// Pod no longer valid — clear it
@@ -124,12 +124,39 @@ func ReassignPersonPod(pods []apitypes.Pod, person *apitypes.OrgNode) []apitypes
 	return pods
 }
 
-// CopyPods returns a shallow copy of the pods slice. Returns nil if src is nil.
-func CopyPods(src []apitypes.Pod) []apitypes.Pod {
+// Copy returns a shallow copy of the pods slice. Returns nil if src is nil.
+func Copy(src []apitypes.Pod) []apitypes.Pod {
 	if src == nil {
 		return nil
 	}
 	dst := make([]apitypes.Pod, len(src))
 	copy(dst, src)
 	return dst
+}
+
+// SidecarEntry is one row of the pods.csv sidecar in a ZIP import. Public
+// notes are restored onto the in-memory pod state by Manager.ApplyNotes
+// matching on (PodName, ManagerName).
+type SidecarEntry struct {
+	PodName     string
+	ManagerName string
+	Team        string
+	PublicNote  string
+	PrivateNote string
+}
+
+// applyPodSidecarNotes overlays public/private notes from sidecar onto
+// pods, matching by (PodName, manager-name-via-idToName). Used internally
+// by Manager.ApplyNotes.
+func applyPodSidecarNotes(pods []apitypes.Pod, sidecar []SidecarEntry, idToName map[string]string) {
+	for i := range pods {
+		mgrName := idToName[pods[i].ManagerId]
+		for _, entry := range sidecar {
+			if entry.PodName == pods[i].Name && entry.ManagerName == mgrName {
+				pods[i].PublicNote = entry.PublicNote
+				pods[i].PrivateNote = entry.PrivateNote
+				break
+			}
+		}
+	}
 }

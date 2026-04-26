@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/pod"
 )
 
 // Move reassigns a person's manager, team, and/or pod. Empty strings mean
@@ -31,10 +32,10 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, 
 	if newTeam != "" {
 		s.applyTeamChange(p, personId, newTeam)
 	} else {
-		s.podMgr.unsafeReassign(p)
-		s.podMgr.unsafeCleanup(s.working)
+		s.podMgr.Reassign(p)
+		s.podMgr.Cleanup(s.working)
 	}
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
 func (s *OrgService) Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*MoveResult, error) {
@@ -76,7 +77,7 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields apitype
 		s.applyPodChange(p, *fields.Pod)
 	}
 
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
 // applyTypeChange flips Type and, when switching to product, clears the
@@ -171,7 +172,7 @@ func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*MoveResu
 	for i, id := range personIds {
 		s.working[s.idIndex[id]].SortIndex = i
 	}
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: CopyPods(s.podMgr.unsafeGetPods())}, nil
+	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
 func (s *OrgService) Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error) {
@@ -201,8 +202,8 @@ func (s *OrgService) Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgN
 	p.Id = uuid.NewString()
 	s.working = append(s.working, p)
 	s.rebuildIndex()
-	s.podMgr.unsafeReassign(&s.working[len(s.working)-1])
-	return p, deepCopyNodes(s.working), CopyPods(s.podMgr.unsafeGetPods()), nil
+	s.podMgr.Reassign(&s.working[len(s.working)-1])
+	return p, deepCopyNodes(s.working), pod.Copy(s.podMgr.Pods()), nil
 }
 
 func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error) {
@@ -234,8 +235,8 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apity
 
 	s.working = append(s.working, parent)
 	s.rebuildIndex()
-	s.podMgr.unsafeReassign(&s.working[len(s.working)-1])
-	return parent, deepCopyNodes(s.working), CopyPods(s.podMgr.unsafeGetPods()), nil
+	s.podMgr.Reassign(&s.working[len(s.working)-1])
+	return parent, deepCopyNodes(s.working), pod.Copy(s.podMgr.Pods()), nil
 }
 
 func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResult, error) {
@@ -253,11 +254,11 @@ func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResu
 	s.recycled = append(s.recycled, s.working[idx])
 	s.working = append(s.working[:idx], s.working[idx+1:]...)
 	s.rebuildIndex()
-	s.podMgr.unsafeCleanup(s.working)
+	s.podMgr.Cleanup(s.working)
 	return &MutationResult{
 		Working:  deepCopyNodes(s.working),
 		Recycled: deepCopyNodes(s.recycled),
-		Pods:     CopyPods(s.podMgr.unsafeGetPods()),
+		Pods:     pod.Copy(s.podMgr.Pods()),
 	}, nil
 }
 
@@ -283,11 +284,11 @@ func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationRes
 	}
 	s.working = append(s.working, person)
 	s.rebuildIndex()
-	s.podMgr.unsafeReassign(&s.working[len(s.working)-1])
+	s.podMgr.Reassign(&s.working[len(s.working)-1])
 	return &MutationResult{
 		Working:  deepCopyNodes(s.working),
 		Recycled: deepCopyNodes(s.recycled),
-		Pods:     CopyPods(s.podMgr.unsafeGetPods()),
+		Pods:     pod.Copy(s.podMgr.Pods()),
 	}, nil
 }
 
@@ -302,16 +303,16 @@ func (s *OrgService) EmptyBin(ctx context.Context) []apitypes.OrgNode {
 // Must be called with s.mu held.
 func (s *OrgService) applyTeamChange(p *apitypes.OrgNode, personId, team string) {
 	p.Team = team
-	s.podMgr.unsafeReassign(p)
+	s.podMgr.Reassign(p)
 	if isFrontlineManager(s.working, personId) {
 		for i := range s.working {
 			if s.working[i].ManagerId == personId {
 				s.working[i].Team = team
-				s.podMgr.unsafeReassign(&s.working[i])
+				s.podMgr.Reassign(&s.working[i])
 			}
 		}
 	}
-	s.podMgr.unsafeCleanup(s.working)
+	s.podMgr.Cleanup(s.working)
 }
 
 // applyManagerChange validates and applies a manager reassignment.
@@ -328,8 +329,8 @@ func (s *OrgService) applyManagerChange(p *apitypes.OrgNode, personId, newManage
 		}
 	}
 	p.ManagerId = newManagerId
-	s.podMgr.unsafeReassign(p)
-	s.podMgr.unsafeCleanup(s.working)
+	s.podMgr.Reassign(p)
+	s.podMgr.Cleanup(s.working)
 	return nil
 }
 
@@ -338,12 +339,12 @@ func (s *OrgService) applyManagerChange(p *apitypes.OrgNode, personId, newManage
 func (s *OrgService) applyPodChange(p *apitypes.OrgNode, podName string) {
 	if podName == "" {
 		p.Pod = ""
-		s.podMgr.unsafeCleanup(s.working)
+		s.podMgr.Cleanup(s.working)
 		return
 	}
-	pod := findPod(s.podMgr.unsafeGetPods(), podName, p.ManagerId)
-	if pod == nil {
-		s.podMgr.unsafeSetPods(append(s.podMgr.unsafeGetPods(), apitypes.Pod{
+	existing := pod.FindPod(s.podMgr.Pods(), podName, p.ManagerId)
+	if existing == nil {
+		s.podMgr.SetPods(append(s.podMgr.Pods(), apitypes.Pod{
 			Id:        uuid.NewString(),
 			Name:      podName,
 			Team:      p.Team,

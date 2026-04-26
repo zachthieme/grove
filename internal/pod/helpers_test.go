@@ -1,4 +1,4 @@
-package api
+package pod
 
 import (
 	"testing"
@@ -108,7 +108,7 @@ func TestSeedPods_PreservesExistingPodNames(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestCleanupEmptyPods(t *testing.T) {
+func TestCleanupEmpty(t *testing.T) {
 	t.Parallel()
 	// 2 pods, only 1 has members → cleanup returns 1 pod
 	pods := []apitypes.Pod{
@@ -119,7 +119,7 @@ func TestCleanupEmptyPods(t *testing.T) {
 		{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "ic1", ManagerId: "mgr1"},
 	}
 
-	result := CleanupEmptyPods(pods, people)
+	result := CleanupEmpty(pods, people)
 
 	if len(result) != 1 {
 		t.Fatalf("expected 1 pod after cleanup, got %d", len(result))
@@ -137,7 +137,7 @@ func TestFindPod(t *testing.T) {
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
 	}
 
-	found := findPod(pods, "Infra", "mgr1")
+	found := FindPod(pods, "Infra", "mgr1")
 	if found == nil {
 		t.Fatal("expected to find pod")
 	}
@@ -145,7 +145,7 @@ func TestFindPod(t *testing.T) {
 		t.Errorf("expected pod2, got %q", found.Id)
 	}
 
-	notFound := findPod(pods, "NoSuch", "mgr1")
+	notFound := FindPod(pods, "NoSuch", "mgr1")
 	if notFound != nil {
 		t.Error("expected nil for non-existent pod")
 	}
@@ -159,7 +159,7 @@ func TestFindPodByID(t *testing.T) {
 		{Id: "pod2", Name: "Infra", Team: "Infra", ManagerId: "mgr1"},
 	}
 
-	found := findPodByID(pods, "pod2")
+	found := FindPodByID(pods, "pod2")
 	if found == nil {
 		t.Fatal("expected to find pod by ID")
 	}
@@ -167,14 +167,14 @@ func TestFindPodByID(t *testing.T) {
 		t.Errorf("expected Infra, got %q", found.Name)
 	}
 
-	notFound := findPodByID(pods, "nope")
+	notFound := FindPodByID(pods, "nope")
 	if notFound != nil {
 		t.Error("expected nil for non-existent pod ID")
 	}
 }
 
 // Scenarios: ORG-018
-func TestRenamePod(t *testing.T) {
+func TestRename(t *testing.T) {
 	t.Parallel()
 	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "OldName", Team: "Platform", ManagerId: "mgr1"},
@@ -185,7 +185,7 @@ func TestRenamePod(t *testing.T) {
 		{OrgNodeFields: model.OrgNodeFields{Name: "Dave", Team: "Infra", Pod: "Other"}, Id: "ic3", ManagerId: "mgr2"},
 	}
 
-	err := RenamePod(pods, people, "pod1", "NewName")
+	err := Rename(pods, people, "pod1", "NewName")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -205,24 +205,24 @@ func TestRenamePod(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestRenamePod_NotFound(t *testing.T) {
+func TestRename_NotFound(t *testing.T) {
 	t.Parallel()
 	pods := []apitypes.Pod{}
 	people := []apitypes.OrgNode{}
 
-	err := RenamePod(pods, people, "nope", "NewName")
+	err := Rename(pods, people, "nope", "NewName")
 	if err == nil {
 		t.Error("expected error for non-existent pod")
 	}
 }
 
 // Scenarios: ORG-018
-func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
+func TestReassignPerson_ClearsForRoot(t *testing.T) {
 	t.Parallel()
 	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Root", Pod: "SomePod"}, Id: "p1", ManagerId: ""}
 	pods := []apitypes.Pod{{Id: "pod1", Name: "SomePod", Team: "T", ManagerId: "mgr1"}}
 
-	result := ReassignPersonPod(pods, &person)
+	result := ReassignPerson(pods, &person)
 
 	if person.Pod != "" {
 		t.Errorf("expected Pod cleared for root, got %q", person.Pod)
@@ -233,14 +233,14 @@ func TestReassignPersonPod_ClearsForRoot(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
+func TestReassignPerson_KeepsValidPod(t *testing.T) {
 	t.Parallel()
 	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
 	}
 	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform", Pod: "Platform"}, Id: "p1", ManagerId: "mgr1"}
 
-	result := ReassignPersonPod(pods, &person)
+	result := ReassignPerson(pods, &person)
 
 	if person.Pod != "Platform" {
 		t.Errorf("expected Pod = %q, got %q", "Platform", person.Pod)
@@ -251,7 +251,7 @@ func TestReassignPersonPod_KeepsValidPod(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
+func TestReassignPerson_ClearsInvalidPod(t *testing.T) {
 	t.Parallel()
 	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
@@ -259,7 +259,7 @@ func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 	// OrgNode has a pod but under a different manager — pod is invalid
 	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Infra", Pod: "OldPod"}, Id: "p1", ManagerId: "mgr2"}
 
-	result := ReassignPersonPod(pods, &person)
+	result := ReassignPerson(pods, &person)
 
 	if person.Pod != "" {
 		t.Errorf("expected Pod cleared for invalid pod, got %q", person.Pod)
@@ -270,7 +270,7 @@ func TestReassignPersonPod_ClearsInvalidPod(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
+func TestReassignPerson_LeavesEmptyPodAlone(t *testing.T) {
 	t.Parallel()
 	pods := []apitypes.Pod{
 		{Id: "pod1", Name: "Platform", Team: "Platform", ManagerId: "mgr1"},
@@ -278,7 +278,7 @@ func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 	// OrgNode has no pod — should stay without one
 	person := apitypes.OrgNode{OrgNodeFields: model.OrgNodeFields{Name: "Bob", Team: "Platform"}, Id: "p1", ManagerId: "mgr1"}
 
-	result := ReassignPersonPod(pods, &person)
+	result := ReassignPerson(pods, &person)
 
 	if person.Pod != "" {
 		t.Errorf("expected Pod to remain empty, got %q", person.Pod)
@@ -289,13 +289,13 @@ func TestReassignPersonPod_LeavesEmptyPodAlone(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestCopyPods(t *testing.T) {
+func TestCopy(t *testing.T) {
 	t.Parallel()
 	src := []apitypes.Pod{
 		{Id: "pod1", Name: "A", Team: "T1", ManagerId: "m1"},
 		{Id: "pod2", Name: "B", Team: "T2", ManagerId: "m2"},
 	}
-	dst := CopyPods(src)
+	dst := Copy(src)
 
 	if len(dst) != 2 {
 		t.Fatalf("expected 2 pods, got %d", len(dst))
@@ -303,42 +303,15 @@ func TestCopyPods(t *testing.T) {
 	// Verify it's a copy, not the same slice
 	dst[0].Name = "Changed"
 	if src[0].Name == "Changed" {
-		t.Error("CopyPods should produce an independent copy")
+		t.Error("Copy should produce an independent copy")
 	}
 }
 
 // Scenarios: ORG-018
-func TestCopyPods_Nil(t *testing.T) {
+func TestCopy_Nil(t *testing.T) {
 	t.Parallel()
-	result := CopyPods(nil)
+	result := Copy(nil)
 	if result != nil {
 		t.Errorf("expected nil for nil input, got %v", result)
-	}
-}
-
-// Scenarios: ORG-009
-func TestValidateNoteLen(t *testing.T) {
-	t.Parallel()
-	// Within limit
-	if err := validateNoteLen("short note"); err != nil {
-		t.Errorf("unexpected error for short note: %v", err)
-	}
-
-	// At limit
-	longNote := make([]byte, maxNoteLen)
-	for i := range longNote {
-		longNote[i] = 'a'
-	}
-	if err := validateNoteLen(string(longNote)); err != nil {
-		t.Errorf("unexpected error for note at limit: %v", err)
-	}
-
-	// Over limit
-	tooLong := make([]byte, maxNoteLen+1)
-	for i := range tooLong {
-		tooLong[i] = 'a'
-	}
-	if err := validateNoteLen(string(tooLong)); err == nil {
-		t.Error("expected error for note over limit")
 	}
 }
