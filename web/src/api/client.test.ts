@@ -133,6 +133,7 @@ describe('telemetry drop counter', () => {
   afterEach(() => {
     warnSpy.mockRestore()
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('increments drop count and warns when log POST rejects', async () => {
