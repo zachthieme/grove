@@ -24,6 +24,9 @@ func FuzzInferMapping(f *testing.F) {
 	f.Add("Employee Name,Position,Supervisor,Organization,Employment Status")
 	f.Add("pod,level,discipline,additional teams,employment type")
 	f.Add("public note,private note,new role,new team")
+	f.Add("additional teams,additional teams") // regression: dup headers must not claim two fields
+	f.Add("name,name")                          // regression: dup exact match
+	f.Add("team,team,team")                     // regression: dup synonym match
 
 	f.Fuzz(func(t *testing.T, input string) {
 		headers := strings.Split(input, ",")

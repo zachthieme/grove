@@ -120,8 +120,20 @@ func init() {
 // and each header is consumed at most once (first match wins across tiers).
 func InferMapping(headers []string) map[string]apitypes.MappedColumn {
 	result := make(map[string]apitypes.MappedColumn)
-	assigned := make(map[string]bool) // tracks which app fields are already mapped
-	used := make(map[int]bool)        // tracks which header indices are consumed
+	assigned := make(map[string]bool)    // app fields already mapped
+	used := make(map[int]bool)           // header indices already consumed
+	usedValues := make(map[string]bool)  // normalized header values already consumed
+
+	// claim records that header at index i (raw value h, normalized norm) has
+	// been mapped to field. Both index- and value-tracking matter: when a CSV
+	// has duplicate header strings, value-tracking prevents two different
+	// fields from claiming what is really the same column.
+	claim := func(i int, h, norm, field, confidence string) {
+		result[field] = apitypes.MappedColumn{Column: h, Confidence: confidence}
+		assigned[field] = true
+		used[i] = true
+		usedValues[norm] = true
+	}
 
 	// Tier 1: exact match (case-insensitive, trimmed)
 	for i, h := range headers {
@@ -129,12 +141,11 @@ func InferMapping(headers []string) map[string]apitypes.MappedColumn {
 			continue
 		}
 		normalized := strings.ToLower(strings.TrimSpace(h))
-		if field, ok := exactMatches[normalized]; ok {
-			if !assigned[field] {
-				result[field] = apitypes.MappedColumn{Column: h, Confidence: ConfidenceHigh}
-				assigned[field] = true
-				used[i] = true
-			}
+		if usedValues[normalized] {
+			continue
+		}
+		if field, ok := exactMatches[normalized]; ok && !assigned[field] {
+			claim(i, h, normalized, field, ConfidenceHigh)
 		}
 	}
 
@@ -144,12 +155,11 @@ func InferMapping(headers []string) map[string]apitypes.MappedColumn {
 			continue
 		}
 		normalized := strings.ToLower(strings.TrimSpace(h))
-		if field, ok := synonyms[normalized]; ok {
-			if !assigned[field] {
-				result[field] = apitypes.MappedColumn{Column: h, Confidence: ConfidenceHigh}
-				assigned[field] = true
-				used[i] = true
-			}
+		if usedValues[normalized] {
+			continue
+		}
+		if field, ok := synonyms[normalized]; ok && !assigned[field] {
+			claim(i, h, normalized, field, ConfidenceHigh)
 		}
 	}
 
@@ -159,15 +169,16 @@ func InferMapping(headers []string) map[string]apitypes.MappedColumn {
 			continue
 		}
 		normalized := strings.ToLower(strings.TrimSpace(h))
+		if usedValues[normalized] {
+			continue
+		}
 		for _, kw := range fuzzyKeywordsOrdered {
 			field := fuzzyKeywords[kw]
 			if assigned[field] {
 				continue
 			}
 			if strings.Contains(normalized, kw) {
-				result[field] = apitypes.MappedColumn{Column: h, Confidence: ConfidenceMedium}
-				assigned[field] = true
-				used[i] = true
+				claim(i, h, normalized, field, ConfidenceMedium)
 				break
 			}
 		}
