@@ -12,6 +12,12 @@ export function OrgOverrideProvider({ value, children }: { value: OrgOverrideVal
   return <OrgOverrideContext.Provider value={value}>{children}</OrgOverrideContext.Provider>
 }
 
+// Synthetic group collapseKeys (pod:..., team:..., products:...) all contain ':',
+// while person UUIDs do not. Same convention as useLassoSelect / chartSelectors.
+function isSyntheticKey(id: string): boolean {
+  return id.includes(':')
+}
+
 /** Prunes selectedIds that no longer exist in working (e.g. after deletion). */
 function SelectionPruner() {
   const { working } = useOrgDataDirect()
@@ -25,10 +31,11 @@ function SelectionPruner() {
     const workingIds = new Set(working.map(p => p.id))
     let needsPrune = false
     for (const id of current) {
+      if (isSyntheticKey(id)) continue
       if (!workingIds.has(id)) { needsPrune = true; break }
     }
     if (!needsPrune) return
-    const pruned = new Set([...current].filter(id => workingIds.has(id)))
+    const pruned = new Set([...current].filter(id => isSyntheticKey(id) || workingIds.has(id)))
     if (pruned.size === 0) {
       clearSelection()
     } else {

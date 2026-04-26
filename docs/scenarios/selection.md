@@ -133,3 +133,23 @@ Clicking the note icon on a person node toggles a note popover or sidebar.
 
 ## Edge cases
 - None
+
+---
+
+# Scenario: SelectionPruner preserves synthetic group keys
+
+**ID**: SELECT-007
+**Area**: selection
+**Tests**:
+- `web/src/store/OrgContext.test.tsx` → "[SELECT-007]"
+
+## Behavior
+SelectionPruner removes selectedIds whose person id is no longer in `working` (e.g. after delete). Synthetic group collapseKeys (`pod:...`, `team:...`, `products:...`) do not appear in `working` but are valid selections — the pruner must leave them in place when `working` updates.
+
+## Invariants
+- IDs containing `:` are treated as synthetic and never pruned by SelectionPruner.
+- Person UUIDs (no `:`) are pruned when missing from `working`.
+- Mixed selections of person UUIDs and synthetic keys keep both kinds; only stale UUIDs are removed.
+
+## Edge cases
+- A vim/UI action that mutates `working` (add/delete/move) while a pod is selected must not clear the pod selection. Without this, every working-update would silently drop the pod selection and subsequent clicks on the pod would be cleared again on the next mutation tick.

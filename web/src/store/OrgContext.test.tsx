@@ -408,5 +408,52 @@ describe('OrgContext integration', () => {
       await act(async () => { await captured!.remove('b2') })
       expect(captured!.selectedIds.size).toBe(0)
     })
+
+    it('[SELECT-007] preserves a selected pod collapseKey across a working update', async () => {
+      const resp: UploadResponse = { status: 'ready', orgData: threePersonOrgData }
+      vi.mocked(api.uploadFile).mockResolvedValue(resp)
+      renderWithProvider()
+      await act(async () => {})
+      await act(async () => { await captured!.upload(new File([''], 'test.csv')) })
+
+      // Select a pod via its synthetic collapseKey (no person id matches "pod:...").
+      act(() => { captured!.batchSelect(new Set(['pod:a1:Alpha'])) })
+      expect(captured!.selectedIds.has('pod:a1:Alpha')).toBe(true)
+
+      // A vim-style mutation triggers a working update (here: deleting an unrelated person).
+      vi.mocked(api.deleteNode).mockResolvedValue({
+        working: [alice, bob],
+        recycled: [carol],
+        pods: [],
+      })
+      await act(async () => { await captured!.remove('c3') })
+
+      // The pod selection must survive: synthetic keys are not in working, but they're valid.
+      expect(captured!.selectedIds.has('pod:a1:Alpha')).toBe(true)
+      expect(captured!.selectedIds.size).toBe(1)
+    })
+
+    it('[SELECT-007] keeps synthetic keys and prunes stale person ids together', async () => {
+      const resp: UploadResponse = { status: 'ready', orgData: threePersonOrgData }
+      vi.mocked(api.uploadFile).mockResolvedValue(resp)
+      renderWithProvider()
+      await act(async () => {})
+      await act(async () => { await captured!.upload(new File([''], 'test.csv')) })
+
+      // Mixed: one real person + one synthetic group key.
+      act(() => { captured!.batchSelect(new Set(['c3', 'team:a1:Eng'])) })
+      expect(captured!.selectedIds.size).toBe(2)
+
+      vi.mocked(api.deleteNode).mockResolvedValue({
+        working: [alice, bob],
+        recycled: [carol],
+        pods: [],
+      })
+      await act(async () => { await captured!.remove('c3') })
+
+      // Stale person UUID removed, synthetic team key retained.
+      expect(captured!.selectedIds.has('c3')).toBe(false)
+      expect(captured!.selectedIds.has('team:a1:Eng')).toBe(true)
+    })
   })
 })
