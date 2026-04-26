@@ -32,6 +32,22 @@ describe('VimCheatSheet', () => {
     expect(screen.getByText('?')).toBeTruthy()
   })
 
+  it('[VIM-007] lists "a" as the append-sibling binding', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('a')).toBeTruthy()
+    expect(screen.getByText(/Append sibling/i)).toBeTruthy()
+  })
+
+  it('[VIM-008] lists gg / G / gp tree-nav bindings', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('gg')).toBeTruthy()
+    expect(screen.getByText(/root manager/i)).toBeTruthy()
+    expect(screen.getByText('G')).toBeTruthy()
+    expect(screen.getByText(/deepest leaf/i)).toBeTruthy()
+    expect(screen.getByText('gp')).toBeTruthy()
+    expect(screen.getByText(/parent of selection/i)).toBeTruthy()
+  })
+
   it('Close button calls onClose', () => {
     const onClose = vi.fn()
     render(<VimCheatSheet onClose={onClose} />)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { OrgNode, Pod } from '../api/types'
 import { isProduct } from '../constants'
 import { findSpatialNeighbor } from './useSpatialNav'
@@ -19,6 +19,70 @@ interface VimNavOptions {
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   enabled: boolean
+}
+
+/**
+ * Find the root manager — first person with empty managerId.
+ * Returns undefined if working is empty or has no roots.
+ */
+export function findRootPerson(working: OrgNode[]): OrgNode | undefined {
+  return working.find(p => !p.managerId)
+}
+
+/**
+ * Find the deepest leaf in the subtree rooted at `fromId` (or in the whole
+ * org if `fromId` is undefined). Tie-break: encounter order (DFS pre-order),
+ * which matches visual top-to-bottom in column view.
+ */
+export function findDeepestLeaf(working: OrgNode[], fromId?: string): OrgNode | undefined {
+  if (working.length === 0) return undefined
+  const childrenByParent = new Map<string, OrgNode[]>()
+  for (const p of working) {
+    const list = childrenByParent.get(p.managerId) ?? []
+    list.push(p)
+    childrenByParent.set(p.managerId, list)
+  }
+  const root = fromId
+    ? working.find(p => p.id === fromId)
+    : findRootPerson(working)
+  if (!root) return undefined
+
+  let best: { node: OrgNode; depth: number } | null = null
+  function dfs(node: OrgNode, depth: number) {
+    const kids = childrenByParent.get(node.id) ?? []
+    if (kids.length === 0) {
+      if (!best || depth > best.depth) best = { node, depth }
+      return
+    }
+    for (const child of kids) dfs(child, depth + 1)
+  }
+  dfs(root, 0)
+  return best ? (best as { node: OrgNode; depth: number }).node : root
+}
+
+/**
+ * Resolve the parent of the current selection. For a person, returns the
+ * working node matching their managerId. For a synthetic pod collapseKey
+ * ("pod:managerId:podName"), returns the pod's manager. Returns undefined
+ * when the parent doesn't exist (root, or stale selection).
+ */
+export function findParentForSelection(
+  working: OrgNode[],
+  selectedId: string,
+): OrgNode | undefined {
+  if (selectedId.startsWith('pod:')) {
+    const parts = selectedId.split(':')
+    const managerId = parts[1]
+    return working.find(p => p.id === managerId)
+  }
+  if (selectedId.startsWith('team:') || selectedId.startsWith('products:')) {
+    const parts = selectedId.split(':')
+    const managerId = parts[1]
+    return working.find(p => p.id === managerId)
+  }
+  const node = working.find(p => p.id === selectedId)
+  if (!node?.managerId) return undefined
+  return working.find(p => p.id === node.managerId)
 }
 
 /**
@@ -43,6 +107,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * h/l / ArrowLeft/Right — move left/right spatially
  * o    — add report under selected (or sibling product if selected is a product)
  * O    — add parent above selected
+ * a    — append sibling at the current level (same parent / team / pod)
  * P    — add a product under selected (sibling on a product; child on a person; in-pod on a pod)
  * d    — delete selected (sends to recycle bin)
  * x    — cut selected (mark for move)
@@ -61,6 +126,35 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       if (remaining.length === 0) setCutIds([])
     }
   }, [cutIds, working])
+
+  // Click the role=button inside the data-person-id wrapper for `id`. Same
+  // pattern as navigateSpatial — keep DOM coupling here and let consumers
+  // observe via React state updates from the resulting selection event.
+  const selectById = useCallback((id: string) => {
+    const targetEl = document.querySelector(`[data-person-id="${id}"]`)
+    targetEl?.querySelector<HTMLElement>('[role="button"]')?.click()
+    targetEl?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [])
+
+  const jumpToRoot = useCallback(() => {
+    const root = findRootPerson(working)
+    if (root) selectById(root.id)
+  }, [working, selectById])
+
+  const jumpToDeepestLeaf = useCallback(() => {
+    // Subtree root: selected manager if it's a person; otherwise org root.
+    const subtreeRoot = selectedId && !selectedId.includes(':')
+      ? selectedId
+      : undefined
+    const leaf = findDeepestLeaf(working, subtreeRoot)
+    if (leaf) selectById(leaf.id)
+  }, [working, selectedId, selectById])
+
+  const jumpToParent = useCallback(() => {
+    if (!selectedId) return
+    const parent = findParentForSelection(working, selectedId)
+    if (parent) selectById(parent.id)
+  }, [working, selectedId, selectById])
 
   const navigateSpatial = useCallback((direction: 'h' | 'j' | 'k' | 'l') => {
     const currentId = selectedId
@@ -86,7 +180,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     if (targetId) {
       const targetEl = document.querySelector(`[data-person-id="${targetId}"]`)
       targetEl?.querySelector<HTMLElement>('[role="button"]')?.click()
-      targetEl?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+      targetEl?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
     }
   }, [selectedId])
 
@@ -137,6 +231,32 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         if (onAddParent && personIds.length === 1) onAddParent(personIds[0])
         break
       }
+      case 'a': {
+        // Append sibling at current level: same parent/team/pod as selection.
+        // Pods don't have siblings in the chart — fall back to "add into pod"
+        // (mirrors o on a pod).
+        if (selectedId.startsWith('pod:')) {
+          if (!onAddToTeam) break
+          const parts = selectedId.split(':')
+          const managerId = parts[1]
+          const podName = parts.slice(2).join(':')
+          const pod = pods.find(p => p.managerId === managerId && p.name === podName)
+          onAddToTeam(managerId, pod?.team ?? podName, podName)
+          break
+        }
+        if (personIds.length !== 1) break
+        const node = working.find(p => p.id === personIds[0])
+        if (!node) break
+        if (isProduct(node)) {
+          // Sibling product: same parent + team + pod.
+          onAddProduct?.(node.managerId, node.team, node.pod)
+        } else {
+          // Sibling person: same parent + team + pod (managerId may be '' for
+          // peer-of-root; ViewDataContext handles that path).
+          onAddToTeam?.(node.managerId, node.team, node.pod)
+        }
+        break
+      }
       case 'P': {
         if (!onAddProduct) break
         // Pod selection: collapseKey is "pod:managerId:podName" — add product into the pod.
@@ -179,6 +299,16 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     }
   }, [selectedId, selectedIds, working, pods, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, cutIds])
 
+  // Two-key sequence prefix state: set by the first `g`, consumed by the
+  // next `g`/`p`, cleared on timeout or any other key.
+  const gPendingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelGPending = useCallback(() => {
+    if (gPendingRef.current !== null) {
+      clearTimeout(gPendingRef.current)
+      gPendingRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     if (!enabled) return
     const handler = (e: KeyboardEvent) => {
@@ -194,6 +324,27 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       }
 
       if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      // Two-key sequences anchored on `g`. Resolve before falling into the
+      // single-key switch so a second `g` doesn't restart the prefix.
+      if (gPendingRef.current !== null) {
+        if (e.key === 'g') {
+          cancelGPending()
+          e.preventDefault()
+          jumpToRoot()
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          return
+        }
+        if (e.key === 'p') {
+          cancelGPending()
+          e.preventDefault()
+          jumpToParent()
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          return
+        }
+        // Any other key cancels the prefix and falls through to normal handling.
+        cancelGPending()
+      }
 
       if (e.key === 'i' && selectedId) {
         const sidebarInput = document.querySelector<HTMLElement>('aside input, aside select, aside textarea')
@@ -219,6 +370,22 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         return
       }
 
+      // First `g`: start the two-key prefix. 500ms timeout matches vim
+      // default; second key resets it via cancelGPending above.
+      if (e.key === 'g') {
+        e.preventDefault()
+        gPendingRef.current = setTimeout(() => { gPendingRef.current = null }, 500)
+        return
+      }
+
+      // `G` (Shift+g): single-key, jump to deepest leaf in current subtree.
+      if (e.key === 'G') {
+        e.preventDefault()
+        jumpToDeepestLeaf()
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+        return
+      }
+
       switch (e.key) {
         case 'ArrowDown':
         case 'j':
@@ -236,6 +403,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         }
         case 'o':
         case 'O':
+        case 'a':
         case 'P':
         case 'd':
         case 'x':
@@ -247,8 +415,11 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       }
     }
     document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp])
+    return () => {
+      document.removeEventListener('keydown', handler)
+      cancelGPending()
+    }
+  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending])
 
   return { cutIds, cancelCut }
 }

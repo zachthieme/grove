@@ -111,3 +111,58 @@ After `o` (add report), `O` (add parent), or `P` (add product) creates a node, t
 - Add mutation fails / returns undefined → no select, no editing transition; selection stays where it was.
 - User in 'selected' mode (no editing) → name input is not focused; vim nav (j/k/h/l) keeps receiving keys.
 - Esc with no field changes → save short-circuits to "Saved!" (no-op update); blur still happens.
+
+---
+
+# Scenario: Append sibling — `a`
+
+**ID**: VIM-007
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-007]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-007]"
+
+## Behavior
+Pressing `a` while a node is selected creates a sibling at the same level — under the same parent, with the same `team` and `pod`. Mirrors `o` (which adds a child) for the sideways direction. Combined with VIM-006, the new sibling is auto-selected and the name input is focused, so `a → type → Esc → a → type` builds a flat list rapidly.
+
+## Invariants
+- `a` on a person calls `onAddToTeam(managerId, team, pod)`.
+- `a` on a product calls `onAddProduct(managerId, team, pod)` so the new sibling is itself a product.
+- `a` on a pod selection mirrors `o`: calls `onAddToTeam(managerId, team, podName)` (pods don't have siblings in the chart).
+- `a` on a root person (`managerId === ''`) creates a peer-of-root with empty `managerId`.
+- `a` is listed in VimCheatSheet under the "Add" section.
+
+## Edge cases
+- No selection → no-op (handler bails on `personIds.length !== 1`).
+- Multi-selection (`selectedIds.size > 1`, `selectedId === null`) → no-op (only `d`/`x` apply to multi).
+- Focused input → handler bails (existing INPUT/SELECT/TEXTAREA skip).
+
+---
+
+# Scenario: Tree navigation — `gg` / `G` / `gp`
+
+**ID**: VIM-008
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-008]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-008]"
+
+## Behavior
+Three keybindings for moving along the org tree (in addition to spatial `h`/`j`/`k`/`l`):
+
+- `gg` — jump to the root manager (first working node with empty `managerId`).
+- `G` — jump to the deepest leaf in the current subtree. The subtree is rooted at the currently-selected person; if no person is selected (or a synthetic group key is selected), the chart root is used.
+- `gp` — jump to the parent (manager) of the current selection. For a synthetic `pod:`/`team:`/`products:` collapseKey, jumps to that group's manager.
+
+## Invariants
+- The first `g` starts a 500 ms two-key prefix. A second `g` resolves to `gg`; a `p` resolves to `gp`. Any other key cancels the prefix and falls through to normal handling.
+- `G` is a single key (Shift+g) — no prefix.
+- Pure helpers `findRootPerson`, `findDeepestLeaf`, `findParentForSelection` are exported from `useVimNav.ts` and unit-tested independently.
+- Bindings are listed in VimCheatSheet under the "Navigate" section.
+
+## Edge cases
+- `gg` with no root in working → no-op.
+- `G` with no leaf reachable from the subtree (empty working) → no-op.
+- `gp` on the root or with no selection → no-op.
+- Prefix timeout (500 ms) silently expires — no error, just clears state.
+- `g` while focused on an input → bails (existing INPUT/SELECT/TEXTAREA skip), prefix never starts.

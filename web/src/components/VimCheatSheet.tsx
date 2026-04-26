@@ -26,6 +26,9 @@ const SECTIONS: Section[] = [
       { keys: 'l / →', desc: 'Move right' },
       { keys: 'j / ↓', desc: 'Move down' },
       { keys: 'k / ↑', desc: 'Move up' },
+      { keys: 'gg', desc: 'Jump to root manager' },
+      { keys: 'G', desc: 'Jump to deepest leaf in current subtree' },
+      { keys: 'gp', desc: 'Jump to parent of selection' },
     ],
   },
   {
@@ -33,6 +36,7 @@ const SECTIONS: Section[] = [
     bindings: [
       { keys: 'o', desc: 'Add report under selection (or sibling product if selection is a product)' },
       { keys: 'O', desc: 'Add parent above selection' },
+      { keys: 'a', desc: 'Append sibling at the current level (same parent / team / pod)' },
       { keys: 'P', desc: 'Add product (sibling on a product, child on a person, in-pod on a pod)' },
     ],
   },
