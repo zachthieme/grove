@@ -12,6 +12,10 @@ export function setLoggingEnabled(enabled: boolean) {
   loggingEnabled = enabled
 }
 
+let telemetryDropCount = 0
+export function getTelemetryDropCount(): number { return telemetryDropCount }
+export function resetTelemetryDropCount(): void { telemetryDropCount = 0 }
+
 let onApiError: ((message: string) => void) | null = null
 
 /** Register a global callback for API errors. Returns a cleanup function. */
@@ -24,6 +28,7 @@ export function setOnApiError(handler: (message: string) => void): () => void {
 export function resetClient(): void {
   loggingEnabled = false
   onApiError = null
+  telemetryDropCount = 0
 }
 
 function postLogEntry(entry: Record<string, unknown>): void {
@@ -32,7 +37,10 @@ function postLogEntry(entry: Record<string, unknown>): void {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(entry),
-  }).catch(() => {})
+  }).catch((e) => {
+    telemetryDropCount++
+    console.warn('telemetry POST dropped', e)
+  })
 }
 
 /** Report an app-level event to the backend log buffer. No-op when logging is off. */

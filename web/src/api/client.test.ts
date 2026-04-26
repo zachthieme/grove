@@ -121,3 +121,51 @@ describe('resetClient', () => {
     cleanup()
   })
 })
+
+describe('telemetry drop counter', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>
+  beforeEach(() => {
+    api.resetClient()
+    api.resetTelemetryDropCount()
+    api.setLoggingEnabled(true)
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    warnSpy.mockRestore()
+    vi.restoreAllMocks()
+  })
+
+  it('increments drop count and warns when log POST rejects', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network down')))
+    expect(api.getTelemetryDropCount()).toBe(0)
+    api.reportLog('INFO', 'hello')
+    // postLogEntry is fire-and-forget — flush microtasks
+    await new Promise((r) => setTimeout(r, 0))
+    expect(api.getTelemetryDropCount()).toBe(1)
+    expect(warnSpy).toHaveBeenCalledWith('telemetry POST dropped', expect.any(Error))
+  })
+
+  it('does nothing when logging disabled', async () => {
+    api.setLoggingEnabled(false)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network down')))
+    api.reportLog('INFO', 'hello')
+    await new Promise((r) => setTimeout(r, 0))
+    expect(api.getTelemetryDropCount()).toBe(0)
+  })
+
+  it('resetTelemetryDropCount zeroes the counter', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('x')))
+    api.reportLog('INFO', 'one')
+    await new Promise((r) => setTimeout(r, 0))
+    api.resetTelemetryDropCount()
+    expect(api.getTelemetryDropCount()).toBe(0)
+  })
+
+  it('resetClient also zeroes counter', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('x')))
+    api.reportLog('INFO', 'one')
+    await new Promise((r) => setTimeout(r, 0))
+    api.resetClient()
+    expect(api.getTelemetryDropCount()).toBe(0)
+  })
+})
