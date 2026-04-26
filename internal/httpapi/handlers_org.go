@@ -81,6 +81,20 @@ func handleAddParent(svc NodeService) http.HandlerFunc {
 	})
 }
 
+func handleCopySubtree(svc NodeService) http.HandlerFunc {
+	type req struct {
+		RootIds        []string `json:"rootIds"`
+		TargetParentId string   `json:"targetParentId"`
+	}
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*CopyResponse, error) {
+		idMap, working, pods, err := svc.CopySubtree(ctx, r.RootIds, r.TargetParentId)
+		if err != nil {
+			return nil, err
+		}
+		return &CopyResponse{IdMap: idMap, Working: working, Pods: pods}, nil
+	})
+}
+
 func handleDelete(svc NodeService) http.HandlerFunc {
 	type req struct {
 		PersonId string `json:"personId"`

@@ -426,3 +426,31 @@ Setting a person's pod field to a name that doesn't exist under their manager au
 
 ## Edge cases
 - None
+
+---
+
+# Scenario: Copy a subtree (forest of subtrees)
+
+**ID**: ORG-020
+**Area**: model-validation
+**Tests**:
+- `internal/org/service_test.go` → "[ORG-020]"
+
+## Behavior
+`OrgService.CopySubtree(ctx, rootIds, targetParentId)` duplicates a forest of subtrees. Each copied node gets a fresh UUID; manager edges within the copied forest remap to the new IDs; pods owned by copied managers are duplicated under the corresponding copy. Returns `idMap` (oldId → newId), the new working slice, and the new pods slice. Powers the vim `y` yank + `p` paste-as-copy flow and the equivalent UI button (future).
+
+## Invariants
+- Empty `rootIds` → ValidationError.
+- `targetParentId` must exist (or be empty for top-level paste). Missing → NotFoundError. Product target → ValidationError "cannot copy under a product".
+- Each rootId must exist in working — missing → NotFoundError.
+- A rootId that is a descendant of another rootId is auto-demoted: the copy still happens, but its copy's manager is its ancestor's copy (not `targetParentId`).
+- Manager edges inside the copied forest remap via `idMap`. Edges to nodes outside the forest collapse to `targetParentId` (for true roots).
+- Slice fields (`additionalTeams`) are deep-copied so mutating the copy doesn't affect the original.
+- Pods whose `managerId` is in the copy set are duplicated with fresh `pod.id` and `managerId = idMap[oldManagerId]`. Descendant `pod` assignments survive because `Reassign` finds the new pod under the new manager.
+- Originals remain in working unchanged.
+
+## Edge cases
+- Copying a leaf (no descendants) → idMap has 1 entry; the copy is a sibling of the original under target.
+- Top-level paste (`targetParentId == ""`) → roots become orphans (managerId="").
+- Copying multiple unrelated roots in one call → all become children of target (or orphans for top-level paste); BFS order is deterministic.
+- A pod that has no copied members is NOT duplicated (we only duplicate pods whose managerId is itself being copied; pods owned by uncopied managers stay shared).

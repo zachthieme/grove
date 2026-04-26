@@ -3,7 +3,7 @@
 
 import type {
   OrgData, OrgNode, MovePayload, UpdatePayload, DeletePayload, AddParentPayload,
-  DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, MutationResponse,
+  DeleteResponse, RestoreResponse, EmptyBinResponse, AddResponse, CopyResponse, MutationResponse,
   AutosaveData,
 } from './types'
 import { BASE, fetchWithTimeout, generateCorrelationId, jsonWithLog } from './core'
@@ -71,6 +71,21 @@ export async function addNode(person: Omit<OrgNode, 'id'>, correlationId?: strin
   })
   return jsonWithLog<AddResponse>(resp, {
     method: 'POST', path: '/api/add', correlationId: cid, requestBody: person, startTime,
+  })
+}
+
+export async function copySubtree(rootIds: string[], targetParentId: string, correlationId?: string): Promise<CopyResponse> {
+  const cid = correlationId ?? generateCorrelationId()
+  const startTime = Date.now()
+  const body = { rootIds, targetParentId }
+  const resp = await fetchWithTimeout(`${BASE}/people/copy-subtree`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    correlationId: cid,
+  })
+  return jsonWithLog<CopyResponse>(resp, {
+    method: 'POST', path: '/api/people/copy-subtree', correlationId: cid, requestBody: body, startTime,
   })
 }
 

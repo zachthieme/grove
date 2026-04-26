@@ -15,6 +15,7 @@ type NodeService interface {
 	Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*org.MoveResult, error)
 	Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error)
 	AddParent(ctx context.Context, childId, name string) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error)
+	CopySubtree(ctx context.Context, rootIds []string, targetParentId string) (map[string]string, []apitypes.OrgNode, []apitypes.Pod, error)
 	Delete(ctx context.Context, personId string) (*org.MutationResult, error)
 	Restore(ctx context.Context, personId string) (*org.MutationResult, error)
 	EmptyBin(ctx context.Context) []apitypes.OrgNode

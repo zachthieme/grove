@@ -22,6 +22,7 @@ func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore autosave.Autos
 	mux.HandleFunc("POST /api/update", handleUpdate(svcs.People))
 	mux.HandleFunc("POST /api/add", handleAdd(svcs.People))
 	mux.HandleFunc("POST /api/people/add-parent", handleAddParent(svcs.People))
+	mux.HandleFunc("POST /api/people/copy-subtree", handleCopySubtree(svcs.People))
 	mux.HandleFunc("POST /api/delete", handleDelete(svcs.People))
 	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svcs.Org))
 	mux.HandleFunc("POST /api/restore", handleRestore(svcs.People))

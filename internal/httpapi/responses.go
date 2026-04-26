@@ -18,6 +18,15 @@ type AddResponse struct {
 	Pods    []apitypes.Pod     `json:"pods"`
 }
 
+// CopyResponse is returned by copy-subtree. IdMap maps original-id → new-id
+// so the client can locate the new copies (e.g. to auto-select the first
+// copy after paste).
+type CopyResponse struct {
+	IdMap   map[string]string  `json:"idMap"`
+	Working []apitypes.OrgNode `json:"working"`
+	Pods    []apitypes.Pod     `json:"pods"`
+}
+
 // MutationResponse is returned by mutations that affect both working and
 // recycled slices (delete, restore).
 type MutationResponse struct {

@@ -122,6 +122,12 @@ export interface AddResponse {
   pods: import('./types.generated').Pod[]
 }
 
+export interface CopyResponse {
+  idMap: Record<string, string>
+  working: OrgNode[]
+  pods: import('./types.generated').Pod[]
+}
+
 export interface UploadResponse {
   status: 'ready' | 'needs_mapping'
   orgData?: OrgData

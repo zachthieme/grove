@@ -239,6 +239,146 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apity
 	return parent, deepCopyNodes(s.working), pod.Copy(s.podMgr.Pods()), nil
 }
 
+// CopySubtree duplicates a forest of subtrees rooted at rootIds and attaches
+// the copies under targetParentId. Each copied node gets a fresh UUID;
+// internal manager edges within the copied forest are remapped to the new
+// IDs. Pods owned by copied managers are also duplicated under the
+// corresponding copy so descendants don't lose their pod assignment.
+//
+// Returns idMap (oldId → newId) so callers can locate the new copies — the
+// rapid-add UI uses this to auto-select the first new copy after paste.
+//
+// Validation: targetParentId must exist (or be empty for root-level paste)
+// and must not be a product. rootIds must all exist in working. A rootId
+// that is already a descendant of another rootId is auto-demoted (only the
+// topmost ancestor is treated as a true root); the descendant copy still
+// happens, just nested under its ancestor's copy.
+func (s *OrgService) CopySubtree(ctx context.Context, rootIds []string, targetParentId string) (map[string]string, []apitypes.OrgNode, []apitypes.Pod, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(rootIds) == 0 {
+		return nil, nil, nil, ErrValidation("rootIds is required")
+	}
+
+	if targetParentId != "" {
+		_, target := s.findWorking(targetParentId)
+		if target == nil {
+			return nil, nil, nil, ErrNotFound("target %s not found", targetParentId)
+		}
+		if model.IsProduct(target.Type) {
+			return nil, nil, nil, ErrValidation("cannot copy under a product")
+		}
+	}
+
+	rootSet := make(map[string]bool, len(rootIds))
+	for _, id := range rootIds {
+		if _, n := s.findWorking(id); n == nil {
+			return nil, nil, nil, ErrNotFound("node %s not found", id)
+		}
+		rootSet[id] = true
+	}
+
+	// Build childrenByParent index for the BFS.
+	childrenByParent := make(map[string][]string, len(s.working))
+	for _, n := range s.working {
+		childrenByParent[n.ManagerId] = append(childrenByParent[n.ManagerId], n.Id)
+	}
+
+	// Collect every node id in the copy set via BFS from each root.
+	toCopy := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, root := range rootIds {
+		if seen[root] {
+			continue
+		}
+		queue := []string{root}
+		for len(queue) > 0 {
+			id := queue[0]
+			queue = queue[1:]
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			toCopy = append(toCopy, id)
+			queue = append(queue, childrenByParent[id]...)
+		}
+	}
+
+	// Demote roots whose ancestor is also a root — only the topmost ancestor
+	// reparents to targetParentId; nested roots stay as descendants in the
+	// copy (their copy's manager is its ancestor's copy via idMap).
+	for _, id := range rootIds {
+		_, src := s.findWorking(id)
+		if src == nil {
+			continue
+		}
+		current := src.ManagerId
+		for current != "" {
+			if rootSet[current] {
+				delete(rootSet, id)
+				break
+			}
+			_, parent := s.findWorking(current)
+			if parent == nil {
+				break
+			}
+			current = parent.ManagerId
+		}
+	}
+
+	idMap := make(map[string]string, len(toCopy))
+	for _, id := range toCopy {
+		idMap[id] = uuid.NewString()
+	}
+
+	// Duplicate pods owned by copied managers BEFORE adding nodes — so
+	// Reassign during node insertion finds the new pods under the new
+	// managers and preserves descendants' pod assignments.
+	srcPods := s.podMgr.Pods()
+	for _, p := range srcPods {
+		newMgrId, ok := idMap[p.ManagerId]
+		if !ok {
+			continue
+		}
+		np := p
+		np.Id = uuid.NewString()
+		np.ManagerId = newMgrId
+		srcPods = append(srcPods, np)
+	}
+	s.podMgr.SetPods(srcPods)
+
+	// Build new nodes — manager edges remapped via idMap, roots reparent
+	// to targetParentId. Slice fields deep-copied to avoid sharing.
+	newNodes := make([]apitypes.OrgNode, 0, len(toCopy))
+	for _, id := range toCopy {
+		_, src := s.findWorking(id)
+		if src == nil {
+			continue
+		}
+		copied := *src
+		copied.Id = idMap[id]
+		if len(src.AdditionalTeams) > 0 {
+			copied.AdditionalTeams = append([]string(nil), src.AdditionalTeams...)
+		}
+		if rootSet[id] {
+			copied.ManagerId = targetParentId
+		} else {
+			copied.ManagerId = idMap[src.ManagerId]
+		}
+		newNodes = append(newNodes, copied)
+	}
+
+	startIdx := len(s.working)
+	s.working = append(s.working, newNodes...)
+	s.rebuildIndex()
+	for i := startIdx; i < len(s.working); i++ {
+		s.podMgr.Reassign(&s.working[i])
+	}
+
+	return idMap, deepCopyNodes(s.working), pod.Copy(s.podMgr.Pods()), nil
+}
+
 func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

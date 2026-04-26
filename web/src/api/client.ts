@@ -20,6 +20,7 @@ export {
   updateNode,
   addNode,
   addParent,
+  copySubtree,
   deleteNode,
   restoreNode,
   emptyBin,

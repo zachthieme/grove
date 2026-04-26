@@ -140,6 +140,216 @@ func TestOrgService_Add(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_Leaf(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	carol := findByName(data.Working, "Carol")
+	alice := findByName(data.Working, "Alice")
+
+	idMap, working, _, err := svc.CopySubtree(context.Background(), []string{carol.Id}, alice.Id)
+	if err != nil {
+		t.Fatalf("CopySubtree: %v", err)
+	}
+	if len(idMap) != 1 {
+		t.Fatalf("expected 1 entry in idMap, got %d", len(idMap))
+	}
+	newId, ok := idMap[carol.Id]
+	if !ok || newId == carol.Id {
+		t.Fatalf("expected new id distinct from original; idMap=%v", idMap)
+	}
+	if len(working) != 4 {
+		t.Errorf("expected 4 working nodes (3 + 1 copy), got %d", len(working))
+	}
+	copied := findById(working, newId)
+	if copied == nil {
+		t.Fatal("copy not in working")
+	}
+	if copied.Name != carol.Name {
+		t.Errorf("copy name=%q, want %q", copied.Name, carol.Name)
+	}
+	if copied.ManagerId != alice.Id {
+		t.Errorf("copy manager=%q, want %q (alice)", copied.ManagerId, alice.Id)
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_PreservesInternalEdges(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+	alice := findByName(data.Working, "Alice")
+
+	// Copy Bob's subtree (Bob → Carol) under Alice (so Alice gets a second
+	// Bob-shaped subtree as a peer of the original Bob).
+	idMap, working, _, err := svc.CopySubtree(context.Background(), []string{bob.Id}, alice.Id)
+	if err != nil {
+		t.Fatalf("CopySubtree: %v", err)
+	}
+	if len(idMap) != 2 {
+		t.Fatalf("expected idMap to cover Bob + Carol, got %d entries: %v", len(idMap), idMap)
+	}
+	newBobId := idMap[bob.Id]
+	carol := findByName(data.Working, "Carol")
+	newCarolId := idMap[carol.Id]
+	if newBobId == "" || newCarolId == "" {
+		t.Fatalf("idMap missing entries: %v", idMap)
+	}
+	newBob := findById(working, newBobId)
+	newCarol := findById(working, newCarolId)
+	if newBob == nil || newCarol == nil {
+		t.Fatal("expected both copies in working")
+	}
+	if newBob.ManagerId != alice.Id {
+		t.Errorf("new Bob's manager=%q, want alice", newBob.ManagerId)
+	}
+	if newCarol.ManagerId != newBobId {
+		t.Errorf("new Carol's manager=%q, want new Bob (%q)", newCarol.ManagerId, newBobId)
+	}
+	if findById(working, bob.Id) == nil || findById(working, carol.Id) == nil {
+		t.Error("originals must remain in working")
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_RootDuplicateDemoted(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+	alice := findByName(data.Working, "Alice")
+
+	// Carol is Bob's descendant; passing both as roots should demote Carol
+	// — the copy still happens (Carol's copy is a child of Bob's copy)
+	// but Carol is not re-rooted directly under Alice.
+	idMap, working, _, err := svc.CopySubtree(context.Background(), []string{bob.Id, carol.Id}, alice.Id)
+	if err != nil {
+		t.Fatalf("CopySubtree: %v", err)
+	}
+	newBobId := idMap[bob.Id]
+	newCarolId := idMap[carol.Id]
+	if newCarolId == "" {
+		t.Fatalf("expected Carol copied; idMap=%v", idMap)
+	}
+	newCarol := findById(working, newCarolId)
+	if newCarol.ManagerId != newBobId {
+		t.Errorf("Carol copy manager=%q, want new Bob (Carol was demoted from root); idMap=%v", newCarol.ManagerId, idMap)
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_NoRootsRejected(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	_, _, _, err := svc.CopySubtree(context.Background(), nil, "")
+	if err == nil {
+		t.Fatal("expected error for empty rootIds")
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_MissingTarget(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+	_, _, _, err := svc.CopySubtree(context.Background(), []string{bob.Id}, "no-such-target")
+	if err == nil {
+		t.Fatal("expected error for missing target")
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_TargetIsProductRejected(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+
+	// Add a product under alice and try to copy under it.
+	prod, _, _, err := svc.Add(context.Background(), apitypes.OrgNode{
+		OrgNodeFields: model.OrgNodeFields{Name: "Widget", Type: "product", Status: "Active", Team: "Eng"},
+		ManagerId:     alice.Id,
+	})
+	if err != nil {
+		t.Fatalf("seed product: %v", err)
+	}
+	_, _, _, err = svc.CopySubtree(context.Background(), []string{bob.Id}, prod.Id)
+	if err == nil {
+		t.Fatal("expected error: cannot copy under a product")
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_TopLevelPaste(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+
+	idMap, working, _, err := svc.CopySubtree(context.Background(), []string{bob.Id}, "")
+	if err != nil {
+		t.Fatalf("CopySubtree: %v", err)
+	}
+	newBob := findById(working, idMap[bob.Id])
+	if newBob == nil {
+		t.Fatal("new Bob missing")
+	}
+	if newBob.ManagerId != "" {
+		t.Errorf("expected new Bob to be top-level (managerId=''), got %q", newBob.ManagerId)
+	}
+}
+
+// Scenarios: ORG-020
+func TestOrgService_CopySubtree_PodsCarry(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+	alice := findByName(data.Working, "Alice")
+
+	// Put Carol in a pod under Bob, then copy Bob's subtree.
+	carol := findByName(data.Working, "Carol")
+	if _, err := svc.CreatePod(context.Background(), bob.Id, "Backend", "Platform"); err != nil {
+		t.Fatalf("seed pod: %v", err)
+	}
+	pod := "Backend"
+	if _, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: &pod}); err != nil {
+		t.Fatalf("seed pod via update: %v", err)
+	}
+
+	idMap, working, pods, err := svc.CopySubtree(context.Background(), []string{bob.Id}, alice.Id)
+	if err != nil {
+		t.Fatalf("CopySubtree: %v", err)
+	}
+	newBobId := idMap[bob.Id]
+	newCarolId := idMap[carol.Id]
+
+	newCarol := findById(working, newCarolId)
+	if newCarol == nil {
+		t.Fatal("new Carol missing")
+	}
+	if newCarol.Pod != "Backend" {
+		t.Errorf("new Carol's pod should carry across the copy, got %q", newCarol.Pod)
+	}
+
+	// A new pod entry must exist under the new Bob.
+	var found bool
+	for _, p := range pods {
+		if p.ManagerId == newBobId && p.Name == "Backend" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected duplicated pod 'Backend' under new Bob (%q); pods=%+v", newBobId, pods)
+	}
+}
+
 // Scenarios: ORG-012
 func TestOrgService_Delete(t *testing.T) {
 	t.Parallel()
