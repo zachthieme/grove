@@ -61,17 +61,27 @@ export default function ChartShell({
     setCollapseKey(k => k + 1)
   }, [])
 
+  // Destructure individual callbacks so chartActions memo (and handleLassoSelect) only
+  // rebuild when the actual functions change, not when the aggregate selection/actions
+  // objects do (e.g. selectedIds change updates selection reference but not these callbacks).
+  const {
+    handleSelect, handleAddReport, handleAddProduct, handleAddParent,
+    handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus,
+    handleCommitEdits, handleInlineEdit,
+  } = actions
+  const { selectedIds, interactionMode, editingPersonId, editBuffer, batchSelect, enterEditing, updateBuffer } = selection
+
   // Auto-scroll to keep selected node visible
   useEffect(() => {
-    if (selection.selectedIds.size !== 1) return
-    const id = [...selection.selectedIds][0]
+    if (selectedIds.size !== 1) return
+    const id = [...selectedIds][0]
     const el = nodeRefs.current.get(id)
     el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-  }, [selection.selectedIds, nodeRefs])
+  }, [selectedIds, nodeRefs])
 
   const handleLassoSelect = useCallback((ids: Set<string>) => {
-    selection.batchSelect?.(ids)
-  }, [selection])
+    batchSelect?.(ids)
+  }, [batchSelect])
 
   const { lassoRect } = useLassoSelect({
     containerRef,
@@ -83,30 +93,33 @@ export default function ChartShell({
   // activeDragId is used directly by DragBadgeOverlay (works for any node type)
 
   const chartData = useMemo(() => ({
-    selectedIds: selection.selectedIds, changes, managerSet, pods,
-    interactionMode: selection.interactionMode,
-    editingPersonId: selection.editingPersonId,
-    editBuffer: selection.editBuffer,
+    selectedIds, changes, managerSet, pods,
+    interactionMode,
+    editingPersonId,
+    editBuffer,
     collapsedIds,
-  }), [selection.selectedIds, selection.interactionMode, selection.editingPersonId, selection.editBuffer, changes, managerSet, pods, collapsedIds])
+  }), [selectedIds, interactionMode, editingPersonId, editBuffer, changes, managerSet, pods, collapsedIds])
 
   const chartActions = useMemo(() => ({
-    onSelect: actions.handleSelect,
-    onBatchSelect: selection.batchSelect,
-    onAddReport: actions.handleAddReport,
-    onAddProduct: actions.handleAddProduct,
-    onAddParent: actions.handleAddParent,
-    onAddToTeam: includeAddToTeam ? actions.handleAddToTeam : undefined,
-    onDeletePerson: actions.handleDeletePerson,
-    onInfo: actions.handleShowInfo,
-    onFocus: actions.handleFocus,
-    onEnterEditing: selection.enterEditing,
-    onUpdateBuffer: selection.updateBuffer,
-    onCommitEdits: actions.handleCommitEdits,
+    onSelect: handleSelect,
+    onBatchSelect: batchSelect,
+    onAddReport: handleAddReport,
+    onAddProduct: handleAddProduct,
+    onAddParent: handleAddParent,
+    onAddToTeam: includeAddToTeam ? handleAddToTeam : undefined,
+    onDeletePerson: handleDeletePerson,
+    onInfo: handleShowInfo,
+    onFocus: handleFocus,
+    onEnterEditing: enterEditing,
+    onUpdateBuffer: updateBuffer,
+    onCommitEdits: handleCommitEdits,
     setNodeRef,
     onToggleCollapse: handleToggleCollapse,
-    onInlineEdit: actions.handleInlineEdit,
-  }), [selection, actions, includeAddToTeam, setNodeRef, handleToggleCollapse])
+    onInlineEdit: handleInlineEdit,
+  }), [handleSelect, batchSelect, handleAddReport, handleAddProduct, handleAddParent,
+       handleAddToTeam, handleDeletePerson, handleShowInfo, handleFocus,
+       enterEditing, updateBuffer, handleCommitEdits, setNodeRef, handleToggleCollapse,
+       handleInlineEdit, includeAddToTeam])
 
   if (people.length === 0 && (!useGhostPeople || (ghostPeople ?? []).length === 0)) {
     return <div className={styles.container}>No people to display.</div>
