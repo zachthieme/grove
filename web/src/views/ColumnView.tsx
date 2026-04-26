@@ -51,7 +51,7 @@ const LayoutSubtree = memo(function LayoutSubtree({ node }: { node: ManagerLayou
           <GroupHeaderNode
             nodeId={group.collapseKey}
             name={group.podName}
-            count={group.members.length + podProducts.length}
+            count={group.members.length || undefined}
             noteText={pod?.publicNote}
             onAdd={onAddToTeam ? () => onAddToTeam(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}
             onAddProduct={onAddProduct ? () => onAddProduct(group.managerId, pod?.team ?? group.podName, group.podName) : undefined}

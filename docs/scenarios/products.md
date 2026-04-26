@@ -267,3 +267,22 @@ A product whose manager has been removed (or that imports without a manager) mus
 - Orphan products are bucketed into a single `productGroup` with `collapseKey: 'orphan:products'`.
 - Orphan people continue to bucket into `teamGroup`s by `team`, unchanged.
 - A single orphan with no other roots still becomes a manager layout (existing rule preserved).
+
+---
+
+# Scenario: Pod header count excludes products
+
+**ID**: PROD-016
+**Area**: products
+**Tests**:
+- `web/src/views/ColumnViewBranches.test.tsx` → "[PROD-016]"
+
+## Behavior
+The pod header card shows a member count labelled "person/people". Products carried inside the same pod are not added to that count — only the people (`members`) are counted.
+
+## Invariants
+- A pod with N people and M products renders "N person/people" in the pod header, never "N+M".
+- The grammatical form follows the people count alone: 1 person → "1 person", >1 person → "N people".
+
+## Edge cases
+- A pod containing only products (`members: []`, `products: [...]`) hides the count line entirely — no "0 people" shown — so the header reads as just the pod name.

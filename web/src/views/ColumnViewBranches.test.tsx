@@ -140,4 +140,36 @@ describe('ColumnView — branch coverage', () => {
     expect(screen.getByText('Orphan A')).toBeTruthy()
     expect(screen.getByText('Orphan B')).toBeTruthy()
   })
+
+  it('[PROD-016] pod header count excludes products carried in the same pod', () => {
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const ic1 = makeNode({ id: 'ic1', name: 'IC1', managerId: 'mgr', pod: 'Alpha' })
+    const ic2 = makeNode({ id: 'ic2', name: 'IC2', managerId: 'mgr', pod: 'Alpha' })
+    const ic3 = makeNode({ id: 'ic3', name: 'IC3', managerId: 'mgr', pod: 'Alpha' })
+    const prod1 = makeNode({ id: 'prod1', name: 'Widget', managerId: 'mgr', type: 'product', pod: 'Alpha' })
+    const prod2 = makeNode({ id: 'prod2', name: 'Gadget', managerId: 'mgr', type: 'product', pod: 'Alpha' })
+
+    renderWithViewData(<ColumnView />, {
+      working: [mgr, ic1, ic2, ic3, prod1, prod2],
+      original: [mgr, ic1, ic2, ic3, prod1, prod2],
+    })
+
+    expect(screen.getByText('3 people')).toBeTruthy()
+    expect(screen.queryByText('5 people')).toBeNull()
+  })
+
+  it('[PROD-016] pod header omits the count line when the pod has only products', () => {
+    const mgr = makeNode({ id: 'mgr', name: 'Manager', managerId: '' })
+    const prod1 = makeNode({ id: 'prod1', name: 'Widget', managerId: 'mgr', type: 'product', pod: 'Skunkworks' })
+    const prod2 = makeNode({ id: 'prod2', name: 'Gadget', managerId: 'mgr', type: 'product', pod: 'Skunkworks' })
+
+    renderWithViewData(<ColumnView />, {
+      working: [mgr, prod1, prod2],
+      original: [mgr, prod1, prod2],
+    })
+
+    expect(screen.getByText('Skunkworks')).toBeTruthy()
+    expect(screen.queryByText(/\bpeople\b/)).toBeNull()
+    expect(screen.queryByText(/\bperson\b/)).toBeNull()
+  })
 })
