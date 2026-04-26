@@ -87,3 +87,27 @@ Pressing ? (Shift+/) when vim mode is enabled opens a modal listing all bindings
 ## Edge cases
 - ? while an input is focused → no-op (vim handler skips inputs)
 - ? while vim mode disabled → no-op (hook not enabled)
+
+---
+
+# Scenario: Rapid-add — auto-select + focus name on o/O/P
+
+**ID**: VIM-006
+**Area**: vim
+**Tests**:
+- `web/src/store/ViewDataContext.test.tsx` → "[VIM-006]"
+- `web/src/components/DetailSidebar.test.tsx` → "[VIM-006]"
+
+## Behavior
+After `o` (add report), `O` (add parent), or `P` (add product) creates a node, the new node becomes the selection and the sidebar's name input is focused with its content selected. Esc on the input commits the typed value via `update`, blurs back to the chart, and lets vim keys resume — supporting the `o → type → Esc → o → type` rapid-add flow.
+
+## Invariants
+- The four ViewDataContext add handlers (`handleAddReport`, `handleAddProduct`, `handleAddToTeam`, `submitAddParent`) call `setSelectedId(newId)` and `enterEditing(newNode)` after the create mutation resolves with a new id.
+- `add` and `addParent` mutations return `Promise<string | undefined>` carrying the new node's id (server's `AddResponse.created.id`).
+- NodeEditSidebar focuses + selects `firstInputRef` whenever `interactionMode === 'editing'` and `editingPersonId === personId`.
+- Esc on the sidebar (handled by SidebarShell) calls `handleSave` which dispatches `update` with the dirty fields — typed values persist.
+
+## Edge cases
+- Add mutation fails / returns undefined → no select, no editing transition; selection stays where it was.
+- User in 'selected' mode (no editing) → name input is not focused; vim nav (j/k/h/l) keeps receiving keys.
+- Esc with no field changes → save short-circuits to "Saved!" (no-op update); blur still happens.

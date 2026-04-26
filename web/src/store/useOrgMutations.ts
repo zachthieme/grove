@@ -124,22 +124,34 @@ export function useOrgMutations({ setState, workingRef, podsRef, handleError, se
   )
 
   const add = useCallback(
-    (person: Omit<OrgNode, 'id'>) =>
-      dispatch(
+    async (person: Omit<OrgNode, 'id'>): Promise<string | undefined> => {
+      let createdId: string | undefined
+      await dispatch(
         () => api.addNode(person),
-        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        (resp) => {
+          createdId = resp.created.id
+          return { working: resp.working, pods: resp.pods, currentSnapshotName: null }
+        },
         { undo: true },
-      ),
+      )
+      return createdId
+    },
     [dispatch],
   )
 
   const addParent = useCallback(
-    (childId: string, name: string) =>
-      dispatch(
+    async (childId: string, name: string): Promise<string | undefined> => {
+      let createdId: string | undefined
+      await dispatch(
         () => api.addParent({ childId, name }),
-        (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
+        (resp) => {
+          createdId = resp.created.id
+          return { working: resp.working, pods: resp.pods, currentSnapshotName: null }
+        },
         { undo: true },
-      ),
+      )
+      return createdId
+    },
     [dispatch],
   )
 

@@ -22,7 +22,7 @@ export default function NodeEditSidebar({ personId }: NodeEditSidebarProps) {
   const { working } = useOrgData()
   const { update, remove, reparent } = useOrgMutations()
   const { showPrivate } = useUI()
-  const { setSelectedId } = useSelection()
+  const { setSelectedId, interactionMode, editingPersonId } = useSelection()
 
   const person = useMemo(() => working.find(p => p.id === personId), [working, personId])
 
@@ -39,7 +39,18 @@ export default function NodeEditSidebar({ personId }: NodeEditSidebarProps) {
     }
   }, [person?.id])
 
-  // Don't auto-focus — let vim nav keep working. Tab enters the sidebar.
+  // Auto-focus the name input when this person enters editing mode (vim
+  // o/O/P → handler calls enterEditing on the new node). Idle/selected mode
+  // does not focus, so vim nav (j/k/h/l) keeps receiving keys.
+  useEffect(() => {
+    if (interactionMode === 'editing' && editingPersonId === personId) {
+      const input = firstInputRef.current
+      if (input) {
+        input.focus()
+        input.select()
+      }
+    }
+  }, [interactionMode, editingPersonId, personId])
 
   const managers = useMemo(() => {
     const managerIds = new Set(working.filter(p => p.managerId).map(p => p.managerId))
@@ -97,7 +108,7 @@ export default function NodeEditSidebar({ personId }: NodeEditSidebarProps) {
   if (!person) return null
 
   return (
-    <SidebarShell heading={isProduct(person) ? 'Edit Product' : 'Edit Person'} onExit={() => { if (person) setSidebarForm(nodeToForm(person)) }} onSave={handleSave}>
+    <SidebarShell heading={isProduct(person) ? 'Edit Product' : 'Edit Person'} onExit={handleSave} onSave={handleSave}>
       <NodeForm
         values={sidebarForm}
         onChange={handleChange}

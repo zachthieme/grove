@@ -74,8 +74,8 @@ export interface OrgMutationsValue {
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   reorder: (personIds: string[]) => Promise<void>
   update: (personId: string, fields: OrgNodeUpdatePayload, correlationId?: string) => Promise<void>
-  add: (person: Omit<OrgNode, 'id'>) => Promise<void>
-  addParent: (childId: string, name: string) => Promise<void>
+  add: (person: Omit<OrgNode, 'id'>) => Promise<string | undefined>
+  addParent: (childId: string, name: string) => Promise<string | undefined>
   remove: (personId: string) => Promise<void>
   restore: (personId: string) => Promise<void>
   emptyBin: () => Promise<void>

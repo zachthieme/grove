@@ -250,6 +250,91 @@ describe('ViewDataContext', () => {
       }))
     })
 
+    it('[VIM-006] handleAddReport selects the new node and enters editing', async () => {
+      const add = vi.fn().mockResolvedValue('new-id')
+      const setSelectedId = vi.fn()
+      const enterEditing = vi.fn()
+      const parent = makeNode({ id: 'mgr', name: 'Manager', team: 'Eng' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [parent], add, setSelectedId, enterEditing }),
+      })
+      await act(async () => { await result.current.handleAddReport('mgr') })
+
+      expect(setSelectedId).toHaveBeenCalledWith('new-id')
+      expect(enterEditing).toHaveBeenCalledTimes(1)
+      const editedNode = enterEditing.mock.calls[0][0]
+      expect(editedNode.id).toBe('new-id')
+      expect(editedNode.managerId).toBe('mgr')
+      expect(editedNode.team).toBe('Eng')
+    })
+
+    it('[VIM-006] handleAddProduct selects the new product and enters editing', async () => {
+      const add = vi.fn().mockResolvedValue('prod-1')
+      const setSelectedId = vi.fn()
+      const enterEditing = vi.fn()
+      const parent = makeNode({ id: 'mgr', name: 'Manager', team: 'Eng' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [parent], add, setSelectedId, enterEditing }),
+      })
+      await act(async () => { await result.current.handleAddProduct('mgr', 'Platform', 'Backend') })
+
+      expect(setSelectedId).toHaveBeenCalledWith('prod-1')
+      expect(enterEditing).toHaveBeenCalledTimes(1)
+      const editedNode = enterEditing.mock.calls[0][0]
+      expect(editedNode.id).toBe('prod-1')
+      expect(editedNode.type).toBe('product')
+      expect(editedNode.pod).toBe('Backend')
+    })
+
+    it('[VIM-006] handleAddToTeam selects the new node and enters editing', async () => {
+      const add = vi.fn().mockResolvedValue('peer-1')
+      const setSelectedId = vi.fn()
+      const enterEditing = vi.fn()
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ add, setSelectedId, enterEditing }),
+      })
+      await act(async () => { await result.current.handleAddToTeam('mgr', 'Platform', 'Pod1') })
+
+      expect(setSelectedId).toHaveBeenCalledWith('peer-1')
+      expect(enterEditing).toHaveBeenCalledTimes(1)
+      const editedNode = enterEditing.mock.calls[0][0]
+      expect(editedNode.id).toBe('peer-1')
+      expect(editedNode.pod).toBe('Pod1')
+    })
+
+    it('[VIM-006] add handlers do not select when add returns undefined (failure)', async () => {
+      const add = vi.fn().mockResolvedValue(undefined)
+      const setSelectedId = vi.fn()
+      const enterEditing = vi.fn()
+      const parent = makeNode({ id: 'mgr', name: 'Manager', team: 'Eng' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [parent], add, setSelectedId, enterEditing }),
+      })
+      await act(async () => { await result.current.handleAddReport('mgr') })
+
+      expect(setSelectedId).not.toHaveBeenCalled()
+      expect(enterEditing).not.toHaveBeenCalled()
+    })
+
+    it('[VIM-006] submitAddParent selects the new parent and enters editing', async () => {
+      const addParent = vi.fn().mockResolvedValue('parent-1')
+      const setSelectedId = vi.fn()
+      const enterEditing = vi.fn()
+      const child = makeNode({ id: 'child', name: 'Child' })
+      const { result } = renderHook(() => useActions(), {
+        wrapper: wrapper({ working: [child], addParent, setSelectedId, enterEditing }),
+      })
+      act(() => { result.current.handleAddParent('child') })
+      await act(async () => { await result.current.submitAddParent('Boss') })
+
+      expect(addParent).toHaveBeenCalledWith('child', 'Boss')
+      expect(setSelectedId).toHaveBeenCalledWith('parent-1')
+      expect(enterEditing).toHaveBeenCalledTimes(1)
+      const editedNode = enterEditing.mock.calls[0][0]
+      expect(editedNode.id).toBe('parent-1')
+      expect(editedNode.name).toBe('Boss')
+    })
+
     it('handleDeletePerson sets deleteTargetId without calling remove', async () => {
       const remove = vi.fn().mockResolvedValue(undefined)
       const { result } = renderHook(() => useActions(), {

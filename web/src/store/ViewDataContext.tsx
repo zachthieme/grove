@@ -70,7 +70,7 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
   const { original, working, pods, settings } = useOrgData()
   const { add, addParent, remove, update } = useOrgMutations()
   const { dataView, hiddenEmploymentTypes, headPersonId, showPrivate, showProducts, showICs, setHead } = useUI()
-  const { toggleSelect, commitEdits, editingPersonId } = useSelection()
+  const { toggleSelect, commitEdits, editingPersonId, setSelectedId, enterEditing } = useSelection()
 
   // Derived data
   const rawPeople = dataView === 'original' ? original : working
@@ -101,10 +101,18 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     toggleSelect(id, multi)
   }, [toggleSelect])
 
+  // After a create succeeds, select the new node and enter editing mode so
+  // the sidebar focuses the name field — supports the "press o, type name,
+  // Esc, repeat" rapid-add flow.
+  const selectAndEdit = useCallback((spec: Omit<OrgNode, 'id'>, newId: string) => {
+    setSelectedId(newId)
+    enterEditing({ id: newId, ...spec } as OrgNode)
+  }, [setSelectedId, enterEditing])
+
   const handleAddReport = useCallback(async (parentId: string) => {
     const parent = working.find((p) => p.id === parentId)
     if (!parent) return
-    await add({
+    const spec: Omit<OrgNode, 'id'> = {
       name: 'New Person',
       role: '',
       discipline: '',
@@ -113,13 +121,15 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
       status: DEFAULT_STATUS,
       additionalTeams: [],
       employmentType: 'FTE',
-    })
-  }, [working, add])
+    }
+    const newId = await add(spec)
+    if (newId) selectAndEdit(spec, newId)
+  }, [working, add, selectAndEdit])
 
   const handleAddProduct = useCallback(async (parentId: string, team?: string, podName?: string) => {
     const parent = working.find((p) => p.id === parentId)
     if (!parent) return
-    await add({
+    const spec: Omit<OrgNode, 'id'> = {
       type: 'product',
       name: 'New Product',
       role: '',
@@ -130,11 +140,13 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
       additionalTeams: [],
       pod: podName,
       employmentType: '',
-    })
-  }, [working, add])
+    }
+    const newId = await add(spec)
+    if (newId) selectAndEdit(spec, newId)
+  }, [working, add, selectAndEdit])
 
   const handleAddToTeam = useCallback(async (parentId: string, team: string, podName?: string) => {
-    await add({
+    const spec: Omit<OrgNode, 'id'> = {
       name: 'New Person',
       role: '',
       discipline: '',
@@ -144,8 +156,10 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
       additionalTeams: [],
       pod: podName,
       employmentType: 'FTE',
-    })
-  }, [add])
+    }
+    const newId = await add(spec)
+    if (newId) selectAndEdit(spec, newId)
+  }, [add, selectAndEdit])
 
   // Add-parent popover state
   const [addParentTargetId, setAddParentTargetId] = useState<string | null>(null)
@@ -154,12 +168,26 @@ export function ViewDataProvider({ children }: { children: ReactNode }) {
     setAddParentTargetId(childId)
   }, [])
 
-  const submitAddParent = useCallback((name: string) => {
-    if (addParentTargetId && name.trim()) {
-      addParent(addParentTargetId, name.trim())
-    }
+  const submitAddParent = useCallback(async (name: string) => {
+    const trimmed = name.trim()
+    const childId = addParentTargetId
     setAddParentTargetId(null)
-  }, [addParentTargetId, addParent])
+    if (!childId || !trimmed) return
+    const child = working.find((p) => p.id === childId)
+    const newId = await addParent(childId, trimmed)
+    if (!newId) return
+    setSelectedId(newId)
+    enterEditing({
+      id: newId,
+      name: trimmed,
+      role: '',
+      discipline: '',
+      team: child?.team ?? '',
+      managerId: '',
+      additionalTeams: [],
+      status: DEFAULT_STATUS,
+    } as OrgNode)
+  }, [addParentTargetId, addParent, working, setSelectedId, enterEditing])
 
   // Delete confirmation state
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)

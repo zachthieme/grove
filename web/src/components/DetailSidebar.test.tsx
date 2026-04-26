@@ -141,6 +141,39 @@ describe('DetailSidebar', () => {
       await user.click(screen.getByText('Save'))
       expect(screen.getByText('Saved!')).toBeDefined()
     })
+
+    it('[VIM-006] focuses and selects the name input when interactionMode is "editing"', () => {
+      renderSingle({
+        interactionMode: 'editing',
+        editingPersonId: 'b2',
+      })
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      expect(document.activeElement).toBe(nameInput)
+      expect(nameInput.selectionStart).toBe(0)
+      expect(nameInput.selectionEnd).toBe(nameInput.value.length)
+    })
+
+    it('[VIM-006] does not focus the name input when interactionMode is "selected"', () => {
+      renderSingle({
+        interactionMode: 'selected',
+        editingPersonId: null,
+      })
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      expect(document.activeElement).not.toBe(nameInput)
+    })
+
+    it('[VIM-006] Esc on input commits via update (rapid-add flow does not lose typed name)', async () => {
+      const user = userEvent.setup()
+      const { update } = renderSingle()
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      await user.click(nameInput)
+      await user.clear(nameInput)
+      await user.type(nameInput, 'Robert')
+      await user.keyboard('{Escape}')
+      expect(update).toHaveBeenCalledTimes(1)
+      const [, fields] = update.mock.calls[0]
+      expect(fields.name).toBe('Robert')
+    })
   })
 
   // Scenarios: UI-013
