@@ -1,4 +1,4 @@
-.PHONY: frontend build dev clean e2e test test-all typecheck cover bench fuzz mutate check-scenarios lint ci
+.PHONY: frontend build dev clean e2e test test-all typecheck cover coverage-check bench fuzz mutate check-scenarios lint ci
 
 # Pinned in CI (.github/workflows/ci.yml) — bump in lockstep with the
 # linter config in .golangci.yml.
@@ -35,6 +35,40 @@ cover:
 	go test -race -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out | tail -1
 	cd web && npm test -- --coverage
+
+# Per-package coverage floor. Bumping these is a deliberate ratchet — never
+# lower a floor without recording why in the commit message. Floors sit
+# slightly below current measured coverage to allow normal noise; run
+# `make coverage-check` locally and update if a real improvement raises
+# them.
+coverage-check:
+	@fail=0; \
+	for entry in \
+		"internal/httpapi:85" \
+		"internal/model:90" \
+		"internal/org:80" \
+		"internal/snapshot:80" \
+		"internal/pod:95" \
+		"internal/parser:80" \
+		"internal/autosave:60" \
+		"internal/logbuf:70" ; do \
+		pkg="$${entry%:*}"; floor="$${entry#*:}"; \
+		cov=$$(go test -count=1 -cover ./$$pkg/ 2>&1 | grep -oE 'coverage: [0-9.]+%' | grep -oE '[0-9.]+' | head -1); \
+		if [ -z "$$cov" ]; then \
+			echo "  ERROR: no coverage reported for $$pkg"; \
+			fail=$$((fail+1)); continue; \
+		fi; \
+		below=$$(awk -v c="$$cov" -v f="$$floor" 'BEGIN{print (c+0 < f+0) ? 1 : 0}'); \
+		if [ "$$below" = "1" ]; then \
+			echo "  FAIL: $$pkg coverage $$cov% below floor $$floor%"; \
+			fail=$$((fail+1)); \
+		else \
+			echo "  ok:   $$pkg $$cov% (floor $$floor%)"; \
+		fi; \
+	done; \
+	if [ $$fail -gt 0 ]; then \
+		echo "$$fail package(s) below coverage floor"; exit 1; \
+	fi
 
 bench:
 	go test -bench=. -benchmem ./internal/httpapi/ -count=3

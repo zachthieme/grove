@@ -27,6 +27,8 @@ jobs:
         run: go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
       - name: Go coverage summary
         run: go tool cover -func=coverage.out | tail -1
+      - name: Per-package coverage floor
+        run: make coverage-check
       - name: Go benchmarks
         run: |
           go test -bench=. -benchmem ./internal/api/ -count=5 -benchtime=100ms | tee bench-current.txt
