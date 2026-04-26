@@ -130,6 +130,35 @@ describe('useVimNav', () => {
     expect(onAddProduct).toHaveBeenCalledWith(alice.id, 'Platform', 'Alpha')
   })
 
+  it('[VIM-002] o on a pod adds a person to that pod (regardless of pod size)', () => {
+    const onAddReport = vi.fn()
+    const onAddToTeam = vi.fn()
+    const alice = makePerson({ id: 'p1' })
+    // Two members already in the pod — earlier behavior no-op'd because resolvePersonIds returned 2.
+    const ic1 = makePerson({ id: 'ic1', managerId: 'p1', team: 'Platform', pod: 'Alpha' })
+    const ic2 = makePerson({ id: 'ic2', managerId: 'p1', team: 'Platform', pod: 'Alpha' })
+    const pods = [{ id: 'pod-1', managerId: 'p1', name: 'Alpha', team: 'Platform', publicNote: '' } as never]
+
+    renderHook(() =>
+      useVimNav({
+        working: [alice, ic1, ic2],
+        pods,
+        selectedId: 'pod:p1:Alpha',
+        onAddReport,
+        onAddToTeam,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'o' })
+
+    expect(onAddToTeam).toHaveBeenCalledTimes(1)
+    expect(onAddToTeam).toHaveBeenCalledWith('p1', 'Platform', 'Alpha')
+    expect(onAddReport).not.toHaveBeenCalled()
+  })
+
   it('[VIM-003] P on a pod adds a product to that pod', () => {
     const onAddProduct = vi.fn()
     const alice = makePerson({ id: 'p1' })

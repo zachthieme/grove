@@ -12,6 +12,7 @@ interface VimNavOptions {
   onDelete?: (id: string) => void
   onAddReport?: (id: string) => void
   onAddProduct?: (parentId: string, team?: string, podName?: string) => void
+  onAddToTeam?: (parentId: string, team: string, podName?: string) => void
   onAddParent?: (childId: string) => void
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
@@ -48,7 +49,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * Ctrl+A / Cmd+A — select all people
  * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, onAddReport, onAddProduct, onAddParent, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
 
@@ -93,6 +94,17 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
 
     switch (key) {
       case 'o': {
+        // Pod selection: collapseKey is "pod:managerId:podName" — add a person into the pod.
+        // (Mirrors the +◆ → P binding for products.)
+        if (selectedId.startsWith('pod:')) {
+          if (!onAddToTeam) break
+          const parts = selectedId.split(':')
+          const managerId = parts[1]
+          const podName = parts.slice(2).join(':')
+          const pod = pods.find(p => p.managerId === managerId && p.name === podName)
+          onAddToTeam(managerId, pod?.team ?? podName, podName)
+          break
+        }
         if (personIds.length !== 1) break
         const node = working.find(p => p.id === personIds[0])
         // On a product, create a sibling product (same parent + team + pod)
@@ -148,7 +160,7 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
         break
       }
     }
-  }, [selectedId, working, pods, onDelete, onAddReport, onAddProduct, onAddParent, move, reparent, cutIds])
+  }, [selectedId, working, pods, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, cutIds])
 
   useEffect(() => {
     if (!enabled) return
