@@ -1,0 +1,62 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import VimCheatSheet from './VimCheatSheet'
+
+// jest-dom isn't installed; getBy* already throws when missing, so the
+// presence assertions read as `screen.getBy* (must exist or throws)`.
+
+afterEach(() => {
+  cleanup()
+})
+
+// Scenarios: VIM-004
+describe('VimCheatSheet', () => {
+  it('renders all binding sections', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    // Section headers — getByText throws if missing.
+    expect(screen.getByText('Navigate')).toBeTruthy()
+    expect(screen.getByText('Add')).toBeTruthy()
+    expect(screen.getByText('Mutate')).toBeTruthy()
+    expect(screen.getByText('Selection')).toBeTruthy()
+    expect(screen.getByText('Help')).toBeTruthy()
+  })
+
+  it('shows the canonical bindings', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    // Spot-check one binding from each section.
+    expect(screen.getByText('h / ←')).toBeTruthy()
+    expect(screen.getByText('o')).toBeTruthy()
+    expect(screen.getByText('d')).toBeTruthy()
+    expect(screen.getByText('/')).toBeTruthy()
+    expect(screen.getByText('?')).toBeTruthy()
+  })
+
+  it('Close button calls onClose', () => {
+    const onClose = vi.fn()
+    render(<VimCheatSheet onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: /close/i }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('clicking the overlay calls onClose', () => {
+    const onClose = vi.fn()
+    render(<VimCheatSheet onClose={onClose} />)
+    fireEvent.click(screen.getByRole('dialog'))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('clicking inside the modal does NOT close', () => {
+    const onClose = vi.fn()
+    render(<VimCheatSheet onClose={onClose} />)
+    fireEvent.click(screen.getByText('Navigate'))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('Escape key closes', () => {
+    const onClose = vi.fn()
+    render(<VimCheatSheet onClose={onClose} />)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})

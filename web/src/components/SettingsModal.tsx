@@ -95,7 +95,7 @@ export default function SettingsModal({ onClose, vimMode, onToggleVimMode, theme
             onChange={(e) => onToggleVimMode?.(e.target.checked)}
           />
           <span>Vim navigation keys</span>
-          <span className={styles.hint} style={{ margin: 0 }}> — hjkl to navigate, o to add, x to delete</span>
+          <span className={styles.hint} style={{ margin: 0 }}> — hjkl to navigate, ? for full cheat sheet</span>
         </label>
 
         <div className={styles.actions}>

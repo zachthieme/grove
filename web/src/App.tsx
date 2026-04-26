@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import styles from './App.module.css'
 import { OrgProvider, useOrgData, useOrgMutations, useUI, useSelection } from './store/OrgContext'
 import { ViewDataProvider, useActions } from './store/ViewDataContext'
@@ -23,6 +23,7 @@ import ColumnMappingModal from './components/ColumnMappingModal'
 import ManagerInfoPopover from './components/ManagerInfoPopover'
 import LogPanel from './components/LogPanel'
 import ErrorBoundary from './components/ErrorBoundary'
+import VimCheatSheet from './components/VimCheatSheet'
 import ColumnView from './views/ColumnView'
 import ManagerView from './views/ManagerView'
 import TableView from './views/TableView'
@@ -200,9 +201,13 @@ function AppContent() {
   const clearHead = useCallback(() => setHead(null), [setHead])
   const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
 
+  const [cheatSheetOpen, setCheatSheetOpen] = useState(false)
+  const showCheatSheet = useCallback(() => setCheatSheetOpen(true), [])
+  const hideCheatSheet = useCallback(() => setCheatSheetOpen(false), [])
+
   const { cutIds, cancelCut } = useVimNav({
     working, pods, selectedId, selectedIds, batchSelect,
-    onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddToTeam: handleAddToTeam, onAddParent: handleAddParent, move, reparent,
+    onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddToTeam: handleAddToTeam, onAddParent: handleAddParent, onShowHelp: showCheatSheet, move, reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })
 
@@ -230,6 +235,7 @@ function AppContent() {
         snapshotExporting={snapshotExporting} snapshotProgress={snapshotProgress}
       />
       <AppOverlays logPanelOpen={logPanelOpen} setLogPanelOpen={setLogPanelOpen} />
+      {cheatSheetOpen && <VimCheatSheet onClose={hideCheatSheet} />}
     </div>
   )
 }

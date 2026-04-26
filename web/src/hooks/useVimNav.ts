@@ -15,6 +15,7 @@ interface VimNavOptions {
   onAddProduct?: (parentId: string, team?: string, podName?: string) => void
   onAddToTeam?: (parentId: string, team: string, podName?: string) => void
   onAddParent?: (childId: string) => void
+  onShowHelp?: () => void
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   enabled: boolean
@@ -50,7 +51,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * Ctrl+A / Cmd+A — select all people
  * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
 
@@ -210,6 +211,14 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         return
       }
 
+      // ? (Shift+/) opens the keyboard cheat sheet. Vim-convention,
+      // mirrors GitHub/Notion/Slack.
+      if (e.key === '?' && onShowHelp) {
+        e.preventDefault()
+        onShowHelp()
+        return
+      }
+
       switch (e.key) {
         case 'ArrowDown':
         case 'j':
@@ -239,7 +248,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working])
+  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp])
 
   return { cutIds, cancelCut }
 }
