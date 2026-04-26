@@ -1,0 +1,111 @@
+name: Flake Detector
+
+# Weekly: runs the Go race suite 10x and the frontend suite 5x to surface
+# map-iteration-order, time-based, and goroutine-scheduling flakes early.
+# Failure auto-files an issue tagged `flaky-test`.
+
+on:
+  schedule:
+    # Sundays 03:00 UTC — outside the nightly mutation slot at 06:00 UTC.
+    - cron: '0 3 * * 0'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  go-race:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build frontend (needed for go:embed)
+        run: cd web && npm ci && npm run build
+      - name: Go tests x10 with race
+        id: go-race
+        run: |
+          set -o pipefail
+          go test -race -count=10 ./... 2>&1 | tee go-flake.log
+      - name: Upload Go flake log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-flake-log
+          path: go-flake.log
+          retention-days: 30
+      - name: File flake issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              `Go race suite failed during weekly flake-detector run.`,
+              ``,
+              `**Workflow run**: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `**Commit**: ${context.sha}`,
+              `**Trigger**: ${context.eventName}`,
+              ``,
+              `Investigation: download the \`go-flake-log\` artifact from the run, identify the failing test, and reproduce locally with \`go test -race -count=10 -run <Name> ./<package>/\`.`,
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Flaky Go test detected (${new Date().toISOString().slice(0, 10)})`,
+              body,
+              labels: ['flaky-test', 'P0'],
+            });
+
+  frontend-repeat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: cd web && npm ci
+      - name: Vitest x5
+        id: vitest
+        run: |
+          set -o pipefail
+          cd web
+          for i in 1 2 3 4 5; do
+            echo "::group::vitest run $i"
+            npm test -- --run 2>&1 | tee -a ../vitest-flake.log
+            echo "::endgroup::"
+          done
+      - name: Upload vitest flake log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-flake-log
+          path: vitest-flake.log
+          retention-days: 30
+      - name: File flake issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              `Frontend test suite (vitest) failed during weekly flake-detector run.`,
+              ``,
+              `**Workflow run**: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `**Commit**: ${context.sha}`,
+              ``,
+              `Investigation: download the \`vitest-flake-log\` artifact, find the failing iteration, and reproduce with \`cd web && npm test -- --run <pattern>\`.`,
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Flaky frontend test detected (${new Date().toISOString().slice(0, 10)})`,
+              body,
+              labels: ['flaky-test', 'P0'],
+            });
