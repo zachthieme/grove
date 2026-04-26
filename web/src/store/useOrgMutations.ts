@@ -1,5 +1,5 @@
 import { useCallback, useMemo, type MutableRefObject } from 'react'
-import type { OrgNode, OrgNodeUpdatePayload, PodUpdatePayload, Settings } from '../api/types'
+import type { OrgNode, OrgNodeUpdatePayload, Pod, PodUpdatePayload, Settings } from '../api/types'
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
 import type { OrgDataState } from './OrgDataContext'
@@ -9,12 +9,13 @@ type SetState = React.Dispatch<React.SetStateAction<OrgDataState>>
 interface MutationDeps {
   setState: SetState
   workingRef: MutableRefObject<OrgNode[]>
+  podsRef: MutableRefObject<Pod[]>
   handleError: (err: unknown) => void
   setError: (msg: string | null) => void
   captureForUndo: () => void
 }
 
-export function useOrgMutations({ setState, workingRef, handleError, setError, captureForUndo }: MutationDeps) {
+export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handleError, setError, captureForUndo }: MutationDeps) {
   // Single dispatch helper for all mutations:
   //   1. Optionally capture undo before the call.
   //   2. Run the API call.

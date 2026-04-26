@@ -67,6 +67,8 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
   // Sync ref for callbacks that need latest working without re-binding (reparent).
   const workingRef = useRef(state.working)
   workingRef.current = state.working
+  const podsRef = useRef(state.pods)
+  podsRef.current = state.pods
 
   const { undoStack, redoStack, pushUndo, canUndo, canRedo, setUndoStack, setRedoStack } = useUndoRedo()
 
@@ -168,7 +170,7 @@ export function OrgDataProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pendingMapping: null }))
   }, [])
 
-  const mutations = useMutationCallbacks({ setState, workingRef, handleError, setError, captureForUndo })
+  const mutations = useMutationCallbacks({ setState, workingRef, podsRef, handleError, setError, captureForUndo })
 
   const { restoreAutosave, dismissAutosave } = useAutosaveActions({ setState })
   const { undo, redo } = useUndoRedoActions({ setState, undoStack, redoStack, setUndoStack, setRedoStack })
