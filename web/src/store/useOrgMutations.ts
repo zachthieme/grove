@@ -3,6 +3,7 @@ import type { OrgNode, OrgNodeUpdatePayload, Pod, PodUpdatePayload, Settings } f
 import { ORIGINAL_SNAPSHOT } from '../constants'
 import * as api from '../api/client'
 import type { OrgDataState } from './OrgDataContext'
+import { applyUpdate, applyMove, applyReorder } from './optimistic'
 
 type SetState = React.Dispatch<React.SetStateAction<OrgDataState>>
 
@@ -15,28 +16,42 @@ interface MutationDeps {
   captureForUndo: () => void
 }
 
-export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handleError, setError, captureForUndo }: MutationDeps) {
+export function useOrgMutations({ setState, workingRef, podsRef, handleError, setError, captureForUndo }: MutationDeps) {
   // Single dispatch helper for all mutations:
   //   1. Optionally capture undo before the call.
-  //   2. Run the API call.
-  //   3. Merge a state slice derived from the response.
-  //   4. Route any error through handleError.
+  //   2. Apply an optimistic patch synchronously (if provided), snapshotting pre-state from refs.
+  //   3. Run the API call.
+  //   4. Merge a state slice derived from the response (server truth on success).
+  //   5. On failure, revert to pre-mutation snapshot and route error through handleError.
   // Replaces a per-mutation try/catch + setState boilerplate.
   const dispatch = useCallback(
     async <T>(
       call: () => Promise<T>,
       apply: (result: T) => Partial<OrgDataState>,
-      opts: { undo?: boolean } = {},
+      opts: {
+        undo?: boolean
+        optimistic?: (s: OrgDataState) => Partial<OrgDataState>
+      } = {},
     ) => {
       if (opts.undo) captureForUndo()
+      const snapshot = opts.optimistic
+        ? { working: workingRef.current, pods: podsRef.current }
+        : null
+      if (opts.optimistic) {
+        const patch = opts.optimistic
+        setState((s) => ({ ...s, ...patch(s) }))
+      }
       try {
         const result = await call()
         setState((s) => ({ ...s, ...apply(result) }))
       } catch (err) {
+        if (snapshot) {
+          setState((s) => ({ ...s, working: snapshot.working, pods: snapshot.pods }))
+        }
         handleError(err)
       }
     },
-    [captureForUndo, handleError, setState],
+    [captureForUndo, handleError, setState, workingRef, podsRef],
   )
 
   const move = useCallback(
@@ -44,7 +59,10 @@ export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handl
       dispatch(
         () => api.moveNode({ personId, newManagerId, newTeam, newPod }, correlationId),
         (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
-        { undo: true },
+        {
+          undo: true,
+          optimistic: (s) => ({ working: applyMove(s.working, personId, newManagerId, newTeam, newPod) }),
+        },
       ),
     [dispatch],
   )
@@ -55,7 +73,10 @@ export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handl
         return dispatch(
           () => api.updateNode({ personId, fields: { managerId: '' } }, correlationId),
           (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
-          { undo: true },
+          {
+            undo: true,
+            optimistic: (s) => ({ working: applyUpdate(s.working, personId, { managerId: '' }) }),
+          },
         )
       }
       const newManager = workingRef.current.find((p) => p.id === newManagerId)
@@ -63,10 +84,14 @@ export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handl
         setError('Manager not found (may have been deleted)')
         return
       }
+      const newTeam = newManager.team
       return dispatch(
-        () => api.moveNode({ personId, newManagerId, newTeam: newManager.team }, correlationId),
+        () => api.moveNode({ personId, newManagerId, newTeam }, correlationId),
         (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
-        { undo: true },
+        {
+          undo: true,
+          optimistic: (s) => ({ working: applyMove(s.working, personId, newManagerId, newTeam) }),
+        },
       )
     },
     [dispatch, setError, workingRef],
@@ -77,7 +102,10 @@ export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handl
       dispatch(
         () => api.reorderPeople(personIds),
         (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
-        { undo: true },
+        {
+          undo: true,
+          optimistic: (s) => ({ working: applyReorder(s.working, personIds) }),
+        },
       ),
     [dispatch],
   )
@@ -87,7 +115,10 @@ export function useOrgMutations({ setState, workingRef, podsRef: _podsRef, handl
       dispatch(
         () => api.updateNode({ personId, fields }, correlationId),
         (resp) => ({ working: resp.working, pods: resp.pods, currentSnapshotName: null }),
-        { undo: true },
+        {
+          undo: true,
+          optimistic: (s) => ({ working: applyUpdate(s.working, personId, fields) }),
+        },
       ),
     [dispatch],
   )
