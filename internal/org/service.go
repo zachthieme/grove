@@ -319,7 +319,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 
 // --- snapshot delegations ---
 // Thin wrappers on *OrgService that forward to the embedded *snapshot.Service.
-// These satisfy the SnapshotOps interface in internal/api so that *OrgService
+// These satisfy the SnapshotOps interface in internal/httpapi so that *OrgService
 // can be wired directly into Services.Snaps without an adapter, and so that
 // existing tests calling svc.SaveSnapshot(...) etc. continue to work.
 

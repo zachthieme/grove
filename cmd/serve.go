@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/zachthieme/grove/internal/api"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/httpapi"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
@@ -42,9 +42,9 @@ func runServe(cmd *cobra.Command, args []string) error {
 	autoStore := autosave.NewFileStore()
 	mux := http.NewServeMux()
 
-	apiRouter := api.NewRouter(api.NewServices(svc), logBuf, autoStore)
+	apiRouter := httpapi.NewRouter(httpapi.NewServices(svc), logBuf, autoStore)
 	if logBuf != nil {
-		mux.Handle("/api/", api.LoggingMiddleware(logBuf)(apiRouter))
+		mux.Handle("/api/", httpapi.LoggingMiddleware(logBuf)(apiRouter))
 	} else {
 		mux.Handle("/api/", apiRouter)
 	}

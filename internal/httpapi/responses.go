@@ -1,4 +1,4 @@
-package api
+package httpapi
 
 import (
 	"github.com/zachthieme/grove/internal/apitypes"

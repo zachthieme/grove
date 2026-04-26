@@ -1,4 +1,4 @@
-package api
+package httpapi
 
 // Scenarios: CONTRACT-001, CONTRACT-013 — all tests in this file
 
@@ -45,7 +45,7 @@ func tsTypesSource(t *testing.T) string {
 			tsTypesErr = fmt.Errorf("could not resolve test file path")
 			return
 		}
-		// internal/api/contract_test.go -> repo root -> web/src/api/types.ts
+		// internal/httpapi/contract_test.go -> repo root -> web/src/api/types.ts
 		repoRoot := filepath.Join(filepath.Dir(file), "..", "..")
 		path := filepath.Join(repoRoot, "web", "src", "api", "types.ts")
 		data, err := os.ReadFile(path)

@@ -4,7 +4,7 @@
 //
 // Concurrency: Manager is NOT thread-safe. Callers (typically OrgService)
 // must hold an external lock around every method call. The previous
-// `unsafe*` method-name prefix in internal/api was a within-package mutex
+// `unsafe*` method-name prefix in the legacy internal/api package was a within-package mutex
 // contract; now that this lives across packages, the prefix is dropped and
 // the contract is enforced by callers.
 package pod

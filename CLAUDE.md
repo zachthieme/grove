@@ -21,7 +21,8 @@ make dev                        # Run Vite dev server + Go server concurrently
 make clean                      # Remove build artifacts
 cd web && npm run build          # Frontend only (TypeScript check + Vite)
 go test ./...                   # Run all Go tests
-go test ./internal/api/ -v      # Run API package tests
+go test ./internal/httpapi/ -v  # Run HTTP layer tests
+go test ./internal/org/ -v      # Run OrgService domain tests
 cd web && npm test               # Run frontend tests (vitest)
 ```
 
@@ -57,27 +58,19 @@ Copy the schema from an existing docs/scenarios/*.md file. Assign the next avail
 
 Single Go binary serving a React SPA via `go:embed`.
 
-### Go Backend (`internal/`)
+### Go Backend
 
-- `internal/api/model.go` — API types: `Person` (with UUID `Id`, `ManagerId`), `OrgData`, `UploadResponse` (with optional `Snapshots`), `SnapshotInfo`, `AutosaveData`, `MappedColumn`, `PendingUpload`
-- `internal/api/service.go` — `OrgService` struct definition, constructor, state queries (`GetOrg`, `GetWorking`, `GetOriginal`, `GetRecycled`, `ResetToOriginal`, `RestoreState`), bridge methods (`CaptureState`, `ApplyState`) returning `snapshot.OrgState`, and shared helpers. Holds `*snapshot.Service` reference; never holds `mu_snap` simultaneously with its own `mu`. Implements `snapshot.OrgStateProvider`.
-- `internal/api/validate.go` — All validation: `validateFieldLengths`, `validateNoteLen`, `validateManagerChange`, `wouldCreateCycle`, `findInSlice`, `isFrontlineManager`. Also defines typed errors (`ValidationError`, `NotFoundError`, `ConflictError`) for proper HTTP status mapping.
-- `internal/snapshot/service.go` — `snapshot.Service` struct: owns snapshot map + `snapshot.Store` under its own `sync.RWMutex`. Holds a `snapshot.OrgStateProvider` reference for `Save`/`Load` (which acquire `mu_org` outside `mu_snap`). `epoch uint64` race guard: `Clear`/`ReplaceAll` bump it; `Save` aborts with `*snapshot.ConflictError` if it advances mid-flight. Defines `snapshot.Clearer` interface used by `OrgService` to invalidate snapshots on Reset/Create/Upload. Also defines `snapshot.OrgState` (the bridge value type), `snapshot.Data` (in-memory + on-disk snapshot payload), `snapshot.Info` (HTTP-shape), and reserved-name constants `snapshot.Working`, `snapshot.Original`, `snapshot.ExportTemp`.
-- `internal/api/service_import.go` — Upload/import methods: `Upload`, `ConfirmMapping`
-- `internal/api/service_people.go` — People mutation methods: `Move`, `Update`, `Add`, `Delete`, `Restore`, `EmptyBin`, `Reorder`
-- `internal/api/service_pods.go` — Pod methods: `ListPods`, `UpdatePod`, `CreatePod`
-- `internal/api/service_settings.go` — Settings methods: `GetSettings`, `UpdateSettings`
-- `internal/api/snapshots_delegate.go` — Thin delegate methods on `*OrgService` (`SaveSnapshot`, `LoadSnapshot`, `DeleteSnapshot`, `ListSnapshots`, `ExportSnapshot`) that forward to `*snapshot.Service`, satisfying the `SnapshotOps` interface for the HTTP router.
-- `internal/snapshot/store.go` — `snapshot.Store` interface plus in-memory (`snapshot.MemoryStore`) and filesystem-backed (`snapshot.FileStore`) implementations.
-- `internal/snapshot/store_disk.go` — File persistence for snapshots to `~/.grove/snapshots.json`
-- `internal/api/zipimport.go` — ZIP upload: `parseZipFileList`, `parseZipEntries`, `UploadZip`. Numeric prefix convention (0=original, 1=working, 2+=snapshots).
-- `internal/api/handlers.go` — HTTP handlers and router (`NewRouter`). REST API at `/api/*`. Uses `serviceError()` to map typed errors to HTTP status codes (404, 409, 422). Generic `jsonHandler[Req, Resp]` eliminates boilerplate for decode→call→respond handlers.
-- `internal/api/autosave.go` — File persistence to `~/.grove/autosave.json`
-- `internal/api/infer.go` — Column inference: `InferMapping` (exact/synonym/fuzzy matching), `AllRequiredHigh` (only `name` is required)
-- `internal/api/convert.go` — Converts `model.Org` to API `[]Person` with UUIDs
-- `internal/api/export.go` — Serializes `[]Person` back to CSV/XLSX bytes
-- `internal/model/` — Core domain: `Person`, `Org`, `NewOrg` (validates fields, resolves managers, detects cycles). Duplicate names are allowed.
-- `internal/parser/` — CSV/XLSX parsing via `BuildPeople` and `BuildPeopleWithMapping`.
+The backend is split into 7 focused packages with strict downward dependencies (no cycles):
+
+- `internal/apitypes/types.go` — leaf package: shared DTO primitives (`OrgNode`, `Pod`, `Settings`, `OrgNodeUpdate`, `PodUpdate`, `PodInfo`, `MappedColumn`, `PendingUpload`).
+- `internal/logbuf/` — leaf package: log buffer + slog handler infrastructure (`LogBuffer`, `LogEntry`, `LogFilter`, `BufferHandler`, `MultiHandler`, `SlogWriter`, package logger via `Logger`/`SetLogger`).
+- `internal/autosave/` — depends on apitypes: `AutosaveData`, `AutosaveStore` interface plus `MemoryStore` and `FileStore` (persisting to `~/.grove/autosave.json`).
+- `internal/pod/` — depends on apitypes: `pod.Manager` (NOT thread-safe; caller-owned locking) plus pure helpers (`SeedPods`, `CleanupEmpty`, `Rename`, `Reassign`, `Copy`).
+- `internal/snapshot/` — depends on apitypes: `snapshot.Service` owns snapshot map + `snapshot.Store` under its own `sync.RWMutex`. Holds a `snapshot.OrgStateProvider` reference for `Save`/`Load`. `epoch uint64` race guard: `Clear`/`ReplaceAll` bump it; `Save` aborts with `*snapshot.ConflictError` if it advances mid-flight. Defines `snapshot.Clearer` (used by OrgService to invalidate snapshots on Reset/Create/Upload), `snapshot.OrgState` (bridge value type), `snapshot.Data`, `snapshot.Info`, and reserved-name constants `snapshot.Working`, `snapshot.Original`, `snapshot.ExportTemp`. `MemoryStore` + `FileStore` (persisting to `~/.grove/snapshots.json`).
+- `internal/org/` — depends on apitypes, snapshot, pod: the `OrgService` domain. Constructor `org.New(snapshot.Store)`. Files include service.go (state queries, bridge methods, snapshot delegations), service_people.go (`Move`, `Update`, `Add`, `AddParent`, `Delete`, `Restore`, `EmptyBin`, `Reorder`), service_pods.go (`ListPods`, `UpdatePod`, `CreatePod`, `GetPodExportData`), service_settings.go (`GetSettings`, `UpdateSettings`), service_import.go (`Upload`, `ConfirmMapping`, `UploadZip`), validate.go (typed errors `ValidationError`, `NotFoundError`, `ConflictError` plus the `ServiceError` HTTP mapper), convert.go, export.go, infer.go, zipimport.go. `*OrgService` implements `snapshot.OrgStateProvider`; never holds `mu_snap` simultaneously with its own `mu`.
+- `internal/httpapi/` — depends on all above: HTTP transport layer. router.go (`NewRouter`), handlers.go (all `handle*` functions, `jsonHandlerCtx` generic, `readUploadedFile`, `writeJSON`/`writeError`, `exportByFormat`, `limitBody`, `sanitizeFilename`), csrf.go (`csrfProtect`, `sameOriginOrAbsent`), middleware.go (`LoggingMiddleware` + `responseCapture` + log endpoints), services.go (`Services` struct + 6 role interfaces `NodeService`/`OrgStateService`/`SnapshotOps`/`ImportService`/`PodService`/`SettingsService` + `NewServices` ctor + compile-time assertions), responses.go (`WorkingResponse`, `AddResponse`, `MutationResponse`, `RecycledResponse`, `HealthResponse`, `ConfigResponse`), autosave_handlers.go.
+- `internal/model/` — core domain (`Person`, `Org`, `NewOrg`) — unchanged.
+- `internal/parser/` — CSV/XLSX parsing via `BuildPeople` and `BuildPeopleWithMapping` — unchanged.
 
 ### React Frontend (`web/`)
 
@@ -112,7 +105,7 @@ Single Go binary serving a React SPA via `go:embed`.
 
 - **Status types**: Active, Open, Transfer In, Transfer Out, Backfill, Planned — each gets different visual styling
 - **Manager detection**: A person is a manager if they have direct reports (role title matching removed)
-- **Snapshots**: Named save points for the working state, persisted to `~/.grove/snapshots.json`. "Original" resets to the initial import.
+- **Snapshots**: Named save points for the working state, persisted to `~/.grove/snapshots.json` by `internal/snapshot`. "Original" resets to the initial import.
 - **Autosave**: Debounced to localStorage + `~/.grove/autosave.json` after every mutation
 - **Diff mode**: Compares working vs original by stable UUID, annotates nodes with change type
 - **Column inference**: Three-tier matching (exact → synonym → fuzzy) on upload headers. Only `name` is required; other fields optional.

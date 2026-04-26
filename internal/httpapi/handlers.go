@@ -1,11 +1,10 @@
-package api
+package httpapi
 
 import (
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -16,109 +15,6 @@ import (
 	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
-
-func NewRouter(svcs Services, logBuf *logbuf.LogBuffer, autoStore autosave.AutosaveStore) http.Handler {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
-	})
-
-	mux.HandleFunc("POST /api/upload", handleUpload(svcs.Import))
-	mux.HandleFunc("POST /api/upload/confirm", handleConfirmMapping(svcs.Import))
-	mux.HandleFunc("POST /api/upload/zip", handleUploadZip(svcs.Import))
-	mux.HandleFunc("GET /api/org", handleGetOrg(svcs.Org))
-	mux.HandleFunc("POST /api/move", handleMove(svcs.People))
-	mux.HandleFunc("POST /api/update", handleUpdate(svcs.People))
-	mux.HandleFunc("POST /api/add", handleAdd(svcs.People))
-	mux.HandleFunc("POST /api/people/add-parent", handleAddParent(svcs.People))
-	mux.HandleFunc("POST /api/delete", handleDelete(svcs.People))
-	mux.HandleFunc("GET /api/recycled", handleGetRecycled(svcs.Org))
-	mux.HandleFunc("POST /api/restore", handleRestore(svcs.People))
-	mux.HandleFunc("POST /api/empty-bin", handleEmptyBin(svcs.People))
-	mux.HandleFunc("GET /api/export/pods-sidecar", handleExportPodsSidecar(svcs.Pods))
-	mux.HandleFunc("GET /api/export/snapshot", handleExportSnapshot(svcs.Snaps))
-	mux.HandleFunc("GET /api/export/{format}", handleExport(svcs.Org))
-
-	mux.HandleFunc("GET /api/snapshots", handleListSnapshots(svcs.Snaps))
-	mux.HandleFunc("POST /api/snapshots/save", handleSaveSnapshot(svcs.Snaps))
-	mux.HandleFunc("POST /api/snapshots/load", handleLoadSnapshot(svcs.Snaps))
-	mux.HandleFunc("POST /api/snapshots/delete", handleDeleteSnapshot(svcs.Snaps))
-
-	mux.HandleFunc("GET /api/pods", handleListPods(svcs.Pods))
-	mux.HandleFunc("POST /api/pods/update", handleUpdatePod(svcs.Pods))
-	mux.HandleFunc("POST /api/pods/create", handleCreatePod(svcs.Pods))
-
-	mux.HandleFunc("POST /api/reset", handleReset(svcs.Org))
-	mux.HandleFunc("POST /api/create", handleCreate(svcs.Org))
-	mux.HandleFunc("POST /api/reorder", handleReorder(svcs.People))
-
-	mux.HandleFunc("GET /api/settings", handleGetSettings(svcs.Settings))
-	mux.HandleFunc("POST /api/settings", handleUpdateSettings(svcs.Settings))
-	mux.HandleFunc("GET /api/export/settings-sidecar", handleExportSettingsSidecar(svcs.Settings))
-
-	mux.HandleFunc("POST /api/restore-state", handleRestoreState(svcs.Org))
-	mux.HandleFunc("POST /api/autosave", handleWriteAutosave(autoStore))
-	mux.HandleFunc("GET /api/autosave", handleReadAutosave(autoStore))
-	mux.HandleFunc("DELETE /api/autosave", handleDeleteAutosave(autoStore))
-
-	// Config endpoint — always registered
-	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, ConfigResponse{Logging: logBuf != nil})
-	})
-
-	// Log endpoints — only when logging is enabled
-	if logBuf != nil {
-		mux.HandleFunc("GET /api/logs", handleGetLogs(logBuf))
-		mux.HandleFunc("POST /api/logs", handlePostLog(logBuf))
-		mux.HandleFunc("DELETE /api/logs", handleDeleteLogs(logBuf))
-	}
-
-	return csrfProtect(mux)
-}
-
-// csrfProtect guards POST and DELETE with a layered defence:
-//  1. X-Requested-With must be present. Browsers don't add custom headers on
-//     cross-origin form/img/script submissions, so simple-request CSRF is blocked.
-//  2. If Origin or Referer is present, its host must equal r.Host. Modern
-//     browsers always send Origin on POST, so a fetch-from-evil.com attack is
-//     rejected even if it sets the XHR header.
-//
-// Non-browser clients (curl, tests) typically omit Origin/Referer and pass
-// step 1 alone — acceptable because they aren't subject to CSRF.
-func csrfProtect(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost || r.Method == http.MethodDelete {
-			if r.Header.Get("X-Requested-With") == "" {
-				writeError(w, http.StatusForbidden, "missing X-Requested-With header")
-				return
-			}
-			if !sameOriginOrAbsent(r) {
-				writeError(w, http.StatusForbidden, "origin mismatch")
-				return
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// sameOriginOrAbsent returns true if the request's Origin/Referer host matches
-// r.Host, or if neither header is present. An unparseable Origin/Referer is
-// treated as a mismatch.
-func sameOriginOrAbsent(r *http.Request) bool {
-	for _, h := range []string{"Origin", "Referer"} {
-		raw := r.Header.Get(h)
-		if raw == "" {
-			continue
-		}
-		u, err := url.Parse(raw)
-		if err != nil || u.Host == "" {
-			return false
-		}
-		return u.Host == r.Host
-	}
-	return true
-}
 
 // readUploadedFile pulls the "file" form field from a multipart request,
 // applying the upload size limit. Returns the file bytes and original filename,

@@ -33,19 +33,19 @@ cover:
 	cd web && npm test -- --coverage
 
 bench:
-	go test -bench=. -benchmem ./internal/api/ -count=3
+	go test -bench=. -benchmem ./internal/httpapi/ -count=3
 
 fuzz:
 	@echo "Running fuzz tests (5s each)..."
-	go test -fuzz=FuzzInferMapping -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzCSVUpload -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzAllRequiredHigh -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzAllRequiredHighMultiField -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzUpdateFields -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzSanitizeCell -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzZipUpload -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzParseZipFileList -fuzztime=5s ./internal/api/
-	go test -fuzz=FuzzWouldCreateCycle -fuzztime=5s ./internal/api/
+	go test -fuzz=FuzzInferMapping -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzCSVUpload -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzAllRequiredHigh -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzAllRequiredHighMultiField -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzUpdateFields -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzSanitizeCell -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzZipUpload -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzParseZipFileList -fuzztime=5s ./internal/org/
+	go test -fuzz=FuzzWouldCreateCycle -fuzztime=5s ./internal/org/
 
 mutate:
 	cd web && npx stryker run

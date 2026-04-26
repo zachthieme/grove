@@ -1,4 +1,4 @@
-package api
+package httpapi
 
 // Scenarios: CONTRACT-005 — all tests in this file
 

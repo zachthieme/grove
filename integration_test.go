@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zachthieme/grove/internal/api"
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/httpapi"
 	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
@@ -120,7 +120,7 @@ func TestIntegration_PodWorkflow(t *testing.T) {
 	// Create a pod under Alice
 	body := postJSON(t, handler, "/api/pods/create",
 		fmt.Sprintf(`{"managerId":"%s","name":"Alpha","team":"Platform"}`, alice.Id), 200)
-	var workResp api.WorkingResponse
+	var workResp httpapi.WorkingResponse
 	if err := json.Unmarshal(body, &workResp); err != nil {
 		t.Fatalf("decode create pod: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestIntegration_ErrorResponses(t *testing.T) {
 
 	// Export with no data loaded → use fresh service
 	freshSvc := org.New(snapshot.NewMemoryStore())
-	freshHandler := api.NewRouter(api.NewServices(freshSvc), nil, autosave.NewMemoryStore())
+	freshHandler := httpapi.NewRouter(httpapi.NewServices(freshSvc), nil, autosave.NewMemoryStore())
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/api/export/csv", nil)
 	freshHandler.ServeHTTP(rec, req)
@@ -225,7 +225,7 @@ func TestIntegration_CycleDetection(t *testing.T) {
 func uploadTestCSV(t *testing.T) (handler http.Handler, data *org.OrgData) {
 	t.Helper()
 	svc := org.New(snapshot.NewMemoryStore())
-	handler = api.NewRouter(api.NewServices(svc), nil, autosave.NewMemoryStore())
+	handler = httpapi.NewRouter(httpapi.NewServices(svc), nil, autosave.NewMemoryStore())
 
 	csvData, err := os.ReadFile("testdata/simple.csv")
 	if err != nil {
