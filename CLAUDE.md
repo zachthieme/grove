@@ -89,7 +89,11 @@ The backend is split into 7 focused packages with strict downward dependencies (
 - `web/src/views/ColumnView.tsx` — Detail view: recursive tree with managers horizontal, ICs stacked vertical
 - `web/src/views/ManagerView.tsx` — Manager-only view: managers as nodes, ICs as summary cards
 - `web/src/views/shared.tsx` — Shared `DraggableNode`, `OrgNode`, `buildOrgTree`
-- `web/src/views/layoutTree.ts` — Unified layout computation: `computeLayoutTree` transforms OrgNode trees into LayoutNode trees (manager affinity reordering, cross-team IC placement, pod/team grouping, orphan grouping, collapse key construction)
+- `web/src/views/layoutTree.ts` — Layout pipeline entry: `computeLayoutTree` and `buildManagerLayout` compose the helpers below into LayoutNode trees consumed by ColumnView/ManagerView. Re-exports types so consumers keep importing from `./layoutTree`.
+- `web/src/views/layoutTypes.ts` — `LayoutNode` discriminated union + member types (`ManagerLayout`, `ICLayout`, `PodGroupLayout`, `TeamGroupLayout`, `ProductGroupLayout`, `ProductLayout`, `Affiliation`).
+- `web/src/views/layoutAffinity.ts` — `reorderManagersByAffinity` keeps managers sharing cross-team ICs adjacent so cross-team edges stay short.
+- `web/src/views/layoutICs.ts` — IC classification: `classifyICs`/`groupUnaffiliated`/`classifyAffiliation`/`buildICLayout`.
+- `web/src/views/layoutOrphans.ts` — `buildOrphanGroups` for top-level nodes with no children (team groups + products group).
 - `web/src/components/PersonNode.tsx` — Person card with status styling, hover actions (+/edit/delete/info)
 - `web/src/components/DetailSidebar.tsx` — Edit form with manager dropdown, status info popover
 - `web/src/components/ColumnMappingModal.tsx` — Column mapping UI for non-standard CSV headers
