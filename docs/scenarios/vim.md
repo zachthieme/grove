@@ -189,3 +189,26 @@ Bare `u` undoes the last mutation. `Ctrl+R` redoes (vim convention). Both delega
 ## Edge cases
 - `Ctrl+R` would normally reload the browser — `e.preventDefault()` suppresses the reload when vim is on; if vim is off, the effect doesn't register the listener and the browser's reload still happens.
 - `Cmd+R` on macOS is the browser reload too; we intentionally do **not** intercept Cmd+R for redo, since `Cmd+Shift+Z` already serves redo and stealing Cmd+R would be jarring.
+
+---
+
+# Scenario: Focus subtree — `f`
+
+**ID**: VIM-010
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-010]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-010]"
+
+## Behavior
+Pressing `f` while a person is selected sets that person as the chart "head" — the chart filters down to that person's subtree (existing setHead/headPersonId machinery in UIContext). Esc clears the head via the existing useUnifiedEscape priority order.
+
+## Invariants
+- `f` calls `onSetHead(selectedId)` only when selectedId is a real person id (no `:` in the key).
+- `f` with no selection or with a synthetic group key (`pod:`, `team:`, `products:`) is a no-op.
+- Esc clears the head as today; no new clearing key is added.
+- App wires `onSetHead: setHead` from `useUI()`.
+
+## Edge cases
+- Pressing `f` when already focused on the same person → setHead replays with the same id (idempotent; UIContext handles the no-op).
+- `f` while focused on an input → bails (existing INPUT/SELECT/TEXTAREA skip).

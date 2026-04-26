@@ -29,6 +29,7 @@ const SECTIONS: Section[] = [
       { keys: 'gg', desc: 'Jump to root manager' },
       { keys: 'G', desc: 'Jump to deepest leaf in current subtree' },
       { keys: 'gp', desc: 'Jump to parent of selection' },
+      { keys: 'f', desc: 'Focus chart on selected subtree (Esc to clear)' },
     ],
   },
   {

@@ -20,6 +20,7 @@ interface VimNavOptions {
   onRedo?: () => void
   canUndo?: boolean
   canRedo?: boolean
+  onSetHead?: (id: string) => void
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   enabled: boolean
@@ -120,9 +121,10 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * Ctrl+A / Cmd+A — select all people
  * u    — undo last mutation (delegates to onUndo)
  * Ctrl+R — redo last undone mutation (delegates to onRedo)
- * Esc  — cancel cut / deselect
+ * f    — focus chart on selected person's subtree (set head)
+ * Esc  — cancel cut / clear selection / clear head
  */
-export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, onSetHead, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
 
@@ -369,6 +371,17 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         return
       }
 
+      // 'f' = focus chart on the selected person's subtree (set head).
+      // Synthetic group keys (pod:/team:/products:) and empty selection
+      // are no-ops — head requires a real person id.
+      if (e.key === 'f') {
+        e.preventDefault()
+        if (onSetHead && selectedId && !selectedId.includes(':')) {
+          onSetHead(selectedId)
+        }
+        return
+      }
+
       if (e.key === 'i' && selectedId) {
         const sidebarInput = document.querySelector<HTMLElement>('aside input, aside select, aside textarea')
         if (sidebarInput) {
@@ -442,7 +455,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       document.removeEventListener('keydown', handler)
       cancelGPending()
     }
-  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, onUndo, onRedo, canUndo, canRedo])
+  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, onUndo, onRedo, canUndo, canRedo, onSetHead])
 
   return { cutIds, cancelCut }
 }

@@ -56,6 +56,12 @@ describe('VimCheatSheet', () => {
     expect(screen.getByText(/Redo last undone mutation/i)).toBeTruthy()
   })
 
+  it('[VIM-010] lists f focus-subtree binding', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('f')).toBeTruthy()
+    expect(screen.getByText(/Focus chart on selected subtree/i)).toBeTruthy()
+  })
+
   it('Close button calls onClose', () => {
     const onClose = vi.fn()
     render(<VimCheatSheet onClose={onClose} />)

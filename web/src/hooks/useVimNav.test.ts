@@ -311,6 +311,71 @@ describe('useVimNav', () => {
   })
 })
 
+describe('useVimNav f focus subtree', () => {
+  afterEach(() => cleanup())
+
+  it('[VIM-010] f on a selected person sets head to that person', () => {
+    const onSetHead = vi.fn()
+    const ceo = makePerson({ id: 'p1' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [ceo],
+        pods: [],
+        selectedId: 'p1',
+        onSetHead,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'f' })
+
+    expect(onSetHead).toHaveBeenCalledTimes(1)
+    expect(onSetHead).toHaveBeenCalledWith('p1')
+  })
+
+  it('[VIM-010] f with no selection is a no-op', () => {
+    const onSetHead = vi.fn()
+    renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        onSetHead,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'f' })
+
+    expect(onSetHead).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-010] f on a synthetic group key (pod:/team:) is a no-op', () => {
+    const onSetHead = vi.fn()
+    const ceo = makePerson({ id: 'p1' })
+    renderHook(() =>
+      useVimNav({
+        working: [ceo],
+        pods: [],
+        selectedId: 'pod:p1:Alpha',
+        onSetHead,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'f' })
+
+    expect(onSetHead).not.toHaveBeenCalled()
+  })
+})
+
 describe('useVimNav undo/redo', () => {
   afterEach(() => cleanup())
 

@@ -209,6 +209,7 @@ function AppContent() {
     working, pods, selectedId, selectedIds, batchSelect,
     onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddToTeam: handleAddToTeam, onAddParent: handleAddParent, onShowHelp: showCheatSheet,
     onUndo: undo, onRedo: redo, canUndo, canRedo,
+    onSetHead: setHead,
     move, reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })
