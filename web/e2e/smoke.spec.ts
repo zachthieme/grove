@@ -57,7 +57,8 @@ test.describe('Smoke tests', () => {
     await clickPerson(page, 'Carol')
     await expect(page.locator('[data-testid="sidebar-heading"]')).toBeVisible()
     await enterSidebarEdit(page)
-    await page.getByRole('button', { name: 'Delete' }).click()
+    // Scope to sidebar to disambiguate from the node-card hover action also named "Delete".
+    await page.locator('aside').getByRole('button', { name: 'Delete' }).click()
     await expect(page.locator('[data-testid="person-Carol"]')).toHaveCount(0)
     await page.getByRole('button', { name: /Recycle bin/ }).click()
     await expect(page.locator('[data-testid="recycle-bin-drawer"]')).toBeVisible()

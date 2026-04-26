@@ -90,7 +90,8 @@ test.describe('Negative scenarios', () => {
     })
 
     await enterSidebarEdit(page)
-    await page.getByRole('button', { name: 'Delete' }).click()
+    // Scope to sidebar to disambiguate from the node-card hover action also named "Delete".
+    await page.locator('aside').getByRole('button', { name: 'Delete' }).click()
 
     // Wait a moment for any async processing
     await page.waitForTimeout(500)
