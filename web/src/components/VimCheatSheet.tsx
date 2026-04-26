@@ -46,6 +46,8 @@ const SECTIONS: Section[] = [
       { keys: 'd', desc: 'Delete selection (sends to recycle bin)' },
       { keys: 'x', desc: 'Cut selection (mark for move)' },
       { keys: 'p', desc: 'Paste cut nodes under selection' },
+      { keys: 'u', desc: 'Undo last mutation' },
+      { keys: 'Ctrl+R', desc: 'Redo last undone mutation' },
     ],
   },
   {

@@ -16,6 +16,10 @@ interface VimNavOptions {
   onAddToTeam?: (parentId: string, team: string, podName?: string) => void
   onAddParent?: (childId: string) => void
   onShowHelp?: () => void
+  onUndo?: () => void
+  onRedo?: () => void
+  canUndo?: boolean
+  canRedo?: boolean
   move: (personId: string, newManagerId: string, newTeam: string, correlationId?: string, newPod?: string) => Promise<void>
   reparent: (personId: string, newManagerId: string, correlationId?: string) => Promise<void>
   enabled: boolean
@@ -114,9 +118,11 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * p    — paste (move cut people under selected target)
  * /    — focus search
  * Ctrl+A / Cmd+A — select all people
+ * u    — undo last mutation (delegates to onUndo)
+ * Ctrl+R — redo last undone mutation (delegates to onRedo)
  * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
 
@@ -323,6 +329,15 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         return
       }
 
+      // Ctrl+R = vim redo. Browser bare F5/Ctrl+R reload still works because
+      // we only intercept when vim mode is enabled (this whole effect is
+      // gated on `enabled`).
+      if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'r') {
+        e.preventDefault()
+        if (canRedo && onRedo) onRedo()
+        return
+      }
+
       if (e.metaKey || e.ctrlKey || e.altKey) return
 
       // Two-key sequences anchored on `g`. Resolve before falling into the
@@ -344,6 +359,14 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         }
         // Any other key cancels the prefix and falls through to normal handling.
         cancelGPending()
+      }
+
+      // Bare 'u' = undo (vim convention). Ctrl+R for redo handled above
+      // because it carries a modifier.
+      if (e.key === 'u') {
+        e.preventDefault()
+        if (canUndo && onUndo) onUndo()
+        return
       }
 
       if (e.key === 'i' && selectedId) {
@@ -419,7 +442,7 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       document.removeEventListener('keydown', handler)
       cancelGPending()
     }
-  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending])
+  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, onUndo, onRedo, canUndo, canRedo])
 
   return { cutIds, cancelCut }
 }

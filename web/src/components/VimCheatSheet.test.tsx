@@ -48,6 +48,14 @@ describe('VimCheatSheet', () => {
     expect(screen.getByText(/parent of selection/i)).toBeTruthy()
   })
 
+  it('[VIM-009] lists u / Ctrl+R undo / redo bindings', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('u')).toBeTruthy()
+    expect(screen.getByText(/Undo last mutation/i)).toBeTruthy()
+    expect(screen.getByText('Ctrl+R')).toBeTruthy()
+    expect(screen.getByText(/Redo last undone mutation/i)).toBeTruthy()
+  })
+
   it('Close button calls onClose', () => {
     const onClose = vi.fn()
     render(<VimCheatSheet onClose={onClose} />)

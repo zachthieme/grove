@@ -166,3 +166,26 @@ Three keybindings for moving along the org tree (in addition to spatial `h`/`j`/
 - `gp` on the root or with no selection → no-op.
 - Prefix timeout (500 ms) silently expires — no error, just clears state.
 - `g` while focused on an input → bails (existing INPUT/SELECT/TEXTAREA skip), prefix never starts.
+
+---
+
+# Scenario: Undo / Redo — `u` and `Ctrl+R`
+
+**ID**: VIM-009
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-009]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-009]"
+
+## Behavior
+Bare `u` undoes the last mutation. `Ctrl+R` redoes (vim convention). Both delegate to the existing `undo`/`redo` from `useOrgMutations` and gate on `canUndo`/`canRedo`. Cmd+Z / Cmd+Shift+Z continue to work via `useUndoRedoKeys` so mac users keep their habits.
+
+## Invariants
+- `u` calls `onUndo` only when `canUndo` is true; otherwise no-op.
+- `Ctrl+R` calls `onRedo` only when `canRedo` is true; otherwise no-op.
+- Both bindings are gated on `enabled` (the vim-mode flag) — the hook's effect short-circuits when off.
+- Inputs (INPUT/SELECT/TEXTAREA, contentEditable) skip vim handling, so `u` typed into the name field doesn't undo the org.
+
+## Edge cases
+- `Ctrl+R` would normally reload the browser — `e.preventDefault()` suppresses the reload when vim is on; if vim is off, the effect doesn't register the listener and the browser's reload still happens.
+- `Cmd+R` on macOS is the browser reload too; we intentionally do **not** intercept Cmd+R for redo, since `Cmd+Shift+Z` already serves redo and stealing Cmd+R would be jarring.

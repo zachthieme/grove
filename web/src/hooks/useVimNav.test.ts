@@ -311,6 +311,124 @@ describe('useVimNav', () => {
   })
 })
 
+describe('useVimNav undo/redo', () => {
+  afterEach(() => cleanup())
+
+  it('[VIM-009] u calls onUndo when canUndo is true', () => {
+    const onUndo = vi.fn()
+    const onRedo = vi.fn()
+    const ceo = makePerson({ id: 'p1' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [ceo],
+        pods: [],
+        selectedId: 'p1',
+        onUndo,
+        onRedo,
+        canUndo: true,
+        canRedo: false,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'u' })
+
+    expect(onUndo).toHaveBeenCalledTimes(1)
+    expect(onRedo).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-009] u is a no-op when canUndo is false', () => {
+    const onUndo = vi.fn()
+    renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        onUndo,
+        canUndo: false,
+        canRedo: false,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'u' })
+
+    expect(onUndo).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-009] Ctrl+R calls onRedo when canRedo is true', () => {
+    const onRedo = vi.fn()
+    renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        onRedo,
+        canUndo: false,
+        canRedo: true,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'r', ctrlKey: true })
+
+    expect(onRedo).toHaveBeenCalledTimes(1)
+  })
+
+  it('[VIM-009] Ctrl+R is a no-op when canRedo is false', () => {
+    const onRedo = vi.fn()
+    renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        onRedo,
+        canUndo: false,
+        canRedo: false,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'r', ctrlKey: true })
+
+    expect(onRedo).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-009] u in an input is ignored (vim handler skips inputs)', () => {
+    const onUndo = vi.fn()
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+
+    renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        onUndo,
+        canUndo: true,
+        canRedo: false,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(input, { key: 'u' })
+
+    expect(onUndo).not.toHaveBeenCalled()
+    document.body.removeChild(input)
+  })
+})
+
 describe('findRootPerson', () => {
   it('[VIM-008] returns the first person with empty managerId', () => {
     const ceo = { id: 'ceo', managerId: '' } as OrgNode
