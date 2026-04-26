@@ -24,8 +24,8 @@ test.describe('integration flow', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
 
     // Step 3: Verify autosave fires (server-side) — await the promise we set up before the edit
     const autosaveReq = await autosavePromise
@@ -54,8 +54,8 @@ test.describe('integration flow', () => {
     const roleInput2 = sidebarField(page, 'role')
     await roleInput2.clear()
     await roleInput2.fill('Principal Engineer')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
     // Confirm the edit is visible on the chart
     await expect(page.locator('[data-selected]').filter({ hasText: 'Principal Engineer' })).toBeVisible()
 

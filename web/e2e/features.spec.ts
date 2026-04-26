@@ -9,7 +9,12 @@ const __dirname = path.dirname(__filename)
 test.describe('Feature tests', () => {
 
   test.beforeEach(async ({ page }) => {
+    // Clear server + local autosave so the recovery banner does not appear in the
+    // toolbar (its "Restore" / "Dismiss" buttons fuzz-match the sidebar Save button
+    // via getByRole's substring matcher and cause strict-mode locator failures).
+    await page.request.delete('/api/autosave').catch(() => {})
     await page.goto('/')
+    await page.evaluate(() => localStorage.removeItem('grove-autosave'))
   })
 
   test('[ORG-001] drag-and-drop reparent', async ({ page }) => {
@@ -42,8 +47,8 @@ test.describe('Feature tests', () => {
     const podInput = sidebarField(page, 'pod')
     await podInput.clear()
     await podInput.fill('NewPod')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.locator('[data-role="chart-container"]').locator('text=NewPod')).toBeVisible()
   })
@@ -55,8 +60,8 @@ test.describe('Feature tests', () => {
     const podInput = sidebarField(page, 'pod')
     await podInput.clear()
     await podInput.fill('TestPod')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.locator('text=TestPod').first()).toBeVisible()
     const podHeader = page.locator('text=TestPod').first()
@@ -88,8 +93,8 @@ test.describe('Feature tests', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Changed Title')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Diff', exact: true }).click()
     const bobCard = page.locator('[data-selected]').filter({ hasText: 'Bob' })
@@ -102,14 +107,14 @@ test.describe('Feature tests', () => {
     await uploadCSV(page, 'ddp-org.csv')
     const initialCount = await page.locator('[data-selected]').count()
     expect(initialCount).toBeGreaterThan(5)
-    await page.getByRole('button', { name: 'Employment type filter' }).click()
+    await page.getByRole('button', { name: 'Filters' }).click()
     await page.getByRole('button', { name: 'Hide All' }).click()
     await page.getByRole('main').click({ position: { x: 50, y: 50 } })
     // Wait for filter to take effect
     await expect(page.locator('[data-selected]')).not.toHaveCount(initialCount)
     const hiddenCount = await page.locator('[data-selected]').count()
     expect(hiddenCount).toBeLessThan(initialCount)
-    await page.getByRole('button', { name: 'Employment type filter' }).click()
+    await page.getByRole('button', { name: 'Filters' }).click()
     await page.getByRole('button', { name: 'Show All' }).click()
     await page.getByRole('main').click({ position: { x: 50, y: 50 } })
     await expect(page.locator('[data-selected]')).toHaveCount(initialCount)
@@ -121,8 +126,8 @@ test.describe('Feature tests', () => {
     await enterSidebarEdit(page)
     const noteField = sidebarField(page, 'publicNote')
     await noteField.fill('This is a test note')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     const noteIcon = page.getByLabel('Toggle notes')
     await expect(noteIcon).toBeVisible()
@@ -137,7 +142,9 @@ test.describe('Feature tests', () => {
     await switchView(page, 'Table')
     const initialRows = await page.locator('tbody tr').count()
     await page.evaluate(() => {
-      (navigator.clipboard as any).readText = () => Promise.resolve('NewPerson,Tester,Engineering')
+      // Columns: Name, Type, Role, Discipline, ... — leave Type empty so the server
+      // accepts the row as a default-typed person. (Products feature added the Type column.)
+      (navigator.clipboard as any).readText = () => Promise.resolve('NewPerson,,Tester,Engineering')
     })
     await page.getByRole('button', { name: 'Paste' }).click()
     // Wait for the new row to appear
@@ -182,8 +189,8 @@ test.describe('Feature tests', () => {
     const teamInput = sidebarField(page, 'team')
     await teamInput.clear()
     await teamInput.fill('NewTeam')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await switchView(page, 'Table')
     const carolRow = page.locator('tbody tr').filter({ hasText: 'Carol' })

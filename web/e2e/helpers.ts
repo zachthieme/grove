@@ -64,12 +64,12 @@ export function sidebarField(page: Page, field: string) {
 }
 
 /**
- * Click the Edit button in the sidebar to enter edit mode.
- * The sidebar defaults to view mode; call this before accessing form fields.
+ * No-op shim retained for compatibility with existing tests.
+ * The sidebar is always editable as of v0.13.0 (commit 7cf20c6) — there is no
+ * separate Edit button. Form fields are accessible immediately after selection.
  */
-export async function enterSidebarEdit(page: Page) {
-  const editBtn = page.locator('aside button:has-text("Edit")')
-  await editBtn.click()
+export async function enterSidebarEdit(_page: Page) {
+  // intentionally empty
 }
 
 export async function lassoSelect(page: Page, startX: number, startY: number, endX: number, endY: number) {

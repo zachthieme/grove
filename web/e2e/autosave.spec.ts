@@ -32,8 +32,8 @@ test.describe('Autosave recovery', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
 
     // Wait for the debounced autosave to fire (2s debounce + network time)
     const req = await autosaveRequest
@@ -59,8 +59,8 @@ test.describe('Autosave recovery', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Principal Engineer')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
 
     // Wait for autosave to persist (debounce is 2s)
     const autosaveRequest = page.waitForRequest(
@@ -99,8 +99,8 @@ test.describe('Autosave recovery', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Distinguished Engineer')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
 
     // Wait for autosave to persist to server
     const autosaveRequest = page.waitForRequest(
@@ -137,8 +137,8 @@ test.describe('Autosave recovery', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Staff Engineer')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
 
     // Wait for autosave to persist
     const autosaveRequest = page.waitForRequest(
@@ -181,8 +181,8 @@ test.describe('Autosave recovery', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Tech Lead')
-    await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).toBeVisible()
 
     // Wait for autosave
     await page.waitForRequest(

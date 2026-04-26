@@ -64,10 +64,10 @@ test.describe('Negative scenarios', () => {
     const roleInput = sidebarField(page, 'role')
     await roleInput.clear()
     await roleInput.fill('Broken Role')
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
 
     // Should NOT show "Saved!" since the server returned an error
-    await expect(page.getByRole('button', { name: 'Saved!' })).not.toBeVisible({ timeout: 3000 })
+    await expect(page.getByRole('button', { name: 'Saved!', exact: true })).not.toBeVisible({ timeout: 3000 })
 
     // All people should still be visible (no data loss)
     await expect(page.locator('[data-selected]').filter({ hasText: 'Alice' })).toBeVisible()
