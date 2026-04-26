@@ -311,6 +311,110 @@ describe('useVimNav', () => {
   })
 })
 
+describe('useVimNav za toggle fold', () => {
+  afterEach(() => {
+    cleanup()
+    document.body.innerHTML = ''
+  })
+
+  function mountChartDomWithToggle(personId: string): ReturnType<typeof vi.fn> {
+    const wrapper = document.createElement('div')
+    wrapper.setAttribute('data-person-id', personId)
+    const card = document.createElement('button')
+    card.setAttribute('role', 'button')
+    wrapper.appendChild(card)
+    const toggle = document.createElement('button')
+    toggle.setAttribute('data-collapse-toggle', '')
+    const onClick = vi.fn()
+    toggle.addEventListener('click', onClick)
+    wrapper.appendChild(toggle)
+    document.body.appendChild(wrapper)
+    return onClick
+  }
+
+  it('[VIM-011] za on a manager clicks the collapse toggle on that manager', () => {
+    const ceo = makePerson({ id: 'mgr1' })
+    const click = mountChartDomWithToggle('mgr1')
+
+    renderHook(() =>
+      useVimNav({
+        working: [ceo],
+        pods: [],
+        selectedId: 'mgr1',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'z' })
+    fireEvent.keyDown(document, { key: 'a' })
+
+    expect(click).toHaveBeenCalledTimes(1)
+  })
+
+  it('[VIM-011] za on a pod collapseKey clicks the pod toggle', () => {
+    const ceo = makePerson({ id: 'mgr1' })
+    const click = mountChartDomWithToggle('pod:mgr1:Alpha')
+
+    renderHook(() =>
+      useVimNav({
+        working: [ceo],
+        pods: [],
+        selectedId: 'pod:mgr1:Alpha',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'z' })
+    fireEvent.keyDown(document, { key: 'a' })
+
+    expect(click).toHaveBeenCalledTimes(1)
+  })
+
+  it('[VIM-011] z followed by a non-a key cancels the prefix', () => {
+    const ceo = makePerson({ id: 'mgr1' })
+    const click = mountChartDomWithToggle('mgr1')
+
+    renderHook(() =>
+      useVimNav({
+        working: [ceo],
+        pods: [],
+        selectedId: 'mgr1',
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'z' })
+    fireEvent.keyDown(document, { key: 'q' })
+
+    expect(click).not.toHaveBeenCalled()
+  })
+
+  it('[VIM-011] za with no selection is a no-op', () => {
+    const click = mountChartDomWithToggle('mgr1')
+    renderHook(() =>
+      useVimNav({
+        working: [],
+        pods: [],
+        selectedId: null,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'z' })
+    fireEvent.keyDown(document, { key: 'a' })
+
+    expect(click).not.toHaveBeenCalled()
+  })
+})
+
 describe('useVimNav f focus subtree', () => {
   afterEach(() => cleanup())
 

@@ -30,6 +30,7 @@ const SECTIONS: Section[] = [
       { keys: 'G', desc: 'Jump to deepest leaf in current subtree' },
       { keys: 'gp', desc: 'Jump to parent of selection' },
       { keys: 'f', desc: 'Focus chart on selected subtree (Esc to clear)' },
+      { keys: 'za', desc: 'Toggle fold (collapse/expand) on selected manager or pod' },
     ],
   },
   {

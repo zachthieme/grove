@@ -122,6 +122,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * u    — undo last mutation (delegates to onUndo)
  * Ctrl+R — redo last undone mutation (delegates to onRedo)
  * f    — focus chart on selected person's subtree (set head)
+ * za   — toggle fold (collapse/expand) on selected manager or pod
  * Esc  — cancel cut / clear selection / clear head
  */
 export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, onShowHelp, onUndo, onRedo, canUndo, canRedo, onSetHead, move, reparent, enabled }: VimNavOptions) {
@@ -317,6 +318,23 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     }
   }, [])
 
+  // Same shape for `z` prefix → `za` (toggle fold). zc/zo aren't supported
+  // because the hook doesn't know whether a node is currently collapsed.
+  const zPendingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelZPending = useCallback(() => {
+    if (zPendingRef.current !== null) {
+      clearTimeout(zPendingRef.current)
+      zPendingRef.current = null
+    }
+  }, [])
+
+  const toggleFoldOnSelection = useCallback(() => {
+    if (!selectedId) return
+    const target = document.querySelector(`[data-person-id="${selectedId}"]`)
+    const toggle = target?.querySelector<HTMLElement>('[data-collapse-toggle]')
+    toggle?.click()
+  }, [selectedId])
+
   useEffect(() => {
     if (!enabled) return
     const handler = (e: KeyboardEvent) => {
@@ -341,6 +359,19 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
       }
 
       if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      // Two-key sequence: `z` followed by `a` toggles fold on selection.
+      // Other keys cancel the prefix and fall through.
+      if (zPendingRef.current !== null) {
+        if (e.key === 'a') {
+          cancelZPending()
+          e.preventDefault()
+          toggleFoldOnSelection()
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+          return
+        }
+        cancelZPending()
+      }
 
       // Two-key sequences anchored on `g`. Resolve before falling into the
       // single-key switch so a second `g` doesn't restart the prefix.
@@ -414,6 +445,13 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
         return
       }
 
+      // First `z`: start the z-prefix for fold operations.
+      if (e.key === 'z') {
+        e.preventDefault()
+        zPendingRef.current = setTimeout(() => { zPendingRef.current = null }, 500)
+        return
+      }
+
       // `G` (Shift+g): single-key, jump to deepest leaf in current subtree.
       if (e.key === 'G') {
         e.preventDefault()
@@ -454,8 +492,9 @@ export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect,
     return () => {
       document.removeEventListener('keydown', handler)
       cancelGPending()
+      cancelZPending()
     }
-  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, onUndo, onRedo, canUndo, canRedo, onSetHead])
+  }, [enabled, navigate, navigateSpatial, selectedId, batchSelect, working, onShowHelp, jumpToRoot, jumpToDeepestLeaf, jumpToParent, cancelGPending, cancelZPending, toggleFoldOnSelection, onUndo, onRedo, canUndo, canRedo, onSetHead])
 
   return { cutIds, cancelCut }
 }

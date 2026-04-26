@@ -212,3 +212,28 @@ Pressing `f` while a person is selected sets that person as the chart "head" —
 ## Edge cases
 - Pressing `f` when already focused on the same person → setHead replays with the same id (idempotent; UIContext handles the no-op).
 - `f` while focused on an input → bails (existing INPUT/SELECT/TEXTAREA skip).
+
+---
+
+# Scenario: Toggle fold — `za`
+
+**ID**: VIM-011
+**Area**: vim
+**Tests**:
+- `web/src/hooks/useVimNav.test.ts` → "[VIM-011]"
+- `web/src/components/VimCheatSheet.test.tsx` → "[VIM-011]"
+
+## Behavior
+Pressing `z` then `a` toggles the fold (collapse / expand) on the currently-selected manager or pod. Mirrors the same two-key prefix machinery as `gg`/`gp` (500 ms timeout, any non-`a` cancels). Implementation finds the `[data-collapse-toggle]` button inside the selected `[data-person-id]` wrapper and clicks it — reuses the existing `onToggleCollapse` flow without lifting `collapsedIds` out of `ChartShell`.
+
+## Invariants
+- `za` is only meaningful when the selection has a collapse toggle rendered (managers with children, pods). For other selections (leaf ICs, products) the toggle button is absent and the click is a no-op.
+- The two-key prefix uses an independent `zPendingRef`, parallel to `gPendingRef` for `g{g,p}`. The two prefixes don't interfere.
+- Listed under "Mutate" in the cheat sheet (it's not strictly a mutation, but it changes view state alongside the d/x/p group).
+- `zc` and `zo` are intentionally **not** wired — they would require knowing the current collapsed state of the target, which isn't available to the hook today. `za` covers the toggle case completely; deferred until needed.
+
+## Edge cases
+- `z` followed by anything other than `a` cancels the prefix and falls through to normal handling.
+- Prefix timeout (500 ms) silently expires.
+- `z` while focused on an input → bails (existing skip on INPUT/SELECT/TEXTAREA), prefix never starts.
+- Selection without a toggle (leaf IC, product) → the querySelector returns null, the click is a no-op.

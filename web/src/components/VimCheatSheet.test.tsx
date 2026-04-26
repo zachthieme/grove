@@ -62,6 +62,12 @@ describe('VimCheatSheet', () => {
     expect(screen.getByText(/Focus chart on selected subtree/i)).toBeTruthy()
   })
 
+  it('[VIM-011] lists za toggle-fold binding', () => {
+    render(<VimCheatSheet onClose={() => {}} />)
+    expect(screen.getByText('za')).toBeTruthy()
+    expect(screen.getByText(/Toggle fold/i)).toBeTruthy()
+  })
+
   it('Close button calls onClose', () => {
     const onClose = vi.fn()
     render(<VimCheatSheet onClose={onClose} />)

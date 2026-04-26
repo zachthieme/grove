@@ -215,6 +215,7 @@ function BaseNodeInner({
           aria-label={collapsed ? 'Expand subtree' : 'Collapse subtree'}
           aria-expanded={!collapsed}
           title={collapsed ? 'Expand' : 'Collapse'}
+          data-collapse-toggle
         >
           {collapsed ? '\u25B8' : '\u25BE'}
         </button>
