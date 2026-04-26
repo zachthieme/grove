@@ -201,7 +201,7 @@ function AppContent() {
   const selectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
 
   const { cutIds, cancelCut } = useVimNav({
-    working, pods, selectedId, batchSelect,
+    working, pods, selectedId, selectedIds, batchSelect,
     onDelete: remove, onAddReport: handleAddReport, onAddProduct: handleAddProduct, onAddToTeam: handleAddToTeam, onAddParent: handleAddParent, move, reparent,
     enabled: vimMode && loaded && viewMode !== 'table',
   })

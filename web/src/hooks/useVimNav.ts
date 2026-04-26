@@ -8,6 +8,7 @@ interface VimNavOptions {
   working: OrgNode[]
   pods: Pod[]
   selectedId: string | null
+  selectedIds?: Set<string>
   batchSelect?: (ids: Set<string>) => void
   onDelete?: (id: string) => void
   onAddReport?: (id: string) => void
@@ -49,7 +50,7 @@ function resolvePersonIds(nodeId: string, working: OrgNode[]): string[] {
  * Ctrl+A / Cmd+A — select all people
  * Esc  — cancel cut / deselect
  */
-export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, enabled }: VimNavOptions) {
+export function useVimNav({ working, pods, selectedId, selectedIds, batchSelect, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, enabled }: VimNavOptions) {
   const [cutIds, setCutIds] = useState<string[]>([])
   const cancelCut = useCallback(() => setCutIds([]), [])
 
@@ -89,7 +90,22 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
   }, [selectedId])
 
   const navigate = useCallback((key: string) => {
-    if (!selectedId) return
+    // Multi-select: only set-based ops apply (d delete, x cut). Single-target ops
+    // (o, O, P, p) require a single selection — App.tsx sets selectedId to null
+    // when selectedIds.size !== 1.
+    if (!selectedId) {
+      const multi = selectedIds && selectedIds.size > 1 ? Array.from(selectedIds) : null
+      if (!multi) return
+      switch (key) {
+        case 'd':
+          for (const id of multi) onDelete?.(id)
+          return
+        case 'x':
+          setCutIds(multi)
+          return
+      }
+      return
+    }
     const personIds = resolvePersonIds(selectedId, working)
 
     switch (key) {
@@ -160,7 +176,7 @@ export function useVimNav({ working, pods, selectedId, batchSelect, onDelete, on
         break
       }
     }
-  }, [selectedId, working, pods, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, cutIds])
+  }, [selectedId, selectedIds, working, pods, onDelete, onAddReport, onAddProduct, onAddToTeam, onAddParent, move, reparent, cutIds])
 
   useEffect(() => {
     if (!enabled) return

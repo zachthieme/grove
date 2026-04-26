@@ -60,6 +60,32 @@ describe('useVimNav', () => {
     expect(onAddReport).not.toHaveBeenCalled()
   })
 
+  it('[VIM-002] d on a multi-selection deletes every selected id', () => {
+    const onDelete = vi.fn()
+    const a = makePerson({ id: 'p1' })
+    const b = makePerson({ id: 'p2', name: 'Bob' })
+    const c = makePerson({ id: 'p3', name: 'Carol' })
+
+    renderHook(() =>
+      useVimNav({
+        working: [a, b, c],
+        pods: [],
+        selectedId: null,                       // App sets selectedId=null when size>1
+        selectedIds: new Set(['p1', 'p3']),
+        onDelete,
+        move: vi.fn(),
+        reparent: vi.fn(),
+        enabled: true,
+      }),
+    )
+
+    fireEvent.keyDown(document, { key: 'd' })
+
+    expect(onDelete).toHaveBeenCalledTimes(2)
+    expect(onDelete).toHaveBeenCalledWith('p1')
+    expect(onDelete).toHaveBeenCalledWith('p3')
+  })
+
   it('[VIM-002] o on a person creates a report (legacy behavior)', () => {
     const onAddReport = vi.fn()
     const onAddProduct = vi.fn()
