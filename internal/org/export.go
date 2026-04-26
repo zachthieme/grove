@@ -1,4 +1,4 @@
-package api
+package org
 
 import (
 	"bytes"
@@ -14,9 +14,9 @@ import (
 
 var exportHeaders = []string{"Name", "Type", "Role", "Discipline", "Manager", "Team", "Additional Teams", "Status", "Employment Type", "New Role", "New Team", "Level", "Pod", "Public Note", "Private Note", "Private"}
 
-// sanitizeCell prevents CSV injection by prefixing cells that start with
+// SanitizeCell prevents CSV injection by prefixing cells that start with
 // formula-triggering characters. See OWASP CSV Injection guidance.
-func sanitizeCell(s string) string {
+func SanitizeCell(s string) string {
 	if len(s) == 0 {
 		return s
 	}
@@ -47,13 +47,13 @@ func collectExtraKeys(nodes []apitypes.OrgNode) []string {
 func nodeToRowWithExtra(p apitypes.OrgNode, idToName map[string]string, extraKeys []string) []string {
 	row := nodeToRow(p, idToName)
 	for _, k := range extraKeys {
-		row = append(row, sanitizeCell(p.Extra[k]))
+		row = append(row, SanitizeCell(p.Extra[k]))
 	}
 	return row
 }
 
 func ExportCSV(people []apitypes.OrgNode) ([]byte, error) {
-	idToName := buildIDToName(people)
+	idToName := BuildIDToName(people)
 	extraKeys := collectExtraKeys(people)
 	headers := append(append([]string{}, exportHeaders...), extraKeys...)
 	var buf bytes.Buffer
@@ -74,7 +74,7 @@ func ExportCSV(people []apitypes.OrgNode) ([]byte, error) {
 }
 
 func ExportXLSX(people []apitypes.OrgNode) ([]byte, error) {
-	idToName := buildIDToName(people)
+	idToName := BuildIDToName(people)
 	extraKeys := collectExtraKeys(people)
 	headers := append(append([]string{}, exportHeaders...), extraKeys...)
 	f := excelize.NewFile()
@@ -102,7 +102,7 @@ func ExportXLSX(people []apitypes.OrgNode) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func buildIDToName(people []apitypes.OrgNode) map[string]string {
+func BuildIDToName(people []apitypes.OrgNode) map[string]string {
 	m := make(map[string]string, len(people))
 	for _, p := range people {
 		m[p.Id] = p.Name
@@ -113,7 +113,7 @@ func buildIDToName(people []apitypes.OrgNode) map[string]string {
 var podSidecarHeaders = []string{"Pod Name", "Manager", "Team", "Public Note", "Private Note"}
 
 func ExportPodsSidecarCSV(pods []apitypes.Pod, people []apitypes.OrgNode) ([]byte, error) {
-	idToName := buildIDToName(people)
+	idToName := BuildIDToName(people)
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
 	if err := w.Write(podSidecarHeaders); err != nil {
@@ -121,11 +121,11 @@ func ExportPodsSidecarCSV(pods []apitypes.Pod, people []apitypes.OrgNode) ([]byt
 	}
 	for _, pod := range pods {
 		row := []string{
-			sanitizeCell(pod.Name),
-			sanitizeCell(idToName[pod.ManagerId]),
-			sanitizeCell(pod.Team),
-			sanitizeCell(pod.PublicNote),
-			sanitizeCell(pod.PrivateNote),
+			SanitizeCell(pod.Name),
+			SanitizeCell(idToName[pod.ManagerId]),
+			SanitizeCell(pod.Team),
+			SanitizeCell(pod.PublicNote),
+			SanitizeCell(pod.PrivateNote),
 		}
 		if err := w.Write(row); err != nil {
 			return nil, fmt.Errorf("writing pod sidecar row: %w", err)
@@ -142,7 +142,7 @@ func ExportSettingsSidecarCSV(settings apitypes.Settings) ([]byte, error) {
 		return nil, fmt.Errorf("writing settings header: %w", err)
 	}
 	for _, d := range settings.DisciplineOrder {
-		if err := w.Write([]string{sanitizeCell(d)}); err != nil {
+		if err := w.Write([]string{SanitizeCell(d)}); err != nil {
 			return nil, fmt.Errorf("writing settings row: %w", err)
 		}
 	}
@@ -161,13 +161,13 @@ func nodeToRow(p apitypes.OrgNode, idToName map[string]string) []string {
 		privateStr = "true"
 	}
 	return []string{
-		sanitizeCell(p.Name), sanitizeCell(p.Type), sanitizeCell(p.Role), sanitizeCell(p.Discipline),
-		sanitizeCell(managerName), sanitizeCell(p.Team),
-		sanitizeCell(strings.Join(p.AdditionalTeams, ",")),
-		sanitizeCell(p.Status), sanitizeCell(p.EmploymentType),
-		sanitizeCell(p.NewRole), sanitizeCell(p.NewTeam),
+		SanitizeCell(p.Name), SanitizeCell(p.Type), SanitizeCell(p.Role), SanitizeCell(p.Discipline),
+		SanitizeCell(managerName), SanitizeCell(p.Team),
+		SanitizeCell(strings.Join(p.AdditionalTeams, ",")),
+		SanitizeCell(p.Status), SanitizeCell(p.EmploymentType),
+		SanitizeCell(p.NewRole), SanitizeCell(p.NewTeam),
 		levelStr,
-		sanitizeCell(p.Pod), sanitizeCell(p.PublicNote), sanitizeCell(p.PrivateNote),
+		SanitizeCell(p.Pod), SanitizeCell(p.PublicNote), SanitizeCell(p.PrivateNote),
 		privateStr,
 	}
 }

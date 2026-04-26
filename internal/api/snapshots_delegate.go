@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -17,7 +18,7 @@ func (s *OrgService) SaveSnapshot(ctx context.Context, name string) error {
 	return s.snap.Save(ctx, name)
 }
 
-func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*OrgData, error) {
+func (s *OrgService) LoadSnapshot(ctx context.Context, name string) (*org.OrgData, error) {
 	if err := s.snap.Load(ctx, name); err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -28,7 +29,7 @@ func setupService(t *testing.T) *OrgService {
 	if err != nil {
 		t.Fatalf("setup upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -68,7 +69,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 	}
 	// The BOM may cause the header "Name" to become "\xEF\xBB\xBFName".
 	// If it gets needs_mapping, confirm the mapping manually.
-	if resp.Status == UploadNeedsMapping {
+	if resp.Status == org.UploadNeedsMapping {
 		// Find the header that contains "Name" (possibly BOM-prefixed)
 		nameHeader := ""
 		for _, h := range resp.Headers {
@@ -96,7 +97,7 @@ func TestAdversarial_BOMMarker(t *testing.T) {
 		}
 		return
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready' or 'needs_mapping', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -119,7 +120,7 @@ func TestAdversarial_MixedLineEndings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with mixed line endings failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -149,7 +150,7 @@ func TestAdversarial_UnicodeNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with unicode names failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -180,7 +181,7 @@ func TestAdversarial_XSSInFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with XSS payloads failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -210,7 +211,7 @@ func TestAdversarial_SQLInjectionStrings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with SQL injection string failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -353,7 +354,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload of %d people failed: %v", count, err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -366,7 +367,7 @@ func TestAdversarial_MassivePeopleCount(t *testing.T) {
 func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(snapshot.NewMemoryStore())
-	// Duplicate "Name" header — InferMapping maps to the first "Name" column,
+	// Duplicate "Name" header — org.InferMapping maps to the first "Name" column,
 	// but BuildPeopleWithMapping's headerIndex map overwrites with the last
 	// duplicate, so the second column's value is used.
 	csvData := makeCSV([][]string{
@@ -378,7 +379,7 @@ func TestAdversarial_DuplicateHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with duplicate headers failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -404,7 +405,7 @@ func TestAdversarial_CommasInQuotedFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with commas in quoted field failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())
@@ -428,7 +429,7 @@ func TestAdversarial_NewlinesInQuotedFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload with newlines in quoted field failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected 'ready', got '%s'", resp.Status)
 	}
 	org := svc.GetOrg(context.Background())

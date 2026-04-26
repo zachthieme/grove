@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -45,7 +46,7 @@ func benchService(b *testing.B, n int) *OrgService {
 	if err != nil {
 		b.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		b.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -146,7 +147,7 @@ func BenchmarkExportCSV(b *testing.B) {
 	svc := benchService(b, 200)
 	people := svc.GetWorking(context.Background())
 	for b.Loop() {
-		if _, err := ExportCSV(people); err != nil {
+		if _, err := org.ExportCSV(people); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -185,7 +186,7 @@ func BenchmarkMoveChain_50(b *testing.B) {
 	for b.Loop() {
 		svc := NewOrgService(snapshot.NewMemoryStore())
 		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
-		if err != nil || resp.Status != UploadReady {
+		if err != nil || resp.Status != org.UploadReady {
 			b.Fatal("setup failed")
 		}
 		data := svc.GetOrg(context.Background())
@@ -210,7 +211,7 @@ func BenchmarkBulkUpdate_175(b *testing.B) {
 	for b.Loop() {
 		svc := NewOrgService(snapshot.NewMemoryStore())
 		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
-		if err != nil || resp.Status != UploadReady {
+		if err != nil || resp.Status != org.UploadReady {
 			b.Fatal("setup failed")
 		}
 		data := svc.GetOrg(context.Background())
@@ -232,7 +233,7 @@ func BenchmarkDeleteRestore_50(b *testing.B) {
 	for b.Loop() {
 		svc := NewOrgService(snapshot.NewMemoryStore())
 		resp, err := svc.Upload(context.Background(), "bench.csv", csvData)
-		if err != nil || resp.Status != UploadReady {
+		if err != nil || resp.Status != org.UploadReady {
 			b.Fatal("setup failed")
 		}
 		data := svc.GetOrg(context.Background())
@@ -258,7 +259,7 @@ func BenchmarkDeleteRestore_50(b *testing.B) {
 func BenchmarkInferMapping(b *testing.B) {
 	headers := []string{"Full Name", "Job Title", "Department", "Reports To", "Function", "Employment Status"}
 	for b.Loop() {
-		InferMapping(headers)
+		org.InferMapping(headers)
 	}
 }
 

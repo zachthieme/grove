@@ -1,16 +1,21 @@
-package api
+package org
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 )
 
-// httpStatusError is implemented by typed errors that carry an HTTP status.
-// serviceError uses this to map service errors to the right response code;
+// HTTPStatusError is implemented by typed errors that carry an HTTP status.
+// ServiceError uses this to map service errors to the right response code;
 // adding a new typed error means implementing HTTPStatus on it — no central
 // registry to update.
-type httpStatusError interface {
+//
+// Errors from sibling packages (e.g. internal/snapshot) that implement the
+// same method satisfy this interface via duck typing, so handlers map them
+// to the right status code without any direct dependency.
+type HTTPStatusError interface {
 	error
 	HTTPStatus() int
 }
@@ -34,41 +39,45 @@ func (e *ConflictError) Error() string   { return e.msg }
 func (e *ConflictError) HTTPStatus() int { return http.StatusConflict }
 
 // Constructors.
-func errValidation(format string, args ...any) error {
+func ErrValidation(format string, args ...any) error {
 	return &ValidationError{fmt.Sprintf(format, args...)}
 }
-func errNotFound(format string, args ...any) error {
+func ErrNotFound(format string, args ...any) error {
 	return &NotFoundError{fmt.Sprintf(format, args...)}
 }
-func errConflict(format string, args ...any) error {
+func ErrConflict(format string, args ...any) error {
 	return &ConflictError{fmt.Sprintf(format, args...)}
 }
 
 // Predicates — convenience for tests and internal type checks. They check
 // the HTTP-status interface so errors originating from sibling packages
 // (e.g. internal/snapshot) match too.
-func isNotFound(err error) bool {
-	var e httpStatusError
+func IsNotFound(err error) bool {
+	var e HTTPStatusError
 	return errors.As(err, &e) && e.HTTPStatus() == http.StatusNotFound
 }
 
-func isConflict(err error) bool {
-	var e httpStatusError
+func IsConflict(err error) bool {
+	var e HTTPStatusError
 	return errors.As(err, &e) && e.HTTPStatus() == http.StatusConflict
 }
 
-func isValidation(err error) bool {
-	var e httpStatusError
+func IsValidation(err error) bool {
+	var e HTTPStatusError
 	return errors.As(err, &e) && e.HTTPStatus() == http.StatusUnprocessableEntity
 }
 
-// serviceError writes an HTTP error from a service-layer error. Typed errors
+// ServiceError writes an HTTP error from a service-layer error. Typed errors
 // expose their status via HTTPStatus(); anything else becomes 500.
-func serviceError(w http.ResponseWriter, err error) {
-	var typed httpStatusError
+func ServiceError(w http.ResponseWriter, err error) {
+	var typed HTTPStatusError
+	status := http.StatusInternalServerError
 	if errors.As(err, &typed) {
-		writeError(w, typed.HTTPStatus(), err.Error())
-		return
+		status = typed.HTTPStatus()
 	}
-	writeError(w, http.StatusInternalServerError, err.Error())
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	// Encode is best-effort: WriteHeader has already been committed, so any
+	// encode failure can only be logged by the caller's middleware.
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }

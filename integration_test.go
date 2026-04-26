@@ -14,6 +14,7 @@ import (
 	"github.com/zachthieme/grove/internal/api"
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -93,7 +94,7 @@ func TestIntegration_SnapshotRoundTrip(t *testing.T) {
 
 	// Load the snapshot — should restore Staff Engineer
 	body := postJSON(t, handler, "/api/snapshots/load", `{"name":"before-reorg"}`, 200)
-	var orgData api.OrgData
+	var orgData org.OrgData
 	if err := json.Unmarshal(body, &orgData); err != nil {
 		t.Fatalf("decode load snapshot: %v", err)
 	}
@@ -221,7 +222,7 @@ func TestIntegration_CycleDetection(t *testing.T) {
 // --- helpers ---
 
 // uploadTestCSV uploads testdata/simple.csv and returns the handler and org data.
-func uploadTestCSV(t *testing.T) (handler http.Handler, data *api.OrgData) {
+func uploadTestCSV(t *testing.T) (handler http.Handler, data *org.OrgData) {
 	t.Helper()
 	svc := api.NewOrgService(snapshot.NewMemoryStore())
 	handler = api.NewRouter(api.NewServices(svc), nil, autosave.NewMemoryStore())
@@ -252,7 +253,7 @@ func uploadTestCSV(t *testing.T) (handler http.Handler, data *api.OrgData) {
 		t.Fatalf("upload: %d %s", rec.Code, rec.Body.String())
 	}
 
-	var resp api.UploadResponse
+	var resp org.UploadResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode upload response: %v", err)
 	}

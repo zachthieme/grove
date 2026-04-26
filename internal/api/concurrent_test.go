@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -24,7 +25,7 @@ func setupConcurrentService(t *testing.T) (svc *OrgService, aliceID, bobID, caro
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -477,7 +478,7 @@ func TestSnapshotSave_EpochGuard_Reset(t *testing.T) {
 
 		if saveErr == nil {
 			successes++
-		} else if isConflict(saveErr) {
+		} else if org.IsConflict(saveErr) {
 			conflicts++
 		} else {
 			t.Errorf("unexpected error from racing Save: %v", saveErr)
@@ -515,7 +516,7 @@ func TestSnapshotSave_EpochGuard_UploadCSV(t *testing.T) {
 		}()
 		wg.Wait()
 
-		if isConflict(saveErr) {
+		if org.IsConflict(saveErr) {
 			conflicts++
 		}
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -31,7 +32,7 @@ func FuzzInferMapping(f *testing.F) {
 		if len(headers) > 20 {
 			headers = headers[:20]
 		}
-		m := InferMapping(headers)
+		m := org.InferMapping(headers)
 
 		// Invariant: no duplicate fields in the result map
 		// (Go maps enforce this by construction, but verify values are sane)
@@ -91,7 +92,7 @@ func FuzzAllRequiredHigh(f *testing.F) {
 			field: {Column: "TestCol", Confidence: confidence},
 		}
 		// Should never panic; result is always a bool
-		result := AllRequiredHigh(m)
+		result := org.AllRequiredHigh(m)
 		_ = result
 	})
 }
@@ -120,7 +121,7 @@ func FuzzAllRequiredHighMultiField(f *testing.F) {
 			}
 		}
 		// Should never panic
-		result := AllRequiredHigh(m)
+		result := org.AllRequiredHigh(m)
 		_ = result
 	})
 }
@@ -135,7 +136,7 @@ func FuzzUpdateFields(f *testing.F) {
 		svc := NewOrgService(snapshot.NewMemoryStore())
 		csv := []byte("Name,Role,Discipline,Manager,Team,Status\nAlice,VP,Eng,,Eng,Active\n")
 		resp, err := svc.Upload(context.Background(), "test.csv", csv)
-		if err != nil || resp.Status != UploadReady {
+		if err != nil || resp.Status != org.UploadReady {
 			return
 		}
 		people := svc.GetWorking(context.Background())
@@ -162,7 +163,7 @@ func FuzzSanitizeCell(f *testing.F) {
 	f.Add("\nfoo")
 
 	f.Fuzz(func(t *testing.T, input string) {
-		result := sanitizeCell(input)
+		result := org.SanitizeCell(input)
 		if len(result) == 0 && len(input) == 0 {
 			return
 		}
@@ -170,7 +171,7 @@ func FuzzSanitizeCell(f *testing.F) {
 		if len(result) > 0 {
 			switch result[0] {
 			case '=', '+', '-', '@', '\r', '\n':
-				t.Errorf("sanitizeCell(%q) = %q starts with dangerous char", input, result)
+				t.Errorf("org.SanitizeCell(%q) = %q starts with dangerous char", input, result)
 			}
 		}
 	})

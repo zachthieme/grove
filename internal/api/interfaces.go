@@ -5,35 +5,36 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // NodeService handles people mutations (move, update, add, delete, restore, reorder).
 type NodeService interface {
-	Move(ctx context.Context, personId, newManagerId, newTeam, newPod string) (*MoveResult, error)
-	Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*MoveResult, error)
+	Move(ctx context.Context, personId, newManagerId, newTeam, newPod string) (*org.MoveResult, error)
+	Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*org.MoveResult, error)
 	Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error)
 	AddParent(ctx context.Context, childId, name string) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error)
-	Delete(ctx context.Context, personId string) (*MutationResult, error)
-	Restore(ctx context.Context, personId string) (*MutationResult, error)
+	Delete(ctx context.Context, personId string) (*org.MutationResult, error)
+	Restore(ctx context.Context, personId string) (*org.MutationResult, error)
 	EmptyBin(ctx context.Context) []apitypes.OrgNode
-	Reorder(ctx context.Context, personIds []string) (*MoveResult, error)
+	Reorder(ctx context.Context, personIds []string) (*org.MoveResult, error)
 }
 
 // OrgStateService provides org-level reads and state resets (get, reset, restore).
 type OrgStateService interface {
-	GetOrg(ctx context.Context) *OrgData
+	GetOrg(ctx context.Context) *org.OrgData
 	GetWorking(ctx context.Context) []apitypes.OrgNode
 	GetRecycled(ctx context.Context) []apitypes.OrgNode
-	ResetToOriginal(ctx context.Context) *OrgData
+	ResetToOriginal(ctx context.Context) *org.OrgData
 	RestoreState(ctx context.Context, data autosave.AutosaveData)
-	Create(ctx context.Context, name string) (*OrgData, error)
+	Create(ctx context.Context, name string) (*org.OrgData, error)
 }
 
 // SnapshotOps is the HTTP-facing snapshot interface (handler-named methods).
 type SnapshotOps interface {
 	SaveSnapshot(ctx context.Context, name string) error
-	LoadSnapshot(ctx context.Context, name string) (*OrgData, error)
+	LoadSnapshot(ctx context.Context, name string) (*org.OrgData, error)
 	DeleteSnapshot(ctx context.Context, name string) error
 	ListSnapshots(ctx context.Context) []snapshot.Info
 	ExportSnapshot(ctx context.Context, name string) ([]apitypes.OrgNode, error)
@@ -41,16 +42,16 @@ type SnapshotOps interface {
 
 // ImportService handles file uploads and column mapping confirmation.
 type ImportService interface {
-	Upload(ctx context.Context, filename string, data []byte) (*UploadResponse, error)
-	ConfirmMapping(ctx context.Context, mapping map[string]string) (*OrgData, error)
-	UploadZip(ctx context.Context, data []byte) (*UploadResponse, error)
+	Upload(ctx context.Context, filename string, data []byte) (*org.UploadResponse, error)
+	ConfirmMapping(ctx context.Context, mapping map[string]string) (*org.OrgData, error)
+	UploadZip(ctx context.Context, data []byte) (*org.UploadResponse, error)
 }
 
 // PodService manages pods and pod export data.
 type PodService interface {
 	ListPods(ctx context.Context) []apitypes.PodInfo
-	UpdatePod(ctx context.Context, podID string, fields apitypes.PodUpdate) (*MoveResult, error)
-	CreatePod(ctx context.Context, managerID, name, team string) (*MoveResult, error)
+	UpdatePod(ctx context.Context, podID string, fields apitypes.PodUpdate) (*org.MoveResult, error)
+	CreatePod(ctx context.Context, managerID, name, team string) (*org.MoveResult, error)
 	GetPodExportData(ctx context.Context) ([]apitypes.Pod, []apitypes.OrgNode)
 }
 

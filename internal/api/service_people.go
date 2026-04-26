@@ -7,18 +7,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/pod"
 )
 
 // Move reassigns a person's manager, team, and/or pod. Empty strings mean
 // "no change" for team and pod; an empty newManagerId reassigns the person to
 // the root (no manager).
-func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, newPod string) (*MoveResult, error) {
+func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, newPod string) (*org.MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, p := s.findWorking(personId)
 	if p == nil {
-		return nil, errNotFound("person %s not found", personId)
+		return nil, org.ErrNotFound("person %s not found", personId)
 	}
 	if newManagerId != "" {
 		if err := s.validateManagerChange(personId, newManagerId); err != nil {
@@ -35,10 +36,10 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, 
 		s.podMgr.Reassign(p)
 		s.podMgr.Cleanup(s.working)
 	}
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
+	return &org.MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
-func (s *OrgService) Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*MoveResult, error) {
+func (s *OrgService) Update(ctx context.Context, personId string, fields apitypes.OrgNodeUpdate) (*org.MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -48,7 +49,7 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields apitype
 
 	_, p := s.findWorking(personId)
 	if p == nil {
-		return nil, errNotFound("person %s not found", personId)
+		return nil, org.ErrNotFound("person %s not found", personId)
 	}
 
 	// Clear warning on any edit.
@@ -77,7 +78,7 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields apitype
 		s.applyPodChange(p, *fields.Pod)
 	}
 
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
+	return &org.MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
 // applyTypeChange flips Type and, when switching to product, clears the
@@ -140,7 +141,7 @@ func applyStatus(p *apitypes.OrgNode, fields apitypes.OrgNodeUpdate) error {
 		return nil
 	}
 	if !model.ValidStatuses(p.Type)[*fields.Status] {
-		return errValidation("invalid status '%s'", *fields.Status)
+		return org.ErrValidation("invalid status '%s'", *fields.Status)
 	}
 	p.Status = *fields.Status
 	return nil
@@ -160,19 +161,19 @@ func applyNotes(p *apitypes.OrgNode, fields apitypes.OrgNodeUpdate) {
 // Reorder sets the sort indices for a list of person IDs in the given order.
 // Returns an error if any ID is unknown so callers see a clear failure rather
 // than a partially-applied reorder.
-func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*MoveResult, error) {
+func (s *OrgService) Reorder(ctx context.Context, personIds []string) (*org.MoveResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, id := range personIds {
 		idx, ok := s.idIndex[id]
 		if !ok || idx >= len(s.working) || s.working[idx].Id != id {
-			return nil, errNotFound("person %s not found", id)
+			return nil, org.ErrNotFound("person %s not found", id)
 		}
 	}
 	for i, id := range personIds {
 		s.working[s.idIndex[id]].SortIndex = i
 	}
-	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
+	return &org.MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
 func (s *OrgService) Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error) {
@@ -186,14 +187,14 @@ func (s *OrgService) Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgN
 		return apitypes.OrgNode{}, nil, nil, err
 	}
 	if p.Type != "" && p.Type != model.NodeTypePerson && p.Type != model.NodeTypeProduct {
-		return apitypes.OrgNode{}, nil, nil, errValidation("invalid type '%s'", p.Type)
+		return apitypes.OrgNode{}, nil, nil, org.ErrValidation("invalid type '%s'", p.Type)
 	}
 	if p.Status != "" && !model.ValidStatuses(p.Type)[p.Status] {
-		return apitypes.OrgNode{}, nil, nil, errValidation("invalid status '%s'", p.Status)
+		return apitypes.OrgNode{}, nil, nil, org.ErrValidation("invalid status '%s'", p.Status)
 	}
 	if p.ManagerId != "" {
 		if _, mgr := s.findWorking(p.ManagerId); mgr == nil {
-			return apitypes.OrgNode{}, nil, nil, errNotFound("manager %s not found", p.ManagerId)
+			return apitypes.OrgNode{}, nil, nil, org.ErrNotFound("manager %s not found", p.ManagerId)
 		}
 	}
 	if !model.IsProduct(p.Type) && p.EmploymentType == "" {
@@ -209,10 +210,10 @@ func (s *OrgService) Add(ctx context.Context, p apitypes.OrgNode) (apitypes.OrgN
 func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apitypes.OrgNode, []apitypes.OrgNode, []apitypes.Pod, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return apitypes.OrgNode{}, nil, nil, errValidation("name is required")
+		return apitypes.OrgNode{}, nil, nil, org.ErrValidation("name is required")
 	}
 	if len(name) > maxFieldLen {
-		return apitypes.OrgNode{}, nil, nil, errValidation("name too long (max %d characters)", maxFieldLen)
+		return apitypes.OrgNode{}, nil, nil, org.ErrValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
 	s.mu.Lock()
@@ -220,7 +221,7 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apity
 
 	_, child := s.findWorking(childId)
 	if child == nil {
-		return apitypes.OrgNode{}, nil, nil, errNotFound("person %s not found", childId)
+		return apitypes.OrgNode{}, nil, nil, org.ErrNotFound("person %s not found", childId)
 	}
 
 	parent := apitypes.OrgNode{
@@ -239,12 +240,12 @@ func (s *OrgService) AddParent(ctx context.Context, childId, name string) (apity
 	return parent, deepCopyNodes(s.working), pod.Copy(s.podMgr.Pods()), nil
 }
 
-func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResult, error) {
+func (s *OrgService) Delete(ctx context.Context, personId string) (*org.MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx, _ := s.findWorking(personId)
 	if idx == -1 {
-		return nil, errNotFound("person %s not found", personId)
+		return nil, org.ErrNotFound("person %s not found", personId)
 	}
 	for i := range s.working {
 		if s.working[i].ManagerId == personId {
@@ -255,14 +256,14 @@ func (s *OrgService) Delete(ctx context.Context, personId string) (*MutationResu
 	s.working = append(s.working[:idx], s.working[idx+1:]...)
 	s.rebuildIndex()
 	s.podMgr.Cleanup(s.working)
-	return &MutationResult{
+	return &org.MutationResult{
 		Working:  deepCopyNodes(s.working),
 		Recycled: deepCopyNodes(s.recycled),
 		Pods:     pod.Copy(s.podMgr.Pods()),
 	}, nil
 }
 
-func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationResult, error) {
+func (s *OrgService) Restore(ctx context.Context, personId string) (*org.MutationResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx := -1
@@ -273,7 +274,7 @@ func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationRes
 		}
 	}
 	if idx == -1 {
-		return nil, errNotFound("person %s not found in recycled", personId)
+		return nil, org.ErrNotFound("person %s not found in recycled", personId)
 	}
 	person := s.recycled[idx]
 	s.recycled = append(s.recycled[:idx], s.recycled[idx+1:]...)
@@ -285,7 +286,7 @@ func (s *OrgService) Restore(ctx context.Context, personId string) (*MutationRes
 	s.working = append(s.working, person)
 	s.rebuildIndex()
 	s.podMgr.Reassign(&s.working[len(s.working)-1])
-	return &MutationResult{
+	return &org.MutationResult{
 		Working:  deepCopyNodes(s.working),
 		Recycled: deepCopyNodes(s.recycled),
 		Pods:     pod.Copy(s.podMgr.Pods()),

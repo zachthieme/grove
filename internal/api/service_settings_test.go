@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/org"
 )
 
 // Scenarios: SETTINGS-001
@@ -17,7 +18,7 @@ func TestOrgService_UpdateSettings_Validation(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for empty discipline name")
 		}
-		if !isValidation(err) {
+		if !org.IsValidation(err) {
 			t.Errorf("expected ValidationError, got %T: %v", err, err)
 		}
 	})
@@ -104,7 +105,7 @@ func TestOrgService_UpdateSettings_RejectsInvalidChars(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for newline in discipline name")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -118,7 +119,7 @@ func TestOrgService_UpdateSettings_RejectsOversizedName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for oversized discipline name")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }

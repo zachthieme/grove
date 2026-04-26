@@ -7,6 +7,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -20,7 +21,7 @@ func newTestService(t *testing.T) *OrgService {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -636,7 +637,7 @@ func TestOrgService_Delete_ReturnsBothArrays(t *testing.T) {
 		t.Fatalf("delete failed: %v", err)
 	}
 	if result == nil {
-		t.Fatal("expected non-nil MutationResult")
+		t.Fatal("expected non-nil org.MutationResult")
 	}
 	if len(result.Working) != 2 {
 		t.Errorf("expected 2 working in result, got %d", len(result.Working))
@@ -674,7 +675,7 @@ func TestOrgService_Restore_ReturnsBothArrays(t *testing.T) {
 		t.Fatalf("restore failed: %v", err)
 	}
 	if result == nil {
-		t.Fatal("expected non-nil MutationResult")
+		t.Fatal("expected non-nil org.MutationResult")
 	}
 	if len(result.Working) != 3 {
 		t.Errorf("expected 3 working in result, got %d", len(result.Working))
@@ -1030,7 +1031,7 @@ func TestOrgService_IsFrontlineManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -1096,7 +1097,7 @@ func TestOrgService_Update_TeamCascadeFrontlineManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	data := svc.GetOrg(context.Background())
@@ -1338,7 +1339,7 @@ func TestOrgService_AddParent_EmptyName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -1352,7 +1353,7 @@ func TestOrgService_AddParent_ChildNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nonexistent child")
 	}
-	if !isNotFound(err) {
+	if !org.IsNotFound(err) {
 		t.Errorf("expected NotFoundError, got %T: %v", err, err)
 	}
 }
@@ -1406,7 +1407,7 @@ func TestOrgService_Create_EmptyName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -1420,7 +1421,7 @@ func TestOrgService_Create_WhitespaceName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for whitespace-only name")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -1583,11 +1584,11 @@ func TestOrgService_ApplyState_ReplacesWorkingPodsSettings(t *testing.T) {
 
 func newTestServiceFromNodes(t *testing.T, nodes []model.OrgNode) *OrgService {
 	t.Helper()
-	org, err := model.NewOrg(nodes)
+	mod, err := model.NewOrg(nodes)
 	if err != nil {
 		t.Fatalf("newTestServiceFromNodes: NewOrg failed: %v", err)
 	}
-	apiNodes := ConvertOrg(org)
+	apiNodes := org.ConvertOrg(mod)
 	svc := NewOrgService(snapshot.NewMemoryStore())
 	svc.RestoreState(context.Background(), autosave.AutosaveData{
 		Original: apiNodes,

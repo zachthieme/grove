@@ -15,10 +15,11 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
-func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
+func uploadCSV(t *testing.T, handler http.Handler) *org.OrgData {
 	t.Helper()
 	csvData := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n"
 
@@ -45,11 +46,11 @@ func uploadCSV(t *testing.T, handler http.Handler) *OrgData {
 		t.Fatalf("upload expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var resp UploadResponse
+	var resp org.UploadResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding upload response: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected upload status 'ready', got '%s'", resp.Status)
 	}
 	return resp.OrgData
@@ -107,7 +108,7 @@ func TestGetOrg_WithData(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 
-	var data OrgData
+	var data org.OrgData
 	if err := json.NewDecoder(rec.Body).Decode(&data); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -447,9 +448,9 @@ func TestExportHandler_XLSX(t *testing.T) {
 	}
 }
 
-func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
+func uploadNonStandardCSV(t *testing.T, handler http.Handler) *org.UploadResponse {
 	t.Helper()
-	// Use unrecognizable headers ("Nombre", "Nivel") so InferMapping won't auto-proceed.
+	// Use unrecognizable headers ("Nombre", "Nivel") so org.InferMapping won't auto-proceed.
 	csvData := "Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
 	var buf bytes.Buffer
@@ -475,7 +476,7 @@ func uploadNonStandardCSV(t *testing.T, handler http.Handler) *UploadResponse {
 		t.Fatalf("upload expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var resp UploadResponse
+	var resp org.UploadResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decoding upload response: %v", err)
 	}
@@ -489,7 +490,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
 
 	resp := uploadNonStandardCSV(t, handler)
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Fatalf("expected 'needs_mapping', got '%s'", resp.Status)
 	}
 
@@ -515,7 +516,7 @@ func TestConfirmMappingHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var orgData OrgData
+	var orgData org.OrgData
 	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
 		t.Fatalf("decoding confirm response: %v", err)
 	}
@@ -648,7 +649,7 @@ func TestResetHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var orgData OrgData
+	var orgData org.OrgData
 	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -776,7 +777,7 @@ func TestSnapshotHandlers_Load(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var orgData OrgData
+	var orgData org.OrgData
 	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}
@@ -1455,11 +1456,11 @@ func TestUploadZipHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var resp UploadResponse
+	var resp org.UploadResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected ready, got %s", resp.Status)
 	}
 	if len(resp.Snapshots) != 1 {
@@ -1540,7 +1541,7 @@ func TestRestoreStateHandler_Valid(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 from /api/org, got %d", rec.Code)
 	}
-	var orgData OrgData
+	var orgData org.OrgData
 	if err := json.NewDecoder(rec.Body).Decode(&orgData); err != nil {
 		t.Fatalf("decoding org: %v", err)
 	}
@@ -1759,7 +1760,7 @@ func TestCreateHandler(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var data OrgData
+	var data org.OrgData
 	if err := json.NewDecoder(rec.Body).Decode(&data); err != nil {
 		t.Fatalf("decoding response: %v", err)
 	}

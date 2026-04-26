@@ -1,4 +1,4 @@
-package api
+package org
 
 const (
 	// MaxUploadSize is the maximum allowed size for file uploads (50 MB).

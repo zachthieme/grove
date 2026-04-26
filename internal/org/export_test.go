@@ -1,8 +1,7 @@
-package api
+package org
 
 import (
 	"bytes"
-	"context"
 	"encoding/csv"
 	"strings"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 	"github.com/zachthieme/grove/internal/parser"
-	"github.com/zachthieme/grove/internal/snapshot"
 )
 
 // Scenarios: EXPORT-001
@@ -18,12 +16,8 @@ func TestExportCSV_RoundTrip(t *testing.T) {
 	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n"
 
-	svc := NewOrgService(snapshot.NewMemoryStore())
-	if _, err := svc.Upload(context.Background(), "test.csv", []byte(input)); err != nil {
-		t.Fatalf("upload: %v", err)
-	}
-
-	data, err := ExportCSV(svc.GetWorking(context.Background()))
+	people := importForTest(t, input)
+	data, err := ExportCSV(people)
 	if err != nil {
 		t.Fatalf("export: %v", err)
 	}
@@ -71,12 +65,8 @@ func TestExportCSV_IncludesNewFields(t *testing.T) {
 	t.Parallel()
 	input := "Name,Role,Discipline,Manager,Team,Status,Pod,Public Note,Private Note\nAlice,VP,Eng,,Eng,Active,Alpha,public info,secret info\n"
 
-	svc := NewOrgService(snapshot.NewMemoryStore())
-	if _, err := svc.Upload(context.Background(), "test.csv", []byte(input)); err != nil {
-		t.Fatalf("upload: %v", err)
-	}
-
-	data, err := ExportCSV(svc.GetWorking(context.Background()))
+	people := importForTest(t, input)
+	data, err := ExportCSV(people)
 	if err != nil {
 		t.Fatalf("export: %v", err)
 	}
@@ -323,9 +313,9 @@ func TestSanitizeCell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := sanitizeCell(tt.input)
+			got := SanitizeCell(tt.input)
 			if got != tt.want {
-				t.Errorf("sanitizeCell(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("SanitizeCell(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}

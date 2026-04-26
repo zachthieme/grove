@@ -13,6 +13,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -123,7 +124,7 @@ func sameOriginOrAbsent(r *http.Request) bool {
 // applying the upload size limit. Returns the file bytes and original filename,
 // or writes an error response and returns ok=false.
 func readUploadedFile(w http.ResponseWriter, r *http.Request) (data []byte, filename string, ok bool) {
-	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+	r.Body = http.MaxBytesReader(w, r.Body, org.MaxUploadSize)
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "missing file field or file too large (max 50MB)")
@@ -147,7 +148,7 @@ func handleUpload(svc ImportService) http.HandlerFunc {
 		}
 		resp, err := svc.Upload(r.Context(), filename, data)
 		if err != nil {
-			serviceError(w, err)
+			org.ServiceError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -162,7 +163,7 @@ func handleUploadZip(svc ImportService) http.HandlerFunc {
 		}
 		resp, err := svc.UploadZip(r.Context(), data)
 		if err != nil {
-			serviceError(w, err)
+			org.ServiceError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -173,7 +174,7 @@ func handleConfirmMapping(svc ImportService) http.HandlerFunc {
 	type req struct {
 		Mapping map[string]string `json:"mapping"`
 	}
-	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*org.OrgData, error) {
 		return svc.ConfirmMapping(ctx, r.Mapping)
 	})
 }
@@ -297,7 +298,7 @@ func handleExportPodsSidecar(svc PodService) http.HandlerFunc {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		data, err := ExportPodsSidecarCSV(pods, people)
+		data, err := org.ExportPodsSidecarCSV(pods, people)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -336,7 +337,7 @@ func handleExportSnapshot(svc SnapshotOps) http.HandlerFunc {
 
 		people, err := svc.ExportSnapshot(r.Context(), name)
 		if err != nil {
-			serviceError(w, err)
+			org.ServiceError(w, err)
 			return
 		}
 
@@ -376,7 +377,7 @@ func handleLoadSnapshot(svc SnapshotOps) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*org.OrgData, error) {
 		return svc.LoadSnapshot(ctx, r.Name)
 	})
 }
@@ -440,7 +441,7 @@ func handleCreate(svc OrgStateService) http.HandlerFunc {
 	type req struct {
 		Name string `json:"name"`
 	}
-	return jsonHandlerCtx(func(ctx context.Context, r req) (*OrgData, error) {
+	return jsonHandlerCtx(func(ctx context.Context, r req) (*org.OrgData, error) {
 		return svc.Create(ctx, r.Name)
 	})
 }
@@ -477,7 +478,7 @@ func handleExportSettingsSidecar(svc SettingsService) http.HandlerFunc {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		data, err := ExportSettingsSidecarCSV(settings)
+		data, err := org.ExportSettingsSidecarCSV(settings)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -502,7 +503,7 @@ func jsonHandlerCtx[Req any, Resp any](fn func(context.Context, Req) (Resp, erro
 		}
 		resp, err := fn(r.Context(), req)
 		if err != nil {
-			serviceError(w, err)
+			org.ServiceError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, resp)
@@ -558,18 +559,18 @@ func writeFileResponse(w http.ResponseWriter, data []byte, contentType, filename
 // Returns (nil, "", "", nil) for unsupported formats so callers can return 400.
 func exportByFormat(format string, people []apitypes.OrgNode, baseName string) ([]byte, string, string, error) {
 	switch strings.ToLower(format) {
-	case FormatCSV:
-		data, err := ExportCSV(people)
+	case org.FormatCSV:
+		data, err := org.ExportCSV(people)
 		return data, "text/csv", baseName + ".csv", err
-	case FormatXLSX:
-		data, err := ExportXLSX(people)
+	case org.FormatXLSX:
+		data, err := org.ExportXLSX(people)
 		return data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", baseName + ".xlsx", err
 	default:
 		return nil, "", "", nil
 	}
 }
 
-// limitBody wraps r.Body with a MaxBodySize limit.
+// limitBody wraps r.Body with a org.MaxBodySize limit.
 func limitBody(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, MaxBodySize)
+	r.Body = http.MaxBytesReader(w, r.Body, org.MaxBodySize)
 }

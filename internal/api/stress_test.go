@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -59,7 +60,7 @@ func uploadLargeOrg(t *testing.T, n int) *OrgService {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 	return svc
@@ -73,7 +74,7 @@ func TestLargeOrg_Upload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Fatalf("expected status 'ready', got '%s'", resp.Status)
 	}
 
@@ -308,7 +309,7 @@ func TestLargeOrg_ExportCSV(t *testing.T) {
 	svc := uploadLargeOrg(t, 200)
 	working := svc.GetWorking(context.Background())
 
-	exported, err := ExportCSV(working)
+	exported, err := org.ExportCSV(working)
 	if err != nil {
 		t.Fatalf("export CSV failed: %v", err)
 	}
@@ -388,7 +389,7 @@ func TestLargeOrg_500People(t *testing.T) {
 	}
 
 	// Export and verify
-	exported, err := ExportCSV(working)
+	exported, err := org.ExportCSV(working)
 	if err != nil {
 		t.Fatalf("export CSV failed: %v", err)
 	}

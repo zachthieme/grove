@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/pod"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
@@ -39,30 +39,10 @@ type OrgService struct {
 	idIndex        map[string]int
 }
 
-func deriveDisciplineOrder(people []apitypes.OrgNode) []string {
-	seen := map[string]bool{}
-	var disciplines []string
-	for _, p := range people {
-		if p.Discipline != "" && !seen[p.Discipline] {
-			seen[p.Discipline] = true
-			disciplines = append(disciplines, p.Discipline)
-		}
-	}
-	sort.Strings(disciplines)
-	return disciplines
-}
-
-// MoveResult holds working people and pods, returned from mutations that
-// affect both (e.g. Move, Update, Reorder).
-type MoveResult struct {
-	Working []apitypes.OrgNode
-	Pods    []apitypes.Pod
-}
-
 func NewOrgService(snapStore snapshot.Store) *OrgService {
-	org := &OrgService{podMgr: pod.New()}
-	org.snap = snapshot.New(snapStore, org)
-	return org
+	svc := &OrgService{podMgr: pod.New()}
+	svc.snap = snapshot.New(snapStore, svc)
+	return svc
 }
 
 // SnapshotService returns the snapshot.Service bound to this OrgService.
@@ -72,12 +52,12 @@ func (s *OrgService) SnapshotService() *snapshot.Service { return s.snap }
 func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
-	case ExtCSV:
+	case org.ExtCSV:
 		return extractRowsCSV(data)
-	case ExtXLSX:
+	case org.ExtXLSX:
 		return extractRowsXLSX(data)
 	default:
-		return nil, nil, errValidation("unsupported file format '%s'", ext)
+		return nil, nil, org.ErrValidation("unsupported file format '%s'", ext)
 	}
 }
 
@@ -85,10 +65,10 @@ func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 	reader := csv.NewReader(bytes.NewReader(data))
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, nil, errValidation("reading CSV: %v", err)
+		return nil, nil, org.ErrValidation("reading CSV: %v", err)
 	}
 	if len(records) < 2 {
-		return nil, nil, errValidation("CSV must have a header and at least one data row")
+		return nil, nil, org.ErrValidation("CSV must have a header and at least one data row")
 	}
 	return records[0], records[1:], nil
 }
@@ -96,16 +76,16 @@ func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 func extractRowsXLSX(data []byte) ([]string, [][]string, error) {
 	f, err := excelize.OpenReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, nil, errValidation("opening xlsx: %v", err)
+		return nil, nil, org.ErrValidation("opening xlsx: %v", err)
 	}
 	defer func() { _ = f.Close() }()
 	sheet := f.GetSheetName(0)
 	rows, err := f.GetRows(sheet)
 	if err != nil {
-		return nil, nil, errValidation("reading rows: %v", err)
+		return nil, nil, org.ErrValidation("reading rows: %v", err)
 	}
 	if len(rows) < 2 {
-		return nil, nil, errValidation("xlsx must have a header and at least one data row")
+		return nil, nil, org.ErrValidation("xlsx must have a header and at least one data row")
 	}
 	return rows[0], rows[1:], nil
 }
@@ -137,7 +117,7 @@ func (s *OrgService) RestoreState(ctx context.Context, data autosave.AutosaveDat
 	if data.Settings != nil {
 		s.settings = *data.Settings
 	} else {
-		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
+		s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.original)}
 	}
 	people := len(s.working)
 	recycled := len(s.recycled)
@@ -145,13 +125,13 @@ func (s *OrgService) RestoreState(ctx context.Context, data autosave.AutosaveDat
 	logbuf.Logger().Info("state restored from autosave", "source", "org", "op", "restoreState", "people", people, "recycled", recycled, "snapshot", data.SnapshotName)
 }
 
-func (s *OrgService) GetOrg(ctx context.Context) *OrgData {
+func (s *OrgService) GetOrg(ctx context.Context) *org.OrgData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.original == nil {
 		return nil
 	}
-	return &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
+	return &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 }
 
 func (s *OrgService) GetWorking(ctx context.Context) []apitypes.OrgNode {
@@ -174,20 +154,20 @@ func (s *OrgService) GetRecycled(ctx context.Context) []apitypes.OrgNode {
 	return deepCopyNodes(s.recycled)
 }
 
-func (s *OrgService) ResetToOriginal(ctx context.Context) *OrgData {
+func (s *OrgService) ResetToOriginal(ctx context.Context) *org.OrgData {
 	s.mu.Lock()
 	s.working = deepCopyNodes(s.original)
 	s.rebuildIndex()
 	s.recycled = nil
 	s.podMgr.Reset()
-	s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.original)}
-	resp := &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
+	s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.original)}
+	resp := &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings}
 	s.mu.Unlock()
 
 	// Clear snapshots after releasing org lock — load-bearing rule:
 	// never hold mu_org and mu_snap simultaneously. Bumping snap epoch
 	// invalidates any in-flight Save that captured pre-Reset state.
-	// Signature returns *OrgData (no error), so disk failures here surface
+	// Signature returns *org.OrgData (no error), so disk failures here surface
 	// only via the structured logger — consistent with podMgr.unsafeReset
 	// semantics, but no longer silent.
 	if err := s.snap.Clear(); err != nil {
@@ -236,14 +216,6 @@ func (s *OrgService) findWorking(id string) (int, *apitypes.OrgNode) {
 		return idx, &s.working[idx]
 	}
 	return -1, nil
-}
-
-// MutationResult holds both working and recycled slices, returned atomically
-// from mutations that affect both (e.g. Delete, Restore).
-type MutationResult struct {
-	Working  []apitypes.OrgNode
-	Recycled []apitypes.OrgNode
-	Pods     []apitypes.Pod
 }
 
 // deepCopyNodes returns an independent copy of src, including each person's
@@ -303,19 +275,19 @@ func (s *OrgService) ApplyState(state snapshot.OrgState) {
 		copy(order, state.Settings.DisciplineOrder)
 		s.settings = apitypes.Settings{DisciplineOrder: order}
 	} else {
-		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.working)}
 	}
 }
 
 // Create initializes a new org with a single root person. It replaces any
 // existing org state and clears snapshots, returning the new OrgData.
-func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) {
+func (s *OrgService) Create(ctx context.Context, name string) (*org.OrgData, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, errValidation("name is required")
+		return nil, org.ErrValidation("name is required")
 	}
 	if len(name) > maxFieldLen {
-		return nil, errValidation("name too long (max %d characters)", maxFieldLen)
+		return nil, org.ErrValidation("name too long (max %d characters)", maxFieldLen)
 	}
 
 	p := apitypes.OrgNode{
@@ -328,7 +300,7 @@ func (s *OrgService) Create(ctx context.Context, name string) (*OrgData, error) 
 	people := []apitypes.OrgNode{p}
 	s.resetState(people, people)
 	s.settings = apitypes.Settings{DisciplineOrder: []string{}}
-	resp := &OrgData{
+	resp := &org.OrgData{
 		Original: deepCopyNodes(s.original),
 		Working:  deepCopyNodes(s.working),
 		Pods:     pod.Copy(s.podMgr.Pods()),

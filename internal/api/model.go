@@ -2,26 +2,7 @@ package api
 
 import (
 	"github.com/zachthieme/grove/internal/apitypes"
-	"github.com/zachthieme/grove/internal/snapshot"
 )
-
-type OrgData struct {
-	Original           []apitypes.OrgNode `json:"original"`
-	Working            []apitypes.OrgNode `json:"working"`
-	Pods               []apitypes.Pod     `json:"pods,omitempty"`
-	Settings           *apitypes.Settings `json:"settings,omitempty"`
-	PersistenceWarning string             `json:"persistenceWarning,omitempty"`
-}
-
-type UploadResponse struct {
-	Status             string                           `json:"status"` // "ready" or "needs_mapping"
-	OrgData            *OrgData                         `json:"orgData,omitempty"`
-	Headers            []string                         `json:"headers,omitempty"`
-	Mapping            map[string]apitypes.MappedColumn `json:"mapping,omitempty"`
-	Preview            [][]string                       `json:"preview,omitempty"`
-	Snapshots          []snapshot.Info                  `json:"snapshots,omitempty"`
-	PersistenceWarning string                           `json:"persistenceWarning,omitempty"`
-}
 
 // WorkingResponse is returned by mutations that affect working people and pods
 // (move, update, reorder, updatePod, createPod).

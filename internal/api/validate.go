@@ -5,6 +5,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 )
 
 const (
@@ -22,17 +23,17 @@ func validateNodeUpdate(u *apitypes.OrgNodeUpdate) error {
 	}
 	for _, v := range shortFields {
 		if v != nil && len(*v) > maxFieldLen {
-			return errValidation("field value too long (max %d characters)", maxFieldLen)
+			return org.ErrValidation("field value too long (max %d characters)", maxFieldLen)
 		}
 	}
 	noteFields := []*string{u.PublicNote, u.PrivateNote}
 	for _, v := range noteFields {
 		if v != nil && len(*v) > maxNoteLen {
-			return errValidation("note too long (max %d characters)", maxNoteLen)
+			return org.ErrValidation("note too long (max %d characters)", maxNoteLen)
 		}
 	}
 	if u.Type != nil && *u.Type != model.NodeTypePerson && *u.Type != model.NodeTypeProduct {
-		return errValidation("invalid type '%s'", *u.Type)
+		return org.ErrValidation("invalid type '%s'", *u.Type)
 	}
 	return nil
 }
@@ -41,7 +42,7 @@ func validateNodeUpdate(u *apitypes.OrgNodeUpdate) error {
 func validateFieldLengths(fields map[string]string) error {
 	for _, v := range fields {
 		if len(v) > maxFieldLen {
-			return errValidation("field value too long (max %d characters)", maxFieldLen)
+			return org.ErrValidation("field value too long (max %d characters)", maxFieldLen)
 		}
 	}
 	return nil
@@ -50,7 +51,7 @@ func validateFieldLengths(fields map[string]string) error {
 // validateNoteLen returns an error if the note value exceeds maxNoteLen.
 func validateNoteLen(value string) error {
 	if len(value) > maxNoteLen {
-		return errValidation("note too long (max %d characters)", maxNoteLen)
+		return org.ErrValidation("note too long (max %d characters)", maxNoteLen)
 	}
 	return nil
 }
@@ -103,17 +104,17 @@ func isFrontlineManager(working []apitypes.OrgNode, personId string) bool {
 // to the index lookup.
 func validateManagerChange(working []apitypes.OrgNode, idIndex map[string]int, personId, newManagerId string) error {
 	if newManagerId == personId {
-		return errValidation("a person cannot be their own manager")
+		return org.ErrValidation("a person cannot be their own manager")
 	}
 	_, mgr := findByID(working, idIndex, newManagerId)
 	if mgr == nil {
-		return errNotFound("manager %s not found", newManagerId)
+		return org.ErrNotFound("manager %s not found", newManagerId)
 	}
 	if model.IsProduct(mgr.Type) {
-		return errValidation("cannot report to a product")
+		return org.ErrValidation("cannot report to a product")
 	}
 	if wouldCreateCycle(working, idIndex, personId, newManagerId) {
-		return errValidation("this move would create a circular reporting chain")
+		return org.ErrValidation("this move would create a circular reporting chain")
 	}
 	return nil
 }
@@ -153,16 +154,16 @@ func validateSettings(s *apitypes.Settings) error {
 		d = strings.TrimSpace(d)
 		s.DisciplineOrder[i] = d
 		if d == "" {
-			return errValidation("discipline name cannot be empty")
+			return org.ErrValidation("discipline name cannot be empty")
 		}
 		if strings.ContainsAny(d, "\n\r\x00") {
-			return errValidation("discipline name contains invalid characters")
+			return org.ErrValidation("discipline name contains invalid characters")
 		}
 		if len(d) > maxFieldLen {
-			return errValidation("discipline name too long (max %d characters)", maxFieldLen)
+			return org.ErrValidation("discipline name too long (max %d characters)", maxFieldLen)
 		}
 		if seen[d] {
-			return errValidation("duplicate discipline name: %s", d)
+			return org.ErrValidation("duplicate discipline name: %s", d)
 		}
 		seen[d] = true
 	}

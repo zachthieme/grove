@@ -17,6 +17,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/logbuf"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/parser"
 	"github.com/zachthieme/grove/internal/pod"
 	"github.com/zachthieme/grove/internal/snapshot"
@@ -36,7 +37,7 @@ type zipEntry struct {
 func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, nil, nil, errValidation("opening zip: %v", err)
+		return nil, nil, nil, nil, org.ErrValidation("opening zip: %v", err)
 	}
 
 	var entries []zipEntry
@@ -65,7 +66,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error)
 		}
 		totalSize += int64(len(content))
 		if totalSize > maxDecompressedSize {
-			return nil, nil, nil, nil, errValidation("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
+			return nil, nil, nil, nil, org.ErrValidation("ZIP contents too large (max %d MB)", maxDecompressedSize>>20)
 		}
 
 		nameNoExt := strings.TrimSuffix(base, filepath.Ext(base))
@@ -99,7 +100,7 @@ func parseZipFileList(data []byte) ([]zipEntry, []byte, []byte, []string, error)
 	}
 
 	if len(entries) == 0 {
-		return nil, nil, nil, nil, errValidation("ZIP contains no CSV or XLSX files")
+		return nil, nil, nil, nil, org.ErrValidation("ZIP contains no CSV or XLSX files")
 	}
 
 	sort.SliceStable(entries, func(i, j int) bool {
@@ -163,7 +164,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	// Parse raw orgs from all entries first.
 	type parsedEntry struct {
 		entry zipEntry
-		org   *model.Org
+		mod   *model.Org
 	}
 	var parsed []parsedEntry
 
@@ -174,21 +175,21 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 			continue
 		}
 
-		org, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
+		mod, err := parser.BuildPeopleWithMapping(header, dataRows, mapping)
 		if err != nil {
 			warnings = append(warnings, fmt.Sprintf("skipped %s: %v", e.filename, err))
 			continue
 		}
 
-		parsed = append(parsed, parsedEntry{entry: e, org: org})
+		parsed = append(parsed, parsedEntry{entry: e, mod: mod})
 	}
 
 	if len(parsed) == 0 {
-		return nil, nil, nil, nil, errValidation("no files in ZIP could be parsed")
+		return nil, nil, nil, nil, org.ErrValidation("no files in ZIP could be parsed")
 	}
 
 	if len(parsed) == 1 {
-		people := ConvertOrg(parsed[0].org)
+		people := org.ConvertOrg(parsed[0].mod)
 		return people, deepCopyNodes(people), nil, warnings, nil
 	}
 
@@ -207,10 +208,10 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 
 	// Convert original first to establish stable IDs, then reuse them
 	// for working and snapshot files so diff can match people by UUID.
-	original = ConvertOrg(parsed[originalIdx].org)
-	idMap := BuildIDMap(original)
+	original = org.ConvertOrg(parsed[originalIdx].mod)
+	idMap := org.BuildIDMap(original)
 
-	working = ConvertOrgWithIDMap(parsed[workingIdx].org, idMap)
+	working = org.ConvertOrgWithIDMap(parsed[workingIdx].mod, idMap)
 
 	now := time.Now()
 	for i, p := range parsed {
@@ -218,7 +219,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 			continue
 		}
 		snaps[p.entry.name] = snapshot.Data{
-			People:    ConvertOrgWithIDMap(p.org, idMap),
+			People:    org.ConvertOrgWithIDMap(p.mod, idMap),
 			Timestamp: now.Add(time.Duration(i) * time.Millisecond),
 		}
 	}
@@ -226,7 +227,7 @@ func parseZipEntries(entries []zipEntry, mapping map[string]string) (original []
 	return original, working, snaps, warnings, nil
 }
 
-func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadResponse, error) {
+func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*org.UploadResponse, error) {
 	// Parse before acquiring lock — no state mutation if parsing fails
 	entries, podsSidecar, settingsSidecar, fileWarns, err := parseZipFileList(data)
 	if err != nil {
@@ -240,11 +241,11 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		return nil, err
 	}
 
-	mapping := InferMapping(header)
+	mapping := org.InferMapping(header)
 
 	s.mu.Lock()
 
-	if AllRequiredHigh(mapping) {
+	if org.AllRequiredHigh(mapping) {
 		simpleMapping := make(map[string]string, len(mapping))
 		for field, mc := range mapping {
 			simpleMapping[field] = mc.Column
@@ -263,21 +264,21 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		if podsSidecar != nil {
 			sidecarEntries := parsePodsSidecar(podsSidecar)
 			if len(sidecarEntries) > 0 {
-				idToName := buildIDToName(s.working)
+				idToName := org.BuildIDToName(s.working)
 				s.podMgr.ApplyNotes(sidecarEntries, idToName)
 			}
 		}
 
-		s.settings = apitypes.Settings{DisciplineOrder: deriveDisciplineOrder(s.working)}
+		s.settings = apitypes.Settings{DisciplineOrder: org.DeriveDisciplineOrder(s.working)}
 		if settingsSidecar != nil {
 			if order := parseSettingsSidecar(settingsSidecar); len(order) > 0 {
 				s.settings = apitypes.Settings{DisciplineOrder: order}
 			}
 		}
 
-		resp := &UploadResponse{
-			Status:  UploadReady,
-			OrgData: &OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings},
+		resp := &org.UploadResponse{
+			Status:  org.UploadReady,
+			OrgData: &org.OrgData{Original: deepCopyNodes(s.original), Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods()), Settings: &s.settings},
 		}
 		s.mu.Unlock()
 
@@ -315,8 +316,8 @@ func (s *OrgService) UploadZip(ctx context.Context, data []byte) (*UploadRespons
 		}
 		preview = append(preview, row)
 	}
-	return &UploadResponse{
-		Status:  UploadNeedsMapping,
+	return &org.UploadResponse{
+		Status:  org.UploadNeedsMapping,
 		Headers: header,
 		Mapping: mapping,
 		Preview: preview,

@@ -23,6 +23,7 @@ import (
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/autosave"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -137,7 +138,7 @@ func TestContractPodInfoFields(t *testing.T) {
 func TestContractOrgDataFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "OrgData")
-	got := jsonFieldNames(OrgData{})
+	got := jsonFieldNames(org.OrgData{})
 	assertFieldsMatch(t, "OrgData", expected, got)
 }
 
@@ -165,7 +166,7 @@ func TestContractMappedColumnFields(t *testing.T) {
 func TestContractUploadResponseFields(t *testing.T) {
 	t.Parallel()
 	expected := tsInterfaceFields(t, "UploadResponse")
-	got := jsonFieldNames(UploadResponse{})
+	got := jsonFieldNames(org.UploadResponse{})
 	assertFieldsMatch(t, "UploadResponse", expected, got)
 }
 

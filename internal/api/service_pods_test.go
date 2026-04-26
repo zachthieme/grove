@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/zachthieme/grove/internal/apitypes"
+	"github.com/zachthieme/grove/internal/org"
 )
 
 // --- Direct service_pods.go tests ---
@@ -54,7 +55,7 @@ func TestOrgService_UpdatePod_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nonexistent pod")
 	}
-	if !isNotFound(err) {
+	if !org.IsNotFound(err) {
 		t.Errorf("expected NotFoundError, got %T: %v", err, err)
 	}
 }
@@ -77,7 +78,7 @@ func TestOrgService_UpdatePod_NoteTooLong(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for oversized note")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got %T: %v", err, err)
 	}
 }
@@ -98,7 +99,7 @@ func TestOrgService_CreatePod_Duplicate(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for duplicate manager+team pod")
 	}
-	if !isConflict(err) {
+	if !org.IsConflict(err) {
 		t.Errorf("expected ConflictError, got %T: %v", err, err)
 	}
 }

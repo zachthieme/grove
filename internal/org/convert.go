@@ -1,10 +1,28 @@
-package api
+package org
 
 import (
+	"sort"
+
 	"github.com/google/uuid"
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
 )
+
+// DeriveDisciplineOrder returns the unique disciplines present across people,
+// sorted alphabetically. Used as the default settings.DisciplineOrder when an
+// org is created or imported without an explicit override.
+func DeriveDisciplineOrder(people []apitypes.OrgNode) []string {
+	seen := map[string]bool{}
+	var disciplines []string
+	for _, p := range people {
+		if p.Discipline != "" && !seen[p.Discipline] {
+			seen[p.Discipline] = true
+			disciplines = append(disciplines, p.Discipline)
+		}
+	}
+	sort.Strings(disciplines)
+	return disciplines
+}
 
 func ConvertOrg(org *model.Org) []apitypes.OrgNode {
 	return ConvertOrgWithIDMap(org, nil)

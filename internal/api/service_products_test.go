@@ -7,6 +7,7 @@ import (
 
 	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/model"
+	"github.com/zachthieme/grove/internal/org"
 )
 
 // Scenarios: PROD-001
@@ -171,7 +172,7 @@ func TestOrgService_Update_RejectProductAsManager(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when reparenting to a product via Update")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got: %T", err)
 	}
 	if !strings.Contains(err.Error(), "cannot report to a product") {
@@ -204,7 +205,7 @@ func TestOrgService_Move_RejectProductAsManager(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when moving to a product manager")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got: %T", err)
 	}
 	if !strings.Contains(err.Error(), "cannot report to a product") {
@@ -285,7 +286,7 @@ func TestOrgService_Add_InvalidType(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected validation error for invalid type on Add")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got: %T", err)
 	}
 }
@@ -301,7 +302,7 @@ func TestOrgService_Update_InvalidType(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected validation error for invalid type")
 	}
-	if !isValidation(err) {
+	if !org.IsValidation(err) {
 		t.Errorf("expected ValidationError, got: %T", err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zachthieme/grove/internal/org"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -36,7 +37,7 @@ func TestOrgService_Upload_AutoProceed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadReady {
+	if resp.Status != org.UploadReady {
 		t.Errorf("expected status 'ready', got '%s'", resp.Status)
 	}
 	if resp.OrgData == nil {
@@ -58,7 +59,7 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Errorf("expected status 'needs_mapping', got '%s'", resp.Status)
 	}
 	if resp.OrgData != nil {
@@ -79,13 +80,13 @@ func TestOrgService_Upload_NeedsMapping(t *testing.T) {
 func TestOrgService_ConfirmMapping(t *testing.T) {
 	t.Parallel()
 	svc := NewOrgService(snapshot.NewMemoryStore())
-	// Use unrecognizable headers so InferMapping won't auto-proceed.
+	// Use unrecognizable headers so org.InferMapping won't auto-proceed.
 	csv := []byte("Nombre,Nivel,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\n")
 	resp, err := svc.Upload(context.Background(), "test.csv", csv)
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
@@ -129,7 +130,7 @@ func TestOrgService_ConfirmMapping_NonZip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload: %v", err)
 	}
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Skipf("headers were auto-mapped; skipping confirm test")
 	}
 	mapping := map[string]string{
@@ -236,7 +237,7 @@ func TestConfirmMapping_CancelledContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
@@ -268,7 +269,7 @@ func TestConfirmMapping_DeadlineExceeded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload failed: %v", err)
 	}
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Fatalf("expected needs_mapping, got %s", resp.Status)
 	}
 
@@ -296,7 +297,7 @@ func TestConfirmMapping_RejectsStaleEpoch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload A: %v", err)
 	}
-	if respA.Status != UploadNeedsMapping {
+	if respA.Status != org.UploadNeedsMapping {
 		t.Skipf("headers auto-mapped; cannot test epoch race")
 	}
 
@@ -306,7 +307,7 @@ func TestConfirmMapping_RejectsStaleEpoch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload B: %v", err)
 	}
-	if respB.Status != UploadNeedsMapping {
+	if respB.Status != org.UploadNeedsMapping {
 		t.Skipf("headers auto-mapped; cannot test epoch race")
 	}
 
@@ -315,7 +316,7 @@ func TestConfirmMapping_RejectsStaleEpoch(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected conflict error when confirming stale upload, got nil")
 	}
-	if !isConflict(err) {
+	if !org.IsConflict(err) {
 		t.Errorf("expected conflict error, got: %v", err)
 	}
 }
@@ -330,7 +331,7 @@ func TestConfirmMapping_AcceptsCurrentEpoch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upload: %v", err)
 	}
-	if resp.Status != UploadNeedsMapping {
+	if resp.Status != org.UploadNeedsMapping {
 		t.Skipf("headers auto-mapped; cannot test epoch")
 	}
 
