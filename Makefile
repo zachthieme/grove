@@ -77,8 +77,8 @@ fuzz:
 	@echo "Running fuzz tests (5s each)..."
 	go test -fuzz=FuzzInferMapping -fuzztime=5s ./internal/org/
 	go test -fuzz=FuzzCSVUpload -fuzztime=5s ./internal/org/
-	go test -fuzz=FuzzAllRequiredHigh -fuzztime=5s ./internal/org/
-	go test -fuzz=FuzzAllRequiredHighMultiField -fuzztime=5s ./internal/org/
+	go test -fuzz='^FuzzAllRequiredHigh$$' -fuzztime=5s ./internal/org/
+	go test -fuzz='^FuzzAllRequiredHighMultiField$$' -fuzztime=5s ./internal/org/
 	go test -fuzz=FuzzUpdateFields -fuzztime=5s ./internal/org/
 	go test -fuzz=FuzzSanitizeCell -fuzztime=5s ./internal/org/
 	go test -fuzz=FuzzZipUpload -fuzztime=5s ./internal/org/

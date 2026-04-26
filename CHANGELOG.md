@@ -1,5 +1,88 @@
 # Changelog
 
+## v0.14.0
+
+### Breaking Changes
+- **Vim `P` → `+` for add product**: The capital-P binding (paste-before in vim's mental model) is freed up; products are now added with bare `+`, mirroring the `+◆` button in the chart UI. [VIM-003]
+- **Sidebar Esc commits instead of reverting**: Pressing Esc while editing in `NodeEditSidebar` now saves the form (via `update`) instead of silently reverting the in-progress changes — required for the rapid-add flow (`o → type → Esc → o`). [VIM-006]
+
+### Major Features
+
+#### Products as a first-class node type
+- New `type: "person" | "product"` field on `OrgNode`. Products have distinct slate styling, separate group rendering (`ProductGroupLayout`), and are excluded from headcount, recruiting, span-of-control, and other person-only metrics.
+- Type can be changed via the update API; switching to product clears person-only fields and revalidates status.
+- Products nest inside pods as a side-by-side column next to the pod's people; pods containing only products still render with the pod label preserved.
+- CSV import/export round-trips a `type` column (defaults to "person" when absent).
+- Toolbar Filters dropdown gained a Products checkbox (PROD-012).
+- `+◆` action on person/manager cards adds a product; vim `+` mirrors it. [PROD-001..016]
+
+#### Vim mode — full keymap expansion
+- **Rapid add**: After `o`/`O`/`+` creates a node, the new node auto-selects and the sidebar focuses the name input. Esc commits typed value; flow becomes `o → type → Esc → o → type`. [VIM-006]
+- **Tree navigation**: `gg` jumps to root manager, `G` to deepest leaf in current subtree, `gp` to parent of selection (handles person ids and synthetic `pod:`/`team:`/`products:` keys). 500 ms two-key prefix. [VIM-008]
+- **Sibling**: `a` appends a sibling at the current level (mirrors `o` sideways; products → sibling product). [VIM-007]
+- **Undo/Redo**: bare `u` / `Ctrl+R` alongside the existing `Cmd+Z`/`Cmd+Shift+Z`. [VIM-009]
+- **Focus subtree**: `f` sets head to selected person; Esc clears via the existing useUnifiedEscape priority chain. [VIM-010]
+- **Toggle fold**: `za` collapses/expands the selected manager or pod. [VIM-011]
+- **Yank + paste-as-copy**: `y` yanks selection (mutex with cut); `p` pastes — copies if yanked (via new copy-subtree endpoint), moves if cut. Yanked banner mirrors the cut banner. [VIM-012]
+- **Visual mode**: `v` enters additive selection — motion keys add neighbors to `selectedIds` while keeping the anchor. Esc or `v` exits; selection persists. [VIM-013]
+- **Cheat sheet**: `?` opens a modal listing every binding, grouped by category. [VIM-004]
+- **Pod selection**: `o` on a pod now adds a person via `onAddToTeam` regardless of pod size; `+` on a pod adds a product into the pod. [VIM-002, VIM-003]
+- **Multi-select ops**: `d`/`x`/`y` apply to all selected when `selectedIds.size > 1`.
+
+#### Backend: copy-subtree endpoint
+- New `POST /api/people/copy-subtree` and `OrgService.CopySubtree(rootIds, targetParentId)`. Walks each root's descendants, generates fresh UUIDs, remaps internal manager edges, duplicates pods owned by copied managers. Returns `idMap` (oldId → newId) so the client can locate the new copies. [ORG-020]
+
+#### Frontend optimistic mutations
+- `move`, `reparent`, `reorder`, and `update` now apply an optimistic patch synchronously; failures revert from a pre-mutation snapshot and surface the error. Single `dispatch` helper in `useOrgMutations.ts` replaces per-mutation try/catch boilerplate.
+
+#### Performance optimizations
+- ColumnView and ManagerView subtrees are now memo-ed; per-id selector hooks (`useIsSelected`, `useIsCollapsed`) prevent whole-tree re-renders on per-node state changes. ChartActions deps stabilized for memo-friendliness.
+- E2E performance budget tests (`web/e2e/performance.spec.ts`) and a `buildSyntheticOrg` fixture for repeatable timing baselines. [PERF-001..006]
+
+### Bug Fixes
+- **Pod header count excludes products** (PROD-016): pod cards previously showed `members.length + products.length` under a "people" label; now shows only people, hides the line entirely for product-only pods.
+- **SelectionPruner preserves synthetic group keys** (SELECT-007): pod/team/products collapseKeys are no longer pruned from `selectedIds` on every working update. Fixes a subtle race where vim actions would clear pod selections.
+- **Vim `d`/`x` on multi-selection**: previously no-op'd when `selectedId` was null; now applies to every id in `selectedIds`.
+- **Vim `o` on pod**: now correctly adds a person via `onAddToTeam` (works for any pod size, not just single-member pods).
+- **Vim `o` on a product**: creates a sibling product instead of a child (products can't have reports).
+- **Persist node type changes**: type changes now flow through the update API.
+- **ColumnView edges to product groups**: edges now draw to product clusters under managers.
+- **InferMapping**: rejects duplicate header values instead of silently overwriting.
+- **Chart edges**: anchor to the bottom of expanded card+notes, not just the card.
+- **`getConfig` failure**: warns instead of silently swallowing.
+- **Telemetry drop counter**: replaces silent `log POST` catch with a counter so dropped events are observable.
+- **Pre-existing e2e gaps** closed (3 specs); sidebar Delete button scoped to disambiguate from card hover action.
+
+### Refactoring
+- **`internal/api` split into 7 packages**: `apitypes`, `logbuf`, `autosave`, `pod`, `snapshot`, `org`, `httpapi`. Strict downward dependencies, no cycles. [Design doc in `docs/design/`]
+- **SnapshotService extracted from OrgService**: own `sync.RWMutex`, no nested locks. Snapshot saves now run concurrently with org edits. Epoch counter (`snapshot.ConflictError`) guards against `Reset`/`Create`/`Upload` racing with in-flight saves. [SNAP-010, SNAP-011]
+- **`layoutTree.ts` split** (365L → 5 helpers): `layoutAffinity`, `layoutICs`, `layoutOrphans`, `layoutTypes`, with `layoutTree` as the composing entry point.
+- **`api/client.ts` split** (549L by resource): `core`, `org`, `imports`, `pods`, `snapshots`, `autosave`, `settings`, `logs`. Public barrel re-exports.
+- **`httpapi/handlers.go` split by resource**: `handlers_org.go`, `handlers_pod.go`, `handlers_snapshot.go`, `handlers_import.go`, `handlers_settings.go`, `autosave_handlers.go`. Shared helpers (`jsonHandlerCtx`, etc.) stay in `handlers.go`.
+
+### Testing
+- **Property-based tests** for org service via `pgregory.net/rapid`.
+- **Mutation testing** via `gremlins` in nightly CI.
+- **Per-package coverage floors** enforced by `make coverage-check` (httpapi 85, pod 95, model 90, org 80, snapshot 80, parser 80, autosave 60, logbuf 70).
+- **Pod manager** test coverage: 55% → 99%.
+- **Snapshot** concurrent + error-path coverage: → 84%, including epoch-guard race tests.
+- **apitypes** JSON round-trip coverage for all DTOs.
+- **Flake detector** weekly cron (Go ×10, frontend ×5).
+
+### Build / CI
+- **Lefthook** pre-commit hooks (`lefthook.yml`).
+- **golangci-lint v2** pin with explicit `.golangci.yml` config.
+- **TS type codegen via tygo**: `web/src/api/types.generated.ts` is generated from `internal/apitypes/types.go`. CI guards staleness with `make types-gen-check`.
+- **`make ci`** is the canonical pre-tag gate (typecheck, lint, test-all, e2e, bench, fuzz, check-scenarios).
+
+### UX / Accessibility
+- **Distinct color** for product nodes and product group header (slate vs green).
+- **Vim cheat sheet** (`?`) — fully discoverable from Settings; `aria-modal="true"` dialog with Esc/click-outside dismissal.
+- **Tour**: added Products step.
+- **TableView**: Type column + filter fix for managers that exist only in original.
+
+---
+
 ## v0.13.0
 
 ### Breaking Changes
