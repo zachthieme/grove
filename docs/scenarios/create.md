@@ -7,8 +7,8 @@
 **ID**: CREATE-001
 **Area**: create
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Create"
-- `internal/api/handlers_test.go` → "TestCreateHandler"
+- `internal/org/service_test.go` → "TestOrgService_Create"
+- `internal/httpapi/handlers_test.go` → "TestCreateHandler"
 - `web/src/components/UploadPrompt.test.tsx` → "[CREATE-001]"
 
 ## Behavior
@@ -30,8 +30,8 @@ User clicks "Start from scratch" on the landing page, enters a name, and an org 
 **ID**: CREATE-002
 **Area**: create
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_AddParent"
-- `internal/api/handlers_test.go` → "TestAddParentHandler"
+- `internal/org/service_test.go` → "TestOrgService_AddParent"
+- `internal/httpapi/handlers_test.go` → "TestAddParentHandler"
 
 ## Behavior
 User clicks the up-arrow-plus icon on a root-level person (no manager), enters a name. A new parent person is created with status "Active" and blank fields, and the child's managerId is set to the new parent's ID.
@@ -49,7 +49,7 @@ User clicks the up-arrow-plus icon on a root-level person (no manager), enters a
 **ID**: CREATE-003
 **Area**: create
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_AddParent_ChildHasManager"
+- `internal/org/service_test.go` → "TestOrgService_AddParent_ChildHasManager"
 - `web/src/components/PersonNode.test.tsx` → "[CREATE-003]"
 
 ## Behavior
@@ -66,10 +66,10 @@ The up-arrow-plus icon is only visible on root-level nodes (people with no manag
 **ID**: CREATE-004
 **Area**: create
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Create_EmptyName"
-- `internal/api/service_test.go` → "TestOrgService_AddParent_EmptyName"
-- `internal/api/handlers_test.go` → "TestCreateHandler_EmptyName"
-- `internal/api/handlers_test.go` → "TestAddParentHandler_EmptyName"
+- `internal/org/service_test.go` → "TestOrgService_Create_EmptyName"
+- `internal/org/service_test.go` → "TestOrgService_AddParent_EmptyName"
+- `internal/httpapi/handlers_test.go` → "TestCreateHandler_EmptyName"
+- `internal/httpapi/handlers_test.go` → "TestAddParentHandler_EmptyName"
 
 ## Behavior
 Both create and add-parent endpoints reject empty names with a 422 ValidationError.

@@ -7,12 +7,12 @@
 **ID**: CONC-001
 **Area**: concurrency
 **Tests**:
-- `internal/api/concurrent_test.go` → "TestConcurrentMoves"
-- `internal/api/concurrent_test.go` → "TestConcurrentUpdates"
-- `internal/api/concurrent_test.go` → "TestConcurrentReadsAndWrites"
-- `internal/api/concurrent_test.go` → "TestConcurrentDeleteRestore"
-- `internal/api/concurrent_test.go` → "TestConcurrentSnapshotOperations"
-- `internal/api/concurrent_test.go` → "TestConcurrentMixedOperations"
+- `internal/org/concurrent_test.go` → "TestConcurrentMoves"
+- `internal/org/concurrent_test.go` → "TestConcurrentUpdates"
+- `internal/org/concurrent_test.go` → "TestConcurrentReadsAndWrites"
+- `internal/org/concurrent_test.go` → "TestConcurrentDeleteRestore"
+- `internal/org/concurrent_test.go` → "TestConcurrentSnapshotOperations"
+- `internal/org/concurrent_test.go` → "TestConcurrentMixedOperations"
 
 ## Behavior
 Multiple goroutines perform mutations simultaneously. The RWMutex on OrgService ensures no data races.
@@ -33,15 +33,15 @@ Multiple goroutines perform mutations simultaneously. The RWMutex on OrgService 
 **ID**: CONC-002
 **Area**: concurrency
 **Tests**:
-- `internal/api/stress_test.go` → "TestLargeOrg_Upload"
-- `internal/api/stress_test.go` → "TestLargeOrg_MoveChain"
-- `internal/api/stress_test.go` → "TestLargeOrg_BulkUpdate"
-- `internal/api/stress_test.go` → "TestLargeOrg_ReorderAll"
-- `internal/api/stress_test.go` → "TestLargeOrg_DeleteAndRestore"
-- `internal/api/stress_test.go` → "TestLargeOrg_SnapshotRoundTrip"
-- `internal/api/stress_test.go` → "TestLargeOrg_ExportCSV"
-- `internal/api/stress_test.go` → "TestLargeOrg_500People"
-- `internal/api/adversarial_test.go` → "TestAdversarial_MassivePeopleCount"
+- `internal/org/stress_test.go` → "TestLargeOrg_Upload"
+- `internal/org/stress_test.go` → "TestLargeOrg_MoveChain"
+- `internal/org/stress_test.go` → "TestLargeOrg_BulkUpdate"
+- `internal/org/stress_test.go` → "TestLargeOrg_ReorderAll"
+- `internal/org/stress_test.go` → "TestLargeOrg_DeleteAndRestore"
+- `internal/org/stress_test.go` → "TestLargeOrg_SnapshotRoundTrip"
+- `internal/org/stress_test.go` → "TestLargeOrg_ExportCSV"
+- `internal/org/stress_test.go` → "TestLargeOrg_500People"
+- `internal/org/adversarial_test.go` → "TestAdversarial_MassivePeopleCount"
 
 ## Behavior
 Operations on large orgs (200-500 people) complete correctly. Performance is tracked via benchmarks (not test assertions) to avoid CI flakiness.
@@ -84,8 +84,8 @@ The frontend renders a 200-person org chart without errors or hangs. All three v
 **ID**: CONC-004
 **Area**: concurrency
 **Tests**:
-- `internal/api/service_test.go` → "TestConfirmMapping_RejectsStaleEpoch"
-- `internal/api/service_test.go` → "TestConfirmMapping_AcceptsCurrentEpoch"
+- `internal/org/service_test.go` → "TestConfirmMapping_RejectsStaleEpoch"
+- `internal/org/service_test.go` → "TestConfirmMapping_AcceptsCurrentEpoch"
 
 ## Behavior
 When a user uploads File A (needs mapping), then uploads File B before confirming A, the ConfirmMapping for A's mapping returns a 409 conflict error. The user must re-confirm with B's mapping.
@@ -105,7 +105,7 @@ When a user uploads File A (needs mapping), then uploads File B before confirmin
 **ID**: CONC-005
 **Area**: concurrency
 **Tests**:
-- `internal/api/concurrent_test.go` → "TestConcurrentSnapshotSaves_BothPersist"
+- `internal/org/concurrent_test.go` → "TestConcurrentSnapshotSaves_BothPersist"
 
 ## Behavior
 Two concurrent SaveSnapshot calls both persist their data. Neither overwrites the other on disk.

@@ -7,10 +7,10 @@
 **ID**: EXPORT-001
 **Area**: import-export
 **Tests**:
-- `internal/api/export_test.go` → "TestExportCSV_RoundTrip"
-- `internal/api/export_test.go` → "TestExportCSV_IncludesNewFields"
-- `internal/api/export_test.go` → "TestExportCSV_IncludesLevel"
-- `internal/api/handlers_test.go` → "TestExportHandler_CSV"
+- `internal/org/export_test.go` → "TestExportCSV_RoundTrip"
+- `internal/org/export_test.go` → "TestExportCSV_IncludesNewFields"
+- `internal/org/export_test.go` → "TestExportCSV_IncludesLevel"
+- `internal/httpapi/handlers_test.go` → "TestExportHandler_CSV"
 
 ## Behavior
 User exports the working org as a CSV file. All person fields are included with manager names (not IDs).
@@ -31,7 +31,7 @@ User exports the working org as a CSV file. All person fields are included with 
 **ID**: EXPORT-002
 **Area**: import-export
 **Tests**:
-- `internal/api/handlers_test.go` → "TestExportHandler_XLSX"
+- `internal/httpapi/handlers_test.go` → "TestExportHandler_XLSX"
 
 ## Behavior
 User exports the working org as an XLSX file. Same data as CSV but in Excel format.
@@ -50,8 +50,8 @@ User exports the working org as an XLSX file. Same data as CSV but in Excel form
 **ID**: EXPORT-003
 **Area**: import-export
 **Tests**:
-- `internal/api/handlers_test.go` → "TestExportHandler_UnsupportedFormat"
-- `internal/api/handlers_test.go` → "TestExportHandler_EmptyOrg"
+- `internal/httpapi/handlers_test.go` → "TestExportHandler_UnsupportedFormat"
+- `internal/httpapi/handlers_test.go` → "TestExportHandler_EmptyOrg"
 
 ## Behavior
 Requesting an unsupported export format or exporting with no loaded data returns an error.
@@ -70,7 +70,7 @@ Requesting an unsupported export format or exporting with no loaded data returns
 **ID**: EXPORT-004
 **Area**: import-export
 **Tests**:
-- `internal/api/export_test.go` → "TestExportPodsSidecarCSV"
+- `internal/org/export_test.go` → "TestExportPodsSidecarCSV"
 
 ## Behavior
 Exports pod metadata (name, manager, team, notes) as a CSV sidecar file for ZIP round-trip.
@@ -90,8 +90,8 @@ Exports pod metadata (name, manager, team, notes) as a CSV sidecar file for ZIP 
 **ID**: EXPORT-005
 **Area**: import-export
 **Tests**:
-- `internal/api/convert_test.go` → "TestConvertOrg_AssignsIDs"
-- `internal/api/convert_test.go` → "TestConvertOrg_PreservesFields"
+- `internal/org/convert_test.go` → "TestConvertOrg_AssignsIDs"
+- `internal/org/convert_test.go` → "TestConvertOrg_PreservesFields"
 
 ## Behavior
 Internal model.Org is converted to API Person structs with generated UUIDs. Manager references are resolved from names to IDs.
@@ -163,9 +163,9 @@ Exports all snapshots as a ZIP archive. Supports CSV, XLSX, PNG, and SVG formats
 **ID**: EXPORT-008
 **Area**: import-export
 **Tests**:
-- `internal/api/export_test.go` → "TestExportCSV_FormulaEscaping"
-- `internal/api/export_test.go` → "TestSanitizeCell"
-- `internal/api/fuzz_test.go` → "FuzzSanitizeCell"
+- `internal/org/export_test.go` → "TestExportCSV_FormulaEscaping"
+- `internal/org/export_test.go` → "TestSanitizeCell"
+- `internal/org/fuzz_test.go` → "FuzzSanitizeCell"
 
 ## Behavior
 Exported CSV/XLSX cells are sanitized to prevent formula injection. Cells starting with `=`, `+`, `-`, `@`, tab, CR, or LF are prefixed with a tab character.

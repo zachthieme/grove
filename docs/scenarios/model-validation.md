@@ -7,9 +7,9 @@
 **ID**: ORG-001
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Move"
-- `internal/api/service_test.go` → "TestOrgService_Move_NoTeamChange"
-- `internal/api/handlers_test.go` → "TestMoveHandler"
+- `internal/org/service_test.go` → "TestOrgService_Move"
+- `internal/org/service_test.go` → "TestOrgService_Move_NoTeamChange"
+- `internal/httpapi/handlers_test.go` → "TestMoveHandler"
 - `web/e2e/features.spec.ts` → "drag-and-drop reparent"
 
 ## Behavior
@@ -33,10 +33,10 @@ A person is moved to a new manager, optionally with a new team and pod assignmen
 **ID**: ORG-002
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Move_CycleDetection"
-- `internal/api/service_test.go` → "TestOrgService_Update_CycleDetection"
-- `internal/api/service_test.go` → "TestOrgService_Move_SelfAsManager"
-- `internal/api/adversarial_test.go` → "TestAdversarial_CircularManagerChain"
+- `internal/org/service_test.go` → "TestOrgService_Move_CycleDetection"
+- `internal/org/service_test.go` → "TestOrgService_Update_CycleDetection"
+- `internal/org/service_test.go` → "TestOrgService_Move_SelfAsManager"
+- `internal/org/adversarial_test.go` → "TestAdversarial_CircularManagerChain"
 
 ## Behavior
 The system detects and rejects moves or updates that would create a cycle in the manager hierarchy.
@@ -57,9 +57,9 @@ The system detects and rejects moves or updates that would create a cycle in the
 **ID**: ORG-003
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Move_ManagerNotFound"
-- `internal/api/adversarial_test.go` → "TestAdversarial_MoveToNonexistentManager"
-- `internal/api/handlers_test.go` → "TestMoveHandler_PersonNotFound"
+- `internal/org/service_test.go` → "TestOrgService_Move_ManagerNotFound"
+- `internal/org/adversarial_test.go` → "TestAdversarial_MoveToNonexistentManager"
+- `internal/httpapi/handlers_test.go` → "TestMoveHandler_PersonNotFound"
 
 ## Behavior
 Moving a person to a non-existent manager returns a NotFoundError.
@@ -78,8 +78,8 @@ Moving a person to a non-existent manager returns a NotFoundError.
 **ID**: ORG-004
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Move_SetsPod"
-- `internal/api/service_test.go` → "TestOrgService_Move_EmptyPodIgnored"
+- `internal/org/service_test.go` → "TestOrgService_Move_SetsPod"
+- `internal/org/service_test.go` → "TestOrgService_Move_EmptyPodIgnored"
 
 ## Behavior
 A move can optionally include a pod assignment. Empty pod string is ignored.
@@ -98,10 +98,10 @@ A move can optionally include a pod assignment. Empty pod string is ignored.
 **ID**: ORG-005
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update"
-- `internal/api/service_test.go` → "TestOrgService_Update_AllFields"
-- `internal/api/service_test.go` → "TestOrgService_Update_Private"
-- `internal/api/handlers_test.go` → "TestUpdateHandler"
+- `internal/org/service_test.go` → "TestOrgService_Update"
+- `internal/org/service_test.go` → "TestOrgService_Update_AllFields"
+- `internal/org/service_test.go` → "TestOrgService_Update_Private"
+- `internal/httpapi/handlers_test.go` → "TestUpdateHandler"
 
 ## Behavior
 Person fields are updated via a key-value map. Warning field is cleared on any edit.
@@ -121,8 +121,8 @@ Person fields are updated via a key-value map. Warning field is cleared on any e
 **ID**: ORG-006
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update_InvalidStatus"
-- `internal/api/adversarial_test.go` → "TestAdversarial_InvalidStatus"
+- `internal/org/service_test.go` → "TestOrgService_Update_InvalidStatus"
+- `internal/org/adversarial_test.go` → "TestAdversarial_InvalidStatus"
 
 ## Behavior
 Setting a status to a value not in the valid statuses set returns a ValidationError.
@@ -141,8 +141,8 @@ Setting a status to a value not in the valid statuses set returns a ValidationEr
 **ID**: ORG-008
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update_PersonNotFound"
-- `internal/api/handlers_test.go` → "TestUpdateHandler_PersonNotFound"
+- `internal/org/service_test.go` → "TestOrgService_Update_PersonNotFound"
+- `internal/httpapi/handlers_test.go` → "TestUpdateHandler_PersonNotFound"
 
 ## Behavior
 Updating a non-existent person ID returns a NotFoundError.
@@ -161,10 +161,10 @@ Updating a non-existent person ID returns a NotFoundError.
 **ID**: ORG-009
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_FieldLengthValidation"
-- `internal/api/adversarial_test.go` → "TestAdversarial_OversizedFields"
-- `internal/api/adversarial_test.go` → "TestAdversarial_OversizedNote"
-- `internal/api/service_test.go` → "TestValidateNoteLen"
+- `internal/org/service_test.go` → "TestOrgService_FieldLengthValidation"
+- `internal/org/adversarial_test.go` → "TestAdversarial_OversizedFields"
+- `internal/org/adversarial_test.go` → "TestAdversarial_OversizedNote"
+- `internal/org/service_test.go` → "TestValidateNoteLen"
 
 ## Behavior
 Field values have maximum lengths. Standard fields: 500 chars. Notes (publicNote, privateNote): 2000 chars. Returns HTTP 422 with a ValidationError describing the limit.
@@ -188,8 +188,8 @@ Field values have maximum lengths. Standard fields: 500 chars. Notes (publicNote
 **ID**: ORG-010
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update_AdditionalTeamsEmpty"
-- `internal/api/service_test.go` → "TestOrgService_Update_AllFields"
+- `internal/org/service_test.go` → "TestOrgService_Update_AdditionalTeamsEmpty"
+- `internal/org/service_test.go` → "TestOrgService_Update_AllFields"
 
 ## Behavior
 The additionalTeams field accepts a comma-separated string. Empty string clears additional teams.
@@ -209,10 +209,10 @@ The additionalTeams field accepts a comma-separated string. Empty string clears 
 **ID**: ORG-011
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Add"
-- `internal/api/service_test.go` → "TestOrgService_Add_RejectsInvalidStatus"
-- `internal/api/service_test.go` → "TestOrgService_Add_RejectsInvalidManager"
-- `internal/api/handlers_test.go` → "TestAddHandler"
+- `internal/org/service_test.go` → "TestOrgService_Add"
+- `internal/org/service_test.go` → "TestOrgService_Add_RejectsInvalidStatus"
+- `internal/org/service_test.go` → "TestOrgService_Add_RejectsInvalidManager"
+- `internal/httpapi/handlers_test.go` → "TestAddHandler"
 
 ## Behavior
 A new person is added with a generated UUID. Status and manager are validated.
@@ -234,14 +234,14 @@ A new person is added with a generated UUID. Status and manager are validated.
 **ID**: ORG-012
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Delete"
-- `internal/api/service_test.go` → "TestOrgService_SoftDelete"
-- `internal/api/service_test.go` → "TestOrgService_Restore"
-- `internal/api/service_test.go` → "TestOrgService_Restore_ManagerGone"
-- `internal/api/service_test.go` → "TestOrgService_Delete_ReturnsBothArrays"
-- `internal/api/service_test.go` → "TestOrgService_Restore_ReturnsBothArrays"
-- `internal/api/handlers_test.go` → "TestDeleteHandler"
-- `internal/api/handlers_test.go` → "TestRestoreHandler"
+- `internal/org/service_test.go` → "TestOrgService_Delete"
+- `internal/org/service_test.go` → "TestOrgService_SoftDelete"
+- `internal/org/service_test.go` → "TestOrgService_Restore"
+- `internal/org/service_test.go` → "TestOrgService_Restore_ManagerGone"
+- `internal/org/service_test.go` → "TestOrgService_Delete_ReturnsBothArrays"
+- `internal/org/service_test.go` → "TestOrgService_Restore_ReturnsBothArrays"
+- `internal/httpapi/handlers_test.go` → "TestDeleteHandler"
+- `internal/httpapi/handlers_test.go` → "TestRestoreHandler"
 - `web/e2e/smoke.spec.ts` → "delete and restore"
 
 ## Behavior
@@ -264,12 +264,12 @@ Delete moves a person to the recycled list. Restore moves them back. Reports of 
 **ID**: ORG-013
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Delete_PersonNotFound"
-- `internal/api/service_test.go` → "TestOrgService_Restore_PersonNotFound"
-- `internal/api/adversarial_test.go` → "TestAdversarial_DeleteNonexistentPerson"
-- `internal/api/adversarial_test.go` → "TestAdversarial_RestoreFromEmptyBin"
-- `internal/api/handlers_test.go` → "TestDeleteHandler_PersonNotFound"
-- `internal/api/handlers_test.go` → "TestRestoreHandler_PersonNotFound"
+- `internal/org/service_test.go` → "TestOrgService_Delete_PersonNotFound"
+- `internal/org/service_test.go` → "TestOrgService_Restore_PersonNotFound"
+- `internal/org/adversarial_test.go` → "TestAdversarial_DeleteNonexistentPerson"
+- `internal/org/adversarial_test.go` → "TestAdversarial_RestoreFromEmptyBin"
+- `internal/httpapi/handlers_test.go` → "TestDeleteHandler_PersonNotFound"
+- `internal/httpapi/handlers_test.go` → "TestRestoreHandler_PersonNotFound"
 
 ## Behavior
 Deleting or restoring a non-existent person ID returns a NotFoundError.
@@ -288,8 +288,8 @@ Deleting or restoring a non-existent person ID returns a NotFoundError.
 **ID**: ORG-014
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_EmptyBin"
-- `internal/api/handlers_test.go` → "TestEmptyBinHandler"
+- `internal/org/service_test.go` → "TestOrgService_EmptyBin"
+- `internal/httpapi/handlers_test.go` → "TestEmptyBinHandler"
 
 ## Behavior
 Emptying the bin permanently removes all recycled people.
@@ -308,9 +308,9 @@ Emptying the bin permanently removes all recycled people.
 **ID**: ORG-015
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Reorder"
-- `internal/api/service_test.go` → "TestOrgService_Reorder_PartialIds"
-- `internal/api/handlers_test.go` → "TestReorderHandler"
+- `internal/org/service_test.go` → "TestOrgService_Reorder"
+- `internal/org/service_test.go` → "TestOrgService_Reorder_PartialIds"
+- `internal/httpapi/handlers_test.go` → "TestReorderHandler"
 
 ## Behavior
 Sets SortIndex for each person in the provided order. Partial ID lists leave unmentioned people's indices unchanged.
@@ -330,8 +330,8 @@ Sets SortIndex for each person in the provided order. Partial ID lists leave unm
 **ID**: ORG-016
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_ResetToOriginal"
-- `internal/api/handlers_test.go` → "TestResetHandler"
+- `internal/org/service_test.go` → "TestOrgService_ResetToOriginal"
+- `internal/httpapi/handlers_test.go` → "TestResetHandler"
 
 ## Behavior
 Discards all working changes and restores from the original import.
@@ -353,9 +353,9 @@ Discards all working changes and restores from the original import.
 **ID**: ORG-017
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_IsFrontlineManager"
-- `internal/api/service_test.go` → "TestOrgService_Update_TeamCascadeFrontlineManager"
-- `internal/api/service_test.go` → "TestOrgService_Update_TeamNoCascadeNonFrontlineManager"
+- `internal/org/service_test.go` → "TestOrgService_IsFrontlineManager"
+- `internal/org/service_test.go` → "TestOrgService_Update_TeamCascadeFrontlineManager"
+- `internal/org/service_test.go` → "TestOrgService_Update_TeamNoCascadeNonFrontlineManager"
 - `web/e2e/features.spec.ts` → "team cascade for front-line manager"
 
 ## Behavior
@@ -379,16 +379,16 @@ When a front-line manager's team changes, the team change cascades to all their 
 **ID**: ORG-018
 **Area**: model-validation
 **Tests**:
-- `internal/api/pods_test.go` → "TestSeedPods_*"
-- `internal/api/pods_test.go` → "TestCleanupEmptyPods"
-- `internal/api/pods_test.go` → "TestFindPod"
-- `internal/api/pods_test.go` → "TestFindPodByID"
-- `internal/api/pods_test.go` → "TestRenamePod"
-- `internal/api/pods_test.go` → "TestReassignPersonPod_*"
-- `internal/api/pods_test.go` → "TestCopyPods"
-- `internal/api/service_test.go` → "TestOrgService_Update_PodAutoCreate"
-- `internal/api/service_test.go` → "TestOrgService_Update_PodReusesExisting"
-- `internal/api/service_test.go` → "TestOrgService_Update_PodClearRemovesAssignment"
+- `internal/org/pods_test.go` → "TestSeedPods_*"
+- `internal/org/pods_test.go` → "TestCleanupEmptyPods"
+- `internal/org/pods_test.go` → "TestFindPod"
+- `internal/org/pods_test.go` → "TestFindPodByID"
+- `internal/org/pods_test.go` → "TestRenamePod"
+- `internal/org/pods_test.go` → "TestReassignPersonPod_*"
+- `internal/org/pods_test.go` → "TestCopyPods"
+- `internal/org/service_test.go` → "TestOrgService_Update_PodAutoCreate"
+- `internal/org/service_test.go` → "TestOrgService_Update_PodReusesExisting"
+- `internal/org/service_test.go` → "TestOrgService_Update_PodClearRemovesAssignment"
 - `web/e2e/features.spec.ts` → "pod creation via edit"
 - `web/e2e/features.spec.ts` → "pod sidebar via info button"
 
@@ -412,9 +412,9 @@ Pods are created from the Pod field during upload (seeding). They can be created
 **ID**: ORG-019
 **Area**: model-validation
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update_PodAutoCreate"
-- `internal/api/service_test.go` → "TestOrgService_Update_PodReusesExisting"
-- `internal/api/service_test.go` → "TestOrgService_Update_PodClearRemovesAssignment"
+- `internal/org/service_test.go` → "TestOrgService_Update_PodAutoCreate"
+- `internal/org/service_test.go` → "TestOrgService_Update_PodReusesExisting"
+- `internal/org/service_test.go` → "TestOrgService_Update_PodClearRemovesAssignment"
 
 ## Behavior
 Setting a person's pod field to a name that doesn't exist under their manager auto-creates the pod. Setting to empty clears the assignment. Setting to an existing pod name reuses it.

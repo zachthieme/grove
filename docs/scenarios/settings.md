@@ -7,8 +7,8 @@
 **ID**: SETTINGS-001
 **Area**: settings
 **Tests**:
-- `internal/api/handlers_test.go` → "TestSettingsHandler_GetAndPost"
-- `internal/api/service_test.go` → "TestOrgService_UpdateSettings_Validation"
+- `internal/httpapi/handlers_test.go` → "TestSettingsHandler_GetAndPost"
+- `internal/org/service_test.go` → "TestOrgService_UpdateSettings_Validation"
 - `web/src/components/SettingsModal.test.tsx` → "SettingsModal"
 
 ## Behavior
@@ -33,7 +33,7 @@ User opens settings modal, modifies discipline order, and saves. Settings are va
 **ID**: SETTINGS-002
 **Area**: settings
 **Tests**:
-- `internal/api/service_test.go` → "TestUpload_DerivesSettings"
+- `internal/org/service_test.go` → "TestUpload_DerivesSettings"
 
 ## Behavior
 On fresh upload, settings.disciplineOrder is derived from the unique disciplines in the data, sorted alphabetically.

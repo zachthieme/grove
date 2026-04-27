@@ -7,8 +7,8 @@
 **ID**: SNAP-001
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshots_test.go` → "TestSnapshot_SaveAndList"
-- `internal/api/handlers_test.go` → "TestSnapshotHandlers_SaveAndList"
+- `internal/org/snapshots_test.go` → "TestSnapshot_SaveAndList"
+- `internal/httpapi/handlers_test.go` → "TestSnapshotHandlers_SaveAndList"
 - `web/e2e/smoke.spec.ts` → "snapshot save and load"
 - `web/src/store/OrgContext.integration.test.tsx` → "save snapshot updates snapshot list"
 
@@ -33,9 +33,9 @@ User saves a named snapshot. The current working state, pods, and settings are s
 **ID**: SNAP-002
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshots_test.go` → "TestSnapshot_Load"
-- `internal/api/snapshots_test.go` → "TestSnapshot_LoadClearsRecycled"
-- `internal/api/handlers_test.go` → "TestSnapshotHandlers_Load"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Load"
+- `internal/org/snapshots_test.go` → "TestSnapshot_LoadClearsRecycled"
+- `internal/httpapi/handlers_test.go` → "TestSnapshotHandlers_Load"
 - `web/src/store/OrgContext.integration.test.tsx` → "load snapshot updates working state"
 
 ## Behavior
@@ -58,7 +58,7 @@ User loads a named snapshot. Working state is replaced with the snapshot's data.
 **ID**: SNAP-003
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshots_test.go` → "TestSnapshot_Overwrite"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Overwrite"
 
 ## Behavior
 Saving a snapshot with an existing name replaces the previous snapshot.
@@ -77,8 +77,8 @@ Saving a snapshot with an existing name replaces the previous snapshot.
 **ID**: SNAP-004
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshots_test.go` → "TestSnapshot_LoadNotFound"
-- `internal/api/handlers_test.go` → "TestSnapshotHandlers_LoadNotFound"
+- `internal/org/snapshots_test.go` → "TestSnapshot_LoadNotFound"
+- `internal/httpapi/handlers_test.go` → "TestSnapshotHandlers_LoadNotFound"
 
 ## Behavior
 Loading a snapshot that doesn't exist returns a not-found error.
@@ -97,7 +97,7 @@ Loading a snapshot that doesn't exist returns a not-found error.
 **ID**: SNAP-005
 **Area**: snapshots
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_SaveSnapshot_RejectsReservedNames"
+- `internal/org/service_test.go` → "TestOrgService_SaveSnapshot_RejectsReservedNames"
 
 ## Behavior
 Saving a snapshot with a reserved name (__working__, __original__) returns a conflict error. The __export_temp__ name is used internally during snapshot ZIP export and is excluded from the user-visible list.
@@ -119,9 +119,9 @@ Saving a snapshot with a reserved name (__working__, __original__) returns a con
 **ID**: SNAP-006
 **Area**: snapshots
 **Tests**:
-- `internal/api/stores_test.go` → "TestSaveSnapshotHandler_PersistenceError"
-- `internal/api/stores_test.go` → "TestDeleteSnapshotHandler_PersistenceError"
-- `internal/api/stores_test.go` → "TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning"
+- `internal/httpapi/stores_test.go` → "TestSaveSnapshotHandler_PersistenceError"
+- `internal/httpapi/stores_test.go` → "TestDeleteSnapshotHandler_PersistenceError"
+- `internal/httpapi/stores_test.go` → "TestUpload_SnapshotDeleteError_ReturnsPersistenceWarning"
 
 ## Behavior
 Disk I/O failures during snapshot persistence are returned as errors or persistence warnings, not silently swallowed.
@@ -141,8 +141,8 @@ Disk I/O failures during snapshot persistence are returned as errors or persiste
 **ID**: SNAP-007
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshots_test.go` → "TestSnapshot_Delete"
-- `internal/api/handlers_test.go` → "TestSnapshotHandlers_Delete"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Delete"
+- `internal/httpapi/handlers_test.go` → "TestSnapshotHandlers_Delete"
 - `web/src/store/OrgContext.integration.test.tsx` → "delete snapshot removes from list"
 
 ## Behavior
@@ -162,8 +162,8 @@ User deletes a named snapshot. It is removed from the list and persisted.
 **ID**: SNAP-008
 **Area**: snapshots
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_ExportSnapshot"
-- `internal/api/handlers_test.go` → "TestExportSnapshotHandler"
+- `internal/org/service_test.go` → "TestOrgService_ExportSnapshot"
+- `internal/httpapi/handlers_test.go` → "TestExportSnapshotHandler"
 
 ## Behavior
 Client exports a specific snapshot as CSV or XLSX. Special names __working__ and __original__ return the current working or original data.
@@ -185,11 +185,11 @@ Client exports a specific snapshot as CSV or XLSX. Special names __working__ and
 **ID**: SNAP-009
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshots_test.go` → "TestSnapshot_Save_EmptyName"
-- `internal/api/snapshots_test.go` → "TestSnapshot_Save_PathTraversal"
-- `internal/api/snapshots_test.go` → "TestSnapshot_Save_TooLong"
-- `internal/api/snapshots_test.go` → "TestSnapshot_Save_ValidSpecialChars"
-- `internal/api/snapshots_test.go` → "TestSnapshot_Save_InvalidChars"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Save_EmptyName"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Save_PathTraversal"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Save_TooLong"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Save_ValidSpecialChars"
+- `internal/org/snapshots_test.go` → "TestSnapshot_Save_InvalidChars"
 
 ## Behavior
 Snapshot names are validated before saving. Names must be non-empty, at most 100 characters, and contain only letters, digits, spaces, hyphens, underscores, and dots. The name must start with a letter or digit.
@@ -213,9 +213,9 @@ Snapshot names are validated before saving. Names must be non-empty, at most 100
 **ID**: SNAP-010
 **Area**: snapshots
 **Tests**:
-- `internal/api/snapshot_service_test.go` → "TestSnapshotService_Save_AbortsWhenEpochAdvances"
-- `internal/api/concurrent_test.go` → "TestSnapshotSave_EpochGuard_Reset"
-- `internal/api/concurrent_test.go` → "TestSnapshotSave_EpochGuard_UploadCSV"
+- `internal/snapshot/service_test.go` → "TestSnapshotService_Save_AbortsWhenEpochAdvances"
+- `internal/org/concurrent_test.go` → "TestSnapshotSave_EpochGuard_Reset"
+- `internal/org/concurrent_test.go` → "TestSnapshotSave_EpochGuard_UploadCSV"
 
 ## Behavior
 When a SaveSnapshot races against ResetToOriginal, Create, Upload, ConfirmMapping, or UploadZip (which call Clear or ReplaceAll and bump the snapshot epoch), the SaveSnapshot aborts with HTTP 409 conflict ("snapshot superseded — org state was reset"). The epoch is read BEFORE CaptureState so that a Clear running after the read but before the commit-lock advances `ss.epoch` past the captured expectedEpoch and the commit aborts.

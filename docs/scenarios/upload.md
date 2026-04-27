@@ -7,9 +7,9 @@
 **ID**: UPLOAD-001
 **Area**: upload
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Upload"
-- `internal/api/service_test.go` → "TestOrgService_Upload_AutoProceed"
-- `internal/api/handlers_test.go` → "TestUploadHandler"
+- `internal/org/service_test.go` → "TestOrgService_Upload"
+- `internal/org/service_test.go` → "TestOrgService_Upload_AutoProceed"
+- `internal/httpapi/handlers_test.go` → "TestUploadHandler"
 - `web/e2e/smoke.spec.ts` → "upload CSV and see org chart"
 - `web/src/store/OrgDataContext.test.tsx` → "calls uploadFile API and sets working/original state"
 
@@ -36,8 +36,8 @@ User selects a CSV file with standard headers (Name, Role, Discipline, Manager, 
 **ID**: UPLOAD-002
 **Area**: upload
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Upload_NeedsMapping"
-- `internal/api/handlers_test.go` → "TestConfirmMappingHandler"
+- `internal/org/service_test.go` → "TestOrgService_Upload_NeedsMapping"
+- `internal/httpapi/handlers_test.go` → "TestConfirmMappingHandler"
 - `web/e2e/features.spec.ts` → "column mapping modal"
 - `web/src/store/OrgDataContext.test.tsx` → "handles needs_mapping response without loading data"
 
@@ -61,8 +61,8 @@ User uploads a CSV with non-standard headers. The system shows a column mapping 
 **ID**: UPLOAD-003
 **Area**: upload
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_ConfirmMapping_NoPending"
-- `internal/api/handlers_test.go` → "TestConfirmMappingHandler_NoPending"
+- `internal/org/service_test.go` → "TestOrgService_ConfirmMapping_NoPending"
+- `internal/httpapi/handlers_test.go` → "TestConfirmMappingHandler_NoPending"
 
 ## Behavior
 Client calls confirm-mapping without a prior upload. The server returns a validation error.
@@ -81,10 +81,10 @@ Client calls confirm-mapping without a prior upload. The server returns a valida
 **ID**: UPLOAD-004
 **Area**: upload
 **Tests**:
-- `internal/api/infer_test.go` → "TestAllRequiredHigh_OnlyNameRequired"
-- `internal/api/infer_test.go` → "TestAllRequiredHigh_True"
-- `internal/api/infer_test.go` → "TestAllRequiredHigh_MissingName"
-- `internal/api/infer_test.go` → "TestAllRequiredHigh_NameMediumConfidence"
+- `internal/org/infer_test.go` → "TestAllRequiredHigh_OnlyNameRequired"
+- `internal/org/infer_test.go` → "TestAllRequiredHigh_True"
+- `internal/org/infer_test.go` → "TestAllRequiredHigh_MissingName"
+- `internal/org/infer_test.go` → "TestAllRequiredHigh_NameMediumConfidence"
 
 ## Behavior
 Column inference proceeds automatically when the "name" column is matched with high confidence. All other columns are optional.
@@ -105,14 +105,14 @@ Column inference proceeds automatically when the "name" column is matched with h
 **ID**: UPLOAD-005
 **Area**: upload
 **Tests**:
-- `internal/api/infer_test.go` → "TestInferMapping_ExactMatch"
-- `internal/api/infer_test.go` → "TestInferMapping_CaseInsensitive"
-- `internal/api/infer_test.go` → "TestInferMapping_SynonymMatch"
-- `internal/api/infer_test.go` → "TestInferMapping_FuzzyMatch"
-- `internal/api/infer_test.go` → "TestInferMapping_UnmatchedHeaders"
-- `internal/api/infer_test.go` → "TestInferMapping_FirstMatchWins"
-- `internal/api/infer_test.go` → "TestInferMapping_PodAndNotes"
-- `internal/api/infer_test.go` → "TestInferMapping_Level"
+- `internal/org/infer_test.go` → "TestInferMapping_ExactMatch"
+- `internal/org/infer_test.go` → "TestInferMapping_CaseInsensitive"
+- `internal/org/infer_test.go` → "TestInferMapping_SynonymMatch"
+- `internal/org/infer_test.go` → "TestInferMapping_FuzzyMatch"
+- `internal/org/infer_test.go` → "TestInferMapping_UnmatchedHeaders"
+- `internal/org/infer_test.go` → "TestInferMapping_FirstMatchWins"
+- `internal/org/infer_test.go` → "TestInferMapping_PodAndNotes"
+- `internal/org/infer_test.go` → "TestInferMapping_Level"
 
 ## Behavior
 Column inference uses three tiers: exact match, synonym match, fuzzy keyword match. Each tier assigns a confidence level (high, medium, none).
@@ -134,11 +134,11 @@ Column inference uses three tiers: exact match, synonym match, fuzzy keyword mat
 **ID**: UPLOAD-006
 **Area**: upload
 **Tests**:
-- `internal/api/zipimport_test.go` → "TestUploadZip_ThreeFiles"
-- `internal/api/zipimport_test.go` → "TestUploadZip_SingleFile"
-- `internal/api/zipimport_test.go` → "TestUploadZip_SharedIDsAcrossFiles"
-- `internal/api/zipimport_test.go` → "TestUploadZip_SnapshotSharedIDs"
-- `internal/api/handlers_test.go` → "TestUploadZipHandler"
+- `internal/org/zipimport_test.go` → "TestUploadZip_ThreeFiles"
+- `internal/org/zipimport_test.go` → "TestUploadZip_SingleFile"
+- `internal/org/zipimport_test.go` → "TestUploadZip_SharedIDsAcrossFiles"
+- `internal/org/zipimport_test.go` → "TestUploadZip_SnapshotSharedIDs"
+- `internal/httpapi/handlers_test.go` → "TestUploadZipHandler"
 - `web/src/store/OrgDataContext.test.tsx` → "calls uploadZipFile for .zip files"
 - `web/src/store/OrgDataContext.test.tsx` → "sets snapshots from ZIP upload response"
 
@@ -165,8 +165,8 @@ User uploads a ZIP containing CSV/XLSX files. Files with numeric prefixes (0-ori
 **ID**: UPLOAD-007
 **Area**: upload
 **Tests**:
-- `internal/api/zipimport_test.go` → "TestUploadZip_NoCSVFiles"
-- `internal/api/zipimport_test.go` → "TestUploadZip_IgnoresNonCSV"
+- `internal/org/zipimport_test.go` → "TestUploadZip_NoCSVFiles"
+- `internal/org/zipimport_test.go` → "TestUploadZip_IgnoresNonCSV"
 
 ## Behavior
 User uploads a ZIP containing no CSV or XLSX files. The system returns an error.
@@ -185,8 +185,8 @@ User uploads a ZIP containing no CSV or XLSX files. The system returns an error.
 **ID**: UPLOAD-008
 **Area**: upload
 **Tests**:
-- `internal/api/zipimport_test.go` → "TestUploadZip_NeedsMapping_ThenConfirm"
-- `internal/api/service_test.go` → "TestOrgService_ConfirmMapping_NonZip"
+- `internal/org/zipimport_test.go` → "TestUploadZip_NeedsMapping_ThenConfirm"
+- `internal/org/service_test.go` → "TestOrgService_ConfirmMapping_NonZip"
 
 ## Behavior
 User uploads a ZIP where the first file has non-standard headers. The system shows a mapping modal. After confirmation, all ZIP entries are parsed with the provided mapping.
@@ -206,10 +206,10 @@ User uploads a ZIP where the first file has non-standard headers. The system sho
 **ID**: UPLOAD-009
 **Area**: upload
 **Tests**:
-- `internal/api/zipimport_test.go` → "TestUploadZip_FiltersPodsSidecar"
-- `internal/api/zipimport_test.go` → "TestUploadZip_SeedsPods"
-- `internal/api/zipimport_test.go` → "TestUploadZip_NoPodFieldNoPods"
-- `internal/api/zipimport_test.go` → "TestUploadZip_RestoresPodNotesFromSidecar"
+- `internal/org/zipimport_test.go` → "TestUploadZip_FiltersPodsSidecar"
+- `internal/org/zipimport_test.go` → "TestUploadZip_SeedsPods"
+- `internal/org/zipimport_test.go` → "TestUploadZip_NoPodFieldNoPods"
+- `internal/org/zipimport_test.go` → "TestUploadZip_RestoresPodNotesFromSidecar"
 
 ## Behavior
 A ZIP may contain a `pods.csv` sidecar file with pod notes. This file is not treated as person data — its notes are applied to matching pods after seeding.
@@ -230,14 +230,14 @@ A ZIP may contain a `pods.csv` sidecar file with pod notes. This file is not tre
 **ID**: UPLOAD-010
 **Area**: upload
 **Tests**:
-- `internal/api/adversarial_test.go` → "TestAdversarial_BOMMarker"
-- `internal/api/adversarial_test.go` → "TestAdversarial_MixedLineEndings"
-- `internal/api/adversarial_test.go` → "TestAdversarial_UnicodeNames"
-- `internal/api/adversarial_test.go` → "TestAdversarial_XSSInFields"
-- `internal/api/adversarial_test.go` → "TestAdversarial_SQLInjectionStrings"
-- `internal/api/adversarial_test.go` → "TestAdversarial_CommasInQuotedFields"
-- `internal/api/adversarial_test.go` → "TestAdversarial_NewlinesInQuotedFields"
-- `internal/api/adversarial_test.go` → "TestAdversarial_DuplicateHeaders"
+- `internal/org/adversarial_test.go` → "TestAdversarial_BOMMarker"
+- `internal/org/adversarial_test.go` → "TestAdversarial_MixedLineEndings"
+- `internal/org/adversarial_test.go` → "TestAdversarial_UnicodeNames"
+- `internal/org/adversarial_test.go` → "TestAdversarial_XSSInFields"
+- `internal/org/adversarial_test.go` → "TestAdversarial_SQLInjectionStrings"
+- `internal/org/adversarial_test.go` → "TestAdversarial_CommasInQuotedFields"
+- `internal/org/adversarial_test.go` → "TestAdversarial_NewlinesInQuotedFields"
+- `internal/org/adversarial_test.go` → "TestAdversarial_DuplicateHeaders"
 
 ## Behavior
 The system handles malformed, adversarial, and edge-case CSV inputs without crashing or producing incorrect data.
@@ -261,12 +261,12 @@ The system handles malformed, adversarial, and edge-case CSV inputs without cras
 **ID**: UPLOAD-011
 **Area**: upload
 **Tests**:
-- `internal/api/adversarial_test.go` → "TestAdversarial_EmptyCSV"
-- `internal/api/adversarial_test.go` → "TestAdversarial_HeaderOnlyCSV"
-- `internal/api/service_test.go` → "TestOrgService_Upload_UnsupportedFormat"
-- `internal/api/service_test.go` → "TestOrgService_Upload_InvalidCSV"
-- `internal/api/handlers_test.go` → "TestUploadHandler_NoFile"
-- `internal/api/handlers_test.go` → "TestUploadHandler_UnsupportedFormat"
+- `internal/org/adversarial_test.go` → "TestAdversarial_EmptyCSV"
+- `internal/org/adversarial_test.go` → "TestAdversarial_HeaderOnlyCSV"
+- `internal/org/service_test.go` → "TestOrgService_Upload_UnsupportedFormat"
+- `internal/org/service_test.go` → "TestOrgService_Upload_InvalidCSV"
+- `internal/httpapi/handlers_test.go` → "TestUploadHandler_NoFile"
+- `internal/httpapi/handlers_test.go` → "TestUploadHandler_UnsupportedFormat"
 - `web/e2e/negative.spec.ts` → "uploading an invalid file shows error or mapping modal"
 - `web/e2e/negative.spec.ts` → "uploading empty file does not crash"
 
@@ -288,7 +288,7 @@ The system returns clear errors for unsupported formats, empty files, header-onl
 **ID**: UPLOAD-012
 **Area**: upload
 **Tests**:
-- `internal/api/adversarial_test.go` → "TestAdversarial_HeaderOnlyCSV"
+- `internal/org/adversarial_test.go` → "TestAdversarial_HeaderOnlyCSV"
 
 ## Behavior
 User uploads a CSV that has headers but zero data rows. The system returns an error without mutating state.
@@ -308,7 +308,7 @@ User uploads a CSV that has headers but zero data rows. The system returns an er
 **ID**: UPLOAD-013
 **Area**: upload
 **Tests**:
-- `internal/api/adversarial_test.go` → "TestAdversarial_DuplicateHeaders"
+- `internal/org/adversarial_test.go` → "TestAdversarial_DuplicateHeaders"
 
 ## Behavior
 User uploads a CSV with duplicate column names (e.g., two "Name" columns). The inference engine processes all headers. When mapped to a Go map, the last column with a given key wins.
@@ -329,7 +329,7 @@ User uploads a CSV with duplicate column names (e.g., two "Name" columns). The i
 **ID**: UPLOAD-015
 **Area**: upload
 **Tests**:
-- `internal/api/zipimport_test.go` → "TestUploadZip_RestoresSettingsFromSidecar"
+- `internal/org/zipimport_test.go` → "TestUploadZip_RestoresSettingsFromSidecar"
 
 ## Behavior
 A ZIP may contain a `settings.csv` sidecar with discipline ordering. This overrides the auto-derived discipline order.

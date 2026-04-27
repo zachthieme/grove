@@ -7,16 +7,16 @@
 **ID**: CONTRACT-001
 **Area**: api-contract
 **Tests**:
-- `internal/api/contract_test.go` → "TestContractPersonFields"
-- `internal/api/contract_test.go` → "TestContractPodFields"
-- `internal/api/contract_test.go` → "TestContractPodInfoFields"
-- `internal/api/contract_test.go` → "TestContractOrgDataFields"
-- `internal/api/contract_test.go` → "TestContractAutosaveDataFields"
-- `internal/api/contract_test.go` → "TestContractSnapshotInfoFields"
-- `internal/api/contract_test.go` → "TestContractMappedColumnFields"
-- `internal/api/contract_test.go` → "TestContractUploadResponseFields"
-- `internal/api/contract_test.go` → "TestContractSettingsFields"
-- `internal/api/contract_test.go` → "TestContractPersonJSONRoundTrip"
+- `internal/httpapi/contract_test.go` → "TestContractPersonFields"
+- `internal/httpapi/contract_test.go` → "TestContractPodFields"
+- `internal/httpapi/contract_test.go` → "TestContractPodInfoFields"
+- `internal/httpapi/contract_test.go` → "TestContractOrgDataFields"
+- `internal/httpapi/contract_test.go` → "TestContractAutosaveDataFields"
+- `internal/httpapi/contract_test.go` → "TestContractSnapshotInfoFields"
+- `internal/httpapi/contract_test.go` → "TestContractMappedColumnFields"
+- `internal/httpapi/contract_test.go` → "TestContractUploadResponseFields"
+- `internal/httpapi/contract_test.go` → "TestContractSettingsFields"
+- `internal/httpapi/contract_test.go` → "TestContractPersonJSONRoundTrip"
 
 ## Behavior
 API types have stable JSON field names. Adding fields is allowed; removing or renaming is a breaking change.
@@ -36,15 +36,15 @@ API types have stable JSON field names. Adding fields is allowed; removing or re
 **ID**: CONTRACT-002
 **Area**: api-contract
 **Tests**:
-- `internal/api/handlers_test.go` → "TestMoveHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestUpdateHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestAddHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestDeleteHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestRestoreHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestConfirmMappingHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestSaveSnapshotHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestLoadSnapshotHandler_InvalidJSON"
-- `internal/api/handlers_test.go` → "TestDeleteSnapshotHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestMoveHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestUpdateHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestAddHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestDeleteHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestRestoreHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestConfirmMappingHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestSaveSnapshotHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestLoadSnapshotHandler_InvalidJSON"
+- `internal/httpapi/handlers_test.go` → "TestDeleteSnapshotHandler_InvalidJSON"
 
 ## Behavior
 Invalid JSON in request body returns 400. Typed service errors map to appropriate HTTP status codes.
@@ -66,7 +66,7 @@ Invalid JSON in request body returns 400. Typed service errors map to appropriat
 **ID**: CONTRACT-003
 **Area**: api-contract
 **Tests**:
-- `internal/api/handlers_test.go` → "TestHealthEndpoint"
+- `internal/httpapi/handlers_test.go` → "TestHealthEndpoint"
 
 ## Behavior
 GET /api/health returns 200 with {"status": "ok"}.
@@ -109,7 +109,9 @@ Every API request includes an X-Correlation-ID header. Auto-generated if not pro
 **ID**: CONTRACT-005
 **Area**: api-contract
 **Tests**:
-- `internal/api/logging_test.go` → all tests
+- `internal/logbuf/buffer_test.go` → buffer eviction + filter coverage
+- `internal/logbuf/handler_test.go` → slog handler coverage
+- `internal/httpapi/middleware_test.go` → request/response capture, body exclusions, config endpoint, log endpoint registration
 
 ## Behavior
 Optional logging buffer captures request/response data. Filterable by correlation ID, source, time, limit.
@@ -132,8 +134,8 @@ Optional logging buffer captures request/response data. Filterable by correlatio
 **ID**: CONTRACT-006
 **Area**: api-contract
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_DeepCopyPeople_WithAdditionalTeams"
-- `internal/api/service_test.go` → "TestOrgService_GetOrg_NoData"
+- `internal/org/service_test.go` → "TestOrgService_DeepCopyPeople_WithAdditionalTeams"
+- `internal/org/service_test.go` → "TestOrgService_GetOrg_NoData"
 
 ## Behavior
 All data returned from OrgService is deeply copied. Mutations on returned data don't affect service state.
@@ -173,15 +175,13 @@ Full HTTP round-trip: upload CSV → get org → verify data matches.
 **ID**: CONTRACT-008
 **Area**: api-contract
 **Tests**:
-- `internal/api/snapshot_store_test.go` → "TestSnapshotStore_WriteAndRead"
-- `internal/api/snapshot_store_test.go` → "TestSnapshotStore_ReadMissing"
-- `internal/api/snapshot_store_test.go` → "TestSnapshotStore_Delete"
-- `internal/api/stores_test.go` → "TestNewOrgService_SnapshotReadError_StartsEmpty"
-- `internal/api/stores_test.go` → "TestNewOrgService_LoadsPreviousSnapshots"
-- `internal/api/stores_test.go` → "TestMemorySnapshotStore_BasicOperations"
-- `internal/api/stores_test.go` → "TestMemoryAutosaveStore_BasicOperations"
-- `internal/api/stores_test.go` → "TestMemorySnapshotStore_Implements_Interface"
-- `internal/api/stores_test.go` → "TestMemoryAutosaveStore_Implements_Interface"
+- `internal/snapshot/store_test.go` → "TestSnapshotStore_WriteAndRead"
+- `internal/snapshot/store_test.go` → "TestSnapshotStore_ReadMissing"
+- `internal/snapshot/store_test.go` → "TestSnapshotStore_Delete"
+- `internal/httpapi/stores_test.go` → "TestNewOrgService_SnapshotReadError_StartsEmpty"
+- `internal/httpapi/stores_test.go` → "TestNewOrgService_LoadsPreviousSnapshots"
+- `internal/autosave/stores_test.go` → "TestMemoryAutosaveStore_BasicOperations"
+- `internal/autosave/stores_test.go` → "TestMemoryAutosaveStore_Implements_Interface"
 
 ## Behavior
 Snapshot store reads/writes JSON to ~/.grove/snapshots.json. Memory store provides test-friendly implementation.
@@ -271,8 +271,8 @@ Core views pass axe-core critical accessibility checks.
 **ID**: CONTRACT-012
 **Area**: api-contract
 **Tests**:
-- `internal/api/handlers_test.go` → "TestSanitizeFilename"
-- `internal/api/handlers_test.go` → "TestWriteFileResponse_SanitizedHeader"
+- `internal/httpapi/handlers_test.go` → "TestSanitizeFilename"
+- `internal/httpapi/handlers_test.go` → "TestWriteFileResponse_SanitizedHeader"
 
 ## Behavior
 Export response filenames are sanitized to prevent HTTP header injection. Control characters, quotes, and backslashes are stripped.
@@ -294,10 +294,10 @@ Export response filenames are sanitized to prevent HTTP header injection. Contro
 **ID**: CONTRACT-013
 **Area**: api-contract
 **Tests**:
-- `internal/api/contract_test.go` → "TestContractPersonFieldTypes"
-- `internal/api/contract_test.go` → "TestContractErrorResponseShape"
-- `internal/api/contract_test.go` → "TestContractGetOrgResponseShape"
-- `internal/api/contract_test.go` → "TestContractUploadResponseShape"
+- `internal/httpapi/contract_test.go` → "TestContractPersonFieldTypes"
+- `internal/httpapi/contract_test.go` → "TestContractErrorResponseShape"
+- `internal/httpapi/contract_test.go` → "TestContractGetOrgResponseShape"
+- `internal/httpapi/contract_test.go` → "TestContractUploadResponseShape"
 
 ## Behavior
 API responses conform to expected JSON shapes. Person fields have correct types, error responses always have `{"error": "message"}` structure, and endpoint responses contain required keys with correct types.
@@ -320,8 +320,8 @@ API responses conform to expected JSON shapes. Person fields have correct types,
 **ID**: CONTRACT-014
 **Area**: api-contract
 **Tests**:
-- `internal/api/handlers_test.go` → "TestContentTypeValidation"
-- `internal/api/handlers_test.go` → "TestContentTypeValidation_ErrorShape"
+- `internal/httpapi/handlers_test.go` → "TestContentTypeValidation"
+- `internal/httpapi/handlers_test.go` → "TestContentTypeValidation_ErrorShape"
 
 ## Behavior
 POST endpoints that expect JSON validate the Content-Type header. Non-JSON Content-Types are rejected with 415 Unsupported Media Type.

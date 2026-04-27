@@ -122,14 +122,14 @@ When loaded data has been modified, the browser shows a beforeunload warning to 
 **ID**: AUTO-006
 **Area**: autosave
 **Tests**:
-- `internal/api/autosave_test.go` → "TestAutosave_WriteAndRead"
-- `internal/api/autosave_test.go` → "TestAutosave_ReadMissing"
-- `internal/api/autosave_test.go` → "TestAutosave_Delete"
-- `internal/api/autosave_test.go` → "TestAutosave_DeleteMissing"
-- `internal/api/stores_test.go` → "TestAutosaveHandler_RoundTrip"
-- `internal/api/stores_test.go` → "TestAutosaveHandler_WriteError"
-- `internal/api/stores_test.go` → "TestAutosaveHandler_ReadError"
-- `internal/api/stores_test.go` → "TestAutosaveHandler_DeleteError"
+- `internal/autosave/autosave_test.go` → "TestAutosave_WriteAndRead"
+- `internal/autosave/autosave_test.go` → "TestAutosave_ReadMissing"
+- `internal/autosave/autosave_test.go` → "TestAutosave_Delete"
+- `internal/autosave/autosave_test.go` → "TestAutosave_DeleteMissing"
+- `internal/httpapi/stores_test.go` → "TestAutosaveHandler_RoundTrip"
+- `internal/httpapi/stores_test.go` → "TestAutosaveHandler_WriteError"
+- `internal/httpapi/stores_test.go` → "TestAutosaveHandler_ReadError"
+- `internal/httpapi/stores_test.go` → "TestAutosaveHandler_DeleteError"
 
 ## Behavior
 Server-side autosave store supports write, read, and delete operations. Errors are surfaced to the handler layer.
@@ -150,11 +150,11 @@ Server-side autosave store supports write, read, and delete operations. Errors a
 **ID**: AUTO-007
 **Area**: autosave
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_RestoreState_FullState"
-- `internal/api/service_test.go` → "TestOrgService_RestoreState_OperationsWork"
-- `internal/api/service_test.go` → "TestOrgService_RestoreState_NilSettings"
-- `internal/api/handlers_test.go` → "TestRestoreStateHandler_Valid"
-- `internal/api/handlers_test.go` → "TestRestoreStateHandler_InvalidJSON"
+- `internal/org/service_test.go` → "TestOrgService_RestoreState_FullState"
+- `internal/org/service_test.go` → "TestOrgService_RestoreState_OperationsWork"
+- `internal/org/service_test.go` → "TestOrgService_RestoreState_NilSettings"
+- `internal/httpapi/handlers_test.go` → "TestRestoreStateHandler_Valid"
+- `internal/httpapi/handlers_test.go` → "TestRestoreStateHandler_InvalidJSON"
 
 ## Behavior
 Frontend sends full autosave payload to POST /api/restore-state. Backend replaces all state (original, working, recycled, pods, settings).

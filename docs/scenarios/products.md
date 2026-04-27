@@ -7,7 +7,7 @@
 **ID**: PROD-001
 **Area**: products
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_AddProduct"
+- `internal/org/service_test.go` → "TestOrgService_AddProduct"
 - `web/src/components/OrgNodeCard.test.tsx` → "[PROD-001]"
 
 ## Behavior
@@ -25,7 +25,7 @@ A product node is added under a manager, appearing alongside people.
 **ID**: PROD-002
 **Area**: products
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_MoveProduct"
+- `internal/org/service_test.go` → "TestOrgService_MoveProduct"
 
 ## Behavior
 A product is moved to a new manager via the Move endpoint.
@@ -41,7 +41,7 @@ A product is moved to a new manager via the Move endpoint.
 **ID**: PROD-003
 **Area**: products
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_MoveProductToPod"
+- `internal/org/service_test.go` → "TestOrgService_MoveProductToPod"
 - `web/src/views/layoutTree.test.ts` → "[PROD-003]"
 
 ## Behavior
@@ -63,8 +63,8 @@ A product without a pod surfaces in a header-less product cluster directly under
 **ID**: PROD-004
 **Area**: products
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Move_RejectProductAsManager"
-- `internal/api/service_test.go` → "TestOrgService_Update_RejectProductAsManager"
+- `internal/org/service_test.go` → "TestOrgService_Move_RejectProductAsManager"
+- `internal/org/service_test.go` → "TestOrgService_Update_RejectProductAsManager"
 
 ## Behavior
 Moving a person or product so that its manager is a product node is rejected.
@@ -80,8 +80,8 @@ Moving a person or product so that its manager is a product node is rejected.
 **ID**: PROD-005
 **Area**: products
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_DeleteProduct"
-- `internal/api/service_test.go` → "TestOrgService_RestoreProduct"
+- `internal/org/service_test.go` → "TestOrgService_DeleteProduct"
+- `internal/org/service_test.go` → "TestOrgService_RestoreProduct"
 
 ## Behavior
 Products can be deleted (moved to recycle bin) and restored.
@@ -97,7 +97,7 @@ Products can be deleted (moved to recycle bin) and restored.
 **ID**: PROD-006
 **Area**: products
 **Tests**:
-- `internal/api/infer_test.go` → "TestInferMapping_TypeColumn"
+- `internal/org/infer_test.go` → "TestInferMapping_TypeColumn"
 - `internal/parser/parser_test.go` → "TestBuildPeopleWithMapping_ProductRows"
 
 ## Behavior
@@ -115,7 +115,7 @@ CSV with a `type` column (values: "person" or "product") imports correctly. Miss
 **ID**: PROD-007
 **Area**: products
 **Tests**:
-- `internal/api/export_test.go` → "TestExportCSV_WithProducts"
+- `internal/org/export_test.go` → "TestExportCSV_WithProducts"
 
 ## Behavior
 Exporting to CSV/XLSX includes a Type column preserving each node's type.
@@ -166,9 +166,9 @@ Products are not counted in headcount, recruiting, planned, or transfers metrics
 **ID**: PROD-011
 **Area**: products
 **Tests**:
-- `internal/api/service_test.go` → "TestOrgService_Update_TypeChange"
-- `internal/api/service_test.go` → "TestOrgService_Update_TypeChange_RevalidatesStatus"
-- `internal/api/service_test.go` → "TestOrgService_Update_InvalidType"
+- `internal/org/service_test.go` → "TestOrgService_Update_TypeChange"
+- `internal/org/service_test.go` → "TestOrgService_Update_TypeChange_RevalidatesStatus"
+- `internal/org/service_test.go` → "TestOrgService_Update_InvalidType"
 
 ## Behavior
 A node's type can be changed between "person" and "product" via the update endpoint. Switching to product clears person-only fields (role, discipline, employmentType, level, additionalTeams). Status is validated against the new type.
