@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DetailSidebar from './DetailSidebar'
-import { makeNode, renderWithOrg } from '../test-helpers'
+import { makeNode, makeOrgContext, renderWithOrg } from '../test-helpers'
+import { OrgOverrideProvider } from '../store/OrgContext'
 
 // --- Test fixtures ---
 
@@ -173,6 +174,35 @@ describe('DetailSidebar', () => {
       expect(update).toHaveBeenCalledTimes(1)
       const [, fields] = update.mock.calls[0]
       expect(fields.name).toBe('Robert')
+    })
+
+    it('[VIM-009] sidebar form re-syncs to working when person fields change (undo path)', () => {
+      // Regression: useEffect deps used to be [person?.id], so undo (which
+      // restores working with the same person id but different field values)
+      // didn't refresh the local sidebarForm. Effect now depends on person,
+      // so any working update for the selected person re-syncs the form.
+      const Harness = ({ name }: { name: string }) => {
+        const ctx = makeOrgContext({
+          working: [alice, makeNode({ id: 'b2', name, role: 'Engineer' })],
+          selectedId: 'b2',
+          selectedIds: new Set(['b2']),
+        })
+        return (
+          <OrgOverrideProvider value={ctx}>
+            <DetailSidebar />
+          </OrgOverrideProvider>
+        )
+      }
+
+      const { rerender } = render(<Harness name="Bob" />)
+      const nameInput = screen.getByTestId('field-name') as HTMLInputElement
+      expect(nameInput.value).toBe('Bob')
+
+      // Simulate undo / external mutation: working updates for the same id
+      // with restored field values. The sidebar must follow.
+      rerender(<Harness name="Robert" />)
+      const updated = screen.getByTestId('field-name') as HTMLInputElement
+      expect(updated.value).toBe('Robert')
     })
   })
 

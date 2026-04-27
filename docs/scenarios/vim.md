@@ -176,19 +176,23 @@ Three keybindings for moving along the org tree (in addition to spatial `h`/`j`/
 **Tests**:
 - `web/src/hooks/useVimNav.test.ts` → "[VIM-009]"
 - `web/src/components/VimCheatSheet.test.tsx` → "[VIM-009]"
+- `web/src/components/DetailSidebar.test.tsx` → "[VIM-009]"
 
 ## Behavior
-Bare `u` undoes the last mutation. `Ctrl+R` redoes (vim convention). Both delegate to the existing `undo`/`redo` from `useOrgMutations` and gate on `canUndo`/`canRedo`. Cmd+Z / Cmd+Shift+Z continue to work via `useUndoRedoKeys` so mac users keep their habits.
+Bare `u` undoes the last mutation. `Ctrl+R` redoes (vim convention). Both delegate to the existing `undo`/`redo` from `useOrgMutations` and gate on `canUndo`/`canRedo`. Cmd+Z / Cmd+Shift+Z continue to work via `useUndoRedoKeys` so mac users keep their habits. Sidebar edits (saves via `update`/`reparent`) participate in the undo stack and the sidebar form re-syncs to the working slice on undo.
 
 ## Invariants
 - `u` calls `onUndo` only when `canUndo` is true; otherwise no-op.
 - `Ctrl+R` calls `onRedo` only when `canRedo` is true; otherwise no-op.
 - Both bindings are gated on `enabled` (the vim-mode flag) — the hook's effect short-circuits when off.
 - Inputs (INPUT/SELECT/TEXTAREA, contentEditable) skip vim handling, so `u` typed into the name field doesn't undo the org.
+- `update` and `reparent` mutations capture undo state via `dispatch({ undo: true })` — sidebar saves are undoable.
+- `NodeEditSidebar`'s `useEffect` that mirrors `working` into the local form depends on the full `person` reference (not just `person?.id`), so undo/redo or any other external mutation that changes the selected person's fields refreshes the form. Without this, the chart card would show the new value but the sidebar would retain the post-edit value, and the next Save would silently re-apply the change just undone.
 
 ## Edge cases
 - `Ctrl+R` would normally reload the browser — `e.preventDefault()` suppresses the reload when vim is on; if vim is off, the effect doesn't register the listener and the browser's reload still happens.
 - `Cmd+R` on macOS is the browser reload too; we intentionally do **not** intercept Cmd+R for redo, since `Cmd+Shift+Z` already serves redo and stealing Cmd+R would be jarring.
+- Resyncing on `[person]` rather than `[person?.id]` in NodeEditSidebar relies on the fact that nothing mutates `working` mid-typing — typing only writes the local `sidebarForm`; mutations only fire on Save/Esc. If a future feature (e.g. live-collaborate) starts mutating `working` mid-edit, the resync logic needs a separate "external-vs-local" signal.
 
 ---
 

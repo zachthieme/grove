@@ -33,11 +33,17 @@ export default function NodeEditSidebar({ personId }: NodeEditSidebarProps) {
   const { saveStatus, saveError, markSaving, markSaved, markError } = useSaveStatus()
   const firstInputRef = useRef<HTMLInputElement>(null)
 
+  // Re-sync local form state to whatever is in working for this person.
+  // Depending on `person` (not just `person?.id`) means undo/redo and any
+  // other external mutation that changes the person's fields refreshes the
+  // form — without this, the chart card shows the new value but the sidebar
+  // still displays the old typed-then-saved-then-undone value, and the next
+  // Save would silently re-apply the change you just undid.
   useEffect(() => {
     if (person) {
       setSidebarForm(nodeToForm(person))
     }
-  }, [person?.id])
+  }, [person])
 
   // Auto-focus the name input when this person enters editing mode (vim
   // o/O/P → handler calls enterEditing on the new node). Idle/selected mode
