@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.14.1
+
+### Bug Fixes
+- **Sidebar form re-syncs after undo** [VIM-009]: `NodeEditSidebar`'s effect that mirrors the working slice into the local form depended on `[person?.id]`, so undo/redo (which restores `working` with the same id but different field values) left the sidebar showing the just-undone values. The chart card showed the restored "Bob" but the sidebar still read "Robert"; clicking Save would silently re-apply the change you just undid. Effect now depends on the full `person` reference and resyncs on any field change. ([web/src/components/NodeEditSidebar.tsx](web/src/components/NodeEditSidebar.tsx))
+
+### Documentation
+- **Scenario test paths retargeted** after the v0.14.0 `internal/api` package split: ~256 stale `internal/api/*_test.go` references across 11 scenario files updated to point at the new packages (`internal/org/`, `internal/httpapi/`, `internal/snapshot/`, `internal/parser/`, `internal/pod/`, `internal/logbuf/`, `internal/autosave/`). `make check-scenarios` already passed (it greps for IDs anywhere), but the cited paths misled readers. Includes per-test disambiguation for the split `stores_test.go` (handler tests went to `httpapi/`, store-impl tests to `autosave/` and `snapshot/`).
+- **VIM-009 invariants extended** to capture: (a) sidebar saves participate in the undo stack, (b) `NodeEditSidebar` resyncs the form on any change to `person`, not just `person.id`, and (c) future live-collab features will need a separate "external-vs-local" signal if they mutate `working` mid-edit.
+
+---
+
 ## v0.14.0
 
 ### Breaking Changes
