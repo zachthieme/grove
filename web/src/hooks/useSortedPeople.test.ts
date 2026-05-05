@@ -102,4 +102,23 @@ describe('sortPeople', () => {
     const t2 = sorted.filter(p => p.team === 'T2')
     expect(t2[0].name).toBe('FTE-T2')
   })
+
+  it('handles nodes with null additionalTeams', () => {
+    const people = [
+      makeNode({ id: '1', name: 'Alice', additionalTeams: null as unknown as string[] }),
+      makeNode({ id: '2', name: 'Bob', managerId: 'm1', additionalTeams: [] }),
+    ]
+    const result = sortPeople(people, [])
+    expect(result).toHaveLength(2)
+  })
+
+  it('handles null disciplineOrder', () => {
+    const people = [
+      makeNode({ id: 'm1', name: 'Manager', managerId: '' }),
+      makeNode({ id: '1', name: 'Alice', discipline: 'Eng', managerId: 'm1', team: 'T' }),
+      makeNode({ id: '2', name: 'Bob', discipline: 'PM', managerId: 'm1', team: 'T' }),
+    ]
+    const result = sortPeople(people, null as unknown as string[])
+    expect(result).toHaveLength(3)
+  })
 })

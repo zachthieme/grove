@@ -682,8 +682,8 @@ func TestOrgService_Update_AdditionalTeamsEmpty(t *testing.T) {
 		t.Fatalf("update failed: %v", err)
 	}
 	updated := findById(result.Working, bob.Id)
-	if updated.AdditionalTeams != nil {
-		t.Errorf("expected nil additional teams, got %v", updated.AdditionalTeams)
+	if len(updated.AdditionalTeams) != 0 {
+		t.Errorf("expected empty additional teams, got %v", updated.AdditionalTeams)
 	}
 }
 

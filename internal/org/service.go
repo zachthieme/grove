@@ -60,6 +60,7 @@ func extractRows(filename string, data []byte) ([]string, [][]string, error) {
 
 func extractRowsCSV(data []byte) ([]string, [][]string, error) {
 	reader := csv.NewReader(bytes.NewReader(data))
+	reader.FieldsPerRecord = -1 // accept ragged rows
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, nil, ErrValidation("reading CSV: %v", err)
@@ -229,6 +230,8 @@ func deepCopyNodes(src []apitypes.OrgNode) []apitypes.OrgNode {
 		if p.AdditionalTeams != nil {
 			dst[i].AdditionalTeams = make([]string, len(p.AdditionalTeams))
 			copy(dst[i].AdditionalTeams, p.AdditionalTeams)
+		} else {
+			dst[i].AdditionalTeams = []string{}
 		}
 	}
 	return dst
@@ -236,15 +239,10 @@ func deepCopyNodes(src []apitypes.OrgNode) []apitypes.OrgNode {
 
 // CaptureState returns a deep-copied snapshot of the current org state.
 // Held under read lock for the minimum time needed to copy.
-// Pods is always a non-nil slice (may be empty) so callers can JSON-encode
-// it as [] rather than null.
 func (s *OrgService) CaptureState() snapshot.OrgState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	pods := pod.Copy(s.podMgr.Pods())
-	if pods == nil {
-		pods = []apitypes.Pod{}
-	}
 	order := make([]string, len(s.settings.DisciplineOrder))
 	copy(order, s.settings.DisciplineOrder)
 	return snapshot.OrgState{

@@ -14,6 +14,7 @@ function disciplineRank(discipline: string, order: string[] | null): number {
 }
 
 export function sortPeople(people: OrgNode[], disciplineOrder: string[]): OrgNode[] {
+  const order = disciplineOrder ?? []
   // Group by (managerId, team)
   const groups = new Map<string, OrgNode[]>()
   const ungrouped: OrgNode[] = []
@@ -37,11 +38,11 @@ export function sortPeople(people: OrgNode[], disciplineOrder: string[]): OrgNod
       if (tierA !== tierB) return tierA - tierB
 
       // 2. Discipline rank
-      const discA = disciplineRank(a.discipline, disciplineOrder)
-      const discB = disciplineRank(b.discipline, disciplineOrder)
+      const discA = disciplineRank(a.discipline, order)
+      const discB = disciplineRank(b.discipline, order)
       if (discA !== discB) return discA - discB
       // Both unknown disciplines: sort alphabetically
-      if (discA >= disciplineOrder.length && a.discipline !== b.discipline) {
+      if (discA >= order.length && a.discipline !== b.discipline) {
         return a.discipline.localeCompare(b.discipline)
       }
 
@@ -80,7 +81,7 @@ export function sortPeople(people: OrgNode[], disciplineOrder: string[]): OrgNod
 
 export function useSortedPeople(people: OrgNode[], disciplineOrder: string[]): OrgNode[] {
   return useMemo(
-    () => sortPeople(people, disciplineOrder ?? []),
+    () => sortPeople(people, disciplineOrder),
     [people, disciplineOrder]
   )
 }

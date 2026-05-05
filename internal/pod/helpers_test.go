@@ -308,10 +308,13 @@ func TestCopy(t *testing.T) {
 }
 
 // Scenarios: ORG-018
-func TestCopy_Nil(t *testing.T) {
+func TestCopy_NilReturnsEmptySlice(t *testing.T) {
 	t.Parallel()
 	result := Copy(nil)
-	if result != nil {
-		t.Errorf("expected nil for nil input, got %v", result)
+	if result == nil {
+		t.Fatal("Copy(nil) returned nil, want empty slice")
+	}
+	if len(result) != 0 {
+		t.Fatalf("expected empty slice, got len %d", len(result))
 	}
 }

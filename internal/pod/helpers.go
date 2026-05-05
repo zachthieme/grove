@@ -124,10 +124,11 @@ func ReassignPerson(pods []apitypes.Pod, person *apitypes.OrgNode) []apitypes.Po
 	return pods
 }
 
-// Copy returns a shallow copy of the pods slice. Returns nil if src is nil.
+// Copy returns a shallow copy of the pods slice. Returns an empty (non-nil)
+// slice if src is nil, so callers always get a JSON-serializable [].
 func Copy(src []apitypes.Pod) []apitypes.Pod {
 	if src == nil {
-		return nil
+		return []apitypes.Pod{}
 	}
 	dst := make([]apitypes.Pod, len(src))
 	copy(dst, src)

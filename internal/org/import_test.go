@@ -2,9 +2,12 @@ package org
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/zachthieme/grove/internal/apitypes"
 	"github.com/zachthieme/grove/internal/snapshot"
 )
 
@@ -340,6 +343,123 @@ func TestConfirmMapping_AcceptsCurrentEpoch(t *testing.T) {
 	}
 	if len(data.Working) != 1 {
 		t.Errorf("expected 1 working person, got %d", len(data.Working))
+	}
+}
+
+// Scenarios: UPLOAD-012
+func TestUpload_RaggedCSV(t *testing.T) {
+	t.Parallel()
+	svc := New(snapshot.NewMemoryStore())
+
+	// Row 2 has fewer fields than header (3 vs 5)
+	csv := "Name,Role,Team,Manager,Level\nAlice,VP,Eng,Bob,29\nCarol,SWE\nDave,,,Alice,\n"
+	data, err := svc.Upload(context.Background(), "ragged.csv", []byte(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if data.Status != "ready" {
+		t.Fatalf("expected ready, got %s", data.Status)
+	}
+	// Carol should exist with empty fields
+	var carol *apitypes.OrgNode
+	for i := range data.OrgData.Working {
+		if data.OrgData.Working[i].Name == "Carol" {
+			carol = &data.OrgData.Working[i]
+			break
+		}
+	}
+	if carol == nil {
+		t.Fatal("Carol not found in working set")
+	}
+	if carol.Role != "SWE" {
+		t.Errorf("expected role SWE, got %q", carol.Role)
+	}
+	if carol.Team != "" {
+		t.Errorf("expected empty team, got %q", carol.Team)
+	}
+}
+
+// Scenarios: UPLOAD-013
+func TestUpload_NilAdditionalTeamsBecomesEmptyArray(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+
+	// CSV has no additionalTeams column — field will be nil in Go
+	csv := "Name,Role\nAlice,VP\n"
+	resp, err := svc.Upload(context.Background(), "minimal.csv", []byte(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("expected ready, got %s", resp.Status)
+	}
+	for _, p := range resp.OrgData.Working {
+		if p.AdditionalTeams == nil {
+			t.Errorf("person %q has nil AdditionalTeams, want empty slice", p.Name)
+		}
+	}
+	for _, p := range resp.OrgData.Original {
+		if p.AdditionalTeams == nil {
+			t.Errorf("original person %q has nil AdditionalTeams, want empty slice", p.Name)
+		}
+	}
+}
+
+// Scenarios: UPLOAD-014
+func TestUpload_NameOnlyCSV(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+
+	csv := "Name\nAlice\nBob\nCarol\n"
+	resp, err := svc.Upload(context.Background(), "names.csv", []byte(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Status != "ready" {
+		t.Fatalf("expected ready, got %s", resp.Status)
+	}
+	if len(resp.OrgData.Working) != 3 {
+		t.Fatalf("expected 3 people, got %d", len(resp.OrgData.Working))
+	}
+	// Verify no nil slices in the JSON-ready response
+	for _, p := range resp.OrgData.Working {
+		if p.AdditionalTeams == nil {
+			t.Errorf("person %q: AdditionalTeams is nil", p.Name)
+		}
+	}
+	if resp.OrgData.Settings == nil {
+		t.Fatal("Settings is nil")
+	}
+	if resp.OrgData.Settings.DisciplineOrder == nil {
+		t.Error("DisciplineOrder is nil, want empty slice")
+	}
+	if resp.OrgData.Pods == nil {
+		t.Error("Pods is nil, want empty slice")
+	}
+}
+
+// Scenarios: UPLOAD-014
+func TestUpload_JSONNeverContainsNull(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+
+	csv := "Name\nAlice\n"
+	resp, err := svc.Upload(context.Background(), "one.csv", []byte(csv))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Marshal the OrgData to JSON and check for null arrays
+	encoded, err := json.Marshal(resp.OrgData)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+	jsonStr := string(encoded)
+	// These fields must never be null — they must be []
+	for _, field := range []string{`"additionalTeams"`, `"disciplineOrder"`, `"pods"`} {
+		if strings.Contains(jsonStr, field+":null") {
+			t.Errorf("JSON contains %s:null — must be an empty array", field)
+		}
 	}
 }
 
