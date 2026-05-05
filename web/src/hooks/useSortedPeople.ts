@@ -80,7 +80,7 @@ export function sortPeople(people: OrgNode[], disciplineOrder: string[]): OrgNod
 
 export function useSortedPeople(people: OrgNode[], disciplineOrder: string[]): OrgNode[] {
   return useMemo(
-    () => sortPeople(people, disciplineOrder),
+    () => sortPeople(people, disciplineOrder ?? []),
     [people, disciplineOrder]
   )
 }

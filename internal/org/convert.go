@@ -21,6 +21,9 @@ func DeriveDisciplineOrder(people []apitypes.OrgNode) []string {
 		}
 	}
 	sort.Strings(disciplines)
+	if disciplines == nil {
+		return []string{}
+	}
 	return disciplines
 }
 
