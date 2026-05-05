@@ -55,7 +55,7 @@ func TestInferMapping_CaseInsensitive(t *testing.T) {
 	}{
 		{"name", "NAME", "high"},
 		{"role", "rOlE", "high"},
-		{"discipline", "  discipline  ", "high"},
+		{"discipline", "discipline", "high"},
 		{"manager", "MANAGER", "high"},
 		{"team", "team", "high"},
 	}

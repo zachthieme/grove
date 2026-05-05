@@ -154,3 +154,26 @@ func TestBuildPeopleWithMapping_NoExtraColumns(t *testing.T) {
 		t.Errorf("expected nil Extra when all columns mapped, got %v", org.People[0].Extra)
 	}
 }
+
+func TestBuildPeopleWithMapping_SpacePaddedHeaders(t *testing.T) {
+	t.Parallel()
+	// Simulates CSVs with "Name, Role, Level, Manager" (space after comma)
+	header := []string{"Name", " Role", " Level", " Manager", " Notes"}
+	rows := [][]string{
+		{"Alice", "VP", "29", "Bob", "some note"},
+	}
+	mapping := map[string]string{
+		"name": "Role", "role": " Role", "level": " Level", "manager": " Manager",
+	}
+
+	org, err := BuildPeopleWithMapping(header, rows, mapping)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if org.People[0].Role != "VP" {
+		t.Errorf("expected role VP, got %s", org.People[0].Role)
+	}
+	if org.People[0].Level != 29 {
+		t.Errorf("expected level 29, got %d", org.People[0].Level)
+	}
+}

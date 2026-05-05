@@ -22,7 +22,7 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 	// Build field-name → column-index lookup from the mapping.
 	cols := make(map[string]int, len(mapping))
 	for field, headerName := range mapping {
-		idx, ok := headerIndex[headerName]
+		idx, ok := headerIndex[strings.TrimSpace(headerName)]
 		if !ok {
 			return nil, fmt.Errorf("mapped header '%s' (for field '%s') not found in header row", headerName, field)
 		}

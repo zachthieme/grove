@@ -129,7 +129,7 @@ func InferMapping(headers []string) map[string]apitypes.MappedColumn {
 	// has duplicate header strings, value-tracking prevents two different
 	// fields from claiming what is really the same column.
 	claim := func(i int, h, norm, field, confidence string) {
-		result[field] = apitypes.MappedColumn{Column: h, Confidence: confidence}
+		result[field] = apitypes.MappedColumn{Column: strings.TrimSpace(h), Confidence: confidence}
 		assigned[field] = true
 		used[i] = true
 		usedValues[norm] = true
