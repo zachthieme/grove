@@ -121,4 +121,21 @@ describe('sortPeople', () => {
     const result = sortPeople(people, null as unknown as string[])
     expect(result).toHaveLength(3)
   })
+
+  it('sorts stably when most nodes have empty discipline', () => {
+    const people = [
+      makeNode({ id: 'm1', name: 'Manager', managerId: '' }),
+      makeNode({ id: 'a', name: 'Alice', discipline: '', managerId: 'm1', team: 'T' }),
+      makeNode({ id: 'b', name: 'Bob', discipline: '', managerId: 'm1', team: 'T' }),
+      makeNode({ id: 'c', name: 'Carol', discipline: 'Eng', managerId: 'm1', team: 'T' }),
+      makeNode({ id: 'd', name: 'Dave', discipline: '', managerId: 'm1', team: 'T' }),
+    ]
+    const result = sortPeople(people, ['Eng'])
+    // Carol (known discipline) sorts before the empty-discipline group
+    const managed = result.filter(p => p.managerId === 'm1')
+    expect(managed[0].name).toBe('Carol')
+    // Empty-discipline nodes maintain stable order among themselves
+    const empties = managed.filter(p => p.discipline === '')
+    expect(empties.map(p => p.name)).toEqual(['Alice', 'Bob', 'Dave'])
+  })
 })

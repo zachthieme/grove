@@ -22,10 +22,15 @@ import (
 func uploadCSV(t *testing.T, handler http.Handler) *org.OrgData {
 	t.Helper()
 	csvData := "Name,Role,Discipline,Manager,Team,Additional Teams,Status\nAlice,VP,Eng,,Eng,,Active\nBob,Engineer,Eng,Alice,Platform,,Active\nCarol,Engineer,Eng,Bob,Platform,,Active\n"
+	return uploadCSVData(t, handler, "test.csv", csvData)
+}
+
+func uploadCSVData(t *testing.T, handler http.Handler, filename, csvData string) *org.OrgData {
+	t.Helper()
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	part, err := writer.CreateFormFile("file", "test.csv")
+	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
 		t.Fatalf("creating form file: %v", err)
 	}
@@ -1984,6 +1989,78 @@ func TestCSRFProtect_CrossOriginReferer_Returns403(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("expected 403 for cross-origin Referer, got %d", rec.Code)
+	}
+}
+
+// Scenarios: UPLOAD-015
+func TestUploadHandler_SpacePaddedHeaders(t *testing.T) {
+	t.Parallel()
+	svc := org.New(snapshot.NewMemoryStore())
+	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
+
+	// Spaces after commas — common when hand-editing CSVs
+	csv := "Name, Role, Level, Manager\nAlice, VP, 29, \nBob, Engineer, 25, Alice\n"
+	data := uploadCSVData(t, handler, "spaced.csv", csv)
+
+	if len(data.Working) != 2 {
+		t.Fatalf("expected 2 people, got %d", len(data.Working))
+	}
+	// Verify trimming worked: role should be "VP", not " VP"
+	var alice *apitypes.OrgNode
+	for i := range data.Working {
+		if data.Working[i].Name == "Alice" {
+			alice = &data.Working[i]
+			break
+		}
+	}
+	if alice == nil {
+		t.Fatal("Alice not found")
+	}
+	if alice.Role != "VP" {
+		t.Errorf("expected role %q, got %q", "VP", alice.Role)
+	}
+	if alice.Level != 29 {
+		t.Errorf("expected level 29, got %d", alice.Level)
+	}
+}
+
+// Scenarios: UPLOAD-016
+func TestUploadHandler_RaggedCSV(t *testing.T) {
+	t.Parallel()
+	svc := org.New(snapshot.NewMemoryStore())
+	handler := NewRouter(NewServices(svc), nil, autosave.NewMemoryStore())
+
+	// Row 2 has only 2 fields, row 3 has only 1 — both should import fine
+	csv := "Name,Role,Team,Manager\nAlice,VP,Eng,\nBob,Engineer\nCarol\n"
+	data := uploadCSVData(t, handler, "ragged.csv", csv)
+
+	if len(data.Working) != 3 {
+		t.Fatalf("expected 3 people, got %d", len(data.Working))
+	}
+
+	// Verify sparse rows have empty fields, not nil/crash
+	for _, p := range data.Working {
+		if p.AdditionalTeams == nil {
+			t.Errorf("person %q: AdditionalTeams is nil", p.Name)
+		}
+	}
+
+	// Carol should exist with all-empty fields except name
+	var carol *apitypes.OrgNode
+	for i := range data.Working {
+		if data.Working[i].Name == "Carol" {
+			carol = &data.Working[i]
+			break
+		}
+	}
+	if carol == nil {
+		t.Fatal("Carol not found")
+	}
+	if carol.Role != "" {
+		t.Errorf("expected empty role, got %q", carol.Role)
+	}
+	if carol.Team != "" {
+		t.Errorf("expected empty team, got %q", carol.Team)
 	}
 }
 
