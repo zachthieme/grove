@@ -177,3 +177,41 @@ func TestBuildPeopleWithMapping_SpacePaddedHeaders(t *testing.T) {
 		t.Errorf("expected level 29, got %d", org.People[0].Level)
 	}
 }
+
+func TestBuildPeopleWithMapping_EmptyStatusDefaultsToActive(t *testing.T) {
+	t.Parallel()
+	header := []string{"Name", "Role", "Status"}
+	rows := [][]string{
+		{"Alice", "VP", ""},       // explicit empty
+		{"Bob", "Engineer", "Open"},
+	}
+	mapping := map[string]string{"name": "Name", "role": "Role", "status": "Status"}
+
+	org, err := BuildPeopleWithMapping(header, rows, mapping)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if org.People[0].Status != "Active" {
+		t.Errorf("expected Alice status 'Active', got %q", org.People[0].Status)
+	}
+	if org.People[1].Status != "Open" {
+		t.Errorf("expected Bob status 'Open', got %q", org.People[1].Status)
+	}
+}
+
+func TestBuildPeopleWithMapping_NoStatusColumnDefaultsToActive(t *testing.T) {
+	t.Parallel()
+	header := []string{"Name"}
+	rows := [][]string{{"Alice"}, {"Bob"}}
+	mapping := map[string]string{"name": "Name"}
+
+	org, err := BuildPeopleWithMapping(header, rows, mapping)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, p := range org.People {
+		if p.Status != "Active" {
+			t.Errorf("person %q: expected status 'Active', got %q", p.Name, p.Status)
+		}
+	}
+}

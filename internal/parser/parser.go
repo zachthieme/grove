@@ -62,6 +62,9 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 		}
 
 		status := get("status")
+		if status == "" {
+			status = model.StatusActive
+		}
 
 		empType := get("employmentType")
 		if empType == "" {
