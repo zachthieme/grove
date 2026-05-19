@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.14.3
+
+### Bug Fixes
+- **Empty status defaults to Active on import** (#143): CSVs without a status column (or with empty status values) left the underlying data as an empty string even though the UI displayed "Active". Status now defaults to `model.StatusActive` at parse time, matching the existing `employmentType → FTE` pattern. ([internal/parser/parser.go](internal/parser/parser.go))
+- **Team/manager changes no longer overwrite pod** (#142): Moving a person to a new manager (drag-and-drop or sidebar edit) cleared their pod because `Reassign()` couldn't find the pod under the new manager. Pod is now preserved across relational field changes in both `Move` and `Update` paths — only an explicit pod field in the payload changes it. ([internal/org/people.go](internal/org/people.go))
+- **Single-node drag shows phantom card** (#141): `DragBadgeOverlay` queried `[role="button"]` to clone the drag preview, but `BaseNode` renders `data-dnd-draggable` instead (role is explicitly undefined). Single drag showed an empty overlay with no card. Now tries `[data-dnd-draggable]` first, falling back to `[role="button"]`. ([web/src/views/DragBadgeOverlay.tsx](web/src/views/DragBadgeOverlay.tsx))
+- **Cross-team edges render for all additionalTeams**: The SVG overlay was sized to `100%` of the viewport, but edge coordinates use scrollable-content space. Edges to nodes outside the visible viewport were clipped by the container's `overflow: auto`. SVG dimensions now track `scrollWidth`/`scrollHeight` so all dashed cross-team edges render regardless of scroll position. ([web/src/views/ChartShell.module.css](web/src/views/ChartShell.module.css), [web/src/hooks/useChartLayout.ts](web/src/hooks/useChartLayout.ts), [web/src/views/LassoSvgOverlay.tsx](web/src/views/LassoSvgOverlay.tsx))
+- **Flaky perf budget test** (#140): Wall-clock budgets doubled to account for CI runner variance. `PERF-005` commit-count gate (the strict memo regression check) is unchanged. ([web/src/views/perfBudget.test.tsx](web/src/views/perfBudget.test.tsx))
+
+### Testing
+- Pod preservation tests for Move and Update (manager change, team change).
+- Multiple-additionalTeams edge generation test.
+- HTTP handler tests for space-padded headers and ragged CSVs.
+- Sparse-discipline sort stability test.
+
+---
+
 ## v0.14.1
 
 ### Bug Fixes
