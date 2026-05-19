@@ -66,6 +66,22 @@ describe('DragBadgeOverlay', () => {
     document.body.removeChild(el)
   })
 
+  it('[VIEW-006] clones drag handle via data-dnd-draggable (single drag)', () => {
+    // BaseNode renders data-dnd-draggable on the drag handle, not role="button"
+    const el = document.createElement('div')
+    el.setAttribute('data-person-id', 'p1')
+    const handle = document.createElement('div')
+    handle.setAttribute('data-dnd-draggable', '')
+    handle.textContent = 'Bob'
+    el.appendChild(handle)
+    document.body.appendChild(el)
+
+    render(<DragBadgeOverlay activeDragId="p1" selectedIds={new Set()} />)
+    expect(screen.getAllByText('Bob').length).toBeGreaterThan(0)
+
+    document.body.removeChild(el)
+  })
+
   it('[VIEW-006] does NOT show badge when activeDragId is not in selectedIds', () => {
     const el = document.createElement('div')
     el.setAttribute('data-person-id', 'p1')

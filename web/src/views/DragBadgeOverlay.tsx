@@ -46,7 +46,8 @@ export function DragBadgeOverlay({ activeDragId, selectedIds }: DragBadgeOverlay
     if (!activeDragId) return
     for (const host of document.querySelectorAll<HTMLElement>('[data-person-id]')) {
       if (host.dataset.personId !== activeDragId) continue
-      const source = host.querySelector('[role="button"]')
+      // Try drag handle first (data-dnd-draggable), fall back to role="button"
+      const source = host.querySelector('[data-dnd-draggable]') ?? host.querySelector('[role="button"]')
       if (source) container.appendChild(source.cloneNode(true))
       break
     }

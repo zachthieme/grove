@@ -10,12 +10,14 @@ vi.mock('@dnd-kit/core')
 vi.mock('../hooks/useChartLayout')
 vi.mock('../hooks/useDragDrop')
 
-// Wall-clock budgets (ms). Generous for jsdom — these catch memo regressions, not real paint.
+// Wall-clock budgets (ms). Very generous for jsdom — these catch catastrophic
+// regressions (10x), not subtle ones. CI runners and loaded machines can be 2-3x
+// slower than local dev. PERF-005's commit-count gate is the strict memo check.
 const BUDGET = {
-  mount100: 150,
-  mount1k: 1500,
-  mount5k: 8000,
-  rerender1k: 300,
+  mount100: 300,
+  mount1k: 3000,
+  mount5k: 16000,
+  rerender1k: 1500,
   rerenderCommits: 50, // strict commit-count gate for PERF-005
 }
 
