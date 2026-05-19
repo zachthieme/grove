@@ -26,8 +26,12 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, 
 		}
 	}
 	p.ManagerId = newManagerId
+	// Preserve existing pod — applyTeamChange/Reassign would clear it
+	// because the pod doesn't exist under the new manager yet. Pod is
+	// independent of manager/team and should only change when explicitly set.
+	savedPod := p.Pod
 	if newPod != "" {
-		p.Pod = newPod
+		savedPod = newPod
 	}
 	if newTeam != "" {
 		s.applyTeamChange(p, personId, newTeam)
@@ -35,6 +39,7 @@ func (s *OrgService) Move(ctx context.Context, personId, newManagerId, newTeam, 
 		s.podMgr.Reassign(p)
 		s.podMgr.Cleanup(s.working)
 	}
+	p.Pod = savedPod
 	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil
 }
 
@@ -65,6 +70,10 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields apitype
 	}
 	applyNotes(p, fields)
 
+	// Preserve pod across manager/team changes — Reassign() would clear it
+	// because the pod doesn't exist under the new manager. Pod should only
+	// change when explicitly set via the Pod field.
+	savedPod := p.Pod
 	if fields.ManagerId != nil {
 		if err := s.applyManagerChange(p, personId, *fields.ManagerId, fields.Team != nil); err != nil {
 			return nil, err
@@ -75,6 +84,8 @@ func (s *OrgService) Update(ctx context.Context, personId string, fields apitype
 	}
 	if fields.Pod != nil {
 		s.applyPodChange(p, *fields.Pod)
+	} else {
+		p.Pod = savedPod
 	}
 
 	return &MoveResult{Working: deepCopyNodes(s.working), Pods: pod.Copy(s.podMgr.Pods())}, nil

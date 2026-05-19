@@ -748,6 +748,101 @@ func TestOrgService_Move_ManagerNotFound(t *testing.T) {
 	}
 }
 
+// Scenarios: ORG-018
+func TestOrgService_Move_PreservesPod(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+
+	// Create a pod under Bob's team and assign Carol to it
+	_, err := svc.CreatePod(context.Background(), bob.Id, "Beta", "Platform")
+	if err != nil {
+		t.Fatalf("create pod: %v", err)
+	}
+	_, err = svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("Beta")})
+	if err != nil {
+		t.Fatalf("set pod: %v", err)
+	}
+
+	// Move Carol to Alice (new manager, new team) — pod must be preserved
+	result, err := svc.Move(context.Background(), carol.Id, alice.Id, "Eng", "")
+	if err != nil {
+		t.Fatalf("move failed: %v", err)
+	}
+	updated := findById(result.Working, carol.Id)
+	if updated.Pod != "Beta" {
+		t.Errorf("expected pod 'Beta' preserved after move, got %q", updated.Pod)
+	}
+	if updated.ManagerId != alice.Id {
+		t.Errorf("expected manager Alice, got %q", updated.ManagerId)
+	}
+	if updated.Team != "Eng" {
+		t.Errorf("expected team 'Eng', got %q", updated.Team)
+	}
+}
+
+// Scenarios: ORG-018
+func TestOrgService_Update_ManagerChangePreservesPod(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	alice := findByName(data.Working, "Alice")
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+
+	// Give Carol a pod
+	_, err := svc.CreatePod(context.Background(), bob.Id, "Gamma", "Platform")
+	if err != nil {
+		t.Fatalf("create pod: %v", err)
+	}
+	_, err = svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("Gamma")})
+	if err != nil {
+		t.Fatalf("set pod: %v", err)
+	}
+
+	// Change Carol's manager to Alice via Update (no pod field) — pod must survive
+	result, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{ManagerId: ptr(alice.Id)})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updated := findById(result.Working, carol.Id)
+	if updated.Pod != "Gamma" {
+		t.Errorf("expected pod 'Gamma' preserved after manager change, got %q", updated.Pod)
+	}
+}
+
+// Scenarios: ORG-018
+func TestOrgService_Update_TeamChangePreservesPod(t *testing.T) {
+	t.Parallel()
+	svc := newTestService(t)
+	data := svc.GetOrg(context.Background())
+	bob := findByName(data.Working, "Bob")
+	carol := findByName(data.Working, "Carol")
+
+	// Give Carol a pod
+	_, err := svc.CreatePod(context.Background(), bob.Id, "Delta", "Platform")
+	if err != nil {
+		t.Fatalf("create pod: %v", err)
+	}
+	_, err = svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Pod: ptr("Delta")})
+	if err != nil {
+		t.Fatalf("set pod: %v", err)
+	}
+
+	// Change Carol's team via Update (no pod field) — pod must survive
+	result, err := svc.Update(context.Background(), carol.Id, apitypes.OrgNodeUpdate{Team: ptr("NewTeam")})
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+	updated := findById(result.Working, carol.Id)
+	if updated.Pod != "Delta" {
+		t.Errorf("expected pod 'Delta' preserved after team change, got %q", updated.Pod)
+	}
+}
+
 // Scenarios: ORG-001
 func TestOrgService_Move_NoTeamChange(t *testing.T) {
 	t.Parallel()
