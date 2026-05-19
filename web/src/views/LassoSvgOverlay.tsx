@@ -13,12 +13,15 @@ interface LassoSvgOverlayProps {
   className: string
   /** If true, render dashed cross-team edges (ColumnView style). Otherwise straight curves only. */
   dashedEdges?: boolean
+  /** Full scrollable content dimensions so the SVG covers the entire chart, not just the viewport. */
+  svgSize?: { width: number; height: number }
 }
 
-export function LassoSvgOverlay({ lassoRect, lines, className, dashedEdges }: LassoSvgOverlayProps) {
+export function LassoSvgOverlay({ lassoRect, lines, className, dashedEdges, svgSize }: LassoSvgOverlayProps) {
+  const sizeStyle = svgSize ? { width: svgSize.width, height: svgSize.height } : { width: '100%', height: '100%' }
   return (
     <>
-      <svg className={className}>
+      <svg className={className} style={sizeStyle}>
         {lines.map((l, i) => {
           if (dashedEdges && l.dashed) {
             const lowerY = Math.max(l.y1, l.y2)
@@ -47,7 +50,7 @@ export function LassoSvgOverlay({ lassoRect, lines, className, dashedEdges }: La
         })}
       </svg>
       {lassoRect && (
-        <svg className={className} style={{ pointerEvents: 'none', zIndex: 10 }}>
+        <svg className={className} style={{ ...sizeStyle, pointerEvents: 'none', zIndex: 10 }}>
           <rect
             x={lassoRect.x}
             y={lassoRect.y}

@@ -50,7 +50,7 @@ export default function ChartShell({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [collapseKey, setCollapseKey] = useState(0)
 
-  const { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, collapseKey)
+  const { containerRef, nodeRefs, setNodeRef, lines, svgSize, activeDragId, sensors, handleDragStart, handleDragEnd } = useChartLayout(edges, collapseKey)
   const handleToggleCollapse = useCallback((id: string) => {
     setCollapsedIds(prev => {
       const next = new Set(prev)
@@ -129,7 +129,7 @@ export default function ChartShell({
     <ChartProvider data={chartData} actions={chartActions}>
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className={styles.container} ref={containerRef} data-role="chart-container">
-          <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} dashedEdges={dashedEdges} />
+          <LassoSvgOverlay lassoRect={lassoRect} lines={lines} className={styles.svgOverlay} dashedEdges={dashedEdges} svgSize={svgSize} />
           <div className={styles.forest} data-role="forest">
             {layoutTree.map((n) => renderLayoutNode(n))}
           </div>

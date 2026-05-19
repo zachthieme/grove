@@ -127,6 +127,27 @@ describe('computeEdges', () => {
     expect(dashedEdge!.toId).toBe('2')   // Bob (first in Design)
   })
 
+  it('[VIEW-001] draws dashed edges for ALL additionalTeams, not just one', () => {
+    // Reproduces #141: Chris Launey has two additional teams but only one edge drawn
+    const people = [
+      makeNode({ id: 'z', name: 'Zach', team: '' }),
+      makeNode({ id: 'r', name: 'Roy', team: 'Deploy', managerId: 'z' }),
+      makeNode({ id: 'r1', name: 'Roy-IC', team: 'Deploy', managerId: 'r' }), // makes Roy a manager
+      makeNode({ id: 'm', name: 'Mike', team: 'Compute', managerId: 'z' }),
+      makeNode({ id: 'm1', name: 'Mike-IC', team: 'Compute', managerId: 'm' }), // makes Mike a manager
+      makeNode({ id: 'c', name: 'Chris', team: '', managerId: 'z', additionalTeams: ['Deploy', 'Compute'] }),
+    ]
+    const layout = computeLayoutTree(buildOrgTree(people))
+    const edges = computeEdges(layout, people)
+    const dashedEdges = edges.filter(e => e.dashed)
+    // Chris should have TWO dashed edges: one to Roy (Deploy lead) and one to Mike (Compute lead)
+    expect(dashedEdges).toHaveLength(2)
+    const toIds = dashedEdges.map(e => e.toId).sort()
+    expect(toIds).toEqual(['m', 'r'])
+    // Both should originate from Chris
+    expect(dashedEdges.every(e => e.fromId === 'c')).toBe(true)
+  })
+
   it('[VIEW-001] does not draw dashed edge to self', () => {
     const people = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Eng'] }),

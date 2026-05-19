@@ -15,6 +15,7 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
   const containerRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [lines, setLines] = useState<ChartLine[]>([])
+  const [svgSize, setSvgSize] = useState<{ width: number; height: number } | undefined>()
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } })
@@ -90,6 +91,7 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
       return
     }
     const container = containerRef.current
+    setSvgSize({ width: container.scrollWidth, height: container.scrollHeight })
     const rect = container.getBoundingClientRect()
     const sl = container.scrollLeft
     const st = container.scrollTop
@@ -137,5 +139,5 @@ export function useChartLayout(edges: ChartEdge[], layoutDeps: unknown) {
     setLines(computed)
   }, [edges, resizeKey, scrollKey, layoutDeps])
 
-  return { containerRef, nodeRefs, setNodeRef, lines, activeDragId, sensors, handleDragStart, handleDragEnd }
+  return { containerRef, nodeRefs, setNodeRef, lines, svgSize, activeDragId, sensors, handleDragStart, handleDragEnd }
 }
