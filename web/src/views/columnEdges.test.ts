@@ -148,6 +148,45 @@ describe('computeEdges', () => {
     expect(dashedEdges.every(e => e.fromId === 'c')).toBe(true)
   })
 
+  it('[VIEW-001] draws dashed edges for multiCrossTeam IC with realistic org structure', () => {
+    // Mirrors the real CSV: Zach has 3 manager reports + 1 IC (Chris L) with 2 additional teams
+    // Plus other ICs with single additionalTeams to ensure no interference
+    const people = [
+      makeNode({ id: 'z', name: 'Zach', team: 'Edge Foundation Services' }),
+      // Three managers under Zach, each with different teams
+      makeNode({ id: 'mike', name: 'Mike Kloss', team: 'Store Edge Compute', managerId: 'z' }),
+      makeNode({ id: 'roy', name: 'Roy Sam', team: 'Store Edge Deployment', managerId: 'z' }),
+      makeNode({ id: 'chris-v', name: 'Chris Vasquez', team: 'IoT', managerId: 'z' }),
+      // ICs under each manager (makes them managers)
+      makeNode({ id: 'm1', name: 'Mike-IC1', team: 'Store Edge Compute', managerId: 'mike' }),
+      makeNode({ id: 'r1', name: 'Roy-IC1', team: 'Store Edge Deployment', managerId: 'roy' }),
+      makeNode({ id: 'r2', name: 'Roy-IC2', team: 'Store Edge Deployment', managerId: 'roy' }),
+      makeNode({ id: 'cv1', name: 'CV-IC1', team: 'IoT', managerId: 'chris-v' }),
+      // Chris Launey: IC under Zach, empty team, TWO additional teams
+      makeNode({ id: 'chris-l', name: 'Chris Launey', team: '', managerId: 'z', additionalTeams: ['Store Edge Deployment', 'Store Edge Compute'] }),
+      // Other ICs under Zach with single additional teams (shouldn't interfere)
+      makeNode({ id: 'elliot', name: 'Elliot Smith', team: 'Retail Foundation Services', managerId: 'z', additionalTeams: ['IoT'] }),
+      makeNode({ id: 'kurt', name: 'Kurt Wilhelmsen', team: 'Retail Foundation Services', managerId: 'z', additionalTeams: ['IoT'] }),
+      makeNode({ id: 'mark-q', name: 'Mark Quilling', team: 'Retail Foundation Services', managerId: 'z', additionalTeams: ['IoT'] }),
+    ]
+    const layout = computeLayoutTree(buildOrgTree(people))
+    const edges = computeEdges(layout, people)
+
+    // Chris Launey should have exactly 2 dashed edges
+    const chrisEdges = edges.filter(e => e.dashed && e.fromId === 'chris-l')
+    expect(chrisEdges).toHaveLength(2)
+    const targets = new Set(chrisEdges.map(e => e.toId))
+    expect(targets.has('roy')).toBe(true)   // Store Edge Deployment lead
+    expect(targets.has('mike')).toBe(true)  // Store Edge Compute lead
+
+    // Elliot, Kurt, Mark should each have 1 dashed edge to Chris Vasquez (IoT lead)
+    for (const id of ['elliot', 'kurt', 'mark-q']) {
+      const personEdges = edges.filter(e => e.dashed && e.fromId === id)
+      expect(personEdges).toHaveLength(1)
+      expect(personEdges[0].toId).toBe('chris-v')
+    }
+  })
+
   it('[VIEW-001] does not draw dashed edge to self', () => {
     const people = [
       makeNode({ id: '1', name: 'Alice', team: 'Eng', additionalTeams: ['Eng'] }),

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.14.4
+
+### Testing
+- **Multi-additionalTeams edge test**: Realistic org structure test verifying dashed cross-team edges are generated for all additional teams, not just the first. Covers the multi-manager, multi-team scenario that surfaced a caching issue in production.
+
+---
+
 ## v0.14.3
 
 ### Bug Fixes
