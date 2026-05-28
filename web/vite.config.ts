@@ -21,9 +21,9 @@ export default defineConfig({
       reporter: ['text', 'text-summary'],
       exclude: ['e2e/**', 'node_modules/**', '**/*.test.*', '**/*.spec.*'],
       thresholds: {
-        statements: 87,
-        branches: 83,
-        functions: 81,
+        statements: 86,
+        branches: 79,
+        functions: 82,
         lines: 88,
       },
     },

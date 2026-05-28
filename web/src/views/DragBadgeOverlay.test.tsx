@@ -82,6 +82,31 @@ describe('DragBadgeOverlay', () => {
     document.body.removeChild(el)
   })
 
+  it('[VIEW-006] renders empty wrapper when no matching DOM node exists', () => {
+    // activeDragId set but no matching data-person-id in DOM
+    render(<DragBadgeOverlay activeDragId="nonexistent" selectedIds={new Set()} />)
+    const overlay = screen.getByTestId('drag-overlay')
+    // Wrapper div renders but has no cloned content
+    expect(overlay.children.length).toBe(1) // the wrapper div
+    expect(overlay.children[0].querySelector('[role="button"]')).toBeNull()
+  })
+
+  it('[VIEW-006] falls back to role="button" when data-dnd-draggable is absent', () => {
+    const el = document.createElement('div')
+    el.setAttribute('data-person-id', 'p1')
+    // Only role="button", no data-dnd-draggable
+    const btn = document.createElement('div')
+    btn.setAttribute('role', 'button')
+    btn.textContent = 'Fallback'
+    el.appendChild(btn)
+    document.body.appendChild(el)
+
+    render(<DragBadgeOverlay activeDragId="p1" selectedIds={new Set()} />)
+    expect(screen.getAllByText('Fallback').length).toBeGreaterThan(0)
+
+    document.body.removeChild(el)
+  })
+
   it('[VIEW-006] does NOT show badge when activeDragId is not in selectedIds', () => {
     const el = document.createElement('div')
     el.setAttribute('data-person-id', 'p1')

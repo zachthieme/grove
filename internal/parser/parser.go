@@ -8,6 +8,11 @@ import (
 	"github.com/zachthieme/grove/internal/model"
 )
 
+type extraCol struct {
+	name string
+	idx  int
+}
+
 // BuildPeopleWithMapping converts raw spreadsheet rows into an Org using an
 // explicit column mapping. The mapping keys are lowercase app field names
 // (e.g. "name", "role") and values are the actual header strings from the
@@ -39,10 +44,6 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 	for _, idx := range cols {
 		consumedIndices[idx] = true
 	}
-	type extraCol struct {
-		name string
-		idx  int
-	}
 	var extraCols []extraCol
 	for i, h := range header {
 		h = strings.TrimSpace(h)
@@ -53,79 +54,85 @@ func BuildPeopleWithMapping(header []string, dataRows [][]string, mapping map[st
 
 	var people []model.OrgNode
 	for _, row := range dataRows {
-		get := func(field string) string {
-			idx, ok := cols[field]
-			if !ok || idx >= len(row) {
-				return ""
-			}
-			return strings.TrimSpace(row[idx])
-		}
-
-		status := get("status")
-		if status == "" {
-			status = model.StatusActive
-		}
-
-		empType := get("employmentType")
-		if empType == "" {
-			empType = "FTE"
-		}
-
-		p := model.OrgNode{
-			OrgNodeFields: model.OrgNodeFields{
-				Type:           get("type"),
-				Name:           get("name"),
-				Role:           get("role"),
-				Discipline:     get("discipline"),
-				Team:           get("team"),
-				Status:         status,
-				EmploymentType: empType,
-				NewRole:        get("newRole"),
-				NewTeam:        get("newTeam"),
-				Pod:            get("pod"),
-				PublicNote:     get("publicNote"),
-				PrivateNote:    get("privateNote"),
-			},
-			Manager: get("manager"),
-		}
-
-		if raw := get("level"); raw != "" {
-			if n, err := strconv.Atoi(raw); err == nil {
-				p.Level = n
-			}
-		}
-
-		if raw := get("private"); raw != "" {
-			low := strings.ToLower(raw)
-			p.Private = low == "true" || low == "1" || low == "yes"
-		}
-
-		raw := get("additionalTeams")
-		if raw != "" {
-			for _, t := range strings.Split(raw, ",") {
-				t = strings.TrimSpace(t)
-				if t != "" {
-					p.AdditionalTeams = append(p.AdditionalTeams, t)
-				}
-			}
-		}
-
-		// Collect extra columns.
-		for _, ec := range extraCols {
-			if ec.idx < len(row) {
-				val := strings.TrimSpace(row[ec.idx])
-				if val != "" {
-					if p.Extra == nil {
-						p.Extra = make(map[string]string)
-					}
-					p.Extra[ec.name] = val
-				}
-			}
-		}
-
-		people = append(people, p)
+		people = append(people, parseRow(row, cols, extraCols))
 	}
 
 	return model.NewOrg(people)
+}
+
+// parseRow converts a single spreadsheet row into an OrgNode using the
+// column index map and any extra (unmapped) column definitions.
+func parseRow(row []string, cols map[string]int, extraCols []extraCol) model.OrgNode {
+	get := func(field string) string {
+		idx, ok := cols[field]
+		if !ok || idx >= len(row) {
+			return ""
+		}
+		return strings.TrimSpace(row[idx])
+	}
+
+	status := get("status")
+	if status == "" {
+		status = model.StatusActive
+	}
+
+	empType := get("employmentType")
+	if empType == "" {
+		empType = "FTE"
+	}
+
+	p := model.OrgNode{
+		OrgNodeFields: model.OrgNodeFields{
+			Type:           get("type"),
+			Name:           get("name"),
+			Role:           get("role"),
+			Discipline:     get("discipline"),
+			Team:           get("team"),
+			Status:         status,
+			EmploymentType: empType,
+			NewRole:        get("newRole"),
+			NewTeam:        get("newTeam"),
+			Pod:            get("pod"),
+			PublicNote:     get("publicNote"),
+			PrivateNote:    get("privateNote"),
+		},
+		Manager: get("manager"),
+	}
+
+	if raw := get("level"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil {
+			p.Level = n
+		}
+	}
+
+	if raw := get("private"); raw != "" {
+		low := strings.ToLower(raw)
+		p.Private = low == "true" || low == "1" || low == "yes"
+	}
+
+	raw := get("additionalTeams")
+	if raw != "" {
+		for _, t := range strings.Split(raw, ",") {
+			t = strings.TrimSpace(t)
+			if t != "" {
+				p.AdditionalTeams = append(p.AdditionalTeams, t)
+			}
+		}
+	}
+
+	// Collect extra columns.
+	for _, ec := range extraCols {
+		if ec.idx < len(row) {
+			val := strings.TrimSpace(row[ec.idx])
+			if val != "" {
+				if p.Extra == nil {
+					p.Extra = make(map[string]string)
+				}
+				p.Extra[ec.name] = val
+			}
+		}
+	}
+
+	return p
 }
 

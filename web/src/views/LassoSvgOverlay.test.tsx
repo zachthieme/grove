@@ -32,6 +32,35 @@ describe('LassoSvgOverlay', () => {
     expect(lassoSvg.style.zIndex).toBe('10')
   })
 
+  it('[VIEW-007] SVG uses svgSize dimensions when provided', () => {
+    const { container } = render(
+      <LassoSvgOverlay
+        lassoRect={null}
+        lines={lines}
+        className="overlay"
+        dashedEdges
+        svgSize={{ width: 2000, height: 3000 }}
+      />
+    )
+    const svg = container.querySelector('svg')!
+    expect(svg.style.width).toBe('2000px')
+    expect(svg.style.height).toBe('3000px')
+  })
+
+  it('[VIEW-007] SVG falls back to 100% when svgSize is omitted', () => {
+    const { container } = render(
+      <LassoSvgOverlay
+        lassoRect={null}
+        lines={lines}
+        className="overlay"
+        dashedEdges
+      />
+    )
+    const svg = container.querySelector('svg')!
+    expect(svg.style.width).toBe('100%')
+    expect(svg.style.height).toBe('100%')
+  })
+
   it('[VIEW-007] only lines SVG renders when no lasso is active', () => {
     const { container } = render(
       <LassoSvgOverlay
