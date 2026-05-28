@@ -11,7 +11,7 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        groveVersion = "0.14.4";
+        groveVersion = "0.14.5";
 
         hashes = {
           x86_64-linux = "sha256-Di38SJYeWG/tkRLeED3Dfhlp6W/dpT4giJiA9SuQmiA=";
