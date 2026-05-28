@@ -14,10 +14,10 @@
         groveVersion = "0.14.4";
 
         hashes = {
-          x86_64-linux = "sha256-Kt7Xn/jioKfIpAd8s+jO/SawkA3Ojk3lYSdOLzkjSNM=";
-          aarch64-linux = "sha256-wc3NdmpaEM15O6R1jclt9OY0WLK2ZZHNUnKJr612WeE=";
-          x86_64-darwin = "sha256-9EZ1Ym5f5YcykbEa9dqhY1QiysF6QlUHODZQ8esBZhM=";
-          aarch64-darwin = "sha256-3pIBNun5R9MQGw41cwh6Cz3Z3+rlRHXLGnJhpwuPS4g=";
+          x86_64-linux = "sha256-Di38SJYeWG/tkRLeED3Dfhlp6W/dpT4giJiA9SuQmiA=";
+          aarch64-linux = "sha256-xANa+sUEabAIra4k1g0FSkb69P1YqbsQ/NK0DglPuQ0=";
+          x86_64-darwin = "sha256-ShQ8rICISaASSUzSu8BBwILy0FGAUXN+iNuI9lyqixA=";
+          aarch64-darwin = "sha256-QGcW5D/rzeZf90FO/hz+zkNMZ0+08GbzFZEsPErez64=";
         };
 
         platformMap = {
